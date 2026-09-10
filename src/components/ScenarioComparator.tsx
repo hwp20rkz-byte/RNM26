@@ -4,16 +4,18 @@ import { useMemo } from "react";
 import { Scale } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useCalculatorStore } from "@/store/useCalculatorStore";
+import { useProjectsStore } from "@/store/useProjectsStore";
+import { useActiveProject } from "@/store/hooks";
 import { computeScenarioTariff } from "@/lib/calculator/engine";
 import { SCENARIOS } from "@/lib/calculator/presets";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
 
 export function ScenarioComparator() {
-  const baseDb = useCalculatorStore((s) => s.baseDb);
-  const building = useCalculatorStore((s) => s.building);
-  const scenario = useCalculatorStore((s) => s.scenario);
-  const setScenario = useCalculatorStore((s) => s.setScenario);
+  const project = useActiveProject();
+  const baseDb = project.baseDb;
+  const building = project.building;
+  const scenario = project.scenario;
+  const setScenario = useProjectsStore((s) => s.setScenario);
 
   const results = useMemo(
     () => SCENARIOS.map((sc) => ({ sc, result: computeScenarioTariff(baseDb, building, sc) })),

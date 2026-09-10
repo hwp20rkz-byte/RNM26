@@ -11,12 +11,22 @@ export type StaffMode = "staff" | "outsource";
 
 export type CostGroup = "management" | "maintenance";
 
-/** Параметры дома — Шаг 1 конфигуратора. */
+/**
+ * Тип объекта расчёта. Формула и структура статей Методики №166 писаны для
+ * жилых МЖД/кондоминиумов; для чисто нежилых объектов она применяется по
+ * аналогии (это не жилищные отношения в смысле Закона РК) — интерфейс
+ * показывает предупреждение, но арифметика (площадь → тариф) работает
+ * одинаково для любого типа объекта.
+ */
+export type ObjectType = "residential" | "mixed" | "commercial";
+
+/** Параметры дома/объекта — Шаг 1 конфигуратора. */
 export interface BuildingProfile {
   name: string;
   address: string;
   region: string;
   serviceClass: ServiceClass;
+  objectType: ObjectType;
   /** Полезная площадь жилых помещений, м² */
   livingArea: number;
   /** Площадь коммерческих (нежилых) помещений, м² */
@@ -185,3 +195,59 @@ export interface ScenarioDefinition {
   forceEnabledItemIds: string[];
   forceDisabledItemIds: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Мультипроектность, справочник статей и сохранённые сметы.
+// Данные живут в localStorage браузера (клиентское приложение без бэкенда) —
+// не синхронизируются между устройствами и очищаются при очистке данных сайта.
+// ---------------------------------------------------------------------------
+
+/** Один расчётный объект (дом/комплекс) со своей базой статей и профилем. */
+export interface Project {
+  id: string;
+  name: string;
+  building: BuildingProfile;
+  /** Пристинная база на момент создания/последнего применения сценария */
+  baseDb: CalculatorDatabase;
+  /** Живая (редактируемая) база текущего проекта */
+  db: CalculatorDatabase;
+  scenario: ScenarioId;
+  priceMultiplier: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Замороженный снимок расчёта — версия сметы, сохранённая пользователем. */
+export interface SavedSmeta {
+  id: string;
+  projectId: string;
+  name: string;
+  savedAt: string;
+  building: BuildingProfile;
+  db: CalculatorDatabase;
+  scenario: ScenarioId;
+  priceMultiplier: number;
+  tariff: TariffResult;
+}
+
+/**
+ * Запись справочника расходных материалов/услуг — не привязана к проекту,
+ * переиспользуется между объектами. Может быть добавлена в любой проект как
+ * новая статья (CostItem) в выбранную категорию.
+ */
+export interface CatalogEntry {
+  id: string;
+  name: string;
+  unit: string;
+  unitPrice: number;
+  defaultQty: number;
+  /** Категория Методики №166, предлагаемая по умолчанию при добавлении в проект */
+  suggestedCategoryId?: string;
+  /** Произвольный тег для поиска/группировки (напр. «Инженерка», «Клининг», «СИЗ») */
+  tag?: string;
+  tooltip?: string;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+

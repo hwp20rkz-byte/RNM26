@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCalculatorStore } from "@/store/useCalculatorStore";
+import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { getScenario } from "@/lib/calculator/presets";
 import { downloadBlob } from "@/lib/export/download";
 
 export function ExportBar() {
-  const db = useCalculatorStore((s) => s.db);
-  const building = useCalculatorStore((s) => s.building);
-  const tariff = useCalculatorStore((s) => s.tariff);
-  const priceMultiplier = useCalculatorStore((s) => s.priceMultiplier);
-  const scenarioId = useCalculatorStore((s) => s.scenario);
+  const project = useActiveProject();
+  const db = project.db;
+  const building = project.building;
+  const priceMultiplier = project.priceMultiplier;
+  const scenarioId = project.scenario;
+  const tariff = useActiveTariff();
   const [busy, setBusy] = useState<string | null>(null);
 
   const scenarioLabel = getScenario(scenarioId).label;

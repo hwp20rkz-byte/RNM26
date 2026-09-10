@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Gauge, Minus } from "lucide-react";
-import { useCalculatorStore, type BudgetPeriod } from "@/store/useCalculatorStore";
+import { useProjectsStore, type BudgetPeriod } from "@/store/useProjectsStore";
+import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { compareToMinTariff, computeApartmentCheck } from "@/lib/calculator/engine";
 import { findMinTariff } from "@/lib/calculator/minTariffs";
 import { APARTMENT_SAMPLE_SIZES } from "@/lib/calculator/presets";
@@ -15,15 +17,22 @@ const PERIOD_LABEL: Record<BudgetPeriod, string> = {
 };
 
 export function StickyHud() {
-  const tariff = useCalculatorStore((s) => s.tariff);
-  const lastTariff = useCalculatorStore((s) => s.lastTariff);
-  const building = useCalculatorStore((s) => s.building);
-  const budgetPeriod = useCalculatorStore((s) => s.budgetPeriod);
-  const setBudgetPeriod = useCalculatorStore((s) => s.setBudgetPeriod);
+  const tariff = useActiveTariff();
+  const building = useActiveProject().building;
+  const budgetPeriod = useProjectsStore((s) => s.budgetPeriod);
+  const setBudgetPeriod = useProjectsStore((s) => s.setBudgetPeriod);
+
+  const [delta, setDelta] = useState(0);
+  const prevTariff = useRef(tariff.tariffPerSqm);
+  useEffect(() => {
+    if (prevTariff.current !== tariff.tariffPerSqm) {
+      setDelta(tariff.tariffPerSqm - prevTariff.current);
+      prevTariff.current = tariff.tariffPerSqm;
+    }
+  }, [tariff.tariffPerSqm]);
 
   const minTariff = findMinTariff(building.region);
   const status = compareToMinTariff(tariff.tariffPerSqm, minTariff);
-  const delta = tariff.tariffPerSqm - lastTariff;
 
   const budgetByPeriod: Record<BudgetPeriod, number> = {
     month: tariff.monthlyBudget,

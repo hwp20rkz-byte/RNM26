@@ -292,6 +292,26 @@ export function buildDefaultDatabase(): CalculatorDatabase {
     categories: CATEGORIES,
     items: [...managementItems, ...contentItems],
     payroll: [...payrollItems, ...contentPayroll],
-    taxRates: DEFAULT_TAX_RATES,
+    taxRates: { ...DEFAULT_TAX_RATES },
+  };
+}
+
+/**
+ * Пустая база для нового объекта: полная структура категорий Методики №166,
+ * но без калиброванных под ЖК «Коркем-1» количеств и цен — только позиция
+ * председателя (управление объектом обязательно для любого ОСИ/ПТ). Остальные
+ * статьи пользователь добавляет вручную или из Справочника.
+ */
+export function buildBlankDatabase(chairmanSalary = 400000): CalculatorDatabase {
+  return {
+    categories: CATEGORIES,
+    items: [],
+    payroll: [
+      payroll("1.1", "Председатель ОСИ / управляющий", 1, chairmanSalary, {
+        mode: "staff",
+        tooltip: "Оклад и налоги пересчитываются автоматически по ставкам РК.",
+      }),
+    ],
+    taxRates: { ...DEFAULT_TAX_RATES },
   };
 }

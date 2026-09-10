@@ -1,14 +1,15 @@
 "use client";
 
-import { useCalculatorStore } from "@/store/useCalculatorStore";
+import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { getScenario } from "@/lib/calculator/presets";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
 
 export function PrintSummary() {
-  const building = useCalculatorStore((s) => s.building);
-  const tariff = useCalculatorStore((s) => s.tariff);
-  const scenario = useCalculatorStore((s) => s.scenario);
-  const db = useCalculatorStore((s) => s.db);
+  const project = useActiveProject();
+  const building = project.building;
+  const scenario = project.scenario;
+  const db = project.db;
+  const tariff = useActiveTariff();
 
   const categoryTotals = new Map(tariff.categoryTotals.map((t) => [t.categoryId, t]));
   const topLevel = db.categories.filter((c) => c.parentId === null);

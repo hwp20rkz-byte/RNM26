@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, MapPin, Sparkles } from "lucide-react";
+import { AlertTriangle, Building2, MapPin, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NumberField } from "@/components/NumberField";
-import { useCalculatorStore } from "@/store/useCalculatorStore";
+import { useProjectsStore } from "@/store/useProjectsStore";
+import { useActiveProject } from "@/store/hooks";
 import { buildingProfileSchema } from "@/lib/calculator/validation";
-import { SERVICE_CLASS_LABELS } from "@/lib/calculator/presets";
+import { OBJECT_TYPE_LABELS, SERVICE_CLASS_LABELS } from "@/lib/calculator/presets";
 import { REGIONAL_MIN_TARIFFS } from "@/lib/calculator/minTariffs";
-import type { ServiceClass } from "@/lib/calculator/types";
+import type { ObjectType, ServiceClass } from "@/lib/calculator/types";
 
 const SERVICE_CLASS_PRESETS: Record<ServiceClass, { capitalRepairMrpMultiplier: number; commercialRateCoefficient: number }> = {
   economy: { capitalRepairMrpMultiplier: 0.005, commercialRateCoefficient: 1.0 },
@@ -19,9 +20,9 @@ const SERVICE_CLASS_PRESETS: Record<ServiceClass, { capitalRepairMrpMultiplier: 
 };
 
 export function BuildingProfileForm() {
-  const building = useCalculatorStore((s) => s.building);
-  const setBuilding = useCalculatorStore((s) => s.setBuilding);
-  const applyServiceClassPreset = useCalculatorStore((s) => s.applyServiceClassPreset);
+  const building = useActiveProject().building;
+  const setBuilding = useProjectsStore((s) => s.setBuilding);
+  const applyServiceClassPreset = useProjectsStore((s) => s.applyServiceClassPreset);
   const [touched, setTouched] = useState(false);
 
   const errors = useMemo(() => {
@@ -48,23 +49,51 @@ export function BuildingProfileForm() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Шаг 1. Конфигуратор дома</CardTitle>
+          <CardTitle>Шаг 1. Конфигуратор объекта</CardTitle>
         </div>
         <CardDescription>
-          Параметры объекта кондоминиума — база для расчёта тарифа и объёмов работ.
+          Параметры объекта — база для расчёта тарифа и объёмов работ. Подходит для любого жилого
+          и нежилого объекта, не только кондоминиума.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Название ЖК / комплекса
+              Название объекта
             </span>
             <input
               className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900"
               value={building.name}
               onChange={(e) => setBuilding({ name: e.target.value })}
             />
+          </label>
+
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Адрес</span>
+            <input
+              className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+              value={building.address}
+              onChange={(e) => setBuilding({ address: e.target.value })}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Тип объекта
+            </span>
+            <Select value={building.objectType} onValueChange={(v) => setBuilding({ objectType: v as ObjectType })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(OBJECT_TYPE_LABELS) as ObjectType[]).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {OBJECT_TYPE_LABELS[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
 
           <label className="flex flex-col gap-1">
@@ -87,7 +116,7 @@ export function BuildingProfileForm() {
 
           <label className="flex flex-col gap-1">
             <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <Sparkles className="h-3.5 w-3.5" /> Класс жилья (пресет)
+              <Sparkles className="h-3.5 w-3.5" /> Класс обслуживания (пресет)
             </span>
             <Select value={building.serviceClass} onValueChange={(v) => onServiceClassChange(v as ServiceClass)}>
               <SelectTrigger>
@@ -104,18 +133,31 @@ export function BuildingProfileForm() {
           </label>
         </div>
 
+        {building.objectType !== "residential" && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Методика №166 и Закон РК «О жилищных отношениях» писаны для кондоминиумов (жильё).
+              Для {building.objectType === "commercial" ? "нежилого" : "смешанного"} объекта формула
+              «стоимость / площадь» применяется по аналогии как общий расчётный подход, а не как
+              обязательный нормативный расчёт — юридическую применимость к вашему случаю (аренда,
+              эксплуатация БЦ/ТРЦ и т.п.) уточните отдельно.
+            </p>
+          </div>
+        )}
+
         <div>
           <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Площади</h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <NumberField
-              label="Полезная площадь квартир"
+              label="Полезная площадь жилых помещений"
               suffix="м²"
               value={building.livingArea}
               onChange={(v) => setBuilding({ livingArea: v })}
               error={touched ? errors.livingArea : undefined}
             />
             <NumberField
-              label="Площадь коммерческих помещений"
+              label="Площадь коммерческих/нежилых помещений"
               suffix="м²"
               value={building.commercialArea}
               onChange={(v) => setBuilding({ commercialArea: v })}
@@ -127,7 +169,7 @@ export function BuildingProfileForm() {
               onChange={(v) => setBuilding({ storageArea: v })}
             />
             <NumberField
-              label="Асфальт / брусчатка двора"
+              label="Асфальт / брусчатка территории"
               suffix="м²"
               value={building.yardPavedArea}
               onChange={(v) => setBuilding({ yardPavedArea: v })}
@@ -146,7 +188,7 @@ export function BuildingProfileForm() {
             />
           </div>
           <p className="mt-2 text-xs text-slate-400">
-            Полезная площадь для формулы тарифа (S полез.) = квартиры + коммерческие ={" "}
+            Полезная площадь для формулы тарифа (S полез.) = жилая + коммерческая ={" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">
               {usefulArea.toLocaleString("ru-RU")} м²
             </span>
@@ -157,13 +199,12 @@ export function BuildingProfileForm() {
           <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Конструктив</h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <NumberField
-              label="Количество квартир"
+              label="Количество квартир / помещений"
               value={building.apartments}
               onChange={(v) => setBuilding({ apartments: Math.round(v) })}
-              error={touched ? errors.apartments : undefined}
             />
             <NumberField
-              label="Количество подъездов"
+              label="Количество подъездов / входов"
               value={building.entrances}
               onChange={(v) =>
                 setBuilding({
@@ -174,6 +215,7 @@ export function BuildingProfileForm() {
                   ),
                 })
               }
+              error={touched ? errors.entrances : undefined}
             />
             <NumberField
               label="Этажность (среднее по подъездам)"
@@ -183,7 +225,7 @@ export function BuildingProfileForm() {
                   floorsPerEntrance: Array(building.entrances).fill(Math.round(v)),
                 })
               }
-              hint={`Всего этажей по дому: ${totalFloors}`}
+              hint={`Всего этажей по объекту: ${totalFloors}`}
             />
             <NumberField
               label="Количество лифтов"
@@ -214,7 +256,7 @@ export function BuildingProfileForm() {
               value={building.capitalRepairMrpMultiplier}
               step={0.001}
               onChange={(v) => setBuilding({ capitalRepairMrpMultiplier: v })}
-              hint="Минимум 0,005 МРП — ст.60-1 Закона «О жилищных отношениях»"
+              hint="Минимум 0,005 МРП — ст.60-1 Закона «О жилищных отношениях» (для жилых объектов)"
               error={touched ? errors.capitalRepairMrpMultiplier : undefined}
             />
             <NumberField

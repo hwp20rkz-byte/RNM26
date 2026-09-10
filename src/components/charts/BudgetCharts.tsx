@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCalculatorStore } from "@/store/useCalculatorStore";
+import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { getChildren } from "@/lib/calculator/engine";
 import { formatKzt } from "@/lib/utils";
 
@@ -34,9 +34,10 @@ const PALETTE = [
 ];
 
 export function BudgetCharts() {
-  const db = useCalculatorStore((s) => s.db);
-  const tariff = useCalculatorStore((s) => s.tariff);
-  const building = useCalculatorStore((s) => s.building);
+  const project = useActiveProject();
+  const db = project.db;
+  const building = project.building;
+  const tariff = useActiveTariff();
 
   const totalsById = useMemo(
     () => new Map(tariff.categoryTotals.map((t) => [t.categoryId, t])),
