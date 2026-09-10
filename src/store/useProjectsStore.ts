@@ -10,6 +10,7 @@ import type {
   CostItem,
   EquipmentType,
   GeneralMeeting,
+  MaintenanceTask,
   MeetingFormat,
   MeetingParticipant,
   ObjectType,
@@ -162,6 +163,14 @@ interface ProjectsState {
   updateAgendaItem: (meetingId: string, itemId: string, patch: Partial<AgendaItem>) => void;
   removeAgendaItem: (meetingId: string, itemId: string) => void;
   setVote: (meetingId: string, agendaItemId: string, unitId: string, choice: VoteChoice) => void;
+
+  // --- календарь регламентных работ ---
+  addMaintenanceTask: (
+    task: Pick<MaintenanceTask, "name" | "periodicityMonths"> & Partial<MaintenanceTask>,
+  ) => void;
+  updateMaintenanceTask: (id: string, patch: Partial<MaintenanceTask>) => void;
+  removeMaintenanceTask: (id: string) => void;
+  markMaintenanceTaskServiced: (id: string, date: string) => void;
 
   // --- сохранённые сметы ---
   saveSmeta: (name: string) => string;
@@ -789,6 +798,46 @@ export const useProjectsStore = create<ProjectsState>()(
                 ),
               },
             };
+          });
+        },
+
+        // --- календарь регламентных работ ---
+        addMaintenanceTask: (task) => {
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newTask: MaintenanceTask = { id: genId("mtask"), createdAt: ts, updatedAt: ts, ...task };
+            return {
+              projects: { ...s.projects, [p.id]: touchProject({ ...p, maintenanceTasks: [...p.maintenanceTasks, newTask] }) },
+            };
+          });
+        },
+
+        updateMaintenanceTask: (id, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const maintenanceTasks = p.maintenanceTasks.map((t) =>
+              t.id === id ? { ...t, ...patch, updatedAt: nowIso() } : t,
+            );
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, maintenanceTasks }) } };
+          });
+        },
+
+        removeMaintenanceTask: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const maintenanceTasks = p.maintenanceTasks.filter((t) => t.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, maintenanceTasks }) } };
+          });
+        },
+
+        markMaintenanceTaskServiced: (id, date) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const maintenanceTasks = p.maintenanceTasks.map((t) =>
+              t.id === id ? { ...t, lastServiceDate: date, updatedAt: nowIso() } : t,
+            );
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, maintenanceTasks }) } };
           });
         },
 

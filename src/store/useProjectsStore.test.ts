@@ -407,3 +407,32 @@ describe("реестр собственников и общие собрания
     expect(selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)).toBeUndefined();
   });
 });
+
+describe("календарь регламентных работ", () => {
+  it("демо-проект стартует с пустым календарём", () => {
+    expect(selectActiveProject(useProjectsStore.getState()).maintenanceTasks).toEqual([]);
+  });
+
+  it("addMaintenanceTask/updateMaintenanceTask/removeMaintenanceTask — CRUD", () => {
+    useProjectsStore.getState().addMaintenanceTask({ name: "Поверка теплосчётчиков", periodicityMonths: 48 });
+    let tasks = selectActiveProject(useProjectsStore.getState()).maintenanceTasks;
+    expect(tasks).toHaveLength(1);
+    const id = tasks[0].id;
+
+    useProjectsStore.getState().updateMaintenanceTask(id, { periodicityMonths: 36 });
+    tasks = selectActiveProject(useProjectsStore.getState()).maintenanceTasks;
+    expect(tasks[0].periodicityMonths).toBe(36);
+
+    useProjectsStore.getState().removeMaintenanceTask(id);
+    tasks = selectActiveProject(useProjectsStore.getState()).maintenanceTasks;
+    expect(tasks).toHaveLength(0);
+  });
+
+  it("markMaintenanceTaskServiced проставляет дату последнего обслуживания", () => {
+    useProjectsStore.getState().addMaintenanceTask({ name: "АПС", periodicityMonths: 12 });
+    const id = selectActiveProject(useProjectsStore.getState()).maintenanceTasks[0].id;
+    useProjectsStore.getState().markMaintenanceTaskServiced(id, "2026-03-01");
+    const task = selectActiveProject(useProjectsStore.getState()).maintenanceTasks.find((t) => t.id === id);
+    expect(task?.lastServiceDate).toBe("2026-03-01");
+  });
+});
