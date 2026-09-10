@@ -8,21 +8,16 @@ import { NumberField } from "@/components/NumberField";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { buildingProfileSchema } from "@/lib/calculator/validation";
-import { OBJECT_TYPE_LABELS, SERVICE_CLASS_LABELS } from "@/lib/calculator/presets";
+import { OBJECT_TYPE_LABELS, PRESET_FIELD_HELP } from "@/lib/calculator/presets";
 import { REGIONAL_MIN_TARIFFS } from "@/lib/calculator/minTariffs";
-import type { ObjectType, ServiceClass } from "@/lib/calculator/types";
-
-const SERVICE_CLASS_PRESETS: Record<ServiceClass, { capitalRepairMrpMultiplier: number; commercialRateCoefficient: number }> = {
-  economy: { capitalRepairMrpMultiplier: 0.005, commercialRateCoefficient: 1.0 },
-  comfort: { capitalRepairMrpMultiplier: 0.007, commercialRateCoefficient: 1.3 },
-  business: { capitalRepairMrpMultiplier: 0.01, commercialRateCoefficient: 1.6 },
-  premium: { capitalRepairMrpMultiplier: 0.015, commercialRateCoefficient: 2.0 },
-};
+import type { ObjectType } from "@/lib/calculator/types";
 
 export function BuildingProfileForm() {
-  const building = useActiveProject().building;
+  const project = useActiveProject();
+  const building = project.building;
   const setBuilding = useProjectsStore((s) => s.setBuilding);
-  const applyServiceClassPreset = useProjectsStore((s) => s.applyServiceClassPreset);
+  const presets = useProjectsStore((s) => s.presets);
+  const setPreset = useProjectsStore((s) => s.setPreset);
   const [touched, setTouched] = useState(false);
 
   const errors = useMemo(() => {
@@ -37,10 +32,10 @@ export function BuildingProfileForm() {
 
   const usefulArea = building.livingArea + building.commercialArea;
   const totalFloors = building.floorsPerEntrance.reduce((a, b) => a + b, 0);
+  const activePreset = presets.find((p) => p.id === project.presetId) ?? presets[0];
 
-  function onServiceClassChange(sc: ServiceClass) {
-    const preset = SERVICE_CLASS_PRESETS[sc];
-    applyServiceClassPreset({ serviceClass: sc, ...preset });
+  function onPresetChange(id: string) {
+    setPreset(id);
     setTouched(true);
   }
 
@@ -118,20 +113,46 @@ export function BuildingProfileForm() {
             <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
               <Sparkles className="h-3.5 w-3.5" /> Класс обслуживания (пресет)
             </span>
-            <Select value={building.serviceClass} onValueChange={(v) => onServiceClassChange(v as ServiceClass)}>
+            <Select value={project.presetId} onValueChange={onPresetChange}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SERVICE_CLASS_LABELS) as ServiceClass[]).map((sc) => (
-                  <SelectItem key={sc} value={sc}>
-                    {SERVICE_CLASS_LABELS[sc]}
+                {presets.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.label}
+                    {!p.builtIn ? " · свой" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </label>
         </div>
+
+        {activePreset && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs dark:border-slate-800 dark:bg-slate-800/40">
+            <p className="mb-1.5 text-slate-600 dark:text-slate-300">{activePreset.description}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-500 dark:text-slate-400">
+              <span title={PRESET_FIELD_HELP.priceMultiplier.help}>
+                {PRESET_FIELD_HELP.priceMultiplier.label}: <b>×{activePreset.priceMultiplier}</b>
+              </span>
+              <span title={PRESET_FIELD_HELP.maxServiceClass.help}>
+                {PRESET_FIELD_HELP.maxServiceClass.label}: <b>{activePreset.maxServiceClass}</b>
+              </span>
+              <span title={PRESET_FIELD_HELP.capitalRepairMrpMultiplier.help}>
+                {PRESET_FIELD_HELP.capitalRepairMrpMultiplier.label}: <b>{activePreset.capitalRepairMrpMultiplier} МРП</b>
+              </span>
+              <span title={PRESET_FIELD_HELP.commercialRateCoefficient.help}>
+                {PRESET_FIELD_HELP.commercialRateCoefficient.label}: <b>×{activePreset.commercialRateCoefficient}</b>
+              </span>
+            </div>
+            <p className="mt-1.5 text-slate-400">
+              Выбор пресета сразу обновляет взнос на капремонт и коэффициент для нежилых ниже — при
+              необходимости донастройте их вручную. Отредактировать состав пресетов или создать свой
+              — во вкладке «Пресеты» рядом с Конструктором.
+            </p>
+          </div>
+        )}
 
         {building.objectType !== "residential" && (
           <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">

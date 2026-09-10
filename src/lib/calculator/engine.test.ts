@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { buildDefaultDatabase } from "./database";
-import { DEFAULT_BUILDING, SCENARIOS } from "./presets";
+import { BUILTIN_PRESETS, DEFAULT_BUILDING } from "./presets";
 import {
-  applyScenario,
+  applyPreset,
   computeApartmentCheck,
   computeCapitalRepairAnnual,
   computeCategoryTotals,
-  computeScenarioTariff,
+  computePresetTariff,
   computeTariff,
   compareToMinTariff,
   getChildren,
@@ -128,23 +128,31 @@ describe("категории — обход дерева", () => {
   });
 });
 
-describe("applyScenario / computeScenarioTariff", () => {
-  it("сценарий «Эконом» дешевле «Бизнес» на одинаковой базе", () => {
+describe("applyPreset / computePresetTariff", () => {
+  it("пресет «Эконом» дешевле «Бизнес» на одинаковой базе", () => {
     const db = buildDefaultDatabase();
-    const economy = SCENARIOS.find((s) => s.id === "economy")!;
-    const business = SCENARIOS.find((s) => s.id === "business")!;
-    const economyResult = computeScenarioTariff(db, DEFAULT_BUILDING, economy);
-    const businessResult = computeScenarioTariff(db, DEFAULT_BUILDING, business);
+    const economy = BUILTIN_PRESETS.find((p) => p.id === "economy")!;
+    const business = BUILTIN_PRESETS.find((p) => p.id === "business")!;
+    const economyResult = computePresetTariff(db, DEFAULT_BUILDING, economy);
+    const businessResult = computePresetTariff(db, DEFAULT_BUILDING, business);
     expect(economyResult.tariffPerSqm).toBeLessThan(businessResult.tariffPerSqm);
   });
 
-  it("applyScenario отключает позиции выше допустимого класса жилья", () => {
+  it("applyPreset отключает позиции выше допустимого класса обслуживания", () => {
     const db = buildDefaultDatabase();
-    const economy = SCENARIOS.find((s) => s.id === "economy")!;
-    const filtered = applyScenario(db, economy);
+    const economy = BUILTIN_PRESETS.find((p) => p.id === "economy")!;
+    const filtered = applyPreset(db, economy);
     const businessOnlyItem = filtered.items.find((it) => it.minServiceClass === "comfort");
     const businessOnlyPayroll = filtered.payroll.find((p) => p.minServiceClass === "business");
     expect(businessOnlyItem?.enabled).toBe(false);
     expect(businessOnlyPayroll?.enabled).toBe(false);
+  });
+
+  it("все 4 встроенных пресета образуют возрастающую по цене лестницу", () => {
+    const db = buildDefaultDatabase();
+    const tariffs = BUILTIN_PRESETS.map((p) => computePresetTariff(db, DEFAULT_BUILDING, p).tariffPerSqm);
+    for (let i = 1; i < tariffs.length; i++) {
+      expect(tariffs[i]).toBeGreaterThan(tariffs[i - 1]);
+    }
   });
 });

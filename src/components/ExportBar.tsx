@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
-import { getScenario } from "@/lib/calculator/presets";
+import { useProjectsStore } from "@/store/useProjectsStore";
 import { downloadBlob } from "@/lib/export/download";
 
 export function ExportBar() {
@@ -12,11 +12,11 @@ export function ExportBar() {
   const db = project.db;
   const building = project.building;
   const priceMultiplier = project.priceMultiplier;
-  const scenarioId = project.scenario;
+  const presets = useProjectsStore((s) => s.presets);
   const tariff = useActiveTariff();
   const [busy, setBusy] = useState<string | null>(null);
 
-  const scenarioLabel = getScenario(scenarioId).label;
+  const scenarioLabel = presets.find((p) => p.id === project.presetId)?.label ?? project.presetId;
   const filenameBase = building.name.replace(/[^\p{L}\p{N}]+/gu, "_");
 
   async function handleExcel() {

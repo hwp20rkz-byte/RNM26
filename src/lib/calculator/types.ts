@@ -5,8 +5,6 @@
 
 export type ServiceClass = "economy" | "comfort" | "business" | "premium";
 
-export type ScenarioId = "economy" | "standard" | "business";
-
 export type StaffMode = "staff" | "outsource";
 
 export type CostGroup = "management" | "maintenance";
@@ -183,17 +181,34 @@ export interface RegionalMinTariff {
   verified: boolean;
 }
 
-export interface ScenarioDefinition {
-  id: ScenarioId;
+/**
+ * Пресет обслуживания — единая настройка, которая раньше была разбита на два
+ * несвязанных места (класс жилья в Шаге 1 и сценарий в Шаге 3). Выбор
+ * пресета одновременно: (1) ограничивает набор доступных статей потолком
+ * `maxServiceClass` — статьи с более высоким `minServiceClass` отключаются,
+ * (2) масштабирует цены всех статей множителем `priceMultiplier`,
+ * (3) проставляет взнос на капремонт и коэффициент для нежилых в профиль
+ * объекта. Встроенные пресеты (`builtIn: true`) нельзя удалить, но можно
+ * скопировать как основу для своего через «Дублировать».
+ */
+export interface ServicePreset {
+  id: string;
   label: string;
   description: string;
-  /** Множитель к базовым ценам (качество/периодичность) */
+  /** Множитель к базовым ценам всех статей (качество/периодичность обслуживания) */
   priceMultiplier: number;
-  /** Категории/классы обслуживания, доступные в сценарии */
+  /** Потолок класса: статьи с более высоким minServiceClass автоматически отключаются */
   maxServiceClass: ServiceClass;
-  /** Принудительно включённые/отключённые доп. статьи (id статей) */
+  /** Взнос на капремонт, применяется к профилю объекта при выборе пресета, в кратности МРП/м²/мес. */
+  capitalRepairMrpMultiplier: number;
+  /** Коэффициент тарифа для нежилых помещений, применяется к профилю объекта */
+  commercialRateCoefficient: number;
+  /** Статьи, принудительно включаемые вне зависимости от maxServiceClass (по id) */
   forceEnabledItemIds: string[];
+  /** Статьи, принудительно отключаемые вне зависимости от maxServiceClass (по id) */
   forceDisabledItemIds: string[];
+  /** Встроенный (нередактируемый состав, но поля можно смотреть) пресет — нельзя удалить */
+  builtIn?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +226,8 @@ export interface Project {
   baseDb: CalculatorDatabase;
   /** Живая (редактируемая) база текущего проекта */
   db: CalculatorDatabase;
-  scenario: ScenarioId;
+  /** id применённого пресета (см. ServicePreset) */
+  presetId: string;
   priceMultiplier: number;
   createdAt: string;
   updatedAt: string;
@@ -225,7 +241,7 @@ export interface SavedSmeta {
   savedAt: string;
   building: BuildingProfile;
   db: CalculatorDatabase;
-  scenario: ScenarioId;
+  presetId: string;
   priceMultiplier: number;
   tariff: TariffResult;
 }

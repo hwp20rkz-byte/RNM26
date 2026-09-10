@@ -1,4 +1,4 @@
-import type { BuildingProfile, ObjectType, ScenarioDefinition, ServiceClass } from "./types";
+import type { BuildingProfile, ObjectType, ServiceClass, ServicePreset } from "./types";
 
 /** Дефолтный профиль дома — калиброван на реальную смету ЖК «Коркем-1», Алматы. */
 export const DEFAULT_BUILDING: BuildingProfile = {
@@ -61,42 +61,93 @@ export function buildBlankBuilding(name: string, objectType: ObjectType = "resid
   };
 }
 
-export const SCENARIOS: ScenarioDefinition[] = [
+/**
+ * Расшифровка полей пресета — используется и в редакторе, и как подсказки
+ * рядом с выбором класса обслуживания в Шаге 1.
+ */
+export const PRESET_FIELD_HELP: Record<
+  "priceMultiplier" | "maxServiceClass" | "capitalRepairMrpMultiplier" | "commercialRateCoefficient",
+  { label: string; help: string }
+> = {
+  priceMultiplier: {
+    label: "Множитель цен",
+    help: "Масштабирует цену КАЖДОЙ статьи расходов и оклада в базе (×0.85 = на 15% дешевле рынка/реже периодичность, ×1.25 = премиальные расценки/чаще обслуживание).",
+  },
+  maxServiceClass: {
+    label: "Потолок класса статей",
+    help: "Статьи, помеченные более высоким классом (напр. «Бизнес+»: консьерж, альпинисты, видеонаблюдение), автоматически отключаются, если класс объекта выше потолка пресета.",
+  },
+  capitalRepairMrpMultiplier: {
+    label: "Взнос на капремонт",
+    help: "Проставляется в профиль объекта (Шаг 1) при выборе пресета — доля МРП с 1 м² в месяц. Минимум по закону — 0,005 МРП.",
+  },
+  commercialRateCoefficient: {
+    label: "Коэффициент для нежилых",
+    help: "Проставляется в профиль объекта — во сколько раз тариф для коммерческих/нежилых помещений выше базового тарифа В.",
+  },
+};
+
+/**
+ * Встроенные пресеты обслуживания. Раньше «класс жилья» (Шаг 1) и «сценарий»
+ * (Шаг 3) были двумя независимыми списками с разными id и разным эффектом —
+ * теперь это одна и та же сущность: выбор в любом из двух мест одинаково
+ * меняет набор доступных статей, цены и профиль объекта. Поля можно
+ * редактировать (кроме удаления) через конструктор пресетов.
+ */
+export const BUILTIN_PRESETS: ServicePreset[] = [
   {
     id: "economy",
-    label: "Эконом / Выживание",
+    label: "Эконом",
     description:
-      "Только критические, предписанные законом работы: аварийная служба, противопожарные системы, обязательный минимум капремонта. Экономия на периодичности уборки и косметике.",
+      "Только критические, предписанные законом работы: аварийная служба, противопожарные системы, обязательный минимум капремонта. Реже уборка, дешевле расходники, без косметики и допуслуг.",
     priceMultiplier: 0.85,
     maxServiceClass: "economy",
+    capitalRepairMrpMultiplier: 0.005,
+    commercialRateCoefficient: 1.0,
     forceEnabledItemIds: [],
     forceDisabledItemIds: [],
+    builtIn: true,
   },
   {
     id: "standard",
-    label: "Базовый / Стандарт",
+    label: "Комфорт (Стандарт)",
     description:
-      "Сбалансированное обслуживание для сохранения ресурса дома: полное ТО инженерии, регулярная уборка, плановый текущий ремонт.",
+      "Сбалансированное обслуживание для сохранения ресурса дома: полное ТО инженерии, регулярная уборка, плановый текущий ремонт по рыночным ценам без наценки и без урезания.",
     priceMultiplier: 1.0,
     maxServiceClass: "comfort",
+    capitalRepairMrpMultiplier: 0.007,
+    commercialRateCoefficient: 1.3,
     forceEnabledItemIds: [],
     forceDisabledItemIds: [],
+    builtIn: true,
   },
   {
     id: "business",
-    label: "Бизнес / Максимум",
+    label: "Бизнес",
     description:
-      "Консьерж-сервис, охрана, премиальная химия, частая мойка фасадов альпинистами, ландшафтный дизайн, видеонаблюдение.",
-    priceMultiplier: 1.25,
-    maxServiceClass: "premium",
+      "Расширенный сервис: охрана, клининг паркинга, IP-видеонаблюдение, более частая мойка фасадов. Дороже за счёт качества расходников и периодичности, но без консьержа и ландшафтного дизайна.",
+    priceMultiplier: 1.15,
+    maxServiceClass: "business",
+    capitalRepairMrpMultiplier: 0.01,
+    commercialRateCoefficient: 1.6,
     forceEnabledItemIds: [],
     forceDisabledItemIds: [],
+    builtIn: true,
+  },
+  {
+    id: "premium",
+    label: "Премиум",
+    description:
+      "Максимум: консьерж-сервис, премиальная химия, альпинисты по расширенному графику, ландшафтный дизайн. Все статьи каталога доступны, цены — по верхней рыночной планке.",
+    priceMultiplier: 1.35,
+    maxServiceClass: "premium",
+    capitalRepairMrpMultiplier: 0.015,
+    commercialRateCoefficient: 2.0,
+    forceEnabledItemIds: [],
+    forceDisabledItemIds: [],
+    builtIn: true,
   },
 ];
-
-export function getScenario(id: string): ScenarioDefinition {
-  return SCENARIOS.find((s) => s.id === id) ?? SCENARIOS[1];
-}
 
 export const APARTMENT_SAMPLE_SIZES: { label: string; area: number }[] = [
   { label: "1-комн.", area: 40 },

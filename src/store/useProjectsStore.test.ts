@@ -148,3 +148,92 @@ describe("сохранённые сметы", () => {
     expect(useProjectsStore.getState().savedSmetas[id]).toBeUndefined();
   });
 });
+
+describe("пресеты обслуживания", () => {
+  it("стартует с 4 встроенных пресетов, включая применённый к демо-проекту", () => {
+    const s = useProjectsStore.getState();
+    expect(s.presets.length).toBe(4);
+    expect(s.presets.every((p) => p.builtIn)).toBe(true);
+    expect(selectActiveProject(s).presetId).toBe("standard");
+  });
+
+  it("setPreset применяет все 4 поля пресета к проекту и фильтрует статьи", () => {
+    const s = useProjectsStore.getState();
+    const before = selectActiveProject(s);
+    expect(before.building.serviceClass).toBe("comfort");
+
+    s.setPreset("economy");
+    const after = selectActiveProject(useProjectsStore.getState());
+    expect(after.presetId).toBe("economy");
+    expect(after.priceMultiplier).toBe(0.85);
+    expect(after.building.serviceClass).toBe("economy");
+    expect(after.building.capitalRepairMrpMultiplier).toBe(0.005);
+    // статьи с более высоким классом должны быть отключены
+    const highClassItem = after.db.items.find((i) => i.minServiceClass === "comfort");
+    expect(highClassItem?.enabled).toBe(false);
+  });
+
+  it("createPreset добавляет свой пресет, сразу доступный для setPreset", () => {
+    const id = useProjectsStore.getState().createPreset({
+      label: "Мой пресет",
+      description: "тест",
+      priceMultiplier: 1.5,
+      maxServiceClass: "premium",
+      capitalRepairMrpMultiplier: 0.02,
+      commercialRateCoefficient: 2.5,
+      forceEnabledItemIds: [],
+      forceDisabledItemIds: [],
+    });
+    expect(useProjectsStore.getState().presets.find((p) => p.id === id)?.builtIn).toBe(false);
+
+    useProjectsStore.getState().setPreset(id);
+    const active = selectActiveProject(useProjectsStore.getState());
+    expect(active.priceMultiplier).toBe(1.5);
+    expect(active.building.commercialRateCoefficient).toBe(2.5);
+  });
+
+  it("updatePreset на применённом пресете немедленно пересчитывает проект", () => {
+    const s = useProjectsStore.getState();
+    expect(selectActiveProject(s).presetId).toBe("standard");
+    s.updatePreset("standard", { priceMultiplier: 1.77 });
+    expect(selectActiveProject(useProjectsStore.getState()).priceMultiplier).toBe(1.77);
+  });
+
+  it("duplicatePreset создаёт независимую копию, помеченную как своя", () => {
+    const s = useProjectsStore.getState();
+    const originalCount = s.presets.length;
+    const newId = s.duplicatePreset("business");
+    const copy = useProjectsStore.getState().presets.find((p) => p.id === newId)!;
+    expect(copy.builtIn).toBe(false);
+    expect(copy.label).toContain("копия");
+    expect(useProjectsStore.getState().presets.length).toBe(originalCount + 1);
+  });
+
+  it("нельзя удалить встроенный пресет", () => {
+    const before = useProjectsStore.getState().presets.length;
+    useProjectsStore.getState().deletePreset("economy");
+    expect(useProjectsStore.getState().presets.length).toBe(before);
+    expect(useProjectsStore.getState().presets.find((p) => p.id === "economy")).toBeDefined();
+  });
+
+  it("deletePreset переводит проекты с удалённым своим пресетом на «Комфорт (Стандарт)»", () => {
+    const s = useProjectsStore.getState();
+    const customId = s.createPreset({
+      label: "Временный",
+      description: "",
+      priceMultiplier: 1,
+      maxServiceClass: "comfort",
+      capitalRepairMrpMultiplier: 0.007,
+      commercialRateCoefficient: 1.3,
+      forceEnabledItemIds: [],
+      forceDisabledItemIds: [],
+    });
+    useProjectsStore.getState().setPreset(customId);
+    expect(selectActiveProject(useProjectsStore.getState()).presetId).toBe(customId);
+
+    useProjectsStore.getState().deletePreset(customId);
+    const active = selectActiveProject(useProjectsStore.getState());
+    expect(active.presetId).toBe("standard");
+    expect(useProjectsStore.getState().presets.find((p) => p.id === customId)).toBeUndefined();
+  });
+});

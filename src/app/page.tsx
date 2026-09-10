@@ -6,6 +6,7 @@ import { StickyHud } from "@/components/StickyHud";
 import { BuildingProfileForm } from "@/components/BuildingProfileForm";
 import { CostCategoryTree } from "@/components/CostCategoryTree";
 import { PriceCatalog } from "@/components/PriceCatalog";
+import { PresetEditor } from "@/components/PresetEditor";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { ScenarioComparator } from "@/components/ScenarioComparator";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
@@ -71,12 +72,16 @@ export default function HomePage() {
               <TabsList>
                 <TabsTrigger value="constructor">Конструктор</TabsTrigger>
                 <TabsTrigger value="catalog">Справочник</TabsTrigger>
+                <TabsTrigger value="presets">Пресеты</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
                 <CostCategoryTree />
               </TabsContent>
               <TabsContent value="catalog">
                 <PriceCatalog />
+              </TabsContent>
+              <TabsContent value="presets">
+                <PresetEditor />
               </TabsContent>
             </Tabs>
           </CardContent>

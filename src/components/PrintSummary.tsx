@@ -1,13 +1,14 @@
 "use client";
 
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
-import { getScenario } from "@/lib/calculator/presets";
+import { useProjectsStore } from "@/store/useProjectsStore";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
 
 export function PrintSummary() {
   const project = useActiveProject();
   const building = project.building;
-  const scenario = project.scenario;
+  const presets = useProjectsStore((s) => s.presets);
+  const presetLabel = presets.find((p) => p.id === project.presetId)?.label ?? project.presetId;
   const db = project.db;
   const tariff = useActiveTariff();
 
@@ -18,7 +19,7 @@ export function PrintSummary() {
     <div className="print-only">
       <h1 className="text-xl font-bold">Смета расходов ОСИ / ПТ «{building.name}»</h1>
       <p className="text-sm text-slate-500">
-        {building.address} · Сценарий: {getScenario(scenario).label}
+        {building.address} · Пресет: {presetLabel}
       </p>
 
       <table className="mt-4 w-full border-collapse text-sm">

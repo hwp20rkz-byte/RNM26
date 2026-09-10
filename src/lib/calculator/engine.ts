@@ -8,7 +8,7 @@ import type {
   PayrollPosition,
   PayrollTaxRates,
   RegionalMinTariff,
-  ScenarioDefinition,
+  ServicePreset,
   TariffResult,
 } from "./types";
 
@@ -182,42 +182,42 @@ export function compareToMinTariff(
 }
 
 // ---------------------------------------------------------------------------
-// Сценарии — применение мультипликатора и фильтров к базе
+// Пресеты обслуживания — применение мультипликатора и фильтров к базе
 // ---------------------------------------------------------------------------
 
-export function applyScenario(
+export function applyPreset(
   db: CalculatorDatabase,
-  scenario: ScenarioDefinition,
+  preset: ServicePreset,
 ): CalculatorDatabase {
   const classOrder: Record<string, number> = { economy: 0, comfort: 1, business: 2, premium: 3 };
-  const maxRank = classOrder[scenario.maxServiceClass];
+  const maxRank = classOrder[preset.maxServiceClass];
 
   const items = db.items.map((it) => {
     let enabled = it.enabled;
     if (it.minServiceClass && classOrder[it.minServiceClass] > maxRank) enabled = false;
-    if (scenario.forceDisabledItemIds.includes(it.id)) enabled = false;
-    if (scenario.forceEnabledItemIds.includes(it.id)) enabled = true;
+    if (preset.forceDisabledItemIds.includes(it.id)) enabled = false;
+    if (preset.forceEnabledItemIds.includes(it.id)) enabled = true;
     return { ...it, enabled };
   });
 
   const payroll = db.payroll.map((p) => {
     let enabled = p.enabled;
     if (p.minServiceClass && classOrder[p.minServiceClass] > maxRank) enabled = false;
-    if (scenario.forceDisabledItemIds.includes(p.id)) enabled = false;
-    if (scenario.forceEnabledItemIds.includes(p.id)) enabled = true;
+    if (preset.forceDisabledItemIds.includes(p.id)) enabled = false;
+    if (preset.forceEnabledItemIds.includes(p.id)) enabled = true;
     return { ...p, enabled };
   });
 
   return { ...db, items, payroll };
 }
 
-export function computeScenarioTariff(
+export function computePresetTariff(
   db: CalculatorDatabase,
   building: BuildingProfile,
-  scenario: ScenarioDefinition,
+  preset: ServicePreset,
 ): TariffResult {
-  const scenarioDb = applyScenario(db, scenario);
-  return computeTariff(scenarioDb, building, scenario.priceMultiplier);
+  const presetDb = applyPreset(db, preset);
+  return computeTariff(presetDb, building, preset.priceMultiplier);
 }
 
 function round2(v: number): number {
