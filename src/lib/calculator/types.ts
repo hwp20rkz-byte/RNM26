@@ -233,6 +233,14 @@ export interface Project {
   assets: Asset[];
   /** Известный текущий остаток фонда капремонта (для проекции плана), ₸ */
   capitalFundBalance: number;
+  /** Реестр собственников/помещений — доли площади для кворума и начислений */
+  units: OwnershipUnit[];
+  /** Протоколы общих собраний */
+  meetings: GeneralMeeting[];
+  /** Календарь регламентных работ (ТО/ППР) */
+  maintenanceTasks: MaintenanceTask[];
+  /** Фактические расходы по месяцам — для сверки план/факт */
+  actuals: ActualExpenseEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -363,5 +371,145 @@ export interface CapitalFundYearProjection {
   income: number;
   plannedSpend: number;
   balance: number;
+}
+
+// ---------------------------------------------------------------------------
+// Реестр собственников и общее собрание.
+//
+// Голос на общем собрании и доля начислений определяются площадью
+// принадлежащего помещения/машиноместа (все типы объектов кондоминиума —
+// не только квартиры), а не количеством помещений. Кворум по Закону РК
+// «О жилищных отношениях» — более 50% голосов от общего числа голосов
+// участников кондоминиума; конкретный порог для отдельного решения (простое
+// большинство vs квалифицированное) зависит от категории вопроса — это
+// решает председатель/собрание, инструмент считает оба знаменателя явно.
+// ---------------------------------------------------------------------------
+
+export type UnitType = "apartment" | "commercial" | "storage" | "parking";
+
+/** Помещение/машиноместо в реестре собственников — единица голосования и начислений. */
+export interface OwnershipUnit {
+  id: string;
+  unitType: UnitType;
+  /** № квартиры/офиса/кладовой/машиноместа */
+  number: string;
+  entrance?: number;
+  floor?: number;
+  /** Площадь, м² — определяет долю голосов и долю начислений по тарифу */
+  area: number;
+  ownerName: string;
+  ownerIin?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  /** № правоустанавливающего документа на право собственности */
+  documentRef?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const UNIT_TYPE_LABELS: Record<UnitType, string> = {
+  apartment: "Квартира",
+  commercial: "Нежилое помещение",
+  storage: "Кладовая",
+  parking: "Машиноместо",
+};
+
+export type VoteChoice = "for" | "against" | "abstain";
+
+export type MeetingFormat = "in_person" | "absentee" | "mixed";
+
+export const MEETING_FORMAT_LABELS: Record<MeetingFormat, string> = {
+  in_person: "Очное",
+  absentee: "Заочное",
+  mixed: "Очно-заочное",
+};
+
+export interface MeetingParticipant {
+  unitId: string;
+  present: boolean;
+  byProxy?: boolean;
+  proxyHolder?: string;
+}
+
+/** Порог принятия решения по вопросу повестки — выбирается по категории вопроса. */
+export type MajorityRule = "simple" | "qualified";
+
+export interface AgendaItem {
+  id: string;
+  title: string;
+  description?: string;
+  /** simple — >50%, qualified — ≥2/3 (для вопросов, требующих квалифицированного большинства) */
+  majorityRule: MajorityRule;
+  /** Формулировка решения для текста протокола */
+  resolutionText?: string;
+}
+
+export interface AgendaItemVote {
+  agendaItemId: string;
+  unitId: string;
+  choice: VoteChoice;
+}
+
+/** Протокол общего собрания собственников — повестка, участники, голосование. */
+export interface GeneralMeeting {
+  id: string;
+  title: string;
+  /** Дата проведения (для заочного/очно-заочного — дата окончания приёма бюллетеней), ISO */
+  meetingDate: string;
+  format: MeetingFormat;
+  location?: string;
+  chair?: string;
+  secretary?: string;
+  countingCommission?: string;
+  participants: MeetingParticipant[];
+  agendaItems: AgendaItem[];
+  votes: AgendaItemVote[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Календарь регламентных работ (ТО и ППР) — даты последнего/следующего
+// обслуживания по периодичности, привязка к оборудованию и исполнителю.
+// ---------------------------------------------------------------------------
+
+export type MaintenanceStatus = "ok" | "upcoming" | "overdue" | "no_date";
+
+export interface MaintenanceTask {
+  id: string;
+  name: string;
+  equipmentCategory?: EquipmentCategory;
+  /** Привязка к конкретной единице реестра оборудования (необязательно) */
+  assetId?: string;
+  /** Периодичность обслуживания, месяцев */
+  periodicityMonths: number;
+  /** Дата последнего выполнения работы, ISO — если пусто, задача считается непроставленной */
+  lastServiceDate?: string;
+  responsibleName?: string;
+  responsibleOrg?: string;
+  responsiblePhone?: string;
+  responsibleEmail?: string;
+  /** НПА/регламент, устанавливающий периодичность (если применимо) */
+  regulationRef?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// План/факт — фактические расходы по месяцам для сверки со сметой.
+// ---------------------------------------------------------------------------
+
+export interface ActualExpenseEntry {
+  id: string;
+  /** Месяц в формате YYYY-MM */
+  month: string;
+  categoryId: string;
+  amount: number;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 

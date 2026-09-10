@@ -3,16 +3,22 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type {
+  AgendaItem,
   Asset,
   BuildingProfile,
   CatalogEntry,
   CostItem,
   EquipmentType,
+  GeneralMeeting,
+  MeetingFormat,
+  MeetingParticipant,
   ObjectType,
+  OwnershipUnit,
   PayrollPosition,
   Project,
   SavedSmeta,
   ServicePreset,
+  VoteChoice,
 } from "@/lib/calculator/types";
 import { buildBlankDatabase, buildDefaultDatabase } from "@/lib/calculator/database";
 import { BUILTIN_PRESETS, DEFAULT_BUILDING, buildBlankBuilding } from "@/lib/calculator/presets";
@@ -50,6 +56,10 @@ function seedInitialProject(presets: ServicePreset[]): Project {
     priceMultiplier: preset.priceMultiplier,
     assets: seedDemoAssets(DEFAULT_BUILDING),
     capitalFundBalance: 0,
+    units: [],
+    meetings: [],
+    maintenanceTasks: [],
+    actuals: [],
     createdAt: ts,
     updatedAt: ts,
   };
@@ -126,6 +136,33 @@ interface ProjectsState {
   /** Добавляет статью «Замена: <актив>» в смету активного проекта на основе расчётной стоимости замены */
   insertReplacementIntoSmeta: (assetId: string, categoryId: string) => void;
 
+  // --- реестр собственников ---
+  addUnit: (
+    unit: Pick<OwnershipUnit, "unitType" | "number" | "area" | "ownerName"> & Partial<OwnershipUnit>,
+  ) => void;
+  updateUnit: (id: string, patch: Partial<OwnershipUnit>) => void;
+  removeUnit: (id: string) => void;
+  importUnits: (
+    rows: (Pick<OwnershipUnit, "unitType" | "number" | "area" | "ownerName"> & Partial<OwnershipUnit>)[],
+  ) => number;
+
+  // --- общие собрания ---
+  createMeeting: (title: string, meetingDate: string, format: MeetingFormat) => string;
+  updateMeeting: (
+    id: string,
+    patch: Partial<Omit<GeneralMeeting, "id" | "participants" | "agendaItems" | "votes">>,
+  ) => void;
+  removeMeeting: (id: string) => void;
+  setParticipant: (meetingId: string, unitId: string, patch: Partial<MeetingParticipant>) => void;
+  markAllPresent: (meetingId: string, present: boolean) => void;
+  addAgendaItem: (
+    meetingId: string,
+    item: Pick<AgendaItem, "title" | "majorityRule"> & Partial<AgendaItem>,
+  ) => void;
+  updateAgendaItem: (meetingId: string, itemId: string, patch: Partial<AgendaItem>) => void;
+  removeAgendaItem: (meetingId: string, itemId: string) => void;
+  setVote: (meetingId: string, agendaItemId: string, unitId: string, choice: VoteChoice) => void;
+
   // --- сохранённые сметы ---
   saveSmeta: (name: string) => string;
   deleteSmeta: (id: string) => void;
@@ -134,6 +171,14 @@ interface ProjectsState {
 
 function touchProject(project: Project): Project {
   return { ...project, updatedAt: nowIso() };
+}
+
+function updateMeetingInProject(
+  p: Project,
+  meetingId: string,
+  updater: (m: GeneralMeeting) => GeneralMeeting,
+): Project {
+  return { ...p, meetings: p.meetings.map((m) => (m.id === meetingId ? updater(m) : m)) };
 }
 
 /** Пересчитывает живую (db) базу проекта под применённый к нему пресет. */
@@ -185,6 +230,10 @@ export const useProjectsStore = create<ProjectsState>()(
             priceMultiplier: preset.priceMultiplier,
             assets: [],
             capitalFundBalance: 0,
+            units: [],
+            meetings: [],
+            maintenanceTasks: [],
+            actuals: [],
             createdAt: ts,
             updatedAt: ts,
           };
@@ -533,6 +582,216 @@ export const useProjectsStore = create<ProjectsState>()(
           });
         },
 
+        // --- реестр собственников ---
+        addUnit: (unit) => {
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newUnit: OwnershipUnit = { id: genId("unit"), createdAt: ts, updatedAt: ts, ...unit };
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, units: [...p.units, newUnit] }) } };
+          });
+        },
+
+        updateUnit: (id, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const units = p.units.map((u) => (u.id === id ? { ...u, ...patch, updatedAt: nowIso() } : u));
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, units }) } };
+          });
+        },
+
+        removeUnit: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const units = p.units.filter((u) => u.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, units }) } };
+          });
+        },
+
+        importUnits: (rows) => {
+          const ts = nowIso();
+          const newUnits: OwnershipUnit[] = rows
+            .filter((r) => r.number && r.number.trim().length > 0)
+            .map((r) => ({
+              id: genId("unit"),
+              createdAt: ts,
+              updatedAt: ts,
+              ...r,
+              area: Number.isFinite(r.area) ? r.area : 0,
+              ownerName: r.ownerName ?? "",
+            }));
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: { ...s.projects, [p.id]: touchProject({ ...p, units: [...p.units, ...newUnits] }) },
+            };
+          });
+          return newUnits.length;
+        },
+
+        // --- общие собрания ---
+        createMeeting: (title, meetingDate, format) => {
+          const id = genId("meeting");
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const participants: MeetingParticipant[] = p.units.map((u) => ({ unitId: u.id, present: false }));
+            const meeting: GeneralMeeting = {
+              id,
+              title,
+              meetingDate,
+              format,
+              participants,
+              agendaItems: [],
+              votes: [],
+              createdAt: ts,
+              updatedAt: ts,
+            };
+            return {
+              projects: { ...s.projects, [p.id]: touchProject({ ...p, meetings: [...p.meetings, meeting] }) },
+            };
+          });
+          return id;
+        },
+
+        updateMeeting: (id, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject(
+                  updateMeetingInProject(p, id, (m) => ({ ...m, ...patch, updatedAt: nowIso() })),
+                ),
+              },
+            };
+          });
+        },
+
+        removeMeeting: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const meetings = p.meetings.filter((m) => m.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, meetings }) } };
+          });
+        },
+
+        setParticipant: (meetingId, unitId, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject(
+                  updateMeetingInProject(p, meetingId, (m) => ({
+                    ...m,
+                    participants: m.participants.some((pt) => pt.unitId === unitId)
+                      ? m.participants.map((pt) => (pt.unitId === unitId ? { ...pt, ...patch } : pt))
+                      : [...m.participants, { unitId, present: false, ...patch }],
+                    updatedAt: nowIso(),
+                  })),
+                ),
+              },
+            };
+          });
+        },
+
+        markAllPresent: (meetingId, present) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject(
+                  updateMeetingInProject(p, meetingId, (m) => ({
+                    ...m,
+                    participants: m.participants.map((pt) => ({ ...pt, present })),
+                    updatedAt: nowIso(),
+                  })),
+                ),
+              },
+            };
+          });
+        },
+
+        addAgendaItem: (meetingId, item) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newItem: AgendaItem = { id: genId("agenda"), ...item };
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject(
+                  updateMeetingInProject(p, meetingId, (m) => ({
+                    ...m,
+                    agendaItems: [...m.agendaItems, newItem],
+                    updatedAt: nowIso(),
+                  })),
+                ),
+              },
+            };
+          });
+        },
+
+        updateAgendaItem: (meetingId, itemId, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject(
+                  updateMeetingInProject(p, meetingId, (m) => ({
+                    ...m,
+                    agendaItems: m.agendaItems.map((a) => (a.id === itemId ? { ...a, ...patch } : a)),
+                    updatedAt: nowIso(),
+                  })),
+                ),
+              },
+            };
+          });
+        },
+
+        removeAgendaItem: (meetingId, itemId) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject(
+                  updateMeetingInProject(p, meetingId, (m) => ({
+                    ...m,
+                    agendaItems: m.agendaItems.filter((a) => a.id !== itemId),
+                    votes: m.votes.filter((v) => v.agendaItemId !== itemId),
+                    updatedAt: nowIso(),
+                  })),
+                ),
+              },
+            };
+          });
+        },
+
+        setVote: (meetingId, agendaItemId, unitId, choice) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject(
+                  updateMeetingInProject(p, meetingId, (m) => {
+                    const exists = m.votes.some((v) => v.agendaItemId === agendaItemId && v.unitId === unitId);
+                    const votes = exists
+                      ? m.votes.map((v) =>
+                          v.agendaItemId === agendaItemId && v.unitId === unitId ? { ...v, choice } : v,
+                        )
+                      : [...m.votes, { agendaItemId, unitId, choice }];
+                    return { ...m, votes, updatedAt: nowIso() };
+                  }),
+                ),
+              },
+            };
+          });
+        },
+
         // --- сохранённые сметы ---
         saveSmeta: (name) => {
           const s = get();
@@ -587,14 +846,25 @@ export const useProjectsStore = create<ProjectsState>()(
       name: "qazaqosi-projects-v1",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      version: 2,
+      version: 3,
       // v0 → v1: project.scenario:"economy"|"standard"|"business" → presetId,
       //          пресетов не существовало вовсе.
       // v1 → v2: у проектов не было assets[]/capitalFundBalance, справочника
       //          equipmentTypes не существовало. Переносим шаг за шагом, а не
       //          выбрасываем ранее сохранённые объекты/справочник/сметы пользователя.
+      // v2 → v3: у проектов не было реестра собственников (units), собраний
+      //          (meetings), календаря регламентных работ (maintenanceTasks) и
+      //          фактических расходов (actuals) — добавляем как пустые массивы.
       migrate: (persisted, version) => {
-        type LooseProject = Project & { scenario?: string; assets?: Asset[]; capitalFundBalance?: number };
+        type LooseProject = Project & {
+          scenario?: string;
+          assets?: Asset[];
+          capitalFundBalance?: number;
+          units?: Project["units"];
+          meetings?: Project["meetings"];
+          maintenanceTasks?: Project["maintenanceTasks"];
+          actuals?: Project["actuals"];
+        };
         let state = persisted as {
           projects?: Record<string, LooseProject>;
           projectOrder?: string[];
@@ -626,6 +896,20 @@ export const useProjectsStore = create<ProjectsState>()(
             projects[id] = { ...p, assets: p.assets ?? [], capitalFundBalance: p.capitalFundBalance ?? 0 };
           }
           state = { ...state, projects, equipmentTypes: EQUIPMENT_TYPES };
+        }
+
+        if (version < 3) {
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            projects[id] = {
+              ...p,
+              units: p.units ?? [],
+              meetings: p.meetings ?? [],
+              maintenanceTasks: p.maintenanceTasks ?? [],
+              actuals: p.actuals ?? [],
+            };
+          }
+          state = { ...state, projects };
         }
 
         return {

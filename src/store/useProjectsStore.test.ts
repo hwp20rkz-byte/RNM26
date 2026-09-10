@@ -320,3 +320,90 @@ describe("реестр оборудования и износ", () => {
     expect(selectActiveProject(useProjectsStore.getState()).db.items.length).toBe(itemsBefore);
   });
 });
+
+describe("реестр собственников и общие собрания", () => {
+  it("демо-проект стартует с пустым реестром (не выдумываем ФИО реальных людей)", () => {
+    const active = selectActiveProject(useProjectsStore.getState());
+    expect(active.units).toEqual([]);
+    expect(active.meetings).toEqual([]);
+  });
+
+  it("addUnit/updateUnit/removeUnit — CRUD реестра", () => {
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "1", area: 45, ownerName: "Тестов Т.Т." });
+    let units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(1);
+    const id = units[0].id;
+
+    useProjectsStore.getState().updateUnit(id, { area: 50 });
+    units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units[0].area).toBe(50);
+
+    useProjectsStore.getState().removeUnit(id);
+    units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(0);
+  });
+
+  it("importUnits добавляет только строки с номером помещения", () => {
+    const count = useProjectsStore.getState().importUnits([
+      { unitType: "apartment", number: "1", area: 40, ownerName: "А" },
+      { unitType: "apartment", number: "", area: 40, ownerName: "Пропуск" },
+      { unitType: "commercial", number: "Н-1", area: 100, ownerName: "ТОО" },
+    ]);
+    expect(count).toBe(2);
+    expect(selectActiveProject(useProjectsStore.getState()).units).toHaveLength(2);
+  });
+
+  it("createMeeting регистрирует участников по текущему составу реестра", () => {
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "1", area: 40, ownerName: "А" });
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "2", area: 60, ownerName: "Б" });
+    const meetingId = useProjectsStore.getState().createMeeting("Годовое собрание", "2026-05-01", "in_person");
+    const meeting = selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)!;
+    expect(meeting.participants).toHaveLength(2);
+    expect(meeting.participants.every((p) => p.present === false)).toBe(true);
+  });
+
+  it("setParticipant и setVote фиксируют присутствие и голос по вопросу", () => {
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "1", area: 40, ownerName: "А" });
+    const unitId = selectActiveProject(useProjectsStore.getState()).units[0].id;
+    const meetingId = useProjectsStore.getState().createMeeting("Собрание", "2026-05-01", "in_person");
+
+    useProjectsStore.getState().setParticipant(meetingId, unitId, { present: true });
+    useProjectsStore.getState().addAgendaItem(meetingId, { title: "Вопрос 1", majorityRule: "simple" });
+    const agendaItemId = selectActiveProject(useProjectsStore.getState()).meetings[0].agendaItems[0].id;
+
+    useProjectsStore.getState().setVote(meetingId, agendaItemId, unitId, "for");
+    let meeting = selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)!;
+    expect(meeting.participants.find((p) => p.unitId === unitId)?.present).toBe(true);
+    expect(meeting.votes).toEqual([{ agendaItemId, unitId, choice: "for" }]);
+
+    // повторный setVote для той же пары — обновляет, а не дублирует запись
+    useProjectsStore.getState().setVote(meetingId, agendaItemId, unitId, "against");
+    meeting = selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)!;
+    expect(meeting.votes).toHaveLength(1);
+    expect(meeting.votes[0].choice).toBe("against");
+  });
+
+  it("removeAgendaItem удаляет вопрос и его голоса", () => {
+    const meetingId = useProjectsStore.getState().createMeeting("Собрание", "2026-05-01", "in_person");
+    useProjectsStore.getState().addAgendaItem(meetingId, { title: "Вопрос", majorityRule: "simple" });
+    const itemId = selectActiveProject(useProjectsStore.getState()).meetings[0].agendaItems[0].id;
+    useProjectsStore.getState().removeAgendaItem(meetingId, itemId);
+    const meeting = selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)!;
+    expect(meeting.agendaItems).toHaveLength(0);
+  });
+
+  it("markAllPresent быстро отмечает всех участников", () => {
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "1", area: 40, ownerName: "А" });
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "2", area: 60, ownerName: "Б" });
+    const meetingId = useProjectsStore.getState().createMeeting("Собрание", "2026-05-01", "in_person");
+    useProjectsStore.getState().markAllPresent(meetingId, true);
+    const meeting = selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)!;
+    expect(meeting.participants.every((p) => p.present)).toBe(true);
+  });
+
+  it("removeMeeting удаляет собрание", () => {
+    const meetingId = useProjectsStore.getState().createMeeting("Собрание", "2026-05-01", "in_person");
+    useProjectsStore.getState().removeMeeting(meetingId);
+    expect(selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)).toBeUndefined();
+  });
+});

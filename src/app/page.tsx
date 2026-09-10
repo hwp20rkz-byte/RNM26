@@ -12,6 +12,7 @@ import { ScenarioComparator } from "@/components/ScenarioComparator";
 import { AssetRegistry } from "@/components/AssetRegistry";
 import { EquipmentTypeCatalog } from "@/components/EquipmentTypeCatalog";
 import { ReplacementPlan } from "@/components/ReplacementPlan";
+import { OwnerRegistry } from "@/components/OwnerRegistry";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
 import { PrintSummary } from "@/components/PrintSummary";
@@ -77,6 +78,7 @@ export default function HomePage() {
                 <TabsTrigger value="catalog">Справочник</TabsTrigger>
                 <TabsTrigger value="presets">Пресеты</TabsTrigger>
                 <TabsTrigger value="wear">Износ и капремонт</TabsTrigger>
+                <TabsTrigger value="owners">Собственники</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
                 <CostCategoryTree />
@@ -104,6 +106,9 @@ export default function HomePage() {
                     <ReplacementPlan />
                   </TabsContent>
                 </Tabs>
+              </TabsContent>
+              <TabsContent value="owners">
+                <OwnerRegistry />
               </TabsContent>
             </Tabs>
           </CardContent>
