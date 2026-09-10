@@ -9,6 +9,9 @@ import { PriceCatalog } from "@/components/PriceCatalog";
 import { PresetEditor } from "@/components/PresetEditor";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { ScenarioComparator } from "@/components/ScenarioComparator";
+import { AssetRegistry } from "@/components/AssetRegistry";
+import { EquipmentTypeCatalog } from "@/components/EquipmentTypeCatalog";
+import { ReplacementPlan } from "@/components/ReplacementPlan";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
 import { PrintSummary } from "@/components/PrintSummary";
@@ -73,6 +76,7 @@ export default function HomePage() {
                 <TabsTrigger value="constructor">Конструктор</TabsTrigger>
                 <TabsTrigger value="catalog">Справочник</TabsTrigger>
                 <TabsTrigger value="presets">Пресеты</TabsTrigger>
+                <TabsTrigger value="wear">Износ и капремонт</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
                 <CostCategoryTree />
@@ -82,6 +86,24 @@ export default function HomePage() {
               </TabsContent>
               <TabsContent value="presets">
                 <PresetEditor />
+              </TabsContent>
+              <TabsContent value="wear">
+                <Tabs defaultValue="registry">
+                  <TabsList>
+                    <TabsTrigger value="registry">Реестр оборудования</TabsTrigger>
+                    <TabsTrigger value="types">Справочник типов</TabsTrigger>
+                    <TabsTrigger value="plan">План замены</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="registry">
+                    <AssetRegistry />
+                  </TabsContent>
+                  <TabsContent value="types">
+                    <EquipmentTypeCatalog />
+                  </TabsContent>
+                  <TabsContent value="plan">
+                    <ReplacementPlan />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
           </CardContent>

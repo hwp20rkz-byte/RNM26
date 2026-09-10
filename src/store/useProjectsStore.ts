@@ -3,9 +3,11 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type {
+  Asset,
   BuildingProfile,
   CatalogEntry,
   CostItem,
+  EquipmentType,
   ObjectType,
   PayrollPosition,
   Project,
@@ -16,6 +18,8 @@ import { buildBlankDatabase, buildDefaultDatabase } from "@/lib/calculator/datab
 import { BUILTIN_PRESETS, DEFAULT_BUILDING, buildBlankBuilding } from "@/lib/calculator/presets";
 import { applyPreset, computeTariff } from "@/lib/calculator/engine";
 import { seedCatalogFromDatabase } from "@/lib/calculator/catalogSeed";
+import { EQUIPMENT_TYPES } from "@/lib/calculator/data/equipmentTypes";
+import { seedDemoAssets } from "@/lib/calculator/data/demoAssets";
 import { genId } from "@/lib/id";
 
 export type BudgetPeriod = "month" | "quarter" | "year";
@@ -44,6 +48,8 @@ function seedInitialProject(presets: ServicePreset[]): Project {
     db,
     presetId: preset.id,
     priceMultiplier: preset.priceMultiplier,
+    assets: seedDemoAssets(DEFAULT_BUILDING),
+    capitalFundBalance: 0,
     createdAt: ts,
     updatedAt: ts,
   };
@@ -55,6 +61,7 @@ interface ProjectsState {
   activeProjectId: string;
   catalog: CatalogEntry[];
   presets: ServicePreset[];
+  equipmentTypes: EquipmentType[];
   savedSmetas: Record<string, SavedSmeta>;
   budgetPeriod: BudgetPeriod;
 
@@ -105,6 +112,20 @@ interface ProjectsState {
   ) => number;
   insertCatalogEntryIntoProject: (catalogId: string, categoryId: string, qty?: number) => void;
 
+  // --- износ оборудования и план капремонта ---
+  addAsset: (
+    asset: Pick<Asset, "name" | "category" | "quantity" | "installedYear" | "normativeLifeYears" | "replacementUnitCost"> &
+      Partial<Asset>,
+  ) => void;
+  updateAsset: (id: string, patch: Partial<Asset>) => void;
+  removeAsset: (id: string) => void;
+  setCapitalFundBalance: (balance: number) => void;
+  addEquipmentType: (type: Omit<EquipmentType, "id">) => string;
+  updateEquipmentType: (id: string, patch: Partial<Omit<EquipmentType, "id">>) => void;
+  removeEquipmentType: (id: string) => void;
+  /** Добавляет статью «Замена: <актив>» в смету активного проекта на основе расчётной стоимости замены */
+  insertReplacementIntoSmeta: (assetId: string, categoryId: string) => void;
+
   // --- сохранённые сметы ---
   saveSmeta: (name: string) => string;
   deleteSmeta: (id: string) => void;
@@ -142,6 +163,7 @@ export const useProjectsStore = create<ProjectsState>()(
         activeProjectId: initial.id,
         catalog: seedCatalogFromDatabase(initial.baseDb),
         presets: initialPresets,
+        equipmentTypes: EQUIPMENT_TYPES,
         savedSmetas: {},
         budgetPeriod: "month",
 
@@ -161,6 +183,8 @@ export const useProjectsStore = create<ProjectsState>()(
             db,
             presetId: preset.id,
             priceMultiplier: preset.priceMultiplier,
+            assets: [],
+            capitalFundBalance: 0,
             createdAt: ts,
             updatedAt: ts,
           };
@@ -443,6 +467,72 @@ export const useProjectsStore = create<ProjectsState>()(
           });
         },
 
+        // --- износ оборудования и план капремонта ---
+        addAsset: (asset) => {
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newAsset: Asset = { id: genId("asset"), createdAt: ts, updatedAt: ts, ...asset };
+            return {
+              projects: { ...s.projects, [p.id]: touchProject({ ...p, assets: [...p.assets, newAsset] }) },
+            };
+          });
+        },
+
+        updateAsset: (id, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const assets = p.assets.map((a) => (a.id === id ? { ...a, ...patch, updatedAt: nowIso() } : a));
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, assets }) } };
+          });
+        },
+
+        removeAsset: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const assets = p.assets.filter((a) => a.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, assets }) } };
+          });
+        },
+
+        setCapitalFundBalance: (balance) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, capitalFundBalance: balance }) } };
+          });
+        },
+
+        addEquipmentType: (type) => {
+          const id = genId("eqtype");
+          set((s) => ({ equipmentTypes: [...s.equipmentTypes, { ...type, id }] }));
+          return id;
+        },
+
+        updateEquipmentType: (id, patch) => {
+          set((s) => ({
+            equipmentTypes: s.equipmentTypes.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+          }));
+        },
+
+        removeEquipmentType: (id) => {
+          set((s) => ({ equipmentTypes: s.equipmentTypes.filter((t) => t.id !== id) }));
+        },
+
+        insertReplacementIntoSmeta: (assetId, categoryId) => {
+          const s = get();
+          const p = s.projects[s.activeProjectId];
+          const asset = p.assets.find((a) => a.id === assetId);
+          if (!asset) return;
+          get().addItem(categoryId, {
+            name: `Замена: ${asset.name}`,
+            unit: "усл.",
+            unitPrice: asset.quantity * asset.replacementUnitCost,
+            annualQty: 1,
+            tooltip: `Добавлено из реестра оборудования по плану замены (введено в эксплуатацию в ${asset.installedYear} г.)`,
+            source: "Реестр оборудования / план капремонта",
+          });
+        },
+
         // --- сохранённые сметы ---
         saveSmeta: (name) => {
           const s = get();
@@ -497,39 +587,56 @@ export const useProjectsStore = create<ProjectsState>()(
       name: "qazaqosi-projects-v1",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      version: 1,
-      // Версия 0 (без поля version) хранила project.scenario: "economy"|"standard"|"business"
-      // и не знала о пресетах вовсе. Переносим её в текущую форму, а не выбрасываем
-      // ранее сохранённые объекты/справочник/сметы пользователя.
+      version: 2,
+      // v0 → v1: project.scenario:"economy"|"standard"|"business" → presetId,
+      //          пресетов не существовало вовсе.
+      // v1 → v2: у проектов не было assets[]/capitalFundBalance, справочника
+      //          equipmentTypes не существовало. Переносим шаг за шагом, а не
+      //          выбрасываем ранее сохранённые объекты/справочник/сметы пользователя.
       migrate: (persisted, version) => {
-        if (version >= 1) return persisted as unknown;
-        const old = persisted as {
-          projects?: Record<string, Project & { scenario?: string }>;
+        type LooseProject = Project & { scenario?: string; assets?: Asset[]; capitalFundBalance?: number };
+        let state = persisted as {
+          projects?: Record<string, LooseProject>;
           projectOrder?: string[];
           activeProjectId?: string;
           catalog?: CatalogEntry[];
+          presets?: ServicePreset[];
+          equipmentTypes?: EquipmentType[];
           savedSmetas?: Record<string, SavedSmeta & { scenario?: string }>;
           budgetPeriod?: BudgetPeriod;
         };
-        const presets = BUILTIN_PRESETS;
-        const projects: Record<string, Project> = {};
-        for (const [id, p] of Object.entries(old.projects ?? {})) {
-          const { scenario, ...rest } = p;
-          projects[id] = { ...rest, presetId: scenario ?? DEFAULT_PRESET_ID };
+
+        if (version < 1) {
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            const { scenario, ...rest } = p;
+            projects[id] = { ...rest, presetId: scenario ?? DEFAULT_PRESET_ID };
+          }
+          const savedSmetas: Record<string, SavedSmeta> = {};
+          for (const [id, sm] of Object.entries(state.savedSmetas ?? {})) {
+            const { scenario, ...rest } = sm;
+            savedSmetas[id] = { ...rest, presetId: scenario ?? DEFAULT_PRESET_ID };
+          }
+          state = { ...state, projects, presets: BUILTIN_PRESETS, savedSmetas };
         }
-        const savedSmetas: Record<string, SavedSmeta> = {};
-        for (const [id, sm] of Object.entries(old.savedSmetas ?? {})) {
-          const { scenario, ...rest } = sm;
-          savedSmetas[id] = { ...rest, presetId: scenario ?? DEFAULT_PRESET_ID };
+
+        if (version < 2) {
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            projects[id] = { ...p, assets: p.assets ?? [], capitalFundBalance: p.capitalFundBalance ?? 0 };
+          }
+          state = { ...state, projects, equipmentTypes: EQUIPMENT_TYPES };
         }
+
         return {
-          projects,
-          projectOrder: old.projectOrder ?? [],
-          activeProjectId: old.activeProjectId ?? "",
-          catalog: old.catalog ?? [],
-          presets,
-          savedSmetas,
-          budgetPeriod: old.budgetPeriod ?? "month",
+          projects: state.projects ?? {},
+          projectOrder: state.projectOrder ?? [],
+          activeProjectId: state.activeProjectId ?? "",
+          catalog: state.catalog ?? [],
+          presets: state.presets ?? BUILTIN_PRESETS,
+          equipmentTypes: state.equipmentTypes ?? EQUIPMENT_TYPES,
+          savedSmetas: state.savedSmetas ?? {},
+          budgetPeriod: state.budgetPeriod ?? "month",
         };
       },
     },

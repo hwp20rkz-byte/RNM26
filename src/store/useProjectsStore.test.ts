@@ -237,3 +237,86 @@ describe("пресеты обслуживания", () => {
     expect(useProjectsStore.getState().presets.find((p) => p.id === customId)).toBeUndefined();
   });
 });
+
+describe("реестр оборудования и износ", () => {
+  it("демо-проект стартует с посеянным реестром активов", () => {
+    const active = selectActiveProject(useProjectsStore.getState());
+    expect(active.assets.length).toBeGreaterThan(0);
+    expect(active.capitalFundBalance).toBe(0);
+  });
+
+  it("addAsset добавляет актив в реестр активного проекта", () => {
+    const before = selectActiveProject(useProjectsStore.getState()).assets.length;
+    useProjectsStore.getState().addAsset({
+      name: "Насос тестовый",
+      category: "heating",
+      quantity: 1,
+      installedYear: 2020,
+      normativeLifeYears: 10,
+      replacementUnitCost: 200_000,
+    });
+    const after = selectActiveProject(useProjectsStore.getState());
+    expect(after.assets.length).toBe(before + 1);
+    expect(after.assets.at(-1)?.name).toBe("Насос тестовый");
+  });
+
+  it("updateAsset точечно меняет поля актива", () => {
+    const s = useProjectsStore.getState();
+    const assetId = selectActiveProject(s).assets[0].id;
+    useProjectsStore.getState().updateAsset(assetId, { manualWearOverridePercent: 55 });
+    const asset = selectActiveProject(useProjectsStore.getState()).assets.find((a) => a.id === assetId);
+    expect(asset?.manualWearOverridePercent).toBe(55);
+  });
+
+  it("removeAsset удаляет актив из реестра", () => {
+    const s = useProjectsStore.getState();
+    const assetId = selectActiveProject(s).assets[0].id;
+    useProjectsStore.getState().removeAsset(assetId);
+    const assets = selectActiveProject(useProjectsStore.getState()).assets;
+    expect(assets.find((a) => a.id === assetId)).toBeUndefined();
+  });
+
+  it("setCapitalFundBalance обновляет баланс фонда капремонта активного проекта", () => {
+    useProjectsStore.getState().setCapitalFundBalance(1_500_000);
+    expect(selectActiveProject(useProjectsStore.getState()).capitalFundBalance).toBe(1_500_000);
+  });
+
+  it("addEquipmentType/updateEquipmentType/removeEquipmentType управляют справочником типов", () => {
+    const before = useProjectsStore.getState().equipmentTypes.length;
+    const id = useProjectsStore.getState().addEquipmentType({
+      name: "Тестовый тип",
+      category: "other",
+      normativeLifeYears: 15,
+      source: "тест",
+    });
+    expect(useProjectsStore.getState().equipmentTypes.length).toBe(before + 1);
+
+    useProjectsStore.getState().updateEquipmentType(id, { normativeLifeYears: 20 });
+    expect(useProjectsStore.getState().equipmentTypes.find((t) => t.id === id)?.normativeLifeYears).toBe(20);
+
+    useProjectsStore.getState().removeEquipmentType(id);
+    expect(useProjectsStore.getState().equipmentTypes.find((t) => t.id === id)).toBeUndefined();
+  });
+
+  it("insertReplacementIntoSmeta добавляет статью «Замена: …» в указанную категорию сметы", () => {
+    const s = useProjectsStore.getState();
+    const project = selectActiveProject(s);
+    const asset = project.assets[0];
+    const itemsBefore = project.db.items.length;
+
+    useProjectsStore.getState().insertReplacementIntoSmeta(asset.id, "2.7");
+
+    const after = selectActiveProject(useProjectsStore.getState());
+    expect(after.db.items.length).toBe(itemsBefore + 1);
+    const inserted = after.db.items.find((i) => i.name === `Замена: ${asset.name}`);
+    expect(inserted).toBeDefined();
+    expect(inserted?.categoryId).toBe("2.7");
+    expect(inserted?.unitPrice).toBe(asset.quantity * asset.replacementUnitCost);
+  });
+
+  it("insertReplacementIntoSmeta ничего не делает для несуществующего актива", () => {
+    const itemsBefore = selectActiveProject(useProjectsStore.getState()).db.items.length;
+    useProjectsStore.getState().insertReplacementIntoSmeta("no-such-asset", "2.7");
+    expect(selectActiveProject(useProjectsStore.getState()).db.items.length).toBe(itemsBefore);
+  });
+});

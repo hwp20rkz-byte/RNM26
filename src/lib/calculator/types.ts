@@ -229,6 +229,10 @@ export interface Project {
   /** id применённого пресета (см. ServicePreset) */
   presetId: string;
   priceMultiplier: number;
+  /** Реестр оборудования/инженерных систем этого объекта */
+  assets: Asset[];
+  /** Известный текущий остаток фонда капремонта (для проекции плана), ₸ */
+  capitalFundBalance: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -265,5 +269,99 @@ export interface CatalogEntry {
   source?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Износ оборудования и план капитального ремонта/модернизации.
+//
+// Методология и оговорки (важно — не замалчивать):
+// - Формула износа линейная по возрасту (Износ% = Возраст / НормСрок × 100) —
+//   практичная оценка «по паспорту», НЕ замена полноценной экспертной методики
+//   ВСН 53-86(р) (осмотр технического состояния по таблицам признаков износа).
+//   Даёт приоритет для планирования, не заключение о техническом состоянии.
+// - Нормативные сроки по умолчанию — ориентир по ВСН 58-88(р) Госстроя СССР
+//   (де-факто отраслевой эталон в РК за неимением полной казахстанской
+//   замены), кроме лифтов — там срок 25 лет закреплён юридически обязательным
+//   ТР ТС 011/2011 «Безопасность лифтов» (см. equipmentTypeId="elevator").
+//   Все сроки редактируются пользователем под паспортные данные оборудования.
+// - Для лифтов истечение срока — не рекомендация, а требование техрегламента:
+//   эксплуатация после назначенного срока без экспертизы промышленной
+//   безопасности не допускается.
+// ---------------------------------------------------------------------------
+
+/** Категория группы оборудования — для группировки в реестре и плане. */
+export type EquipmentCategory =
+  | "elevators"
+  | "heating"
+  | "water"
+  | "electrical"
+  | "fire"
+  | "roof_facade"
+  | "other";
+
+/**
+ * Справочник типов оборудования с нормативным сроком службы по умолчанию —
+ * не привязан к проекту, переиспользуется между объектами (как CatalogEntry).
+ */
+export interface EquipmentType {
+  id: string;
+  name: string;
+  category: EquipmentCategory;
+  /** Нормативный срок службы, лет — редактируемый ориентир */
+  normativeLifeYears: number;
+  /** Источник цифры (НПА или «отраслевой ориентир, сверьте с паспортом») */
+  source: string;
+  /** true — как для лифтов: истечение срока юридически ограничивает эксплуатацию */
+  criticalSafety?: boolean;
+}
+
+/** Единица оборудования/инженерной системы в реестре конкретного объекта. */
+export interface Asset {
+  id: string;
+  /** Ссылка на запись справочника EquipmentType — необязательна для произвольно добавленного актива */
+  equipmentTypeId?: string;
+  name: string;
+  category: EquipmentCategory;
+  quantity: number;
+  /** Год ввода в эксплуатацию */
+  installedYear: number;
+  /** Нормативный срок службы для этой единицы (по умолчанию — из EquipmentType, редактируемо) */
+  normativeLifeYears: number;
+  /** Стоимость замены за единицу, ₸ */
+  replacementUnitCost: number;
+  criticalSafety?: boolean;
+  /** Ручная корректировка расчётного износа (если фактическое состояние отличается от паспортного) */
+  manualWearOverridePercent?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AssetCondition = "good" | "satisfactory" | "attention" | "critical" | "expired";
+
+export interface AssetWear {
+  assetId: string;
+  ageYears: number;
+  wearPercent: number;
+  condition: AssetCondition;
+  remainingYears: number;
+  /** Год, на который расчётно приходится плановая замена (installedYear + normativeLifeYears) */
+  targetReplacementYear: number;
+  replacementCost: number;
+}
+
+/** Агрегированный план замены на один год горизонта планирования. */
+export interface ReplacementPlanYear {
+  year: number;
+  assetIds: string[];
+  totalCost: number;
+}
+
+/** Проекция фонда капремонта на один год: доходы, план трат, остаток. */
+export interface CapitalFundYearProjection {
+  year: number;
+  income: number;
+  plannedSpend: number;
+  balance: number;
 }
 
