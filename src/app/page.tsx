@@ -14,6 +14,7 @@ import { EquipmentTypeCatalog } from "@/components/EquipmentTypeCatalog";
 import { ReplacementPlan } from "@/components/ReplacementPlan";
 import { OwnerRegistry } from "@/components/OwnerRegistry";
 import { MaintenanceCalendar } from "@/components/MaintenanceCalendar";
+import { BudgetActual } from "@/components/BudgetActual";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
 import { PrintSummary } from "@/components/PrintSummary";
@@ -81,6 +82,7 @@ export default function HomePage() {
                 <TabsTrigger value="wear">Износ и капремонт</TabsTrigger>
                 <TabsTrigger value="owners">Собственники</TabsTrigger>
                 <TabsTrigger value="maintenance">Календарь ТО</TabsTrigger>
+                <TabsTrigger value="budget">План/факт</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
                 <CostCategoryTree />
@@ -114,6 +116,9 @@ export default function HomePage() {
               </TabsContent>
               <TabsContent value="maintenance">
                 <MaintenanceCalendar />
+              </TabsContent>
+              <TabsContent value="budget">
+                <BudgetActual />
               </TabsContent>
             </Tabs>
           </CardContent>

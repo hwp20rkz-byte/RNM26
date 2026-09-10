@@ -436,3 +436,43 @@ describe("календарь регламентных работ", () => {
     expect(task?.lastServiceDate).toBe("2026-03-01");
   });
 });
+
+describe("план/факт", () => {
+  it("демо-проект стартует без фактических записей", () => {
+    expect(selectActiveProject(useProjectsStore.getState()).actuals).toEqual([]);
+  });
+
+  it("addActual/updateActual/removeActual — CRUD", () => {
+    useProjectsStore.getState().addActual({ month: "2026-01", categoryId: "1.1", amount: 50000 });
+    let actuals = selectActiveProject(useProjectsStore.getState()).actuals;
+    expect(actuals).toHaveLength(1);
+    const id = actuals[0].id;
+
+    useProjectsStore.getState().updateActual(id, { amount: 60000 });
+    actuals = selectActiveProject(useProjectsStore.getState()).actuals;
+    expect(actuals[0].amount).toBe(60000);
+
+    useProjectsStore.getState().removeActual(id);
+    actuals = selectActiveProject(useProjectsStore.getState()).actuals;
+    expect(actuals).toHaveLength(0);
+  });
+
+  it("setActualAmount создаёт запись при первом вызове и обновляет при повторном", () => {
+    useProjectsStore.getState().setActualAmount("2026-02", "1.1", 10000);
+    let actuals = selectActiveProject(useProjectsStore.getState()).actuals;
+    expect(actuals).toHaveLength(1);
+    expect(actuals[0].amount).toBe(10000);
+
+    useProjectsStore.getState().setActualAmount("2026-02", "1.1", 15000);
+    actuals = selectActiveProject(useProjectsStore.getState()).actuals;
+    expect(actuals).toHaveLength(1); // не дублирует — обновляет ту же запись
+    expect(actuals[0].amount).toBe(15000);
+  });
+
+  it("setActualAmount для разных категорий/месяцев создаёт разные записи", () => {
+    useProjectsStore.getState().setActualAmount("2026-01", "1.1", 1000);
+    useProjectsStore.getState().setActualAmount("2026-01", "2.1", 2000);
+    useProjectsStore.getState().setActualAmount("2026-02", "1.1", 3000);
+    expect(selectActiveProject(useProjectsStore.getState()).actuals).toHaveLength(3);
+  });
+});

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type {
+  ActualExpenseEntry,
   AgendaItem,
   Asset,
   BuildingProfile,
@@ -171,6 +172,15 @@ interface ProjectsState {
   updateMaintenanceTask: (id: string, patch: Partial<MaintenanceTask>) => void;
   removeMaintenanceTask: (id: string) => void;
   markMaintenanceTaskServiced: (id: string, date: string) => void;
+
+  // --- план/факт ---
+  addActual: (
+    entry: Pick<ActualExpenseEntry, "month" | "categoryId" | "amount"> & Partial<ActualExpenseEntry>,
+  ) => void;
+  updateActual: (id: string, patch: Partial<ActualExpenseEntry>) => void;
+  removeActual: (id: string) => void;
+  /** Создаёт или обновляет единственную запись факта для пары месяц+категория */
+  setActualAmount: (month: string, categoryId: string, amount: number) => void;
 
   // --- сохранённые сметы ---
   saveSmeta: (name: string) => string;
@@ -838,6 +848,44 @@ export const useProjectsStore = create<ProjectsState>()(
               t.id === id ? { ...t, lastServiceDate: date, updatedAt: nowIso() } : t,
             );
             return { projects: { ...s.projects, [p.id]: touchProject({ ...p, maintenanceTasks }) } };
+          });
+        },
+
+        // --- план/факт ---
+        addActual: (entry) => {
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newEntry: ActualExpenseEntry = { id: genId("actual"), createdAt: ts, updatedAt: ts, ...entry };
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, actuals: [...p.actuals, newEntry] }) } };
+          });
+        },
+
+        updateActual: (id, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const actuals = p.actuals.map((a) => (a.id === id ? { ...a, ...patch, updatedAt: nowIso() } : a));
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, actuals }) } };
+          });
+        },
+
+        removeActual: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const actuals = p.actuals.filter((a) => a.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, actuals }) } };
+          });
+        },
+
+        setActualAmount: (month, categoryId, amount) => {
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const existing = p.actuals.find((a) => a.month === month && a.categoryId === categoryId);
+            const actuals = existing
+              ? p.actuals.map((a) => (a.id === existing.id ? { ...a, amount, updatedAt: ts } : a))
+              : [...p.actuals, { id: genId("actual"), month, categoryId, amount, createdAt: ts, updatedAt: ts }];
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, actuals }) } };
           });
         },
 
