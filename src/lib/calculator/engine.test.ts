@@ -1,0 +1,150 @@
+import { describe, expect, it } from "vitest";
+import { buildDefaultDatabase } from "./database";
+import { DEFAULT_BUILDING, SCENARIOS } from "./presets";
+import {
+  applyScenario,
+  computeApartmentCheck,
+  computeCapitalRepairAnnual,
+  computeCategoryTotals,
+  computeScenarioTariff,
+  computeTariff,
+  compareToMinTariff,
+  getChildren,
+  getDescendantIds,
+} from "./engine";
+
+describe("computeTariff", () => {
+  it("возвращает положительный конечный тариф для дефолтной базы", () => {
+    const db = buildDefaultDatabase();
+    const result = computeTariff(db, DEFAULT_BUILDING);
+    expect(Number.isFinite(result.tariffPerSqm)).toBe(true);
+    expect(result.tariffPerSqm).toBeGreaterThan(0);
+  });
+
+  it("Р год = Р упр. + Р сод.", () => {
+    const db = buildDefaultDatabase();
+    const result = computeTariff(db, DEFAULT_BUILDING);
+    expect(result.annualTotalCost).toBeCloseTo(
+      result.annualManagementCost + result.annualMaintenanceCost,
+      2,
+    );
+  });
+
+  it("бюджет за год = бюджет в месяц × 12 и тариф формула сходится", () => {
+    const db = buildDefaultDatabase();
+    const result = computeTariff(db, DEFAULT_BUILDING);
+    expect(result.annualBudget).toBeCloseTo(result.monthlyBudget * 12, 1);
+    expect(result.quarterlyBudget).toBeCloseTo(result.monthlyBudget * 3, 1);
+
+    const expectedTariff =
+      (result.annualTotalCost - result.annualCommercialIncome) / (result.usefulArea * 12);
+    expect(result.tariffPerSqm).toBeCloseTo(expectedTariff, 2);
+  });
+
+  it("отключение статьи снижает тариф", () => {
+    const db = buildDefaultDatabase();
+    const before = computeTariff(db, DEFAULT_BUILDING);
+    const targetItem = db.items.find((it) => it.categoryId === "2.7" && it.enabled);
+    expect(targetItem).toBeTruthy();
+    const db2 = {
+      ...db,
+      items: db.items.map((it) => (it.id === targetItem!.id ? { ...it, enabled: false } : it)),
+    };
+    const after = computeTariff(db2, DEFAULT_BUILDING);
+    expect(after.tariffPerSqm).toBeLessThan(before.tariffPerSqm);
+  });
+
+  it("мультипликатор сценария пропорционально увеличивает стоимость атомарных статей", () => {
+    const db = buildDefaultDatabase();
+    const base = computeTariff(db, DEFAULT_BUILDING, 1);
+    const scaled = computeTariff(db, DEFAULT_BUILDING, 2);
+    // капремонт не зависит от мультипликатора, поэтому рост тарифа не ровно x2,
+    // но при отсутствии капремонта/дохода рост был бы пропорционален.
+    expect(scaled.annualManagementCost).toBeCloseTo(base.annualManagementCost * 2, 0);
+  });
+});
+
+describe("computeCapitalRepairAnnual", () => {
+  it("не менее 0,005 МРП × S полез. × 12", () => {
+    const annual = computeCapitalRepairAnnual(DEFAULT_BUILDING, 3932);
+    const usefulArea = DEFAULT_BUILDING.livingArea + DEFAULT_BUILDING.commercialArea;
+    expect(annual).toBeCloseTo(
+      DEFAULT_BUILDING.capitalRepairMrpMultiplier * 3932 * usefulArea * 12,
+      2,
+    );
+  });
+});
+
+describe("computeApartmentCheck", () => {
+  it("линейно масштабируется по площади", () => {
+    expect(computeApartmentCheck(100, 40)).toBe(4000);
+    expect(computeApartmentCheck(100, 80)).toBe(8000);
+  });
+});
+
+describe("compareToMinTariff", () => {
+  it("возвращает unknown без данных по региону", () => {
+    expect(compareToMinTariff(100, undefined)).toBe("unknown");
+  });
+  it("отмечает тариф ниже минимального", () => {
+    expect(
+      compareToMinTariff(50, { region: "Х", minTariffPerSqm: 100, source: "", verified: false }),
+    ).toBe("below");
+  });
+  it("отмечает тариф в пределах ориентира", () => {
+    expect(
+      compareToMinTariff(110, { region: "Х", minTariffPerSqm: 100, source: "", verified: false }),
+    ).toBe("within");
+  });
+});
+
+describe("категории — обход дерева", () => {
+  it("getDescendantIds включает сам узел и всех потомков", () => {
+    const db = buildDefaultDatabase();
+    const ids = getDescendantIds(db.categories, "2.2");
+    expect(ids.has("2.2")).toBe(true);
+    expect(ids.has("2.2.1")).toBe(true);
+    expect(ids.has("2.2.2")).toBe(true);
+    expect(ids.has("1.1")).toBe(false);
+  });
+
+  it("getChildren возвращает прямых потомков категории", () => {
+    const db = buildDefaultDatabase();
+    const children = getChildren(db.categories, "2").map((c) => c.id);
+    expect(children).toContain("2.1");
+    expect(children).toContain("2.11");
+    expect(children).not.toContain("2.2.1");
+  });
+
+  it("сумма категории 2 включает суммы всех дочерних подкатегорий", () => {
+    const db = buildDefaultDatabase();
+    const totals = computeCategoryTotals(db, DEFAULT_BUILDING);
+    const byId = new Map(totals.map((t) => [t.categoryId, t.annualTotal]));
+    const childSum = getChildren(db.categories, "2").reduce(
+      (sum, c) => sum + (byId.get(c.id) ?? 0),
+      0,
+    );
+    expect(byId.get("2")).toBeCloseTo(childSum, 2);
+  });
+});
+
+describe("applyScenario / computeScenarioTariff", () => {
+  it("сценарий «Эконом» дешевле «Бизнес» на одинаковой базе", () => {
+    const db = buildDefaultDatabase();
+    const economy = SCENARIOS.find((s) => s.id === "economy")!;
+    const business = SCENARIOS.find((s) => s.id === "business")!;
+    const economyResult = computeScenarioTariff(db, DEFAULT_BUILDING, economy);
+    const businessResult = computeScenarioTariff(db, DEFAULT_BUILDING, business);
+    expect(economyResult.tariffPerSqm).toBeLessThan(businessResult.tariffPerSqm);
+  });
+
+  it("applyScenario отключает позиции выше допустимого класса жилья", () => {
+    const db = buildDefaultDatabase();
+    const economy = SCENARIOS.find((s) => s.id === "economy")!;
+    const filtered = applyScenario(db, economy);
+    const businessOnlyItem = filtered.items.find((it) => it.minServiceClass === "comfort");
+    const businessOnlyPayroll = filtered.payroll.find((p) => p.minServiceClass === "business");
+    expect(businessOnlyItem?.enabled).toBe(false);
+    expect(businessOnlyPayroll?.enabled).toBe(false);
+  });
+});

@@ -1,0 +1,123 @@
+"use client";
+
+import { ArrowDown, ArrowUp, Gauge, Minus } from "lucide-react";
+import { useCalculatorStore, type BudgetPeriod } from "@/store/useCalculatorStore";
+import { compareToMinTariff, computeApartmentCheck } from "@/lib/calculator/engine";
+import { findMinTariff } from "@/lib/calculator/minTariffs";
+import { APARTMENT_SAMPLE_SIZES } from "@/lib/calculator/presets";
+import { formatKzt, formatKztPrecise } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
+const PERIOD_LABEL: Record<BudgetPeriod, string> = {
+  month: "Месяц",
+  quarter: "Квартал",
+  year: "Год",
+};
+
+export function StickyHud() {
+  const tariff = useCalculatorStore((s) => s.tariff);
+  const lastTariff = useCalculatorStore((s) => s.lastTariff);
+  const building = useCalculatorStore((s) => s.building);
+  const budgetPeriod = useCalculatorStore((s) => s.budgetPeriod);
+  const setBudgetPeriod = useCalculatorStore((s) => s.setBudgetPeriod);
+
+  const minTariff = findMinTariff(building.region);
+  const status = compareToMinTariff(tariff.tariffPerSqm, minTariff);
+  const delta = tariff.tariffPerSqm - lastTariff;
+
+  const budgetByPeriod: Record<BudgetPeriod, number> = {
+    month: tariff.monthlyBudget,
+    quarter: tariff.quarterlyBudget,
+    year: tariff.annualBudget,
+  };
+
+  const statusColor =
+    status === "below"
+      ? "danger"
+      : status === "above"
+        ? "warning"
+        : status === "within"
+          ? "success"
+          : "outline";
+
+  const statusLabel =
+    status === "below"
+      ? "ниже минимального тарифа маслихата"
+      : status === "above"
+        ? "существенно выше минимального тарифа"
+        : status === "within"
+          ? "в пределах ориентира маслихата"
+          : "нет данных по региону";
+
+  return (
+    <div className="no-print sticky top-0 z-40 -mx-4 mb-6 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 sm:mx-0 sm:rounded-2xl sm:border sm:px-5">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-emerald-50 p-2 dark:bg-emerald-950">
+            <Gauge className="h-5 w-5 text-emerald-600" />
+          </div>
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white">
+                {formatKztPrecise(tariff.tariffPerSqm)} ₸
+              </span>
+              <span className="text-xs text-slate-400">/ м² в мес.</span>
+              {delta !== 0 && (
+                <span
+                  className={`inline-flex items-center text-xs font-medium tabular-nums ${
+                    delta > 0 ? "text-rose-500" : "text-emerald-600"
+                  }`}
+                >
+                  {delta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  {formatKztPrecise(Math.abs(delta))}
+                </span>
+              )}
+              {delta === 0 && <Minus className="h-3 w-3 text-slate-300" />}
+            </div>
+            <Badge variant={statusColor} className="mt-0.5">
+              {statusLabel}
+              {minTariff ? ` (${minTariff.minTariffPerSqm} ₸)` : ""}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs dark:bg-slate-800">
+            {(Object.keys(PERIOD_LABEL) as BudgetPeriod[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setBudgetPeriod(p)}
+                className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
+                  budgetPeriod === p
+                    ? "bg-white text-slate-900 shadow dark:bg-slate-950 dark:text-white"
+                    : "text-slate-500"
+                }`}
+              >
+                {PERIOD_LABEL[p]}
+              </button>
+            ))}
+          </div>
+          <div className="text-sm">
+            <div className="font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+              {formatKzt(budgetByPeriod[budgetPeriod])}
+            </div>
+            <div className="text-xs text-slate-400">бюджет сборов</div>
+          </div>
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center gap-4">
+          {APARTMENT_SAMPLE_SIZES.map((s) => (
+            <div key={s.label} className="text-right">
+              <div className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                {formatKzt(computeApartmentCheck(tariff.tariffPerSqm, s.area))}
+              </div>
+              <div className="text-xs text-slate-400">
+                {s.label} ({s.area} м²)
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
