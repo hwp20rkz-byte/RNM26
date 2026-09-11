@@ -176,7 +176,13 @@ describe("computeAgendaItemResult", () => {
 });
 
 describe("computeUnitMonthlyAccrual", () => {
-  const coefficients = { commercialRateCoefficient: 1.5, storageRateCoefficient: 0.5, parkingRateCoefficient: 0.6 };
+  const coefficients = {
+    commercialRateCoefficient: 1.5,
+    storageRateCoefficient: 0.5,
+    parkingRateCoefficient: 0.6,
+    parkingFlatFeePerSpot: 0,
+    parkingNonPaymentRatePercent: 0,
+  };
 
   it("для квартиры — тариф × площадь без коэффициента", () => {
     const u = unit({ id: "u1", area: 50, unitType: "apartment" });
@@ -188,11 +194,24 @@ describe("computeUnitMonthlyAccrual", () => {
     expect(computeUnitMonthlyAccrual(u, 100, coefficients)).toBe(15000);
   });
 
-  it("кладовая и машиноместо — со своим коэффициентом, а не как жильё", () => {
+  it("кладовая и машиноместо (без пола/резерва) — со своим коэффициентом, а не как жильё", () => {
     const storage = unit({ id: "s1", area: 5, unitType: "storage" });
     const parking = unit({ id: "p1", area: 15, unitType: "parking" });
     expect(computeUnitMonthlyAccrual(storage, 100, coefficients)).toBe(250);
     expect(computeUnitMonthlyAccrual(parking, 100, coefficients)).toBe(900);
+  });
+
+  it("машиноместо — пол поднимает начисление, если площадная ставка ниже минимума", () => {
+    const parking = unit({ id: "p2", area: 10, unitType: "parking" }); // 100×0.6×10=600 < пол
+    const withFloor = { ...coefficients, parkingFlatFeePerSpot: 7500 };
+    expect(computeUnitMonthlyAccrual(parking, 100, withFloor)).toBe(7500);
+  });
+
+  it("машиноместо — резерв на неплатежи завышает начисление сверх пола", () => {
+    const parking = unit({ id: "p3", area: 10, unitType: "parking" });
+    const withFloorAndReserve = { ...coefficients, parkingFlatFeePerSpot: 7500, parkingNonPaymentRatePercent: 35 };
+    // 7500 / (1 - 0.35) = 11538.46...
+    expect(computeUnitMonthlyAccrual(parking, 100, withFloorAndReserve)).toBeCloseTo(11538.46, 1);
   });
 });
 

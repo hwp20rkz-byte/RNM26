@@ -16,9 +16,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { InlineNumber } from "@/components/InlineEdit";
 import { useProjectsStore } from "@/store/useProjectsStore";
-import { useActiveProject } from "@/store/hooks";
+import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { computeAllWear, computeCapitalFundProjection, computeReplacementPlan } from "@/lib/calculator/wearEngine";
-import { computeCapitalRepairAnnual } from "@/lib/calculator/engine";
+import { computeCapitalRepairAnnual, computeParkingSurplusAnnual } from "@/lib/calculator/engine";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
 
@@ -27,6 +27,7 @@ const HORIZONS = [3, 5, 10] as const;
 
 export function ReplacementPlan() {
   const project = useActiveProject();
+  const tariff = useActiveTariff();
   const setCapitalFundBalance = useProjectsStore((s) => s.setCapitalFundBalance);
   const insertReplacementIntoSmeta = useProjectsStore((s) => s.insertReplacementIntoSmeta);
   const [horizon, setHorizon] = useState<(typeof HORIZONS)[number]>(5);
@@ -95,6 +96,8 @@ export function ReplacementPlan() {
   const firstDeficitYear = projection.find((p) => p.balance < 0)?.year;
   const wouldAccumulate = project.capitalFundBalance + annualIncome * horizon;
   const gap = totalPlanCost - wouldAccumulate;
+  const parkingSurplusAnnual = computeParkingSurplusAnnual(tariff, project.building);
+  const recreationAssets = project.assets.filter((a) => a.category === "recreation");
 
   return (
     <Card>
@@ -196,6 +199,16 @@ export function ReplacementPlan() {
             </div>
           )}
         </div>
+
+        {parkingSurplusAnnual > 0 && (
+          <p className="text-xs text-slate-400">
+            Справочно: из паркинга (пол за место + резерв на неплатежи, Шаг 1) сверх пропорциональной
+            площадной доли собирается {formatKzt(parkingSurplusAnnual)}/год — деньги идут в общий
+            фонд выше, отдельно не обособлены (решение о реальном целевом фонде — вопрос собрания).
+            {recreationAssets.length === 0 &&
+              " Чтобы копить именно на спортплощадку/поле, заведите их как оборудование категории «Спорт и отдых» в Реестре — они попадут в план замены выше."}
+          </p>
+        )}
 
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">

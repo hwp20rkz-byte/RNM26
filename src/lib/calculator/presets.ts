@@ -23,6 +23,11 @@ export const DEFAULT_BUILDING: BuildingProfile = {
   commercialRateCoefficient: 1.0,
   storageRateCoefficient: 1.0,
   parkingRateCoefficient: 1.0,
+  // Демонстрация запроса собственника: минимум 7500 ₸/место при 35%
+  // неплательщиков среди владельцев машиномест — реальные цифры утверждает
+  // собрание, здесь только пример работы пола/резерва на эталонном объекте.
+  parkingFlatFeePerSpot: 7500,
+  parkingNonPaymentRatePercent: 35,
 };
 
 export const SERVICE_CLASS_LABELS: Record<ServiceClass, string> = {
@@ -62,6 +67,8 @@ export function buildBlankBuilding(name: string, objectType: ObjectType = "resid
     commercialRateCoefficient: 1.0,
     storageRateCoefficient: 1.0,
     parkingRateCoefficient: 1.0,
+    parkingFlatFeePerSpot: 0,
+    parkingNonPaymentRatePercent: 0,
   };
 }
 

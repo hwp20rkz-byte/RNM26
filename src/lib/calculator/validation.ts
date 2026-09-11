@@ -21,6 +21,8 @@ export const buildingProfileSchema = z
     commercialRateCoefficient: z.number().positive(),
     storageRateCoefficient: z.number().positive(),
     parkingRateCoefficient: z.number().positive(),
+    parkingFlatFeePerSpot: z.number().min(0),
+    parkingNonPaymentRatePercent: z.number().min(0).max(95),
   })
   .refine((v) => v.livingArea + v.commercialArea > 0, {
     message: "Площадь (жилая + коммерческая) должна быть больше 0",

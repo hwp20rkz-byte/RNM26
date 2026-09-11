@@ -2,10 +2,15 @@ import { describe, expect, it } from "vitest";
 import { buildDefaultDatabase } from "./database";
 import { BUILTIN_PRESETS, DEFAULT_BUILDING } from "./presets";
 import {
+  applyParkingFloorAndReserve,
   applyPreset,
   computeApartmentCheck,
+  computeAvgParkingSpotArea,
   computeCapitalRepairAnnual,
   computeCategoryTotals,
+  computeParkingAreaBasedPerSpot,
+  computeParkingBilledPerSpot,
+  computeParkingSurplusAnnual,
   computePresetTariff,
   computeTariff,
   computeTariffByUnitType,
@@ -92,9 +97,15 @@ describe("computeTariffByUnitType", () => {
       commercialArea: 50,
       storageArea: 10,
       parkingArea: 20,
+      // 0 мест — чистая площадная (коэффициентная) ветка формулы, без
+      // спот-модели пола/резерва (она отдельно покрыта блоком
+      // "computeTariffByUnitType — паркинг с полом и резервом" ниже)
+      parkingSpots: 0,
       commercialRateCoefficient: 1.5,
       storageRateCoefficient: 0.5,
       parkingRateCoefficient: 0.6,
+      parkingFlatFeePerSpot: 0,
+      parkingNonPaymentRatePercent: 0,
     };
     const db = buildDefaultDatabase();
     const tariff = computeTariff(db, b);
@@ -194,3 +205,84 @@ describe("applyPreset / computePresetTariff", () => {
     }
   });
 });
+
+describe("computeAvgParkingSpotArea", () => {
+  it("делит площадь паркинга на число мест", () => {
+    const b = { ...DEFAULT_BUILDING, parkingArea: 135, parkingSpots: 10 };
+    expect(computeAvgParkingSpotArea(b)).toBe(13.5);
+  });
+
+  it("0 мест — 0, а не деление на ноль", () => {
+    const b = { ...DEFAULT_BUILDING, parkingArea: 135, parkingSpots: 0 };
+    expect(computeAvgParkingSpotArea(b)).toBe(0);
+  });
+});
+
+describe("applyParkingFloorAndReserve", () => {
+  const building = { parkingFlatFeePerSpot: 0, parkingNonPaymentRatePercent: 0 };
+
+  it("без пола и резерва — возвращает исходную сумму", () => {
+    expect(applyParkingFloorAndReserve(1000, building)).toBe(1000);
+  });
+
+  it("пол поднимает сумму, если площадная ставка ниже минимума", () => {
+    expect(applyParkingFloorAndReserve(1000, { ...building, parkingFlatFeePerSpot: 7500 })).toBe(7500);
+  });
+
+  it("пол не понижает сумму, если площадная ставка уже выше минимума", () => {
+    expect(applyParkingFloorAndReserve(9000, { ...building, parkingFlatFeePerSpot: 7500 })).toBe(9000);
+  });
+
+  it("резерв на неплатежи завышает начисление: X / (1 - rate/100)", () => {
+    const result = applyParkingFloorAndReserve(7500, { ...building, parkingNonPaymentRatePercent: 35 });
+    expect(result).toBeCloseTo(7500 / 0.65, 2);
+  });
+
+  it("процент неплательщиков зажимается в диапазон [0, 95]", () => {
+    const capped = applyParkingFloorAndReserve(1000, { ...building, parkingNonPaymentRatePercent: 99 });
+    expect(capped).toBeCloseTo(1000 / 0.05, 2); // не 1000/0.01
+  });
+});
+
+describe("computeParkingAreaBasedPerSpot / computeParkingBilledPerSpot / computeParkingSurplusAnnual", () => {
+  const db = buildDefaultDatabase();
+
+  it("billedPerSpot без пола/резерва совпадает с areaBasedPerSpot", () => {
+    const b = { ...DEFAULT_BUILDING, parkingFlatFeePerSpot: 0, parkingNonPaymentRatePercent: 0 };
+    const tariff = computeTariff(db, b);
+    expect(computeParkingBilledPerSpot(tariff, b)).toBe(computeParkingAreaBasedPerSpot(tariff, b));
+    expect(computeParkingSurplusAnnual(tariff, b)).toBe(0);
+  });
+
+  it("пол + резерв дают billedPerSpot строго выше areaBasedPerSpot и положительный излишек", () => {
+    const b = { ...DEFAULT_BUILDING, parkingFlatFeePerSpot: 50000, parkingNonPaymentRatePercent: 35 };
+    const tariff = computeTariff(db, b);
+    const baseline = computeParkingAreaBasedPerSpot(tariff, b);
+    const billed = computeParkingBilledPerSpot(tariff, b);
+    expect(billed).toBeGreaterThan(baseline);
+    expect(computeParkingSurplusAnnual(tariff, b)).toBeCloseTo((billed - baseline) * b.parkingSpots * 12, 0);
+  });
+
+  it("0 мест — surplus всегда 0", () => {
+    const b = { ...DEFAULT_BUILDING, parkingSpots: 0, parkingFlatFeePerSpot: 50000 };
+    const tariff = computeTariff(db, b);
+    expect(computeParkingSurplusAnnual(tariff, b)).toBe(0);
+  });
+});
+
+describe("computeTariffByUnitType — паркинг с полом и резервом", () => {
+  it("при заданных местах ratePerSqm паркинга учитывает пол/резерв, а не только коэффициент", () => {
+    const db = buildDefaultDatabase();
+    const b = { ...DEFAULT_BUILDING, parkingFlatFeePerSpot: 50000, parkingNonPaymentRatePercent: 35 };
+    const tariff = computeTariff(db, b);
+    const lines = computeTariffByUnitType(tariff, b);
+    const parking = lines.find((l) => l.unitType === "parking")!;
+    const naiveRate = round2(tariff.tariffPerSqm * b.parkingRateCoefficient);
+    expect(parking.ratePerSqm).not.toBeCloseTo(naiveRate, 2);
+    expect(parking.monthlyTotal).toBeCloseTo(computeParkingBilledPerSpot(tariff, b) * b.parkingSpots, 0);
+  });
+});
+
+function round2(v: number) {
+  return Math.round(v * 100) / 100;
+}

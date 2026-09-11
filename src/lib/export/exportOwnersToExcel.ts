@@ -18,7 +18,11 @@ export async function exportOwnersToExcelBlob(
   tariffPerSqm: number,
   rateCoefficients: Pick<
     BuildingProfile,
-    "commercialRateCoefficient" | "storageRateCoefficient" | "parkingRateCoefficient"
+    | "commercialRateCoefficient"
+    | "storageRateCoefficient"
+    | "parkingRateCoefficient"
+    | "parkingFlatFeePerSpot"
+    | "parkingNonPaymentRatePercent"
   >,
 ): Promise<Blob> {
   const wb = new ExcelJS.Workbook();

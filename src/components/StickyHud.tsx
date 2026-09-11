@@ -5,7 +5,12 @@ import { ArrowDown, ArrowUp, Gauge, Minus } from "lucide-react";
 import { useMemo } from "react";
 import { useProjectsStore, type BudgetPeriod } from "@/store/useProjectsStore";
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
-import { compareToMinTariff, computeApartmentCheck, computeTariffByUnitType } from "@/lib/calculator/engine";
+import {
+  compareToMinTariff,
+  computeApartmentCheck,
+  computeParkingBilledPerSpot,
+  computeTariffByUnitType,
+} from "@/lib/calculator/engine";
 import { findMinTariff } from "@/lib/calculator/minTariffs";
 import { APARTMENT_SAMPLE_SIZES } from "@/lib/calculator/presets";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
@@ -156,10 +161,21 @@ export function StickyHud() {
           {byType.map((l) => (
             <span key={l.unitType}>
               {UNIT_TYPE_LABELS[l.unitType]}:{" "}
-              <b className="tabular-nums text-slate-700 dark:text-slate-200">
-                {formatKztPrecise(l.ratePerSqm)} ₸/м²
-              </b>{" "}
-              <span className="text-slate-400">({formatKzt(l.monthlyTotal)}/мес. всего)</span>
+              {l.unitType === "parking" && building.parkingSpots > 0 ? (
+                <>
+                  <b className="tabular-nums text-slate-700 dark:text-slate-200">
+                    {formatKztPrecise(computeParkingBilledPerSpot(tariff, building))} ₸/место
+                  </b>{" "}
+                  <span className="text-slate-400">({formatKzt(l.monthlyTotal)}/мес. всего, {building.parkingSpots} мест)</span>
+                </>
+              ) : (
+                <>
+                  <b className="tabular-nums text-slate-700 dark:text-slate-200">
+                    {formatKztPrecise(l.ratePerSqm)} ₸/м²
+                  </b>{" "}
+                  <span className="text-slate-400">({formatKzt(l.monthlyTotal)}/мес. всего)</span>
+                </>
+              )}
             </span>
           ))}
         </div>

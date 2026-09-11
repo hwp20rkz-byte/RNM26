@@ -1,3 +1,4 @@
+import { applyParkingFloorAndReserve } from "./engine";
 import type {
   AgendaItem,
   BuildingProfile,
@@ -109,24 +110,33 @@ export function computeAgendaItemResult(
 // Начисления по юнитам реестра — тариф В (₸/м²/мес.) × площадь юнита, с
 // коэффициентом по типу помещения (решение собрания, из профиля объекта):
 // свой коэффициент для нежилых, кладовых и машиномест — по образцу нежилых.
+// Для машиномест дополнительно применяется пол (минимальная плата) и резерв
+// на неплатежи (applyParkingFloorAndReserve, engine.ts) — по площади ЭТОГО
+// конкретного юнита, а не средней площади места, как в быстром расчёте Шага 1.
 // ---------------------------------------------------------------------------
 
 export function computeUnitMonthlyAccrual(
   unit: OwnershipUnit,
   tariffPerSqm: number,
-  rateCoefficients: Pick<
+  building: Pick<
     BuildingProfile,
-    "commercialRateCoefficient" | "storageRateCoefficient" | "parkingRateCoefficient"
+    | "commercialRateCoefficient"
+    | "storageRateCoefficient"
+    | "parkingRateCoefficient"
+    | "parkingFlatFeePerSpot"
+    | "parkingNonPaymentRatePercent"
   >,
 ): number {
+  if (unit.unitType === "parking") {
+    const areaBased = round2(tariffPerSqm * building.parkingRateCoefficient * unit.area);
+    return applyParkingFloorAndReserve(areaBased, building);
+  }
   const coefficient =
     unit.unitType === "commercial"
-      ? rateCoefficients.commercialRateCoefficient
+      ? building.commercialRateCoefficient
       : unit.unitType === "storage"
-        ? rateCoefficients.storageRateCoefficient
-        : unit.unitType === "parking"
-          ? rateCoefficients.parkingRateCoefficient
-          : 1;
+        ? building.storageRateCoefficient
+        : 1;
   return round2(tariffPerSqm * coefficient * unit.area);
 }
 

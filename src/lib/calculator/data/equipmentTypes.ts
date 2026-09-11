@@ -42,6 +42,21 @@ export const EQUIPMENT_TYPES: EquipmentType[] = [
   { id: "eq-other-intercom", name: "Домофонное оборудование, СКУД", category: "other", normativeLifeYears: 10, source: INDUSTRY_REFERENCE },
   { id: "eq-other-cctv", name: "Видеонаблюдение (камеры, регистраторы)", category: "other", normativeLifeYears: 7, source: INDUSTRY_REFERENCE },
   { id: "eq-other-barrier", name: "Шлагбаумы/ворота паркинга", category: "other", normativeLifeYears: 10, source: INDUSTRY_REFERENCE },
+
+  {
+    id: "eq-rec-football",
+    name: "Футбольное поле (искусственное покрытие)",
+    category: "recreation",
+    normativeLifeYears: 8,
+    source: "Рыночный ориентир производителей ИП-покрытий (типичный срок службы 8-10 лет при регулярной эксплуатации) — не НПА, сверьте с гарантией конкретного покрытия",
+  },
+  {
+    id: "eq-rec-playground",
+    name: "Детская площадка (МАФ и покрытие)",
+    category: "recreation",
+    normativeLifeYears: 10,
+    source: "Рыночный ориентир производителей МАФ и травмобезопасных покрытий — сверьте с паспортом/сертификатом конкретного оборудования (ГОСТ на безопасность детских площадок предписывает периодические освидетельствования, не задаёт единый срок службы)",
+  },
 ];
 
 export const EQUIPMENT_CATEGORY_LABELS: Record<string, string> = {
@@ -51,5 +66,6 @@ export const EQUIPMENT_CATEGORY_LABELS: Record<string, string> = {
   electrical: "Электрика",
   fire: "Противопожарные системы",
   roof_facade: "Кровля и фасад",
+  recreation: "Спорт и отдых (двор)",
   other: "Слаботочные системы и прочее",
 };

@@ -1224,7 +1224,7 @@ export const useProjectsStore = create<ProjectsState>()(
       name: "qazaqosi-projects-v1",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      version: 6,
+      version: 7,
       // v0 → v1: project.scenario:"economy"|"standard"|"business" → presetId,
       //          пресетов не существовало вовсе.
       // v1 → v2: у проектов не было assets[]/capitalFundBalance, справочника
@@ -1242,6 +1242,11 @@ export const useProjectsStore = create<ProjectsState>()(
       //          parkingRateCoefficient — раньше кладовые и машиноместа
       //          неявно начислялись по базовому тарифу (коэффициент 1),
       //          проставляем это явно, чтобы расчёт не превратился в NaN.
+      // v6 → v7: у BuildingProfile не было parkingFlatFeePerSpot/
+      //          parkingNonPaymentRatePercent (пол и резерв на неплатежи
+      //          для паркинга) — бэкофилл нейтральными 0/0 (пол/резерв не
+      //          действуют), не меняет расчёт существующих проектов, пока
+      //          пользователь не включит их явно на Шаге 1.
       migrate: (persisted, version) => {
         type LooseProject = Project & {
           scenario?: string;
@@ -1342,6 +1347,23 @@ export const useProjectsStore = create<ProjectsState>()(
             parkingRateCoefficient: pr.parkingRateCoefficient ?? 1,
           }));
           state = { ...state, projects, savedSmetas, presets };
+        }
+
+        if (version < 7) {
+          const backfillParking = (b: BuildingProfile): BuildingProfile => ({
+            ...b,
+            parkingFlatFeePerSpot: b.parkingFlatFeePerSpot ?? 0,
+            parkingNonPaymentRatePercent: b.parkingNonPaymentRatePercent ?? 0,
+          });
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            projects[id] = { ...p, building: backfillParking(p.building) };
+          }
+          const savedSmetas: Record<string, SavedSmeta & { scenario?: string }> = {};
+          for (const [id, sm] of Object.entries(state.savedSmetas ?? {})) {
+            savedSmetas[id] = { ...sm, building: backfillParking(sm.building) };
+          }
+          state = { ...state, projects, savedSmetas };
         }
 
         return {

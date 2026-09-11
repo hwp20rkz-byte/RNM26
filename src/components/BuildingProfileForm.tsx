@@ -6,15 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NumberField } from "@/components/NumberField";
 import { useProjectsStore } from "@/store/useProjectsStore";
-import { useActiveProject } from "@/store/hooks";
+import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { buildingProfileSchema } from "@/lib/calculator/validation";
 import { OBJECT_TYPE_LABELS, PRESET_FIELD_HELP } from "@/lib/calculator/presets";
 import { REGIONAL_MIN_TARIFFS } from "@/lib/calculator/minTariffs";
-import { computeUsefulArea } from "@/lib/calculator/engine";
+import { computeParkingBilledPerSpot, computeUsefulArea } from "@/lib/calculator/engine";
+import { formatKztPrecise } from "@/lib/utils";
 import type { ObjectType } from "@/lib/calculator/types";
 
 export function BuildingProfileForm() {
   const project = useActiveProject();
+  const tariff = useActiveTariff();
   const building = project.building;
   const setBuilding = useProjectsStore((s) => s.setBuilding);
   const presets = useProjectsStore((s) => s.presets);
@@ -305,6 +307,46 @@ export function BuildingProfileForm() {
               onChange={(v) => setBuilding({ parkingRateCoefficient: v })}
               hint="Решение общего собрания; 1.0 = равный тариф, обычно ниже"
             />
+          </div>
+        </div>
+
+        <div>
+          <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Паркинг — минимум и резерв на неплатежи
+          </h4>
+          <p className="mb-2 text-xs text-slate-400">
+            Собственники машиномест часто не проживают в доме — площадная ставка (коэффициент выше)
+            может не дотягивать до реальной себестоимости содержания паркинга. Ниже — фиксированный
+            минимум платы за место и запас на ожидаемую долю неплательщиков; начисляемая ставка =
+            max(площадная ставка, минимум) / (1 − % неплательщиков).
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <NumberField
+              label="Минимум платы за место"
+              suffix="₸/мес."
+              value={building.parkingFlatFeePerSpot}
+              step={500}
+              onChange={(v) => setBuilding({ parkingFlatFeePerSpot: v })}
+              hint="0 = минимум не действует, платят только по площадной ставке"
+              error={touched ? errors.parkingFlatFeePerSpot : undefined}
+            />
+            <NumberField
+              label="Ожидаемый % неплательщиков среди владельцев машиномест"
+              suffix="%"
+              value={building.parkingNonPaymentRatePercent}
+              step={5}
+              onChange={(v) => setBuilding({ parkingNonPaymentRatePercent: v })}
+              hint="0 = резерв не действует. Не угадывайте — берите из фактической истории сборов по паркингу"
+              error={touched ? errors.parkingNonPaymentRatePercent : undefined}
+            />
+            {building.parkingSpots > 0 && (
+              <div className="flex flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800/40">
+                <span className="text-slate-400">Итоговая начисляемая ставка за место</span>
+                <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">
+                  {formatKztPrecise(computeParkingBilledPerSpot(tariff, building))} ₸/мес.
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
