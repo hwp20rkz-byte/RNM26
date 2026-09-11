@@ -293,7 +293,10 @@ function ItemRow({
       source={item.source}
       serviceClass={item.minServiceClass}
       trailing={
-        <span className={`shrink-0 text-sm font-medium tabular-nums ${item.enabled ? "text-slate-700 dark:text-slate-200" : "text-slate-300"}`}>
+        <span
+          className={`shrink-0 text-sm font-medium tabular-nums ${item.enabled ? "text-slate-700 dark:text-slate-200" : "text-slate-300"}`}
+          title={`${item.annualQty} × ${formatKzt(item.unitPrice)} = ${formatKzt(annual)}/год ÷ 12`}
+        >
           {formatKzt(annual / 12)}/мес
         </span>
       }
@@ -303,11 +306,14 @@ function ItemRow({
         onChange={(v) => onUpdate({ name: v })}
         className="min-w-[10rem] flex-1 font-medium"
       />
-      <InlineNumber value={item.annualQty} onChange={(v) => onUpdate({ annualQty: v })} className="w-16" title="Кол-во в год" />
+      <InlineNumber value={item.annualQty} onChange={(v) => onUpdate({ annualQty: v })} className="w-16" title="Кол-во раз в год" />
       <InlineText value={item.unit} onChange={(v) => onUpdate({ unit: v })} className="w-16 text-slate-400" placeholder="ед." />
       <span className="text-slate-300">×</span>
-      <InlineNumber value={item.unitPrice} onChange={(v) => onUpdate({ unitPrice: v })} className="w-24" step={0.01} title="Цена, ₸" />
-      <span className="text-xs text-slate-300">₸</span>
+      <InlineNumber value={item.unitPrice} onChange={(v) => onUpdate({ unitPrice: v })} className="w-24" step={0.01} title="Цена за 1 раз, ₸" />
+      <span className="text-xs text-slate-300">₸/раз</span>
+      <span className="text-xs text-slate-400" title="Кол-во раз в год × Цена за раз">
+        = {formatKzt(annual)}/год
+      </span>
     </RowShell>
   );
 }
