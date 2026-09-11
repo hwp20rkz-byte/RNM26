@@ -11,6 +11,7 @@ import type {
   CostItem,
   EquipmentType,
   GeneralMeeting,
+  MaintenanceLogEntry,
   MaintenanceTask,
   MeetingFormat,
   MeetingParticipant,
@@ -20,8 +21,10 @@ import type {
   Project,
   SavedSmeta,
   ServicePreset,
+  SparePartItem,
   VoteChoice,
 } from "@/lib/calculator/types";
+import { applyWriteOffToStock, computeMaterialsCost } from "@/lib/calculator/inventoryEngine";
 import { buildBlankDatabase, buildDefaultDatabase } from "@/lib/calculator/database";
 import { BUILTIN_PRESETS, DEFAULT_BUILDING, buildBlankBuilding } from "@/lib/calculator/presets";
 import { applyPreset, computeTariff } from "@/lib/calculator/engine";
@@ -62,6 +65,8 @@ function seedInitialProject(presets: ServicePreset[]): Project {
     meetings: [],
     maintenanceTasks: [],
     actuals: [],
+    spareParts: [],
+    maintenanceLogs: [],
     createdAt: ts,
     updatedAt: ts,
   };
@@ -182,6 +187,24 @@ interface ProjectsState {
   /** Создаёт или обновляет единственную запись факта для пары месяц+категория */
   setActualAmount: (month: string, categoryId: string, amount: number) => void;
 
+  // --- склад ЗИП и журнал работ ---
+  addSparePart: (
+    item: Pick<SparePartItem, "name" | "unit" | "category" | "quantityOnHand" | "minThreshold" | "avgUnitPrice"> &
+      Partial<SparePartItem>,
+  ) => void;
+  updateSparePart: (id: string, patch: Partial<SparePartItem>) => void;
+  removeSparePart: (id: string) => void;
+  importSpareParts: (
+    rows: (Pick<SparePartItem, "name" | "unit" | "category" | "quantityOnHand" | "minThreshold" | "avgUnitPrice"> &
+      Partial<SparePartItem>)[],
+  ) => number;
+  /** Добавляет наряд в журнал, списывает использованные материалы со склада и (если указана статья сметы) фиксирует расход в Плане/факте текущего месяца */
+  recordMaintenanceLog: (
+    entry: Pick<MaintenanceLogEntry, "date" | "technicianName" | "workType" | "description"> &
+      Partial<MaintenanceLogEntry>,
+  ) => void;
+  removeMaintenanceLog: (id: string) => void;
+
   // --- сохранённые сметы ---
   saveSmeta: (name: string) => string;
   deleteSmeta: (id: string) => void;
@@ -253,6 +276,8 @@ export const useProjectsStore = create<ProjectsState>()(
             meetings: [],
             maintenanceTasks: [],
             actuals: [],
+            spareParts: [],
+            maintenanceLogs: [],
             createdAt: ts,
             updatedAt: ts,
           };
@@ -889,6 +914,86 @@ export const useProjectsStore = create<ProjectsState>()(
           });
         },
 
+        // --- склад ЗИП и журнал работ ---
+        addSparePart: (item) => {
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newItem: SparePartItem = { id: genId("part"), createdAt: ts, updatedAt: ts, ...item };
+            return {
+              projects: { ...s.projects, [p.id]: touchProject({ ...p, spareParts: [...p.spareParts, newItem] }) },
+            };
+          });
+        },
+
+        updateSparePart: (id, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const spareParts = p.spareParts.map((sp) => (sp.id === id ? { ...sp, ...patch, updatedAt: nowIso() } : sp));
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, spareParts }) } };
+          });
+        },
+
+        removeSparePart: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const spareParts = p.spareParts.filter((sp) => sp.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, spareParts }) } };
+          });
+        },
+
+        importSpareParts: (rows) => {
+          const ts = nowIso();
+          const newItems: SparePartItem[] = rows
+            .filter((r) => r.name && r.name.trim().length > 0)
+            .map((r) => ({ id: genId("part"), createdAt: ts, updatedAt: ts, ...r }));
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            return {
+              projects: { ...s.projects, [p.id]: touchProject({ ...p, spareParts: [...p.spareParts, ...newItems] }) },
+            };
+          });
+          return newItems.length;
+        },
+
+        recordMaintenanceLog: (entry) => {
+          const ts = nowIso();
+          const newLog: MaintenanceLogEntry = {
+            id: genId("mlog"),
+            materialsUsed: [],
+            createdAt: ts,
+            updatedAt: ts,
+            ...entry,
+          };
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const spareParts = applyWriteOffToStock(p.spareParts, newLog.materialsUsed);
+            return {
+              projects: {
+                ...s.projects,
+                [p.id]: touchProject({ ...p, maintenanceLogs: [...p.maintenanceLogs, newLog], spareParts }),
+              },
+            };
+          });
+          const materialsCost = computeMaterialsCost(newLog.materialsUsed);
+          if (newLog.costItemId && materialsCost > 0) {
+            get().addActual({
+              month: newLog.date.slice(0, 7),
+              categoryId: newLog.costItemId,
+              amount: materialsCost,
+              note: `Списание по наряду от ${newLog.date}`,
+            });
+          }
+        },
+
+        removeMaintenanceLog: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const maintenanceLogs = p.maintenanceLogs.filter((l) => l.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, maintenanceLogs }) } };
+          });
+        },
+
         // --- сохранённые сметы ---
         saveSmeta: (name) => {
           const s = get();
@@ -943,7 +1048,7 @@ export const useProjectsStore = create<ProjectsState>()(
       name: "qazaqosi-projects-v1",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      version: 3,
+      version: 4,
       // v0 → v1: project.scenario:"economy"|"standard"|"business" → presetId,
       //          пресетов не существовало вовсе.
       // v1 → v2: у проектов не было assets[]/capitalFundBalance, справочника
@@ -952,6 +1057,8 @@ export const useProjectsStore = create<ProjectsState>()(
       // v2 → v3: у проектов не было реестра собственников (units), собраний
       //          (meetings), календаря регламентных работ (maintenanceTasks) и
       //          фактических расходов (actuals) — добавляем как пустые массивы.
+      // v3 → v4: у проектов не было склада ЗИП (spareParts) и журнала работ
+      //          (maintenanceLogs) — добавляем как пустые массивы.
       migrate: (persisted, version) => {
         type LooseProject = Project & {
           scenario?: string;
@@ -961,6 +1068,8 @@ export const useProjectsStore = create<ProjectsState>()(
           meetings?: Project["meetings"];
           maintenanceTasks?: Project["maintenanceTasks"];
           actuals?: Project["actuals"];
+          spareParts?: Project["spareParts"];
+          maintenanceLogs?: Project["maintenanceLogs"];
         };
         let state = persisted as {
           projects?: Record<string, LooseProject>;
@@ -1004,6 +1113,18 @@ export const useProjectsStore = create<ProjectsState>()(
               meetings: p.meetings ?? [],
               maintenanceTasks: p.maintenanceTasks ?? [],
               actuals: p.actuals ?? [],
+            };
+          }
+          state = { ...state, projects };
+        }
+
+        if (version < 4) {
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            projects[id] = {
+              ...p,
+              spareParts: p.spareParts ?? [],
+              maintenanceLogs: p.maintenanceLogs ?? [],
             };
           }
           state = { ...state, projects };

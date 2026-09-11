@@ -241,6 +241,10 @@ export interface Project {
   maintenanceTasks: MaintenanceTask[];
   /** Фактические расходы по месяцам — для сверки план/факт */
   actuals: ActualExpenseEntry[];
+  /** Склад ЗИП и расходных материалов объекта */
+  spareParts: SparePartItem[];
+  /** Журнал выполненных работ (нарядов) по инженерным системам */
+  maintenanceLogs: MaintenanceLogEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -340,6 +344,13 @@ export interface Asset {
   criticalSafety?: boolean;
   /** Ручная корректировка расчётного износа (если фактическое состояние отличается от паспортного) */
   manualWearOverridePercent?: number;
+  /** Точное расположение узла, напр. «ИТП №1, контур отопления», «Насосная, подвал п.2» */
+  location?: string;
+  /** Короткий код/хэш для QR-этикетки и сканирования на объекте */
+  qrCodeId?: string;
+  serialNumber?: string;
+  /** Дата ввода в эксплуатацию, ISO — отдельно от installedYear (год) для точного учёта */
+  commissioningDate?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -509,6 +520,85 @@ export interface ActualExpenseEntry {
   categoryId: string;
   amount: number;
   note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Склад ЗИП и журнал выполненных работ (наряды) по инженерным системам.
+//
+// Дата поверки/межповерочный интервал сознательно НЕ хранится здесь как
+// отдельное поле актива — это дублировало бы уже реализованный календарь
+// регламентных работ. Для приборов, подлежащих поверке, заводится обычная
+// MaintenanceTask с assetId, указывающим на актив, и periodicityMonths,
+// равным межповерочному интервалу — тогда статус ok/скоро/просрочено и
+// .ics-экспорт работают бесплатно, без риска рассинхронизации двух мест
+// хранения одной даты.
+// ---------------------------------------------------------------------------
+
+export type SparePartCategory = "sanitary" | "electrical" | "consumable" | "tool";
+
+export const SPARE_PART_CATEGORY_LABELS: Record<SparePartCategory, string> = {
+  sanitary: "Сантехника",
+  electrical: "Электрика",
+  consumable: "Расходники",
+  tool: "Инструмент",
+};
+
+/** Позиция склада ЗИП конкретного объекта — фактические остатки, не прайс-лист. */
+export interface SparePartItem {
+  id: string;
+  name: string;
+  unit: string;
+  category: SparePartCategory;
+  quantityOnHand: number;
+  /** Неснижаемый аварийный запас — ниже него позиция считается дефицитной */
+  minThreshold: number;
+  /** Средняя учётная стоимость, ₸ — используется при списании, если явная цена не указана */
+  avgUnitPrice: number;
+  /** Ссылка на запись глобального справочника материалов (CatalogEntry), если позиция оттуда */
+  catalogEntryId?: string;
+  qrCodeId?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MaintenanceWorkType = "routine" | "repair" | "emergency" | "verification";
+
+export const MAINTENANCE_WORK_TYPE_LABELS: Record<MaintenanceWorkType, string> = {
+  routine: "Плановое ТО",
+  repair: "Ремонт",
+  emergency: "Аварийная работа",
+  verification: "Поверка",
+};
+
+export interface MaterialUsage {
+  sparePartId: string;
+  quantity: number;
+  /** Цена за единицу на момент списания (фиксируется, не пересчитывается задним числом) */
+  unitPrice: number;
+}
+
+/** Запись журнала выполненных работ (наряд) по конкретному узлу инженерных систем. */
+export interface MaintenanceLogEntry {
+  id: string;
+  /** Актив из реестра оборудования, к которому относится работа (необязательно) */
+  assetId?: string;
+  /** Плановая задача из календаря ТО, по которой выполнена работа (необязательно) */
+  taskId?: string;
+  date: string;
+  technicianName: string;
+  workType: MaintenanceWorkType;
+  description: string;
+  /** Замеры для узлов ИТП — необязательны, заполняются при наличии манометров/термометров */
+  pressureInBar?: number;
+  pressureOutBar?: number;
+  tempSupplyC?: number;
+  materialsUsed: MaterialUsage[];
+  laborHours?: number;
+  /** Статья сметы (2.x), в которую списываются материалы — для автоматического Плана/факта */
+  costItemId?: string;
   createdAt: string;
   updatedAt: string;
 }

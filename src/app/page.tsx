@@ -16,6 +16,8 @@ import { OwnerRegistry } from "@/components/OwnerRegistry";
 import { MaintenanceCalendar } from "@/components/MaintenanceCalendar";
 import { BudgetActual } from "@/components/BudgetActual";
 import { ProtocolBuilder } from "@/components/ProtocolBuilder";
+import { SparePartsRegistry } from "@/components/SparePartsRegistry";
+import { MaintenanceLog } from "@/components/MaintenanceLog";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
 import { PrintSummary } from "@/components/PrintSummary";
@@ -85,6 +87,7 @@ export default function HomePage() {
                 <TabsTrigger value="maintenance">Календарь ТО</TabsTrigger>
                 <TabsTrigger value="budget">План/факт</TabsTrigger>
                 <TabsTrigger value="protocol">Протокол собрания</TabsTrigger>
+                <TabsTrigger value="inventory">Инженерия и ЗИП</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
                 <CostCategoryTree />
@@ -124,6 +127,20 @@ export default function HomePage() {
               </TabsContent>
               <TabsContent value="protocol">
                 <ProtocolBuilder />
+              </TabsContent>
+              <TabsContent value="inventory">
+                <Tabs defaultValue="stock">
+                  <TabsList>
+                    <TabsTrigger value="stock">Склад ЗИП</TabsTrigger>
+                    <TabsTrigger value="log">Журнал работ</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="stock">
+                    <SparePartsRegistry />
+                  </TabsContent>
+                  <TabsContent value="log">
+                    <MaintenanceLog />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
           </CardContent>

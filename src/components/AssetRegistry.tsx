@@ -8,9 +8,17 @@ import { InlineNumber, InlineText } from "@/components/InlineEdit";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { computeAllWear, CONDITION_LABELS } from "@/lib/calculator/wearEngine";
+import { computeMaintenanceTasks, MAINTENANCE_STATUS_LABELS } from "@/lib/calculator/maintenanceCalendar";
 import { EQUIPMENT_CATEGORY_LABELS } from "@/lib/calculator/data/equipmentTypes";
 import { formatKzt } from "@/lib/utils";
-import type { AssetCondition, EquipmentCategory } from "@/lib/calculator/types";
+import type { AssetCondition, EquipmentCategory, MaintenanceStatus } from "@/lib/calculator/types";
+
+const MAINTENANCE_BADGE: Record<MaintenanceStatus, "success" | "warning" | "danger" | "outline"> = {
+  ok: "success",
+  upcoming: "warning",
+  overdue: "danger",
+  no_date: "outline",
+};
 
 const CONDITION_BADGE: Record<AssetCondition, "success" | "warning" | "danger" | "outline"> = {
   good: "success",
@@ -52,6 +60,19 @@ export function AssetRegistry() {
   const expiredCritical = sortedAssets.filter(
     (a) => a.criticalSafety && (wearById.get(a.id)?.wearPercent ?? 0) >= 100,
   );
+
+  const computedTasks = useMemo(() => computeMaintenanceTasks(project.maintenanceTasks), [project.maintenanceTasks]);
+  const nearestTaskByAsset = useMemo(() => {
+    const map = new Map<string, (typeof computedTasks)[number]>();
+    for (const t of computedTasks) {
+      if (!t.task.assetId) continue;
+      const existing = map.get(t.task.assetId);
+      if (!existing || (t.daysUntil ?? Infinity) < (existing.daysUntil ?? Infinity)) {
+        map.set(t.task.assetId, t);
+      }
+    }
+    return map;
+  }, [computedTasks]);
 
   function handleAdd() {
     const type = equipmentTypes.find((t) => t.id === newTypeId);
@@ -122,6 +143,7 @@ export function AssetRegistry() {
           )}
           {sortedAssets.map((asset) => {
             const wear = wearById.get(asset.id)!;
+            const nearestTask = nearestTaskByAsset.get(asset.id);
             return (
               <div key={asset.id} className="flex flex-col gap-2 py-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -146,6 +168,30 @@ export function AssetRegistry() {
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-400">
+                  <InlineText
+                    value={asset.location ?? ""}
+                    onChange={(v) => updateAsset(asset.id, { location: v || undefined })}
+                    className="w-48"
+                    placeholder="расположение, напр. «ИТП №1, контур отопления»"
+                  />
+                  <InlineText
+                    value={asset.serialNumber ?? ""}
+                    onChange={(v) => updateAsset(asset.id, { serialNumber: v || undefined })}
+                    className="w-32"
+                    placeholder="серийный номер"
+                  />
+                  {nearestTask && (
+                    <span className="flex items-center gap-1">
+                      <Badge variant={MAINTENANCE_BADGE[nearestTask.status]}>
+                        {MAINTENANCE_STATUS_LABELS[nearestTask.status]}
+                      </Badge>
+                      {nearestTask.task.name}
+                      {nearestTask.nextServiceDate && ` до ${nearestTask.nextServiceDate.toLocaleDateString("ru-RU")}`}
+                    </span>
+                  )}
                 </div>
 
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">

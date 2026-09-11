@@ -476,3 +476,118 @@ describe("план/факт", () => {
     expect(selectActiveProject(useProjectsStore.getState()).actuals).toHaveLength(3);
   });
 });
+
+describe("склад ЗИП и журнал работ", () => {
+  it("демо-проект стартует с пустыми складом и журналом", () => {
+    const active = selectActiveProject(useProjectsStore.getState());
+    expect(active.spareParts).toEqual([]);
+    expect(active.maintenanceLogs).toEqual([]);
+  });
+
+  it("addSparePart/updateSparePart/removeSparePart — CRUD", () => {
+    useProjectsStore.getState().addSparePart({
+      name: "Сальник D50",
+      unit: "шт.",
+      category: "sanitary",
+      quantityOnHand: 10,
+      minThreshold: 2,
+      avgUnitPrice: 500,
+    });
+    let parts = selectActiveProject(useProjectsStore.getState()).spareParts;
+    expect(parts).toHaveLength(1);
+    const id = parts[0].id;
+
+    useProjectsStore.getState().updateSparePart(id, { quantityOnHand: 8 });
+    parts = selectActiveProject(useProjectsStore.getState()).spareParts;
+    expect(parts[0].quantityOnHand).toBe(8);
+
+    useProjectsStore.getState().removeSparePart(id);
+    parts = selectActiveProject(useProjectsStore.getState()).spareParts;
+    expect(parts).toHaveLength(0);
+  });
+
+  it("importSpareParts добавляет только строки с непустым наименованием", () => {
+    const count = useProjectsStore.getState().importSpareParts([
+      { name: "Позиция 1", unit: "шт.", category: "consumable", quantityOnHand: 5, minThreshold: 1, avgUnitPrice: 100 },
+      { name: "", unit: "шт.", category: "consumable", quantityOnHand: 5, minThreshold: 1, avgUnitPrice: 100 },
+    ]);
+    expect(count).toBe(1);
+    expect(selectActiveProject(useProjectsStore.getState()).spareParts).toHaveLength(1);
+  });
+
+  it("recordMaintenanceLog добавляет наряд и списывает материалы со склада", () => {
+    useProjectsStore.getState().addSparePart({
+      name: "Сальник D50",
+      unit: "шт.",
+      category: "sanitary",
+      quantityOnHand: 10,
+      minThreshold: 2,
+      avgUnitPrice: 500,
+    });
+    const partId = selectActiveProject(useProjectsStore.getState()).spareParts[0].id;
+
+    useProjectsStore.getState().recordMaintenanceLog({
+      date: "2026-03-15",
+      technicianName: "Петров П.П.",
+      workType: "repair",
+      description: "Замена сальника циркуляционного насоса",
+      materialsUsed: [{ sparePartId: partId, quantity: 3, unitPrice: 500 }],
+    });
+
+    const project = selectActiveProject(useProjectsStore.getState());
+    expect(project.maintenanceLogs).toHaveLength(1);
+    expect(project.spareParts.find((p) => p.id === partId)?.quantityOnHand).toBe(7);
+  });
+
+  it("recordMaintenanceLog с costItemId пишет фактический расход в План/факт", () => {
+    useProjectsStore.getState().addSparePart({
+      name: "Манометр",
+      unit: "шт.",
+      category: "sanitary",
+      quantityOnHand: 5,
+      minThreshold: 1,
+      avgUnitPrice: 8000,
+    });
+    const partId = selectActiveProject(useProjectsStore.getState()).spareParts[0].id;
+
+    useProjectsStore.getState().recordMaintenanceLog({
+      date: "2026-04-10",
+      technicianName: "Сидоров С.С.",
+      workType: "routine",
+      description: "Плановая замена манометра ИТП",
+      materialsUsed: [{ sparePartId: partId, quantity: 1, unitPrice: 8000 }],
+      costItemId: "2.7",
+    });
+
+    const project = selectActiveProject(useProjectsStore.getState());
+    const actual = project.actuals.find((a) => a.categoryId === "2.7" && a.month === "2026-04");
+    expect(actual).toBeDefined();
+    expect(actual?.amount).toBe(8000);
+  });
+
+  it("recordMaintenanceLog без материалов не создаёт запись в actuals, даже если указан costItemId", () => {
+    const before = selectActiveProject(useProjectsStore.getState()).actuals.length;
+    useProjectsStore.getState().recordMaintenanceLog({
+      date: "2026-05-01",
+      technicianName: "Иванов И.И.",
+      workType: "verification",
+      description: "Осмотр без замены материалов",
+      costItemId: "2.7",
+    });
+    expect(selectActiveProject(useProjectsStore.getState()).actuals.length).toBe(before);
+  });
+
+  it("removeMaintenanceLog удаляет запись журнала", () => {
+    useProjectsStore.getState().recordMaintenanceLog({
+      date: "2026-06-01",
+      technicianName: "Тестов",
+      workType: "routine",
+      description: "Тест",
+    });
+    const logId = selectActiveProject(useProjectsStore.getState()).maintenanceLogs.at(-1)!.id;
+    useProjectsStore.getState().removeMaintenanceLog(logId);
+    expect(
+      selectActiveProject(useProjectsStore.getState()).maintenanceLogs.find((l) => l.id === logId),
+    ).toBeUndefined();
+  });
+});
