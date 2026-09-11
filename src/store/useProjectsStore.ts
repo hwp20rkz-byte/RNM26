@@ -13,6 +13,8 @@ import type {
   GeneralMeeting,
   MaintenanceLogEntry,
   MaintenanceTask,
+  MaintenanceWorkType,
+  MaterialUsage,
   MeetingFormat,
   MeetingParticipant,
   ObjectType,
@@ -23,8 +25,12 @@ import type {
   ServicePreset,
   SparePartItem,
   VoteChoice,
+  WorkOrder,
+  WorkOrderChecklistItem,
+  WorkOrderStatus,
 } from "@/lib/calculator/types";
 import { applyWriteOffToStock, computeMaterialsCost } from "@/lib/calculator/inventoryEngine";
+import { generateTicketNumber } from "@/lib/calculator/workOrderEngine";
 import { buildBlankDatabase, buildDefaultDatabase } from "@/lib/calculator/database";
 import { BUILTIN_PRESETS, DEFAULT_BUILDING, buildBlankBuilding } from "@/lib/calculator/presets";
 import { applyPreset, computeTariff } from "@/lib/calculator/engine";
@@ -67,6 +73,7 @@ function seedInitialProject(presets: ServicePreset[]): Project {
     actuals: [],
     spareParts: [],
     maintenanceLogs: [],
+    workOrders: [],
     createdAt: ts,
     updatedAt: ts,
   };
@@ -205,6 +212,28 @@ interface ProjectsState {
   ) => void;
   removeMaintenanceLog: (id: string) => void;
 
+  // --- наряды (WorkOrder) ---
+  createWorkOrder: (
+    order: Pick<WorkOrder, "title" | "description" | "deadline"> & Partial<WorkOrder>,
+  ) => string;
+  updateWorkOrder: (id: string, patch: Partial<WorkOrder>) => void;
+  removeWorkOrder: (id: string) => void;
+  setWorkOrderStatus: (id: string, status: WorkOrderStatus) => void;
+  addWorkOrderChecklistItem: (id: string, text: string, assetId?: string) => void;
+  toggleWorkOrderChecklistItem: (id: string, itemId: string) => void;
+  removeWorkOrderChecklistItem: (id: string, itemId: string) => void;
+  approveWorkOrder: (id: string, approvedBy: string) => void;
+  /** Закрывает наряд: статус → completed, и создаёт MaintenanceLogEntry (по одной на каждый целевой актив для группового наряда) — списывает материалы и пишет План/факт через уже существующую логику */
+  completeWorkOrder: (
+    id: string,
+    completion: {
+      actualEndDate?: string;
+      materialsUsed?: MaterialUsage[];
+      technicianName?: string;
+      workType?: MaintenanceWorkType;
+    },
+  ) => void;
+
   // --- сохранённые сметы ---
   saveSmeta: (name: string) => string;
   deleteSmeta: (id: string) => void;
@@ -278,6 +307,7 @@ export const useProjectsStore = create<ProjectsState>()(
             actuals: [],
             spareParts: [],
             maintenanceLogs: [],
+            workOrders: [],
             createdAt: ts,
             updatedAt: ts,
           };
@@ -994,6 +1024,152 @@ export const useProjectsStore = create<ProjectsState>()(
           });
         },
 
+        // --- наряды (WorkOrder) ---
+        createWorkOrder: (order) => {
+          const ts = nowIso();
+          const id = genId("wo");
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newOrder: WorkOrder = {
+              id,
+              ticketNumber: generateTicketNumber(p.workOrders),
+              status: "draft",
+              complexity: "L1_ROUTINE",
+              seasonality: "all_year",
+              isNightShift: false,
+              isBatch: false,
+              targetAssetIds: [],
+              assignedStaffNames: [],
+              plannedStartDate: ts.slice(0, 10),
+              approval: { required: false, status: "none" },
+              checklist: [],
+              createdAt: ts,
+              updatedAt: ts,
+              ...order,
+            };
+            return {
+              projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders: [...p.workOrders, newOrder] }) },
+            };
+          });
+          return id;
+        },
+
+        updateWorkOrder: (id, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const workOrders = p.workOrders.map((o) => (o.id === id ? { ...o, ...patch, updatedAt: nowIso() } : o));
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
+        removeWorkOrder: (id) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const workOrders = p.workOrders.filter((o) => o.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
+        setWorkOrderStatus: (id, status) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const ts = nowIso();
+            const workOrders = p.workOrders.map((o) => {
+              if (o.id !== id) return o;
+              const actualStartDate = status === "in_progress" && !o.actualStartDate ? ts.slice(0, 10) : o.actualStartDate;
+              return { ...o, status, actualStartDate, updatedAt: ts };
+            });
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
+        addWorkOrderChecklistItem: (id, text, assetId) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const newItem: WorkOrderChecklistItem = { id: genId("check"), text, isCompleted: false, assetId };
+            const workOrders = p.workOrders.map((o) =>
+              o.id === id ? { ...o, checklist: [...o.checklist, newItem], updatedAt: nowIso() } : o,
+            );
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
+        toggleWorkOrderChecklistItem: (id, itemId) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const workOrders = p.workOrders.map((o) =>
+              o.id === id
+                ? {
+                    ...o,
+                    checklist: o.checklist.map((c) => (c.id === itemId ? { ...c, isCompleted: !c.isCompleted } : c)),
+                    updatedAt: nowIso(),
+                  }
+                : o,
+            );
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
+        removeWorkOrderChecklistItem: (id, itemId) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const workOrders = p.workOrders.map((o) =>
+              o.id === id ? { ...o, checklist: o.checklist.filter((c) => c.id !== itemId), updatedAt: nowIso() } : o,
+            );
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
+        approveWorkOrder: (id, approvedBy) => {
+          const ts = nowIso();
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const workOrders = p.workOrders.map((o) =>
+              o.id === id
+                ? {
+                    ...o,
+                    approval: { ...o.approval, status: "approved" as const, approvedBy, approvedAt: ts },
+                    status: o.status === "pending_approval" ? ("scheduled" as const) : o.status,
+                    updatedAt: ts,
+                  }
+                : o,
+            );
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
+        completeWorkOrder: (id, completion) => {
+          const order = get().projects[get().activeProjectId].workOrders.find((o) => o.id === id);
+          if (!order) return;
+          const actualEndDate = completion.actualEndDate || nowIso().slice(0, 10);
+          const materialsUsed = completion.materialsUsed ?? [];
+          const technicianName = completion.technicianName || order.assignedStaffNames[0] || "—";
+          const workType = completion.workType ?? "repair";
+
+          // Групповой наряд -> отдельная MaintenanceLogEntry на каждый целевой актив (материалы
+          // относятся целиком к первой записи, чтобы не задваивать списание со склада).
+          const targets = order.targetAssetIds.length > 0 ? order.targetAssetIds : [undefined];
+          targets.forEach((assetId, i) => {
+            get().recordMaintenanceLog({
+              date: actualEndDate,
+              technicianName,
+              workType,
+              description: `${order.ticketNumber}: ${order.title}`,
+              assetId,
+              materialsUsed: i === 0 ? materialsUsed : [],
+              costItemId: order.costItemId,
+            });
+          });
+
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const workOrders = p.workOrders.map((o) =>
+              o.id === id ? { ...o, status: "completed" as const, actualEndDate, updatedAt: nowIso() } : o,
+            );
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, workOrders }) } };
+          });
+        },
+
         // --- сохранённые сметы ---
         saveSmeta: (name) => {
           const s = get();
@@ -1048,7 +1224,7 @@ export const useProjectsStore = create<ProjectsState>()(
       name: "qazaqosi-projects-v1",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      version: 4,
+      version: 5,
       // v0 → v1: project.scenario:"economy"|"standard"|"business" → presetId,
       //          пресетов не существовало вовсе.
       // v1 → v2: у проектов не было assets[]/capitalFundBalance, справочника
@@ -1059,6 +1235,8 @@ export const useProjectsStore = create<ProjectsState>()(
       //          фактических расходов (actuals) — добавляем как пустые массивы.
       // v3 → v4: у проектов не было склада ЗИП (spareParts) и журнала работ
       //          (maintenanceLogs) — добавляем как пустые массивы.
+      // v4 → v5: у проектов не было нарядов (workOrders) — добавляем как
+      //          пустой массив.
       migrate: (persisted, version) => {
         type LooseProject = Project & {
           scenario?: string;
@@ -1070,6 +1248,7 @@ export const useProjectsStore = create<ProjectsState>()(
           actuals?: Project["actuals"];
           spareParts?: Project["spareParts"];
           maintenanceLogs?: Project["maintenanceLogs"];
+          workOrders?: Project["workOrders"];
         };
         let state = persisted as {
           projects?: Record<string, LooseProject>;
@@ -1126,6 +1305,14 @@ export const useProjectsStore = create<ProjectsState>()(
               spareParts: p.spareParts ?? [],
               maintenanceLogs: p.maintenanceLogs ?? [],
             };
+          }
+          state = { ...state, projects };
+        }
+
+        if (version < 5) {
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            projects[id] = { ...p, workOrders: p.workOrders ?? [] };
           }
           state = { ...state, projects };
         }

@@ -245,6 +245,8 @@ export interface Project {
   spareParts: SparePartItem[];
   /** Журнал выполненных работ (нарядов) по инженерным системам */
   maintenanceLogs: MaintenanceLogEntry[];
+  /** Наряды — слой планирования/согласования/SLA поверх журнала работ */
+  workOrders: WorkOrder[];
   createdAt: string;
   updatedAt: string;
 }
@@ -599,6 +601,115 @@ export interface MaintenanceLogEntry {
   laborHours?: number;
   /** Статья сметы (2.x), в которую списываются материалы — для автоматического Плана/факта */
   costItemId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Наряды (WorkOrder) — слой планирования/согласования/SLA поверх журнала
+// работ. Это НЕ замена MaintenanceLogEntry: наряд описывает, что должно быть
+// сделано и кем согласовано, а при закрытии наряда порождается обычная
+// MaintenanceLogEntry (или несколько — по одной на актив, если наряд
+// групповой), которая уже списывает материалы и пишет План/факт — вся эта
+// логика не дублируется, а переиспользуется.
+//
+// Статус «просрочено» не хранится отдельным значением статуса — он всегда
+// вычисляется от дедлайна на момент просмотра (как и в календаре ТО), чтобы
+// не было двух источников истины для одного и того же факта.
+// ---------------------------------------------------------------------------
+
+export type WorkOrderStatus =
+  | "draft"
+  | "pending_approval"
+  | "scheduled"
+  | "in_progress"
+  | "review"
+  | "completed"
+  | "cancelled";
+
+export const WORK_ORDER_STATUS_LABELS: Record<WorkOrderStatus, string> = {
+  draft: "Черновик",
+  pending_approval: "На согласовании",
+  scheduled: "Назначен",
+  in_progress: "В работе",
+  review: "На проверке",
+  completed: "Закрыт",
+  cancelled: "Отменён",
+};
+
+/** Порядок статусов для канбан-колонок и кнопки «следующий шаг». */
+export const WORK_ORDER_STATUS_FLOW: WorkOrderStatus[] = [
+  "draft",
+  "pending_approval",
+  "scheduled",
+  "in_progress",
+  "review",
+  "completed",
+];
+
+export type WorkOrderComplexity = "L1_ROUTINE" | "L2_QUALIFIED" | "L3_EXPERT";
+
+export const WORK_ORDER_COMPLEXITY_LABELS: Record<WorkOrderComplexity, string> = {
+  L1_ROUTINE: "L1 — базовый обход",
+  L2_QUALIFIED: "L2 — замена арматуры/насоса",
+  L3_EXPERT: "L3 — наладка контроллеров/КИПиА",
+};
+
+export type WorkOrderSeasonality = "all_year" | "heating_prep_ozp" | "spring_inspection" | "heating_season";
+
+export const WORK_ORDER_SEASONALITY_LABELS: Record<WorkOrderSeasonality, string> = {
+  all_year: "Круглый год",
+  heating_prep_ozp: "Подготовка к ОЗП",
+  spring_inspection: "Весенний осмотр",
+  heating_season: "Отопительный период",
+};
+
+export interface WorkOrderChecklistItem {
+  id: string;
+  text: string;
+  isCompleted: boolean;
+  assetId?: string;
+}
+
+export type WorkOrderApprovalStatus = "none" | "pending" | "approved" | "rejected";
+
+export interface WorkOrderApproval {
+  required: boolean;
+  status: WorkOrderApprovalStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+}
+
+/** Наряд на работу — планирование, согласование и SLA поверх журнала работ. */
+export interface WorkOrder {
+  id: string;
+  /** Читаемый номер, напр. WO-2026-0007 — генерируется последовательно в рамках проекта */
+  ticketNumber: string;
+  title: string;
+  description: string;
+  status: WorkOrderStatus;
+  complexity: WorkOrderComplexity;
+  seasonality: WorkOrderSeasonality;
+  /** Работы 22:00–06:00 — влечёт напоминание уведомить жителей, не меняет расчёт сметы */
+  isNightShift: boolean;
+  /** Групповой (мастер-)наряд на пул однотипного оборудования */
+  isBatch: boolean;
+  targetAssetIds: string[];
+  /** Свободный список исполнителей — отдельного справочника сотрудников/квалификаций в системе нет */
+  assignedStaffNames: string[];
+  /** Информационное поле — фильтрации по факту нет, т.к. нет справочника квалификаций */
+  requiredSpecialization?: string;
+  plannedStartDate: string;
+  plannedDurationHours?: number;
+  /** Дедлайн, ISO datetime — основа для расчёта SLA-статуса */
+  deadline: string;
+  actualStartDate?: string;
+  actualEndDate?: string;
+  approval: WorkOrderApproval;
+  checklist: WorkOrderChecklistItem[];
+  /** Статья сметы для итоговой MaintenanceLogEntry при закрытии наряда */
+  costItemId?: string;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }

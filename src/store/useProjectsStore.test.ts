@@ -591,3 +591,157 @@ describe("склад ЗИП и журнал работ", () => {
     ).toBeUndefined();
   });
 });
+
+describe("наряды (WorkOrder)", () => {
+  it("демо-проект стартует без нарядов", () => {
+    expect(selectActiveProject(useProjectsStore.getState()).workOrders).toEqual([]);
+  });
+
+  it("createWorkOrder создаёт наряд с автономером и статусом по умолчанию draft", () => {
+    const id = useProjectsStore.getState().createWorkOrder({
+      title: "Промывка ИТП",
+      description: "Промывка теплообменника",
+      deadline: "2026-10-01T10:00:00.000Z",
+    });
+    const order = selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id);
+    expect(order).toBeDefined();
+    expect(order?.ticketNumber).toMatch(/^WO-\d{4}-0001$/);
+    expect(order?.status).toBe("draft");
+  });
+
+  it("createWorkOrder с approval.required=true и status=pending_approval уважает переданный статус", () => {
+    const id = useProjectsStore.getState().createWorkOrder({
+      title: "Наладка КИПиА",
+      description: "L3 работа",
+      deadline: "2026-10-01T10:00:00.000Z",
+      approval: { required: true, status: "pending" },
+      status: "pending_approval",
+    });
+    const order = selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id);
+    expect(order?.status).toBe("pending_approval");
+    expect(order?.approval.required).toBe(true);
+  });
+
+  it("второй наряд в том же году получает следующий порядковый номер", () => {
+    useProjectsStore.getState().createWorkOrder({ title: "A", description: "", deadline: "2026-10-01T10:00:00.000Z" });
+    const id2 = useProjectsStore.getState().createWorkOrder({ title: "B", description: "", deadline: "2026-10-01T10:00:00.000Z" });
+    const orders = selectActiveProject(useProjectsStore.getState()).workOrders;
+    const numbers = orders.map((o) => o.ticketNumber).sort();
+    expect(numbers[0]).not.toBe(numbers[1]);
+    expect(orders.find((o) => o.id === id2)?.ticketNumber).toBeDefined();
+  });
+
+  it("updateWorkOrder/removeWorkOrder — CRUD", () => {
+    const id = useProjectsStore.getState().createWorkOrder({ title: "Наряд", description: "", deadline: "2026-10-01T10:00:00.000Z" });
+    useProjectsStore.getState().updateWorkOrder(id, { title: "Переименован" });
+    expect(selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id)?.title).toBe("Переименован");
+
+    useProjectsStore.getState().removeWorkOrder(id);
+    expect(selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id)).toBeUndefined();
+  });
+
+  it("setWorkOrderStatus переводит в in_progress и проставляет actualStartDate", () => {
+    const id = useProjectsStore.getState().createWorkOrder({ title: "Наряд", description: "", deadline: "2026-10-01T10:00:00.000Z" });
+    useProjectsStore.getState().setWorkOrderStatus(id, "in_progress");
+    const order = selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id);
+    expect(order?.status).toBe("in_progress");
+    expect(order?.actualStartDate).toBeDefined();
+  });
+
+  it("addWorkOrderChecklistItem/toggleWorkOrderChecklistItem/removeWorkOrderChecklistItem", () => {
+    const id = useProjectsStore.getState().createWorkOrder({ title: "Наряд", description: "", deadline: "2026-10-01T10:00:00.000Z" });
+    useProjectsStore.getState().addWorkOrderChecklistItem(id, "Проверить насос №1");
+    let order = selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id)!;
+    expect(order.checklist).toHaveLength(1);
+    const itemId = order.checklist[0].id;
+
+    useProjectsStore.getState().toggleWorkOrderChecklistItem(id, itemId);
+    order = selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id)!;
+    expect(order.checklist[0].isCompleted).toBe(true);
+
+    useProjectsStore.getState().removeWorkOrderChecklistItem(id, itemId);
+    order = selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id)!;
+    expect(order.checklist).toHaveLength(0);
+  });
+
+  it("approveWorkOrder согласовывает и переводит pending_approval в scheduled", () => {
+    const id = useProjectsStore.getState().createWorkOrder({
+      title: "Наряд",
+      description: "",
+      deadline: "2026-10-01T10:00:00.000Z",
+      approval: { required: true, status: "pending" },
+      status: "pending_approval",
+    });
+    useProjectsStore.getState().approveWorkOrder(id, "Председатель Иванов");
+    const order = selectActiveProject(useProjectsStore.getState()).workOrders.find((o) => o.id === id);
+    expect(order?.approval.status).toBe("approved");
+    expect(order?.approval.approvedBy).toBe("Председатель Иванов");
+    expect(order?.status).toBe("scheduled");
+  });
+
+  it("completeWorkOrder закрывает одиночный наряд и создаёт MaintenanceLogEntry со списанием материалов", () => {
+    useProjectsStore.getState().addSparePart({
+      name: "Прокладка",
+      unit: "шт.",
+      category: "sanitary",
+      quantityOnHand: 10,
+      minThreshold: 2,
+      avgUnitPrice: 300,
+    });
+    const partId = selectActiveProject(useProjectsStore.getState()).spareParts[0].id;
+
+    const id = useProjectsStore.getState().createWorkOrder({
+      title: "Замена прокладки",
+      description: "",
+      deadline: "2026-10-01T10:00:00.000Z",
+      assignedStaffNames: ["Сидоров С.С."],
+      costItemId: "2.7",
+    });
+
+    useProjectsStore.getState().completeWorkOrder(id, {
+      materialsUsed: [{ sparePartId: partId, quantity: 2, unitPrice: 300 }],
+    });
+
+    const project = selectActiveProject(useProjectsStore.getState());
+    const order = project.workOrders.find((o) => o.id === id);
+    expect(order?.status).toBe("completed");
+    expect(order?.actualEndDate).toBeDefined();
+    expect(project.maintenanceLogs).toHaveLength(1);
+    expect(project.spareParts.find((p) => p.id === partId)?.quantityOnHand).toBe(8);
+    expect(project.actuals.find((a) => a.categoryId === "2.7")?.amount).toBe(600);
+  });
+
+  it("completeWorkOrder для группового наряда создаёт по одной MaintenanceLogEntry на каждый актив пула", () => {
+    useProjectsStore.getState().addAsset({
+      name: "Насос 1",
+      category: "heating",
+      quantity: 1,
+      installedYear: 2020,
+      normativeLifeYears: 10,
+      replacementUnitCost: 100000,
+    });
+    useProjectsStore.getState().addAsset({
+      name: "Насос 2",
+      category: "heating",
+      quantity: 1,
+      installedYear: 2020,
+      normativeLifeYears: 10,
+      replacementUnitCost: 100000,
+    });
+    const assetIds = selectActiveProject(useProjectsStore.getState()).assets.slice(-2).map((a) => a.id);
+
+    const id = useProjectsStore.getState().createWorkOrder({
+      title: "Сезонный обход насосной",
+      description: "",
+      deadline: "2026-10-01T10:00:00.000Z",
+      isBatch: true,
+      targetAssetIds: assetIds,
+    });
+
+    const logsBefore = selectActiveProject(useProjectsStore.getState()).maintenanceLogs.length;
+    useProjectsStore.getState().completeWorkOrder(id, {});
+    const project = selectActiveProject(useProjectsStore.getState());
+    expect(project.maintenanceLogs.length).toBe(logsBefore + 2);
+    expect(project.maintenanceLogs.filter((l) => assetIds.includes(l.assetId ?? "")).length).toBe(2);
+  });
+});

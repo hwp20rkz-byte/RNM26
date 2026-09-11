@@ -18,6 +18,7 @@ import { BudgetActual } from "@/components/BudgetActual";
 import { ProtocolBuilder } from "@/components/ProtocolBuilder";
 import { SparePartsRegistry } from "@/components/SparePartsRegistry";
 import { MaintenanceLog } from "@/components/MaintenanceLog";
+import { WorkOrderBoard } from "@/components/WorkOrderBoard";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
 import { PrintSummary } from "@/components/PrintSummary";
@@ -133,12 +134,16 @@ export default function HomePage() {
                   <TabsList>
                     <TabsTrigger value="stock">Склад ЗИП</TabsTrigger>
                     <TabsTrigger value="log">Журнал работ</TabsTrigger>
+                    <TabsTrigger value="orders">Наряды</TabsTrigger>
                   </TabsList>
                   <TabsContent value="stock">
                     <SparePartsRegistry />
                   </TabsContent>
                   <TabsContent value="log">
                     <MaintenanceLog />
+                  </TabsContent>
+                  <TabsContent value="orders">
+                    <WorkOrderBoard />
                   </TabsContent>
                 </Tabs>
               </TabsContent>
