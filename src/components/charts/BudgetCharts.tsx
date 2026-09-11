@@ -72,7 +72,10 @@ export function BudgetCharts() {
           <CardTitle>Распределение бюджета</CardTitle>
           <CardDescription>По статьям сметы, ₸/мес.</CardDescription>
         </CardHeader>
-        <CardContent className="flex h-80 flex-col gap-2 overflow-hidden sm:flex-row sm:items-center">
+        <CardContent
+          className="flex flex-col gap-2 overflow-hidden sm:flex-row sm:items-center"
+          style={{ height: "var(--ui-chart-h)" }}
+        >
           <div className="h-48 w-full shrink-0 sm:h-full sm:w-1/2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -105,7 +108,7 @@ export function BudgetCharts() {
           <CardTitle>Затраты на м² по статьям</CardTitle>
           <CardDescription>₸/м² в месяц, топ-10 статей</CardDescription>
         </CardHeader>
-        <CardContent className="h-80">
+        <CardContent style={{ height: "var(--ui-chart-h)" }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={barData} layout="vertical" margin={{ left: 24 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />

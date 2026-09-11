@@ -23,12 +23,15 @@ import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
 import { PrintSummary } from "@/components/PrintSummary";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useT } from "@/lib/i18n/useT";
 import { useProjectsStore } from "@/store/useProjectsStore";
 
 export default function HomePage() {
   const [hydrated, setHydrated] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     Promise.resolve(useProjectsStore.persist.rehydrate()).then(() => setHydrated(true));
@@ -48,15 +51,11 @@ export default function HomePage() {
         <div className="rounded-xl bg-slate-900 p-2 dark:bg-white">
           <HomeIcon className="h-5 w-5 text-white dark:text-slate-900" />
         </div>
-        <div>
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white">
-            QazaqOSI — Тарифный калькулятор сметы ОСИ / ПТ
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Расчёт по Методике МИИР РК №166 и Закону «О жилищных отношениях» — для любого жилого
-            и нежилого объекта
-          </p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white">{t("appTitle")}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t("appSubtitle")}</p>
         </div>
+        <SettingsPanel />
       </header>
 
       <ProjectSwitcher />

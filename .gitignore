@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design canvas scratch (Claude Design mockups, not app code)
+.design-settings/

@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
+/*
+ * Ручная тёмная тема вместо только системной (prefers-color-scheme):
+ * инлайн-скрипт в layout.tsx уже выставляет [data-theme] на <html> до
+ * первой отрисовки (включая случай theme="system" — там он сам считает
+ * matchMedia и пишет конкретное light/dark), поэтому dark: у Tailwind
+ * достаточно триггерить строго от data-theme, без media-запроса совсем.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  --ui-font-scale: 1;
+  --ui-icon-scale: 1;
 }
 
 @theme inline {
@@ -12,17 +23,62 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #020617;
-    --foreground: #e2e8f0;
-  }
+[data-theme="dark"] {
+  --background: #020617;
+  --foreground: #e2e8f0;
+}
+
+[data-font-scale="sm"] { --ui-font-scale: 0.9; }
+[data-font-scale="lg"] { --ui-font-scale: 1.15; }
+[data-icon-scale="sm"] { --ui-icon-scale: 0.85; }
+[data-icon-scale="lg"] { --ui-icon-scale: 1.2; }
+
+/*
+ * Плотность HUD и панелей с графиками — пресет, не свободный ресайз
+ * (сознательный выбор при проектировании: предсказуемо на любом экране,
+ * без библиотеки для ручного изменения размера каждой панели).
+ */
+:root {
+  --ui-hud-pad: 0.75rem 1.25rem;
+  --ui-hud-number-size: 1.5rem;
+  --ui-chart-h: 20rem;
+  --ui-chart-h-sm: 14rem;
+}
+[data-density="compact"] {
+  --ui-hud-pad: 0.5rem 0.875rem;
+  --ui-hud-number-size: 1.25rem;
+  --ui-chart-h: 14rem;
+  --ui-chart-h-sm: 10rem;
+}
+[data-density="spacious"] {
+  --ui-hud-pad: 1.125rem 1.75rem;
+  --ui-hud-number-size: 1.875rem;
+  --ui-chart-h: 26rem;
+  --ui-chart-h-sm: 18rem;
+}
+
+html {
+  /* Масштабирует все rem-размеры Tailwind (шрифты, отступы, высоты полей) разом */
+  font-size: calc(16px * var(--ui-font-scale));
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/*
+ * Иконки lucide-react — независимый масштаб от текста. У каждой SVG-иконки
+ * библиотеки есть общий класс "lucide" (не затрагивает SVG графиков Recharts
+ * — у них его нет), поэтому масштаб можно применить глобально одним
+ * правилом, не переписывая сотни мест использования className="h-5 w-5".
+ * transform не меняет layout-размер бокса иконки — при заметном отклонении
+ * от 1 возможно небольшое визуальное наложение с соседними элементами,
+ * это осознанный компромисс ради независимого масштаба без рефакторинга.
+ */
+.lucide {
+  transform: scale(var(--ui-icon-scale));
 }
 
 @keyframes accordion-down {

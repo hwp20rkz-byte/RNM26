@@ -78,7 +78,10 @@ export function StickyHud() {
           : "нет данных по региону";
 
   return (
-    <div className="no-print sticky top-0 z-40 -mx-4 mb-6 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 sm:mx-0 sm:rounded-2xl sm:border sm:px-5">
+    <div
+      className="no-print sticky top-0 z-40 -mx-4 mb-6 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 sm:mx-0 sm:rounded-2xl sm:border"
+      style={{ padding: "var(--ui-hud-pad)" }}
+    >
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-emerald-50 p-2 dark:bg-emerald-950">
@@ -86,7 +89,10 @@ export function StickyHud() {
           </div>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white">
+              <span
+                className="font-bold tabular-nums text-slate-900 dark:text-white"
+                style={{ fontSize: "var(--ui-hud-number-size)" }}
+              >
                 {formatKztPrecise(tariff.tariffPerSqm)} ₸
               </span>
               <span className="text-xs text-slate-400">/ м² в мес.</span>

@@ -230,7 +230,7 @@ export function AnalyticsDashboard() {
               </span>
             </div>
 
-            <div className="h-72">
+            <div style={{ height: "var(--ui-chart-h)" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ left: 8, right: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -253,7 +253,7 @@ export function AnalyticsDashboard() {
               <CardTitle className="text-base">Содержание vs капремонт</CardTitle>
               <CardDescription>Из чего складывается тариф В, ₸/м²/мес.</CardDescription>
             </CardHeader>
-            <CardContent className="flex h-56 items-center gap-4">
+            <CardContent className="flex items-center gap-4" style={{ height: "var(--ui-chart-h-sm)" }}>
               <div className="h-full w-1/2">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -283,7 +283,7 @@ export function AnalyticsDashboard() {
               <CardTitle className="text-base">Тариф по типам помещений</CardTitle>
               <CardDescription>₸/м²/мес. с учётом коэффициентов профиля объекта</CardDescription>
             </CardHeader>
-            <CardContent className="h-56">
+            <CardContent style={{ height: "var(--ui-chart-h-sm)" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={byType.map((l) => ({ name: UNIT_TYPE_LABELS[l.unitType], rate: l.ratePerSqm }))}
