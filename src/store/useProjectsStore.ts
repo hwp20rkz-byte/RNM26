@@ -264,6 +264,8 @@ function reapplyProjectPreset(p: Project, preset: ServicePreset): Project {
       serviceClass: preset.maxServiceClass,
       capitalRepairMrpMultiplier: preset.capitalRepairMrpMultiplier,
       commercialRateCoefficient: preset.commercialRateCoefficient,
+      storageRateCoefficient: preset.storageRateCoefficient,
+      parkingRateCoefficient: preset.parkingRateCoefficient,
     },
   };
 }

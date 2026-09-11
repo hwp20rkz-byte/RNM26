@@ -157,7 +157,7 @@ describe("пресеты обслуживания", () => {
     expect(selectActiveProject(s).presetId).toBe("standard");
   });
 
-  it("setPreset применяет все 4 поля пресета к проекту и фильтрует статьи", () => {
+  it("setPreset применяет все поля пресета (вкл. коэффициенты кладовых/паркинга) к проекту и фильтрует статьи", () => {
     const s = useProjectsStore.getState();
     const before = selectActiveProject(s);
     expect(before.building.serviceClass).toBe("comfort");
@@ -168,6 +168,9 @@ describe("пресеты обслуживания", () => {
     expect(after.priceMultiplier).toBe(0.85);
     expect(after.building.serviceClass).toBe("economy");
     expect(after.building.capitalRepairMrpMultiplier).toBe(0.005);
+    expect(after.building.commercialRateCoefficient).toBe(1.0);
+    expect(after.building.storageRateCoefficient).toBe(0.5);
+    expect(after.building.parkingRateCoefficient).toBe(0.5);
     // статьи с более высоким классом должны быть отключены
     const highClassItem = after.db.items.find((i) => i.minServiceClass === "comfort");
     expect(highClassItem?.enabled).toBe(false);
