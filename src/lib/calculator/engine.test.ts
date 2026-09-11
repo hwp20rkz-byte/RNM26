@@ -8,6 +8,8 @@ import {
   computeCategoryTotals,
   computePresetTariff,
   computeTariff,
+  computeTariffByUnitType,
+  computeUsefulArea,
   compareToMinTariff,
   getChildren,
   getDescendantIds,
@@ -65,13 +67,49 @@ describe("computeTariff", () => {
 });
 
 describe("computeCapitalRepairAnnual", () => {
-  it("не менее 0,005 МРП × S полез. × 12", () => {
+  it("не менее 0,005 МРП × S полез. × 12 (жилая + коммерческая + кладовые + паркинг)", () => {
     const annual = computeCapitalRepairAnnual(DEFAULT_BUILDING, 3932);
-    const usefulArea = DEFAULT_BUILDING.livingArea + DEFAULT_BUILDING.commercialArea;
+    const usefulArea = computeUsefulArea(DEFAULT_BUILDING);
     expect(annual).toBeCloseTo(
       DEFAULT_BUILDING.capitalRepairMrpMultiplier * 3932 * usefulArea * 12,
       2,
     );
+  });
+});
+
+describe("computeUsefulArea", () => {
+  it("суммирует все 4 категории площади", () => {
+    const b = { ...DEFAULT_BUILDING, livingArea: 100, commercialArea: 20, storageArea: 5, parkingArea: 15 };
+    expect(computeUsefulArea(b)).toBe(140);
+  });
+});
+
+describe("computeTariffByUnitType", () => {
+  it("применяет коэффициент типа к базовому тарифу и считает итог по площади", () => {
+    const b = {
+      ...DEFAULT_BUILDING,
+      livingArea: 100,
+      commercialArea: 50,
+      storageArea: 10,
+      parkingArea: 20,
+      commercialRateCoefficient: 1.5,
+      storageRateCoefficient: 0.5,
+      parkingRateCoefficient: 0.6,
+    };
+    const db = buildDefaultDatabase();
+    const tariff = computeTariff(db, b);
+    const lines = computeTariffByUnitType(tariff, b);
+
+    const apartment = lines.find((l) => l.unitType === "apartment")!;
+    const commercial = lines.find((l) => l.unitType === "commercial")!;
+    const storage = lines.find((l) => l.unitType === "storage")!;
+    const parking = lines.find((l) => l.unitType === "parking")!;
+
+    expect(apartment.ratePerSqm).toBe(tariff.tariffPerSqm);
+    expect(commercial.ratePerSqm).toBeCloseTo(tariff.tariffPerSqm * 1.5, 2);
+    expect(storage.ratePerSqm).toBeCloseTo(tariff.tariffPerSqm * 0.5, 2);
+    expect(parking.ratePerSqm).toBeCloseTo(tariff.tariffPerSqm * 0.6, 2);
+    expect(storage.monthlyTotal).toBeCloseTo(storage.ratePerSqm * 10, 2);
   });
 });
 

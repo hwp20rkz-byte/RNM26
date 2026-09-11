@@ -79,12 +79,7 @@ export function OwnerRegistry() {
     setExportBusy(true);
     try {
       const { exportOwnersToExcelBlob } = await import("@/lib/export/exportOwnersToExcel");
-      const blob = await exportOwnersToExcelBlob(
-        units,
-        project.name,
-        tariff.tariffPerSqm,
-        project.building.commercialRateCoefficient,
-      );
+      const blob = await exportOwnersToExcelBlob(units, project.name, tariff.tariffPerSqm, project.building);
       downloadBlob(blob, `Реестр_собственников_${project.name.replace(/[^\p{L}\p{N}]+/gu, "_")}.xlsx`);
     } finally {
       setExportBusy(false);
@@ -261,7 +256,7 @@ export function OwnerRegistry() {
               </p>
             )}
             {filtered.map((u) => {
-              const accrual = computeUnitMonthlyAccrual(u, tariff.tariffPerSqm, project.building.commercialRateCoefficient);
+              const accrual = computeUnitMonthlyAccrual(u, tariff.tariffPerSqm, project.building);
               const share = totals.totalArea > 0 ? round2((u.area / totals.totalArea) * 100) : 0;
               return (
                 <div key={u.id} className="flex flex-col gap-1.5 py-2.5">

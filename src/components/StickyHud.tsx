@@ -2,13 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Gauge, Minus } from "lucide-react";
+import { useMemo } from "react";
 import { useProjectsStore, type BudgetPeriod } from "@/store/useProjectsStore";
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
-import { compareToMinTariff, computeApartmentCheck } from "@/lib/calculator/engine";
+import { compareToMinTariff, computeApartmentCheck, computeTariffByUnitType } from "@/lib/calculator/engine";
 import { findMinTariff } from "@/lib/calculator/minTariffs";
 import { APARTMENT_SAMPLE_SIZES } from "@/lib/calculator/presets";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { UNIT_TYPE_LABELS, type UnitType } from "@/lib/calculator/types";
+
+const HUD_UNIT_TYPES: UnitType[] = ["commercial", "storage", "parking"];
 
 const PERIOD_LABEL: Record<BudgetPeriod, string> = {
   month: "Месяц",
@@ -33,6 +37,16 @@ export function StickyHud() {
 
   const minTariff = findMinTariff(building.region);
   const status = compareToMinTariff(tariff.tariffPerSqm, minTariff);
+
+  const byType = useMemo(
+    () =>
+      computeTariffByUnitType(tariff, building).filter(
+        (l) => HUD_UNIT_TYPES.includes(l.unitType) && l.areaSqm > 0,
+      ),
+    [tariff, building],
+  );
+  const capitalRepairSharePercent =
+    tariff.tariffPerSqm > 0 ? Math.round((tariff.capitalRepairPerSqmActual / tariff.tariffPerSqm) * 100) : 0;
 
   const budgetByPeriod: Record<BudgetPeriod, number> = {
     month: tariff.monthlyBudget,
@@ -127,6 +141,29 @@ export function StickyHud() {
           ))}
         </div>
       </div>
+
+      {(tariff.capitalRepairPerSqmActual > 0 || byType.length > 0) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-slate-100 pt-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          {tariff.capitalRepairPerSqmActual > 0 && (
+            <span>
+              из них взнос на капремонт:{" "}
+              <b className="tabular-nums text-slate-700 dark:text-slate-200">
+                {formatKztPrecise(tariff.capitalRepairPerSqmActual)} ₸/м²
+              </b>{" "}
+              ({capitalRepairSharePercent}%)
+            </span>
+          )}
+          {byType.map((l) => (
+            <span key={l.unitType}>
+              {UNIT_TYPE_LABELS[l.unitType]}:{" "}
+              <b className="tabular-nums text-slate-700 dark:text-slate-200">
+                {formatKztPrecise(l.ratePerSqm)} ₸/м²
+              </b>{" "}
+              <span className="text-slate-400">({formatKzt(l.monthlyTotal)}/мес. всего)</span>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

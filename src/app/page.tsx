@@ -19,6 +19,7 @@ import { ProtocolBuilder } from "@/components/ProtocolBuilder";
 import { SparePartsRegistry } from "@/components/SparePartsRegistry";
 import { MaintenanceLog } from "@/components/MaintenanceLog";
 import { WorkOrderBoard } from "@/components/WorkOrderBoard";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
 import { PrintSummary } from "@/components/PrintSummary";
@@ -154,6 +155,8 @@ export default function HomePage() {
         <ScenarioComparator />
 
         <BudgetCharts />
+
+        <AnalyticsDashboard />
 
         <ExportBar />
 

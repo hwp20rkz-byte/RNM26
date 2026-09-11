@@ -26,6 +26,8 @@ export function PresetEditor() {
       maxServiceClass: "comfort",
       capitalRepairMrpMultiplier: 0.007,
       commercialRateCoefficient: 1.3,
+      storageRateCoefficient: 0.6,
+      parkingRateCoefficient: 0.6,
       forceEnabledItemIds: [],
       forceDisabledItemIds: [],
     });
@@ -39,10 +41,11 @@ export function PresetEditor() {
           <CardTitle>Конструктор пресетов обслуживания</CardTitle>
         </div>
         <CardDescription>
-          Пресет — это набор из 4 настроек, применяемых одним кликом (в Шаге 1 или Шаге 3):
-          множитель цен всех статей, потолок класса доступных статей, взнос на капремонт и
-          коэффициент для нежилых. Отредактируйте встроенные пресеты под свою организацию или
-          создайте новые — они сразу появятся в выборе класса обслуживания и в сравнении.
+          Пресет — это набор настроек, применяемых одним кликом (в Шаге 1 или Шаге 3): множитель
+          цен всех статей, потолок класса доступных статей, взнос на капремонт и коэффициенты
+          тарифа для нежилых, кладовых и машиномест. Отредактируйте встроенные пресеты под свою
+          организацию или создайте новые — они сразу появятся в выборе класса обслуживания и в
+          сравнении.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -155,6 +158,28 @@ export function PresetEditor() {
                   <InlineNumber
                     value={preset.commercialRateCoefficient}
                     onChange={(v) => updatePreset(preset.id, { commercialRateCoefficient: v })}
+                    step={0.1}
+                    className="w-16"
+                  />
+                </label>
+
+                <label className="flex items-center gap-1.5">
+                  <span className="text-slate-400">{PRESET_FIELD_HELP.storageRateCoefficient.label}</span>
+                  <span>×</span>
+                  <InlineNumber
+                    value={preset.storageRateCoefficient}
+                    onChange={(v) => updatePreset(preset.id, { storageRateCoefficient: v })}
+                    step={0.1}
+                    className="w-16"
+                  />
+                </label>
+
+                <label className="flex items-center gap-1.5">
+                  <span className="text-slate-400">{PRESET_FIELD_HELP.parkingRateCoefficient.label}</span>
+                  <span>×</span>
+                  <InlineNumber
+                    value={preset.parkingRateCoefficient}
+                    onChange={(v) => updatePreset(preset.id, { parkingRateCoefficient: v })}
                     step={0.1}
                     className="w-16"
                   />

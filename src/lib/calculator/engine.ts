@@ -10,6 +10,8 @@ import type {
   RegionalMinTariff,
   ServicePreset,
   TariffResult,
+  UnitType,
+  UnitTypeTariffLine,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -107,8 +109,20 @@ export function computeCategoryTotals(
   }));
 }
 
+/**
+ * Полезная площадь для формулы тарифа — жилая + коммерческая + кладовые +
+ * машиноместа. Все они — самостоятельные объекты права, неразрывно связанные
+ * с содержанием общего имущества (та же логика, что и в знаменателе кворума
+ * ownerRegistryEngine.computeQuorum), поэтому участвуют в базе тарифа наравне
+ * с жильём; их фактическая ставка отличается через *RateCoefficient
+ * (computeTariffByUnitType), а не через исключение площади из базы.
+ */
+export function computeUsefulArea(building: BuildingProfile): number {
+  return building.livingArea + building.commercialArea + building.storageArea + building.parkingArea;
+}
+
 export function computeCapitalRepairAnnual(building: BuildingProfile, mrpValue: number): number {
-  const usefulArea = building.livingArea + building.commercialArea;
+  const usefulArea = computeUsefulArea(building);
   const perSqmMonth = building.capitalRepairMrpMultiplier * mrpValue;
   return perSqmMonth * usefulArea * 12;
 }
@@ -128,7 +142,7 @@ export function computeTariff(
   const annualManagementCost = totalsById.get("1") ?? 0;
   const annualMaintenanceCost = totalsById.get("2") ?? 0;
   const annualTotalCost = annualManagementCost + annualMaintenanceCost;
-  const usefulArea = building.livingArea + building.commercialArea;
+  const usefulArea = computeUsefulArea(building);
   const annualCommercialIncome = building.annualCommercialIncome;
 
   const tariffPerSqm =
@@ -137,6 +151,7 @@ export function computeTariff(
       : 0;
 
   const monthlyBudget = (annualTotalCost - annualCommercialIncome) / 12;
+  const capitalRepairAnnualActual = totalsById.get("2.11") ?? 0;
 
   return {
     annualManagementCost: round2(annualManagementCost),
@@ -150,6 +165,8 @@ export function computeTariff(
     annualBudget: round2(monthlyBudget * 12),
     categoryTotals,
     capitalRepairMinTariffPerSqm: round2(0.005 * db.taxRates.mrpValue),
+    capitalRepairAnnualActual: round2(capitalRepairAnnualActual),
+    capitalRepairPerSqmActual: usefulArea > 0 ? round2(capitalRepairAnnualActual / (usefulArea * 12)) : 0,
   };
 }
 
@@ -163,6 +180,29 @@ export function computeCommercialCheck(
   commercialRateCoefficient: number,
 ): number {
   return round2(tariffPerSqm * commercialRateCoefficient * areaSqm);
+}
+
+/**
+ * Разбивка тарифа по типам помещений профиля объекта (Шаг 1) — не путать с
+ * начислениями по факту заполненного реестра собственников
+ * (ownerRegistryEngine.computeUnitMonthlyAccrual), которые точнее, если
+ * реестр ведётся. Здесь используются агрегированные площади BuildingProfile,
+ * поэтому разбивка доступна сразу, без заполнения реестра.
+ */
+export function computeTariffByUnitType(
+  tariff: TariffResult,
+  building: BuildingProfile,
+): UnitTypeTariffLine[] {
+  const lines: { unitType: UnitType; areaSqm: number; coefficient: number }[] = [
+    { unitType: "apartment", areaSqm: building.livingArea, coefficient: 1 },
+    { unitType: "commercial", areaSqm: building.commercialArea, coefficient: building.commercialRateCoefficient },
+    { unitType: "storage", areaSqm: building.storageArea, coefficient: building.storageRateCoefficient },
+    { unitType: "parking", areaSqm: building.parkingArea, coefficient: building.parkingRateCoefficient },
+  ];
+  return lines.map((l) => {
+    const ratePerSqm = round2(tariff.tariffPerSqm * l.coefficient);
+    return { unitType: l.unitType, areaSqm: l.areaSqm, ratePerSqm, monthlyTotal: round2(ratePerSqm * l.areaSqm) };
+  });
 }
 
 // ---------------------------------------------------------------------------

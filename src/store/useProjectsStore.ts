@@ -1224,7 +1224,7 @@ export const useProjectsStore = create<ProjectsState>()(
       name: "qazaqosi-projects-v1",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      version: 5,
+      version: 6,
       // v0 → v1: project.scenario:"economy"|"standard"|"business" → presetId,
       //          пресетов не существовало вовсе.
       // v1 → v2: у проектов не было assets[]/capitalFundBalance, справочника
@@ -1237,6 +1237,11 @@ export const useProjectsStore = create<ProjectsState>()(
       //          (maintenanceLogs) — добавляем как пустые массивы.
       // v4 → v5: у проектов не было нарядов (workOrders) — добавляем как
       //          пустой массив.
+      // v5 → v6: у BuildingProfile (в проектах и сохранённых сметах) и у
+      //          ServicePreset не было storageRateCoefficient/
+      //          parkingRateCoefficient — раньше кладовые и машиноместа
+      //          неявно начислялись по базовому тарифу (коэффициент 1),
+      //          проставляем это явно, чтобы расчёт не превратился в NaN.
       migrate: (persisted, version) => {
         type LooseProject = Project & {
           scenario?: string;
@@ -1315,6 +1320,28 @@ export const useProjectsStore = create<ProjectsState>()(
             projects[id] = { ...p, workOrders: p.workOrders ?? [] };
           }
           state = { ...state, projects };
+        }
+
+        if (version < 6) {
+          const backfillCoefficients = (b: BuildingProfile): BuildingProfile => ({
+            ...b,
+            storageRateCoefficient: b.storageRateCoefficient ?? 1,
+            parkingRateCoefficient: b.parkingRateCoefficient ?? 1,
+          });
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            projects[id] = { ...p, building: backfillCoefficients(p.building) };
+          }
+          const savedSmetas: Record<string, SavedSmeta & { scenario?: string }> = {};
+          for (const [id, sm] of Object.entries(state.savedSmetas ?? {})) {
+            savedSmetas[id] = { ...sm, building: backfillCoefficients(sm.building) };
+          }
+          const presets = (state.presets ?? BUILTIN_PRESETS).map((pr) => ({
+            ...pr,
+            storageRateCoefficient: pr.storageRateCoefficient ?? 1,
+            parkingRateCoefficient: pr.parkingRateCoefficient ?? 1,
+          }));
+          state = { ...state, projects, savedSmetas, presets };
         }
 
         return {

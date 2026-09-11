@@ -1,5 +1,6 @@
 import type {
   AgendaItem,
+  BuildingProfile,
   GeneralMeeting,
   OwnershipUnit,
   UnitType,
@@ -106,18 +107,27 @@ export function computeAgendaItemResult(
 
 // ---------------------------------------------------------------------------
 // Начисления по юнитам реестра — тариф В (₸/м²/мес.) × площадь юнита, с
-// коэффициентом для нежилых помещений (решение собрания, из профиля объекта).
-// Кладовые и машиноместа начисляются по базовому тарифу как имущество,
-// неразрывно связанное с содержанием общего имущества.
+// коэффициентом по типу помещения (решение собрания, из профиля объекта):
+// свой коэффициент для нежилых, кладовых и машиномест — по образцу нежилых.
 // ---------------------------------------------------------------------------
 
 export function computeUnitMonthlyAccrual(
   unit: OwnershipUnit,
   tariffPerSqm: number,
-  commercialRateCoefficient: number,
+  rateCoefficients: Pick<
+    BuildingProfile,
+    "commercialRateCoefficient" | "storageRateCoefficient" | "parkingRateCoefficient"
+  >,
 ): number {
-  const rate = unit.unitType === "commercial" ? tariffPerSqm * commercialRateCoefficient : tariffPerSqm;
-  return round2(rate * unit.area);
+  const coefficient =
+    unit.unitType === "commercial"
+      ? rateCoefficients.commercialRateCoefficient
+      : unit.unitType === "storage"
+        ? rateCoefficients.storageRateCoefficient
+        : unit.unitType === "parking"
+          ? rateCoefficients.parkingRateCoefficient
+          : 1;
+  return round2(tariffPerSqm * coefficient * unit.area);
 }
 
 export interface RegistryTotals {

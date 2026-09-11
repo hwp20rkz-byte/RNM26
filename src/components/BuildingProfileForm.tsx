@@ -10,6 +10,7 @@ import { useActiveProject } from "@/store/hooks";
 import { buildingProfileSchema } from "@/lib/calculator/validation";
 import { OBJECT_TYPE_LABELS, PRESET_FIELD_HELP } from "@/lib/calculator/presets";
 import { REGIONAL_MIN_TARIFFS } from "@/lib/calculator/minTariffs";
+import { computeUsefulArea } from "@/lib/calculator/engine";
 import type { ObjectType } from "@/lib/calculator/types";
 
 export function BuildingProfileForm() {
@@ -30,7 +31,7 @@ export function BuildingProfileForm() {
     return map;
   }, [building]);
 
-  const usefulArea = building.livingArea + building.commercialArea;
+  const usefulArea = computeUsefulArea(building);
   const totalFloors = building.floorsPerEntrance.reduce((a, b) => a + b, 0);
   const activePreset = presets.find((p) => p.id === project.presetId) ?? presets[0];
 
@@ -209,10 +210,13 @@ export function BuildingProfileForm() {
             />
           </div>
           <p className="mt-2 text-xs text-slate-400">
-            Полезная площадь для формулы тарифа (S полез.) = жилая + коммерческая ={" "}
+            Полезная площадь для формулы тарифа (S полез.) = жилая + коммерческая + кладовые +
+            паркинг ={" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">
               {usefulArea.toLocaleString("ru-RU")} м²
             </span>
+            . Кладовые и машиноместа участвуют в базе тарифа наравне с жильём, но платят по своему
+            коэффициенту ниже — не по полной ставке автоматически.
           </p>
         </div>
 
@@ -286,6 +290,20 @@ export function BuildingProfileForm() {
               step={0.1}
               onChange={(v) => setBuilding({ commercialRateCoefficient: v })}
               hint="Решение общего собрания; 1.0 = равный тариф"
+            />
+            <NumberField
+              label="Коэффициент тарифа для кладовых"
+              value={building.storageRateCoefficient}
+              step={0.1}
+              onChange={(v) => setBuilding({ storageRateCoefficient: v })}
+              hint="Решение общего собрания; 1.0 = равный тариф, обычно ниже"
+            />
+            <NumberField
+              label="Коэффициент тарифа для машиномест"
+              value={building.parkingRateCoefficient}
+              step={0.1}
+              onChange={(v) => setBuilding({ parkingRateCoefficient: v })}
+              hint="Решение общего собрания; 1.0 = равный тариф, обычно ниже"
             />
           </div>
         </div>

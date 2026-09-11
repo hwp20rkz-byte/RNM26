@@ -50,6 +50,10 @@ export interface BuildingProfile {
   capitalRepairMrpMultiplier: number;
   /** Коэффициент тарифа для нежилых (коммерческих) помещений относительно базового В (решение собрания) */
   commercialRateCoefficient: number;
+  /** Коэффициент тарифа для кладовых относительно базового В (решение собрания) */
+  storageRateCoefficient: number;
+  /** Коэффициент тарифа для машиномест относительно базового В (решение собрания) */
+  parkingRateCoefficient: number;
 }
 
 /** Ставки налогов и отчислений с ФОТ (РК), настраиваемые пользователем. */
@@ -169,7 +173,21 @@ export interface TariffResult {
   quarterlyBudget: number;
   annualBudget: number;
   categoryTotals: CategoryTotal[];
+  /** Минимум по закону (0,005 МРП), для сверки — НЕ фактически начисляемая сумма */
   capitalRepairMinTariffPerSqm: number;
+  /** Фактический годовой взнос на капремонт (статья 2.11) при текущих настройках — уже включён в annualMaintenanceCost/tariffPerSqm */
+  capitalRepairAnnualActual: number;
+  /** Доля тарифа В, приходящаяся на взнос на капремонт при текущих настройках, ₸/м²/мес. */
+  capitalRepairPerSqmActual: number;
+}
+
+/** Тариф и площадь по одному типу помещений — для разбивки на дашборде и Шаге 1. */
+export interface UnitTypeTariffLine {
+  unitType: UnitType;
+  areaSqm: number;
+  /** Эффективная ставка = tariffPerSqm × коэффициент этого типа, ₸/м²/мес. */
+  ratePerSqm: number;
+  monthlyTotal: number;
 }
 
 export interface RegionalMinTariff {
@@ -203,6 +221,10 @@ export interface ServicePreset {
   capitalRepairMrpMultiplier: number;
   /** Коэффициент тарифа для нежилых помещений, применяется к профилю объекта */
   commercialRateCoefficient: number;
+  /** Коэффициент тарифа для кладовых, применяется к профилю объекта */
+  storageRateCoefficient: number;
+  /** Коэффициент тарифа для машиномест, применяется к профилю объекта */
+  parkingRateCoefficient: number;
   /** Статьи, принудительно включаемые вне зависимости от maxServiceClass (по id) */
   forceEnabledItemIds: string[];
   /** Статьи, принудительно отключаемые вне зависимости от maxServiceClass (по id) */

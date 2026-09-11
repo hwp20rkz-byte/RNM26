@@ -21,6 +21,8 @@ export const DEFAULT_BUILDING: BuildingProfile = {
   annualCommercialIncome: 2544000,
   capitalRepairMrpMultiplier: 0.005,
   commercialRateCoefficient: 1.0,
+  storageRateCoefficient: 1.0,
+  parkingRateCoefficient: 1.0,
 };
 
 export const SERVICE_CLASS_LABELS: Record<ServiceClass, string> = {
@@ -58,6 +60,8 @@ export function buildBlankBuilding(name: string, objectType: ObjectType = "resid
     annualCommercialIncome: 0,
     capitalRepairMrpMultiplier: 0.005,
     commercialRateCoefficient: 1.0,
+    storageRateCoefficient: 1.0,
+    parkingRateCoefficient: 1.0,
   };
 }
 
@@ -66,7 +70,12 @@ export function buildBlankBuilding(name: string, objectType: ObjectType = "resid
  * рядом с выбором класса обслуживания в Шаге 1.
  */
 export const PRESET_FIELD_HELP: Record<
-  "priceMultiplier" | "maxServiceClass" | "capitalRepairMrpMultiplier" | "commercialRateCoefficient",
+  | "priceMultiplier"
+  | "maxServiceClass"
+  | "capitalRepairMrpMultiplier"
+  | "commercialRateCoefficient"
+  | "storageRateCoefficient"
+  | "parkingRateCoefficient",
   { label: string; help: string }
 > = {
   priceMultiplier: {
@@ -84,6 +93,14 @@ export const PRESET_FIELD_HELP: Record<
   commercialRateCoefficient: {
     label: "Коэффициент для нежилых",
     help: "Проставляется в профиль объекта — во сколько раз тариф для коммерческих/нежилых помещений выше базового тарифа В.",
+  },
+  storageRateCoefficient: {
+    label: "Коэффициент для кладовых",
+    help: "Проставляется в профиль объекта — доля базового тарифа В, которую платит кладовая (обычно ниже 1 — меньше нагрузка на общие услуги). Рыночная оценка, требует утверждения собранием.",
+  },
+  parkingRateCoefficient: {
+    label: "Коэффициент для машиномест",
+    help: "Проставляется в профиль объекта — доля базового тарифа В, которую платит машиноместо (обычно ниже 1). Рыночная оценка, требует утверждения собранием.",
   },
 };
 
@@ -104,6 +121,8 @@ export const BUILTIN_PRESETS: ServicePreset[] = [
     maxServiceClass: "economy",
     capitalRepairMrpMultiplier: 0.005,
     commercialRateCoefficient: 1.0,
+    storageRateCoefficient: 0.5,
+    parkingRateCoefficient: 0.5,
     forceEnabledItemIds: [],
     forceDisabledItemIds: [],
     builtIn: true,
@@ -117,6 +136,8 @@ export const BUILTIN_PRESETS: ServicePreset[] = [
     maxServiceClass: "comfort",
     capitalRepairMrpMultiplier: 0.007,
     commercialRateCoefficient: 1.3,
+    storageRateCoefficient: 0.6,
+    parkingRateCoefficient: 0.6,
     forceEnabledItemIds: [],
     forceDisabledItemIds: [],
     builtIn: true,
@@ -130,6 +151,8 @@ export const BUILTIN_PRESETS: ServicePreset[] = [
     maxServiceClass: "business",
     capitalRepairMrpMultiplier: 0.01,
     commercialRateCoefficient: 1.6,
+    storageRateCoefficient: 0.7,
+    parkingRateCoefficient: 0.7,
     forceEnabledItemIds: [],
     forceDisabledItemIds: [],
     builtIn: true,
@@ -143,6 +166,8 @@ export const BUILTIN_PRESETS: ServicePreset[] = [
     maxServiceClass: "premium",
     capitalRepairMrpMultiplier: 0.015,
     commercialRateCoefficient: 2.0,
+    storageRateCoefficient: 0.8,
+    parkingRateCoefficient: 0.8,
     forceEnabledItemIds: [],
     forceDisabledItemIds: [],
     builtIn: true,

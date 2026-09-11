@@ -14,7 +14,7 @@ import {
   WidthType,
 } from "docx";
 import type { BuildingProfile, CalculatorDatabase, TariffResult } from "@/lib/calculator/types";
-import { itemAnnualCost, payrollAnnualCost } from "@/lib/calculator/engine";
+import { computeUsefulArea, itemAnnualCost, payrollAnnualCost } from "@/lib/calculator/engine";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
 
 const BORDER = {
@@ -133,10 +133,7 @@ export async function exportToDocxBlob(
   }
 
   const capitalRepairAnnual =
-    building.capitalRepairMrpMultiplier *
-    db.taxRates.mrpValue *
-    (building.livingArea + building.commercialArea) *
-    12;
+    building.capitalRepairMrpMultiplier * db.taxRates.mrpValue * computeUsefulArea(building) * 12;
   rows.push(
     new TableRow({
       children: [

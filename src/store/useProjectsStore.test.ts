@@ -181,6 +181,8 @@ describe("пресеты обслуживания", () => {
       maxServiceClass: "premium",
       capitalRepairMrpMultiplier: 0.02,
       commercialRateCoefficient: 2.5,
+      storageRateCoefficient: 0.5,
+      parkingRateCoefficient: 0.5,
       forceEnabledItemIds: [],
       forceDisabledItemIds: [],
     });
@@ -225,6 +227,8 @@ describe("пресеты обслуживания", () => {
       maxServiceClass: "comfort",
       capitalRepairMrpMultiplier: 0.007,
       commercialRateCoefficient: 1.3,
+      storageRateCoefficient: 0.6,
+      parkingRateCoefficient: 0.6,
       forceEnabledItemIds: [],
       forceDisabledItemIds: [],
     });

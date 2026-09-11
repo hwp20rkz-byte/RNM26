@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import type { OwnershipUnit } from "@/lib/calculator/types";
+import type { BuildingProfile, OwnershipUnit } from "@/lib/calculator/types";
 import { UNIT_TYPE_LABELS } from "@/lib/calculator/types";
 import { computeUnitMonthlyAccrual, computeRegistryTotals } from "@/lib/calculator/ownerRegistryEngine";
 
@@ -16,7 +16,10 @@ export async function exportOwnersToExcelBlob(
   units: OwnershipUnit[],
   buildingName: string,
   tariffPerSqm: number,
-  commercialRateCoefficient: number,
+  rateCoefficients: Pick<
+    BuildingProfile,
+    "commercialRateCoefficient" | "storageRateCoefficient" | "parkingRateCoefficient"
+  >,
 ): Promise<Blob> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "QazaqOSI";
@@ -47,7 +50,7 @@ export async function exportOwnersToExcelBlob(
 
   units.forEach((u, i) => {
     const row = ws.getRow(i + 2);
-    const accrual = computeUnitMonthlyAccrual(u, tariffPerSqm, commercialRateCoefficient);
+    const accrual = computeUnitMonthlyAccrual(u, tariffPerSqm, rateCoefficients);
     row.values = {
       unitType: UNIT_TYPE_LABELS[u.unitType],
       number: u.number,

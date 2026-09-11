@@ -176,21 +176,23 @@ describe("computeAgendaItemResult", () => {
 });
 
 describe("computeUnitMonthlyAccrual", () => {
+  const coefficients = { commercialRateCoefficient: 1.5, storageRateCoefficient: 0.5, parkingRateCoefficient: 0.6 };
+
   it("для квартиры — тариф × площадь без коэффициента", () => {
     const u = unit({ id: "u1", area: 50, unitType: "apartment" });
-    expect(computeUnitMonthlyAccrual(u, 100, 1.5)).toBe(5000);
+    expect(computeUnitMonthlyAccrual(u, 100, coefficients)).toBe(5000);
   });
 
   it("для нежилого — тариф × коэффициент нежилых × площадь", () => {
     const u = unit({ id: "u4", area: 100, unitType: "commercial" });
-    expect(computeUnitMonthlyAccrual(u, 100, 1.5)).toBe(15000);
+    expect(computeUnitMonthlyAccrual(u, 100, coefficients)).toBe(15000);
   });
 
-  it("кладовая и машиноместо — по базовому тарифу как жильё", () => {
+  it("кладовая и машиноместо — со своим коэффициентом, а не как жильё", () => {
     const storage = unit({ id: "s1", area: 5, unitType: "storage" });
     const parking = unit({ id: "p1", area: 15, unitType: "parking" });
-    expect(computeUnitMonthlyAccrual(storage, 100, 1.5)).toBe(500);
-    expect(computeUnitMonthlyAccrual(parking, 100, 1.5)).toBe(1500);
+    expect(computeUnitMonthlyAccrual(storage, 100, coefficients)).toBe(250);
+    expect(computeUnitMonthlyAccrual(parking, 100, coefficients)).toBe(900);
   });
 });
 

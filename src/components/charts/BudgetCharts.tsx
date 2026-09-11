@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
-import { getChildren } from "@/lib/calculator/engine";
+import { computeUsefulArea, getChildren } from "@/lib/calculator/engine";
 import { formatKzt } from "@/lib/utils";
 
 const PALETTE = [
@@ -59,11 +59,11 @@ export function BudgetCharts() {
   }, [db.categories, totalsById]);
 
   const barData = useMemo(() => {
-    const usefulArea = building.livingArea + building.commercialArea || 1;
+    const usefulArea = computeUsefulArea(building) || 1;
     return donutData
       .slice(0, 10)
       .map((d) => ({ name: d.name.length > 28 ? `${d.name.slice(0, 26)}…` : d.name, perSqm: round2(d.value / usefulArea) }));
-  }, [donutData, building.livingArea, building.commercialArea]);
+  }, [donutData, building]);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -19,6 +19,8 @@ export const buildingProfileSchema = z
     annualCommercialIncome: z.number().min(0),
     capitalRepairMrpMultiplier: z.number().min(0.005, "Не менее 0,005 МРП по Закону РК"),
     commercialRateCoefficient: z.number().positive(),
+    storageRateCoefficient: z.number().positive(),
+    parkingRateCoefficient: z.number().positive(),
   })
   .refine((v) => v.livingArea + v.commercialArea > 0, {
     message: "Площадь (жилая + коммерческая) должна быть больше 0",
