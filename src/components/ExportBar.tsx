@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { downloadBlob } from "@/lib/export/download";
+import { useT } from "@/lib/i18n/useT";
 
 export function ExportBar() {
+  const t = useT();
   const project = useActiveProject();
   const db = project.db;
   const building = project.building;
@@ -48,28 +50,25 @@ export function ExportBar() {
   return (
     <Card className="no-print">
       <CardHeader>
-        <CardTitle>Шаг 4. Экспорт и презентация для собрания жильцов</CardTitle>
-        <CardDescription>
-          Полная смета в Excel с формулами, официальный документ для утверждения в Word,
-          либо PDF-версия для печати.
-        </CardDescription>
+        <CardTitle>{t("ebTitle")}</CardTitle>
+        <CardDescription>{t("ebDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-3">
         <ExportButton
           icon={<FileSpreadsheet className="h-4 w-4" />}
-          label="Скачать в Excel (.xlsx)"
+          label={t("ebExcelButton")}
           busy={busy === "xlsx"}
           onClick={handleExcel}
         />
         <ExportButton
           icon={<FileText className="h-4 w-4" />}
-          label="Скачать смету в Word (.docx)"
+          label={t("ebWordButton")}
           busy={busy === "docx"}
           onClick={handleDocx}
         />
         <ExportButton
           icon={<Printer className="h-4 w-4" />}
-          label="Распечатать отчёт (PDF)"
+          label={t("ebPrintButton")}
           onClick={handlePrint}
         />
       </CardContent>
@@ -88,6 +87,7 @@ function ExportButton({
   onClick: () => void;
   busy?: boolean;
 }) {
+  const t = useT();
   return (
     <button
       onClick={onClick}
@@ -95,7 +95,7 @@ function ExportButton({
       className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
     >
       {icon}
-      {busy ? "Формирование…" : label}
+      {busy ? t("ebFormingText") : label}
     </button>
   );
 }

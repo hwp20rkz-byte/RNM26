@@ -6,9 +6,11 @@ import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { OBJECT_TYPE_LABELS } from "@/lib/calculator/presets";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 import type { ObjectType } from "@/lib/calculator/types";
 
 export function ProjectSwitcher() {
+  const t = useT();
   const projects = useProjectsStore((s) => s.projects);
   const projectOrder = useProjectsStore((s) => s.projectOrder);
   const activeProjectId = useProjectsStore((s) => s.activeProjectId);
@@ -45,8 +47,8 @@ export function ProjectSwitcher() {
 
   function handleSaveSmeta() {
     const name = window.prompt(
-      "Название версии сметы",
-      `Смета от ${new Date().toLocaleDateString("ru-RU")}`,
+      t("psSaveSmetaPromptLabel"),
+      `${t("psSaveSmetaPromptDefaultPrefix")} ${new Date().toLocaleDateString("ru-RU")}`,
     );
     if (name) saveSmeta(name);
     setShowHistory(true);
@@ -78,7 +80,7 @@ export function ProjectSwitcher() {
               setRenaming(true);
             }}
             className="h-8 max-w-[16rem] rounded-md border border-slate-200 bg-transparent px-2 text-sm font-medium text-slate-800 dark:border-slate-700 dark:text-slate-100"
-            title="Двойной клик по имени — переименовать"
+            title={t("psRenameTooltip")}
           >
             {projectOrder.map((id) => (
               <option key={id} value={id}>
@@ -104,33 +106,33 @@ export function ProjectSwitcher() {
           onClick={() => setShowNewForm((v) => !v)}
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:text-slate-300"
         >
-          <FolderPlus className="h-3.5 w-3.5" /> Новый объект
+          <FolderPlus className="h-3.5 w-3.5" /> {t("psNewProjectButton")}
         </button>
 
         <button
           onClick={handleSaveSmeta}
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:text-slate-300"
         >
-          <Save className="h-3.5 w-3.5" /> Сохранить смету
+          <Save className="h-3.5 w-3.5" /> {t("psSaveSmetaButton")}
         </button>
 
         <button
           onClick={() => setShowHistory((v) => !v)}
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:text-slate-300"
         >
-          <History className="h-3.5 w-3.5" /> Сохранённые ({mySmetas.length}) <ChevronDown className="h-3 w-3" />
+          <History className="h-3.5 w-3.5" /> {t("psSavedButtonPrefix")} ({mySmetas.length}) <ChevronDown className="h-3 w-3" />
         </button>
 
         {projectOrder.length > 1 && (
           <button
             onClick={() => {
-              if (window.confirm(`Удалить объект «${project.name}»? Это действие необратимо.`)) {
+              if (window.confirm(`${t("psDeleteProjectConfirmPrefix")}${project.name}${t("psDeleteProjectConfirmSuffix")}`)) {
                 deleteProject(project.id);
               }
             }}
             className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Удалить объект
+            <Trash2 className="h-3.5 w-3.5" /> {t("psDeleteProjectButton")}
           </button>
         )}
       </div>
@@ -138,50 +140,50 @@ export function ProjectSwitcher() {
       {showNewForm && (
         <div className="flex flex-wrap items-end gap-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Название объекта</span>
+            <span className="text-xs text-slate-500">{t("psNewProjectNameLabel")}</span>
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="напр. ЖК «Аружан», Бизнес-центр «Прайм»"
+              placeholder={t("psNewProjectNamePlaceholder")}
               className="h-9 w-64 rounded-lg border border-slate-300 bg-white px-3 text-sm dark:bg-slate-900"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Тип объекта</span>
+            <span className="text-xs text-slate-500">{t("psObjectTypeLabel")}</span>
             <select
               value={newObjectType}
               onChange={(e) => setNewObjectType(e.target.value as ObjectType)}
               className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:bg-slate-900"
             >
-              {(Object.keys(OBJECT_TYPE_LABELS) as ObjectType[]).map((t) => (
-                <option key={t} value={t}>
-                  {OBJECT_TYPE_LABELS[t]}
+              {(Object.keys(OBJECT_TYPE_LABELS) as ObjectType[]).map((ot) => (
+                <option key={ot} value={ot}>
+                  {OBJECT_TYPE_LABELS[ot]}
                 </option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Начальные данные</span>
+            <span className="text-xs text-slate-500">{t("psInitialDataLabel")}</span>
             <select
               value={newTemplate}
               onChange={(e) => setNewTemplate(e.target.value as "blank" | "korkem1")}
               className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:bg-slate-900"
             >
-              <option value="blank">Пустой (только структура статей)</option>
-              <option value="korkem1">Копия эталона «Коркем-1» (для примера)</option>
+              <option value="blank">{t("psBlankTemplateOption")}</option>
+              <option value="korkem1">{t("psKorkemTemplateOption")}</option>
             </select>
           </label>
           <button
             onClick={handleCreate}
             className="h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
           >
-            Создать
+            {t("psCreateButton")}
           </button>
           <button
             onClick={() => setShowNewForm(false)}
             className="h-9 rounded-lg border border-slate-300 px-3 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300"
           >
-            Отмена
+            {t("psCancelButton")}
           </button>
         </div>
       )}
@@ -189,7 +191,7 @@ export function ProjectSwitcher() {
       {showHistory && (
         <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-800/40">
           {mySmetas.length === 0 && (
-            <p className="text-xs text-slate-400">Нет сохранённых версий сметы по этому объекту.</p>
+            <p className="text-xs text-slate-400">{t("psNoSavedVersions")}</p>
           )}
           {mySmetas.map((s) => (
             <div key={s.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white dark:hover:bg-slate-900">
@@ -200,16 +202,16 @@ export function ProjectSwitcher() {
               <span className="text-xs font-medium tabular-nums text-slate-500">
                 {formatKztPrecise(s.tariff.tariffPerSqm)} ₸/м²
               </span>
-              <span className="text-xs tabular-nums text-slate-400">{formatKzt(s.tariff.monthlyBudget)}/мес</span>
+              <span className="text-xs tabular-nums text-slate-400">{formatKzt(s.tariff.monthlyBudget)}{t("orPerMonthSuffix")}</span>
               <button
                 onClick={() => {
-                  if (window.confirm(`Восстановить версию «${s.name}»? Текущее состояние объекта будет заменено.`)) {
+                  if (window.confirm(`${t("psRestoreConfirmPrefix")}${s.name}${t("psRestoreConfirmSuffix")}`)) {
                     restoreSmeta(s.id);
                   }
                 }}
                 className="rounded-md bg-slate-900 px-2 py-1 text-xs text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
               >
-                Восстановить
+                {t("psRestoreButton")}
               </button>
               <button
                 onClick={() => deleteSmeta(s.id)}
@@ -223,8 +225,7 @@ export function ProjectSwitcher() {
       )}
 
       <p className="text-[11px] text-slate-400">
-        Объекты и сметы сохраняются локально в браузере (localStorage) — не синхронизируются между
-        устройствами. Текущий тариф: {formatKztPrecise(tariff.tariffPerSqm)} ₸/м².
+        {t("psFooterPrefix")} {formatKztPrecise(tariff.tariffPerSqm)} ₸/м².
       </p>
     </div>
   );

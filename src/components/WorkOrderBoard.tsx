@@ -43,6 +43,7 @@ import {
   type WorkOrderSeasonality,
   type WorkOrderStatus,
 } from "@/lib/calculator/types";
+import { useT } from "@/lib/i18n/useT";
 
 const STATUS_BADGE: Record<WorkOrderStatus, "success" | "warning" | "danger" | "outline"> = {
   draft: "outline",
@@ -75,6 +76,7 @@ function nextStatus(status: WorkOrderStatus): WorkOrderStatus | null {
 }
 
 export function WorkOrderBoard() {
+  const t = useT();
   const project = useActiveProject();
   const createWorkOrder = useProjectsStore((s) => s.createWorkOrder);
   const removeWorkOrder = useProjectsStore((s) => s.removeWorkOrder);
@@ -150,7 +152,7 @@ export function WorkOrderBoard() {
 
   function autoGenerateChecklist() {
     setChecklistDraft(
-      targetAssetIds.map((id) => ({ id: genId("check"), text: `Проверить: ${assetById.get(id)?.name ?? id}` })),
+      targetAssetIds.map((id) => ({ id: genId("check"), text: `${t("woChecklistCheckPrefix")} ${assetById.get(id)?.name ?? id}` })),
     );
   }
 
@@ -158,7 +160,7 @@ export function WorkOrderBoard() {
     const { exportWorkOrdersToIcs } = await import("@/lib/export/exportToIcs");
     const { blob, includedCount } = exportWorkOrdersToIcs([order], project.name);
     if (includedCount === 0) {
-      alert("У наряда не задан дедлайн — нечего экспортировать в календарь.");
+      alert(t("woNoDeadlineAlert"));
       return;
     }
     downloadBlob(blob, `${order.ticketNumber}.ics`);
@@ -206,17 +208,17 @@ export function WorkOrderBoard() {
           <Badge variant={STATUS_BADGE[order.status]}>{WORK_ORDER_STATUS_LABELS[order.status]}</Badge>
           {sla !== "n_a" && (
             <Badge variant={SLA_BADGE[sla]} className={sla === "overdue" ? "animate-pulse" : ""}>
-              {sla === "overdue" ? `Просрочено на ${overdueHours} ч` : SLA_STATUS_LABELS[sla]}
+              {sla === "overdue" ? `${t("woOverduePrefix")} ${overdueHours} ${t("woOverdueSuffix")}` : SLA_STATUS_LABELS[sla]}
             </Badge>
           )}
           {order.isNightShift && (
             <Badge variant="outline" className="gap-1">
-              <Moon className="h-3 w-3" /> ночь
+              <Moon className="h-3 w-3" /> {t("woNightBadge")}
             </Badge>
           )}
           {order.isBatch && (
             <Badge variant="outline" className="gap-1">
-              <Layers className="h-3 w-3" /> групповой
+              <Layers className="h-3 w-3" /> {t("woBatchBadge")}
             </Badge>
           )}
           <Badge variant="outline">{WORK_ORDER_COMPLEXITY_LABELS[order.complexity]}</Badge>
@@ -232,7 +234,7 @@ export function WorkOrderBoard() {
 
         {order.isNightShift && (
           <p className="mt-1 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
-            <AlertTriangle className="h-3 w-3" /> Требуется уведомление жителей о ночных работах
+            <AlertTriangle className="h-3 w-3" /> {t("woNightNotifyHint")}
           </p>
         )}
 
@@ -240,7 +242,7 @@ export function WorkOrderBoard() {
           <div className="mt-2">
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span>
-                Чек-лист: {progress.completed} из {progress.total}
+                {t("woChecklistProgressLabel")} {progress.completed} {t("woOfWord")} {progress.total}
               </span>
               <span>{progress.percent}%</span>
             </div>
@@ -252,7 +254,7 @@ export function WorkOrderBoard() {
 
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-400">
-            Дедлайн: {order.deadline ? new Date(order.deadline).toLocaleString("ru-RU") : "—"}
+            {t("woDeadlineLabelShort")} {order.deadline ? new Date(order.deadline).toLocaleString("ru-RU") : "—"}
           </span>
           {order.assignedStaffNames.length > 0 && (
             <span className="text-slate-400">· {order.assignedStaffNames.join(", ")}</span>
@@ -262,10 +264,10 @@ export function WorkOrderBoard() {
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {order.approval.required && order.approval.status === "pending" && (
             <button
-              onClick={() => approveWorkOrder(order.id, "Председатель")}
+              onClick={() => approveWorkOrder(order.id, t("woApproverRoleName"))}
               className="inline-flex items-center gap-1 rounded-md border border-emerald-300 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400"
             >
-              <ClipboardCheck className="h-3.5 w-3.5" /> Согласовать
+              <ClipboardCheck className="h-3.5 w-3.5" /> {t("woApproveButton")}
             </button>
           )}
           {next && order.status !== "review" && (
@@ -281,7 +283,7 @@ export function WorkOrderBoard() {
               onClick={() => openCompletion(order)}
               className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
             >
-              <CheckCircle2 className="h-3.5 w-3.5" /> Завершить
+              <CheckCircle2 className="h-3.5 w-3.5" /> {t("woCompleteButton")}
             </button>
           )}
           <button
@@ -300,14 +302,14 @@ export function WorkOrderBoard() {
             onClick={() => handlePrintApproval(order)}
             className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs hover:border-emerald-400 dark:border-slate-700"
           >
-            <FileText className="h-3.5 w-3.5" /> Акт согласования
+            <FileText className="h-3.5 w-3.5" /> {t("woApprovalActButton")}
           </button>
         </div>
 
         {completingId === order.id && (
           <div className="mt-3 rounded-lg border border-emerald-300 bg-emerald-50/60 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
             <p className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-              Списанные материалы при завершении
+              {t("woCompletionMaterialsLabel")}
             </p>
             {completionMaterials.map((m, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
@@ -344,13 +346,13 @@ export function WorkOrderBoard() {
                 onClick={() => confirmCompletion(order)}
                 className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
               >
-                Подтвердить закрытие
+                {t("woConfirmCompletionButton")}
               </button>
               <button
                 onClick={() => setCompletingId(null)}
                 className="rounded-md border border-slate-300 px-3 py-1.5 text-xs dark:border-slate-700"
               >
-                Отмена
+                {t("woCancelButton")}
               </button>
             </div>
           </div>
@@ -362,24 +364,20 @@ export function WorkOrderBoard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Наряды на работы</CardTitle>
-        <CardDescription>
-          Планирование, согласование и SLA поверх журнала работ. При закрытии наряда автоматически
-          создаётся запись в журнале работ со списанием материалов — как и при обычном быстром
-          наряде во вкладке «Журнал работ».
-        </CardDescription>
+        <CardTitle>{t("woTitle")}</CardTitle>
+        <CardDescription>{t("woDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-wrap gap-3">
-          <KpiTile label="Активные" value={counts.active} />
-          <KpiTile label="Ночные" value={counts.night} icon={<Moon className="h-3.5 w-3.5" />} />
-          <KpiTile label="На согласовании" value={counts.pendingApproval} />
+          <KpiTile label={t("woKpiActive")} value={counts.active} />
+          <KpiTile label={t("woKpiNight")} value={counts.night} icon={<Moon className="h-3.5 w-3.5" />} />
+          <KpiTile label={t("woKpiPendingApproval")} value={counts.pendingApproval} />
           <KpiTile
-            label="Просроченные"
+            label={t("woKpiOverdue")}
             value={counts.overdue}
             danger={counts.overdue > 0}
           />
-          <KpiTile label="Сезонные" value={counts.seasonal} />
+          <KpiTile label={t("woKpiSeasonal")} value={counts.seasonal} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -390,7 +388,7 @@ export function WorkOrderBoard() {
             }}
             className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
           >
-            <Plus className="h-4 w-4" /> Одиночный наряд
+            <Plus className="h-4 w-4" /> {t("woSingleOrderButton")}
           </button>
           <button
             onClick={() => {
@@ -399,7 +397,7 @@ export function WorkOrderBoard() {
             }}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
-            <Layers className="h-4 w-4" /> Групповой обход
+            <Layers className="h-4 w-4" /> {t("woBatchRoundButton")}
           </button>
           <div className="ml-auto flex items-center gap-1 rounded-lg border border-slate-200 p-1 dark:border-slate-800">
             <button
@@ -421,16 +419,16 @@ export function WorkOrderBoard() {
           <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
             <div className="mb-3 flex items-center gap-2">
               <List className="h-4 w-4 text-emerald-600" />
-              <h4 className="text-sm font-semibold">{isBatch ? "Групповой регламентный обход" : "Новый наряд"}</h4>
+              <h4 className="text-sm font-semibold">{isBatch ? t("woBatchFormTitle") : t("woNewOrderFormTitle")}</h4>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <label className="col-span-2 flex flex-col gap-1 text-xs text-slate-500 sm:col-span-1">
-                Название
+                {t("woNameLabel")}
                 <input value={title} onChange={(e) => setTitle(e.target.value)} className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
               </label>
               <label className="flex flex-col gap-1 text-xs text-slate-500">
-                Сложность
+                {t("woComplexityLabel")}
                 <select value={complexity} onChange={(e) => setComplexity(e.target.value as WorkOrderComplexity)} className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900">
                   {COMPLEXITIES.map((c) => (
                     <option key={c} value={c}>{WORK_ORDER_COMPLEXITY_LABELS[c]}</option>
@@ -438,7 +436,7 @@ export function WorkOrderBoard() {
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-xs text-slate-500">
-                Сезонность
+                {t("woSeasonalityLabel")}
                 <select value={seasonality} onChange={(e) => setSeasonality(e.target.value as WorkOrderSeasonality)} className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900">
                   {SEASONALITIES.map((s) => (
                     <option key={s} value={s}>{WORK_ORDER_SEASONALITY_LABELS[s]}</option>
@@ -448,48 +446,48 @@ export function WorkOrderBoard() {
             </div>
 
             <label className="mt-3 flex flex-col gap-1 text-xs text-slate-500">
-              Описание
+              {t("woDescriptionLabel")}
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900" />
             </label>
 
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <label className="flex flex-col gap-1 text-xs text-slate-500">
-                Начало
+                {t("woStartLabel")}
                 <input type="date" value={plannedStartDate} onChange={(e) => setPlannedStartDate(e.target.value)} className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
               </label>
               <label className="flex flex-col gap-1 text-xs text-slate-500">
-                Дедлайн
+                {t("woDeadlineLabel")}
                 <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
               </label>
               <label className="col-span-2 flex flex-col gap-1 text-xs text-slate-500">
-                Исполнители (через запятую)
-                <input value={assignedStaff} onChange={(e) => setAssignedStaff(e.target.value)} placeholder="Иванов И.И., Петров П.П." className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                {t("woAssigneesLabel")}
+                <input value={assignedStaff} onChange={(e) => setAssignedStaff(e.target.value)} placeholder={t("woAssigneesPlaceholder")} className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
               </label>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={isNightShift} onChange={(e) => setIsNightShift(e.target.checked)} />
-                Ночная смена (22:00–06:00)
+                {t("woNightShiftCheckbox")}
               </label>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} />
-                Требуется согласование председателя
+                {t("woApprovalRequiredCheckbox")}
               </label>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={isBatch} onChange={(e) => setIsBatch(e.target.checked)} />
-                Групповой наряд (пул оборудования)
+                {t("woBatchCheckbox")}
               </label>
             </div>
             {isNightShift && (
               <p className="mt-2 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
-                <AlertTriangle className="h-3.5 w-3.5" /> Не забудьте уведомить жителей о шуме/отключении систем
+                <AlertTriangle className="h-3.5 w-3.5" /> {t("woNightShiftHint")}
               </p>
             )}
 
             <div className="mt-3">
               <p className="mb-1 text-xs text-slate-500">
-                {isBatch ? "Оборудование в пуле" : "Оборудование (необязательно)"}
+                {isBatch ? t("woEquipmentPoolLabel") : t("woEquipmentOptionalLabel")}
               </p>
               <div className="flex max-h-32 flex-col gap-1 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-800">
                 {project.assets.map((a) => (
@@ -508,17 +506,17 @@ export function WorkOrderBoard() {
                     {a.name}
                   </label>
                 ))}
-                {project.assets.length === 0 && <p className="text-xs text-slate-400">Реестр оборудования пуст.</p>}
+                {project.assets.length === 0 && <p className="text-xs text-slate-400">{t("woEmptyAssetRegistry")}</p>}
               </div>
               {isBatch && targetAssetIds.length > 0 && (
                 <button onClick={autoGenerateChecklist} className="mt-1 text-xs text-emerald-600 hover:underline">
-                  Автогенерировать чек-лист по выбранному оборудованию
+                  {t("woAutoGenerateChecklistButton")}
                 </button>
               )}
             </div>
 
             <div className="mt-3 flex flex-col gap-2 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-500">Чек-лист</span>
+              <span className="text-xs font-semibold text-slate-500">{t("woChecklistLabel")}</span>
               {checklistDraft.map((c, i) => (
                 <div key={c.id} className="flex items-center gap-2 text-xs">
                   <span className="flex-1">{c.text}</span>
@@ -531,7 +529,7 @@ export function WorkOrderBoard() {
                 <input
                   value={newChecklistText}
                   onChange={(e) => setNewChecklistText(e.target.value)}
-                  placeholder="Пункт чек-листа"
+                  placeholder={t("woChecklistItemPlaceholder")}
                   className="h-8 flex-1 rounded-md border border-slate-200 bg-transparent px-1.5 text-xs dark:border-slate-700"
                 />
                 <button
@@ -548,9 +546,9 @@ export function WorkOrderBoard() {
             </div>
 
             <label className="mt-3 flex flex-col gap-1 text-xs text-slate-500">
-              Статья сметы (при закрытии наряда — попадёт в «План/факт»)
+              {t("woCostItemLabel")}
               <select value={costItemId} onChange={(e) => setCostItemId(e.target.value)} className="h-9 max-w-md rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900">
-                <option value="">— не списывать в бюджет —</option>
+                <option value="">{t("mlNoBudgetOption")}</option>
                 {maintenanceCategories.map((c) => (
                   <option key={c.id} value={c.id}>{c.code} {c.name}</option>
                 ))}
@@ -563,7 +561,7 @@ export function WorkOrderBoard() {
                 disabled={!title.trim() || !deadline}
                 className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
-                <Plus className="h-4 w-4" /> Создать наряд
+                <Plus className="h-4 w-4" /> {t("woCreateButton")}
               </button>
               <button
                 onClick={() => {
@@ -572,7 +570,7 @@ export function WorkOrderBoard() {
                 }}
                 className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm dark:border-slate-700"
               >
-                Отмена
+                {t("woCancelButton")}
               </button>
             </div>
           </div>
@@ -581,7 +579,7 @@ export function WorkOrderBoard() {
         {view === "table" ? (
           <div className="flex flex-col gap-3">
             {project.workOrders.length === 0 && (
-              <p className="py-6 text-center text-sm text-slate-400">Нарядов пока нет.</p>
+              <p className="py-6 text-center text-sm text-slate-400">{t("woNoOrdersYet")}</p>
             )}
             {[...project.workOrders]
               .sort((a, b) => a.deadline.localeCompare(b.deadline))

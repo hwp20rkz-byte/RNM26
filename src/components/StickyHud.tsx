@@ -15,17 +15,18 @@ import { findMinTariff } from "@/lib/calculator/minTariffs";
 import { APARTMENT_SAMPLE_SIZES } from "@/lib/calculator/presets";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useT } from "@/lib/i18n/useT";
 import { UNIT_TYPE_LABELS, type UnitType } from "@/lib/calculator/types";
 
 const HUD_UNIT_TYPES: UnitType[] = ["commercial", "storage", "parking"];
 
-const PERIOD_LABEL: Record<BudgetPeriod, string> = {
-  month: "Месяц",
-  quarter: "Квартал",
-  year: "Год",
-};
-
 export function StickyHud() {
+  const t = useT();
+  const PERIOD_LABEL: Record<BudgetPeriod, string> = {
+    month: t("hudPeriodMonth"),
+    quarter: t("hudPeriodQuarter"),
+    year: t("hudPeriodYear"),
+  };
   const tariff = useActiveTariff();
   const building = useActiveProject().building;
   const budgetPeriod = useProjectsStore((s) => s.budgetPeriod);
@@ -70,12 +71,12 @@ export function StickyHud() {
 
   const statusLabel =
     status === "below"
-      ? "ниже минимального тарифа маслихата"
+      ? t("hudStatusBelow")
       : status === "above"
-        ? "существенно выше минимального тарифа"
+        ? t("hudStatusAbove")
         : status === "within"
-          ? "в пределах ориентира маслихата"
-          : "нет данных по региону";
+          ? t("hudStatusWithin")
+          : t("hudStatusUnknown");
 
   return (
     <div
@@ -95,7 +96,7 @@ export function StickyHud() {
               >
                 {formatKztPrecise(tariff.tariffPerSqm)} ₸
               </span>
-              <span className="text-xs text-slate-400">/ м² в мес.</span>
+              <span className="text-xs text-slate-400">{t("hudPerSqmMonthSuffix")}</span>
               {delta !== 0 && (
                 <span
                   className={`inline-flex items-center text-xs font-medium tabular-nums ${
@@ -135,7 +136,7 @@ export function StickyHud() {
             <div className="font-semibold tabular-nums text-slate-800 dark:text-slate-100">
               {formatKzt(budgetByPeriod[budgetPeriod])}
             </div>
-            <div className="text-xs text-slate-400">бюджет сборов</div>
+            <div className="text-xs text-slate-400">{t("hudCollectionBudget")}</div>
           </div>
         </div>
 
@@ -157,7 +158,7 @@ export function StickyHud() {
         <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-slate-100 pt-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
           {tariff.capitalRepairPerSqmActual > 0 && (
             <span>
-              из них взнос на капремонт:{" "}
+              {t("hudCapRepairLabel")}{" "}
               <b className="tabular-nums text-slate-700 dark:text-slate-200">
                 {formatKztPrecise(tariff.capitalRepairPerSqmActual)} ₸/м²
               </b>{" "}
@@ -170,16 +171,18 @@ export function StickyHud() {
               {l.unitType === "parking" && building.parkingSpots > 0 ? (
                 <>
                   <b className="tabular-nums text-slate-700 dark:text-slate-200">
-                    {formatKztPrecise(computeParkingBilledPerSpot(tariff, building))} ₸/место
+                    {formatKztPrecise(computeParkingBilledPerSpot(tariff, building))} {t("hudPerSpotSuffix")}
                   </b>{" "}
-                  <span className="text-slate-400">({formatKzt(l.monthlyTotal)}/мес. всего, {building.parkingSpots} мест)</span>
+                  <span className="text-slate-400">
+                    ({formatKzt(l.monthlyTotal)}{t("hudTotalPerMonthSuffix")}, {building.parkingSpots} {t("hudSpotsWord")})
+                  </span>
                 </>
               ) : (
                 <>
                   <b className="tabular-nums text-slate-700 dark:text-slate-200">
                     {formatKztPrecise(l.ratePerSqm)} ₸/м²
                   </b>{" "}
-                  <span className="text-slate-400">({formatKzt(l.monthlyTotal)}/мес. всего)</span>
+                  <span className="text-slate-400">({formatKzt(l.monthlyTotal)}{t("hudTotalPerMonthSuffix")})</span>
                 </>
               )}
             </span>

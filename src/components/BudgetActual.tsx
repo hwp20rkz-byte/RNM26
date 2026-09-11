@@ -10,14 +10,17 @@ import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { computeCategoryTotals } from "@/lib/calculator/engine";
 import { computeCategoryBreakdown, computePlanActualSeries, lastNMonths } from "@/lib/calculator/planVsActual";
 import { formatKzt } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 
-function monthLabel(m: string): string {
+const MONTH_KEYS = ["moJan", "moFeb", "moMar", "moApr", "moMay", "moJun", "moJul", "moAug", "moSep", "moOct", "moNov", "moDec"] as const;
+
+function monthLabel(m: string, t: ReturnType<typeof useT>): string {
   const [y, mo] = m.split("-");
-  const names = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
-  return `${names[Number(mo) - 1]} ${y.slice(2)}`;
+  return `${t(MONTH_KEYS[Number(mo) - 1])} ${y.slice(2)}`;
 }
 
 export function BudgetActual() {
+  const t = useT();
   const project = useActiveProject();
   const tariff = useActiveTariff();
   const setActualAmount = useProjectsStore((s) => s.setActualAmount);
@@ -47,7 +50,7 @@ export function BudgetActual() {
     [monthlyPlanTotal, project.actuals, months],
   );
 
-  const chartData = series.map((s) => ({ month: monthLabel(s.month), План: s.plan, Факт: s.actual }));
+  const chartData = series.map((s) => ({ month: monthLabel(s.month, t), plan: s.plan, actual: s.actual }));
 
   const breakdown = useMemo(
     () => computeCategoryBreakdown(categoryTotals, project.actuals, selectedMonth),
@@ -63,12 +66,9 @@ export function BudgetActual() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Scale className="h-5 w-5 text-emerald-600" />
-          <CardTitle>План/факт — сверка фактических расходов со сметой</CardTitle>
+          <CardTitle>{t("baTitle")}</CardTitle>
         </div>
-        <CardDescription>
-          Смета задаёт план; факт вводится вручную по месяцам и статьям (например, из выписки банка
-          или актов выполненных работ) — отклонение считается автоматически.
-        </CardDescription>
+        <CardDescription>{t("baDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="h-72">
@@ -76,17 +76,17 @@ export function BudgetActual() {
             <BarChart data={chartData} margin={{ left: 8, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={(v) => `${Math.round(v / 1_000_000)}М`} />
+              <YAxis fontSize={11} tickFormatter={(v) => `${Math.round(v / 1_000_000)}${t("millionSuffix")}`} />
               <RTooltip formatter={(v) => formatKzt(Number(v))} />
               <Legend />
-              <Bar dataKey="План" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Факт" fill="#059669" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="plan" name={t("chartPlanLabel")} fill="#94a3b8" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="actual" name={t("chartActualLabel")} fill="#059669" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm text-slate-500">Ввод факта за месяц:</span>
+          <span className="text-sm text-slate-500">{t("baMonthInputLabel")}</span>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
@@ -94,29 +94,29 @@ export function BudgetActual() {
           >
             {months.map((m) => (
               <option key={m} value={m}>
-                {monthLabel(m)}
+                {monthLabel(m, t)}
               </option>
             ))}
           </select>
           <div className="ml-auto flex items-center gap-4 text-sm">
             <span className="text-slate-400">
-              План: <b className="text-slate-600 dark:text-slate-300">{formatKzt(monthlyPlanTotal)}</b>
+              {t("baPlanLabel")} <b className="text-slate-600 dark:text-slate-300">{formatKzt(monthlyPlanTotal)}</b>
             </span>
             <span className="text-slate-400">
-              Факт: <b className="text-slate-600 dark:text-slate-300">{formatKzt(monthTotal)}</b>
+              {t("baActualLabel")} <b className="text-slate-600 dark:text-slate-300">{formatKzt(monthTotal)}</b>
             </span>
             <span className={monthVariance > 0 ? "text-rose-600" : "text-emerald-600"}>
-              Отклонение: <b>{monthVariance > 0 ? "+" : ""}{formatKzt(monthVariance)}</b>
+              {t("baVarianceLabel")} <b>{monthVariance > 0 ? "+" : ""}{formatKzt(monthVariance)}</b>
             </span>
           </div>
         </div>
 
         <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
           <div className="flex items-center gap-2 py-1.5 text-xs font-semibold text-slate-400">
-            <span className="flex-1">Статья</span>
-            <span className="w-28 text-right">План, ₸</span>
-            <span className="w-32 text-right">Факт, ₸</span>
-            <span className="w-24 text-right">Откл., %</span>
+            <span className="flex-1">{t("adColArticle")}</span>
+            <span className="w-28 text-right">{t("baColPlan")}</span>
+            <span className="w-32 text-right">{t("baColActual")}</span>
+            <span className="w-24 text-right">{t("baColVariancePercent")}</span>
           </div>
           {displayCategories.map((c) => {
             const b = breakdownByCategory.get(c.id);

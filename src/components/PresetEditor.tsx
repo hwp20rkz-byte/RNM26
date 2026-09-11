@@ -7,9 +7,11 @@ import { InlineNumber, InlineText } from "@/components/InlineEdit";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { PRESET_FIELD_HELP, SERVICE_CLASS_LABELS } from "@/lib/calculator/presets";
+import { useT } from "@/lib/i18n/useT";
 import type { ServiceClass } from "@/lib/calculator/types";
 
 export function PresetEditor() {
+  const t = useT();
   const presets = useProjectsStore((s) => s.presets);
   const updatePreset = useProjectsStore((s) => s.updatePreset);
   const createPreset = useProjectsStore((s) => s.createPreset);
@@ -20,8 +22,8 @@ export function PresetEditor() {
 
   function handleCreate() {
     createPreset({
-      label: "Новый пресет",
-      description: "Опишите, что входит и чем он отличается от других пресетов…",
+      label: t("peNewPresetName"),
+      description: t("peNewPresetDesc"),
       priceMultiplier: 1.0,
       maxServiceClass: "comfort",
       capitalRepairMrpMultiplier: 0.007,
@@ -38,15 +40,9 @@ export function PresetEditor() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Layers className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Конструктор пресетов обслуживания</CardTitle>
+          <CardTitle>{t("peTitle")}</CardTitle>
         </div>
-        <CardDescription>
-          Пресет — это набор настроек, применяемых одним кликом (в Шаге 1 или Шаге 3): множитель
-          цен всех статей, потолок класса доступных статей, взнос на капремонт и коэффициенты
-          тарифа для нежилых, кладовых и машиномест. Отредактируйте встроенные пресеты под свою
-          организацию или создайте новые — они сразу появятся в выборе класса обслуживания и в
-          сравнении.
-        </CardDescription>
+        <CardDescription>{t("peDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-400">
@@ -75,21 +71,23 @@ export function PresetEditor() {
                 />
                 {preset.builtIn && (
                   <Badge variant="outline" className="shrink-0 gap-1">
-                    <Lock className="h-3 w-3" /> встроенный
+                    <Lock className="h-3 w-3" /> {t("peBuiltInBadge")}
                   </Badge>
                 )}
-                {project.presetId === preset.id && <Badge variant="success">применён к «{project.name}»</Badge>}
+                {project.presetId === preset.id && (
+                  <Badge variant="success">{t("peAppliedBadgePrefix")}{project.name}{t("peAppliedBadgeSuffix")}</Badge>
+                )}
                 <div className="ml-auto flex items-center gap-1">
                   <button
                     onClick={() => setPreset(preset.id)}
                     disabled={project.presetId === preset.id}
                     className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:border-emerald-400 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300"
                   >
-                    Применить
+                    {t("peApplyButton")}
                   </button>
                   <button
                     onClick={() => duplicatePreset(preset.id)}
-                    title="Дублировать как свой пресет"
+                    title={t("peDuplicateTooltip")}
                     className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
                   >
                     <Copy className="h-3.5 w-3.5" />
@@ -97,9 +95,9 @@ export function PresetEditor() {
                   {!preset.builtIn && (
                     <button
                       onClick={() => {
-                        if (window.confirm(`Удалить пресет «${preset.label}»?`)) deletePreset(preset.id);
+                        if (window.confirm(`${t("peDeleteConfirmPrefix")}${preset.label}${t("peDeleteConfirmSuffix")}`)) deletePreset(preset.id);
                       }}
-                      title="Удалить"
+                      title={t("peDeleteTooltip")}
                       className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -149,7 +147,7 @@ export function PresetEditor() {
                     step={0.001}
                     className="w-16"
                   />
-                  <span className="text-slate-400">МРП</span>
+                  <span className="text-slate-400">{t("peMrpWord")}</span>
                 </label>
 
                 <label className="flex items-center gap-1.5">
@@ -193,7 +191,7 @@ export function PresetEditor() {
           onClick={handleCreate}
           className="inline-flex w-fit items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
         >
-          <Plus className="h-4 w-4" /> Новый пресет
+          <Plus className="h-4 w-4" /> {t("peNewPresetButton")}
         </button>
       </CardContent>
     </Card>

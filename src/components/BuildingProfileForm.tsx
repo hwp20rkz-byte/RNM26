@@ -12,9 +12,11 @@ import { OBJECT_TYPE_LABELS, PRESET_FIELD_HELP } from "@/lib/calculator/presets"
 import { REGIONAL_MIN_TARIFFS } from "@/lib/calculator/minTariffs";
 import { computeParkingBilledPerSpot, computeUsefulArea } from "@/lib/calculator/engine";
 import { formatKztPrecise } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 import type { ObjectType } from "@/lib/calculator/types";
 
 export function BuildingProfileForm() {
+  const t = useT();
   const project = useActiveProject();
   const tariff = useActiveTariff();
   const building = project.building;
@@ -47,18 +49,15 @@ export function BuildingProfileForm() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Шаг 1. Конфигуратор объекта</CardTitle>
+          <CardTitle>{t("bpStepTitle")}</CardTitle>
         </div>
-        <CardDescription>
-          Параметры объекта — база для расчёта тарифа и объёмов работ. Подходит для любого жилого
-          и нежилого объекта, не только кондоминиума.
-        </CardDescription>
+        <CardDescription>{t("bpStepDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Название объекта
+              {t("bpNameLabel")}
             </span>
             <input
               className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900"
@@ -68,7 +67,7 @@ export function BuildingProfileForm() {
           </label>
 
           <label className="flex flex-col gap-1 sm:col-span-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Адрес</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{t("bpAddressLabel")}</span>
             <input
               className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900"
               value={building.address}
@@ -78,7 +77,7 @@ export function BuildingProfileForm() {
 
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Тип объекта
+              {t("bpObjectTypeLabel")}
             </span>
             <Select value={building.objectType} onValueChange={(v) => setBuilding({ objectType: v as ObjectType })}>
               <SelectTrigger>
@@ -96,7 +95,7 @@ export function BuildingProfileForm() {
 
           <label className="flex flex-col gap-1">
             <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <MapPin className="h-3.5 w-3.5" /> Регион (для сверки с минимальным тарифом маслихата)
+              <MapPin className="h-3.5 w-3.5" /> {t("bpRegionLabel")}
             </span>
             <Select value={building.region} onValueChange={(v) => setBuilding({ region: v })}>
               <SelectTrigger>
@@ -114,7 +113,7 @@ export function BuildingProfileForm() {
 
           <label className="flex flex-col gap-1">
             <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <Sparkles className="h-3.5 w-3.5" /> Класс обслуживания (пресет)
+              <Sparkles className="h-3.5 w-3.5" /> {t("bpPresetLabel")}
             </span>
             <Select value={project.presetId} onValueChange={onPresetChange}>
               <SelectTrigger>
@@ -124,7 +123,7 @@ export function BuildingProfileForm() {
                 {presets.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.label}
-                    {!p.builtIn ? " · свой" : ""}
+                    {!p.builtIn ? t("bpPresetCustomSuffix") : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -149,89 +148,77 @@ export function BuildingProfileForm() {
                 {PRESET_FIELD_HELP.commercialRateCoefficient.label}: <b>×{activePreset.commercialRateCoefficient}</b>
               </span>
             </div>
-            <p className="mt-1.5 text-slate-400">
-              Выбор пресета сразу обновляет взнос на капремонт и коэффициент для нежилых ниже — при
-              необходимости донастройте их вручную. Отредактировать состав пресетов или создать свой
-              — во вкладке «Пресеты» рядом с Конструктором.
-            </p>
+            <p className="mt-1.5 text-slate-400">{t("bpPresetHint")}</p>
           </div>
         )}
 
         {building.objectType !== "residential" && (
           <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>
-              Методика №166 и Закон РК «О жилищных отношениях» писаны для кондоминиумов (жильё).
-              Для {building.objectType === "commercial" ? "нежилого" : "смешанного"} объекта формула
-              «стоимость / площадь» применяется по аналогии как общий расчётный подход, а не как
-              обязательный нормативный расчёт — юридическую применимость к вашему случаю (аренда,
-              эксплуатация БЦ/ТРЦ и т.п.) уточните отдельно.
-            </p>
+            <p>{t(building.objectType === "commercial" ? "bpWarningCommercialFull" : "bpWarningMixedFull")}</p>
           </div>
         )}
 
         <div>
-          <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Площади</h4>
+          <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{t("bpAreasHeading")}</h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <NumberField
-              label="Полезная площадь жилых помещений"
+              label={t("bpLivingAreaLabel")}
               suffix="м²"
               value={building.livingArea}
               onChange={(v) => setBuilding({ livingArea: v })}
               error={touched ? errors.livingArea : undefined}
             />
             <NumberField
-              label="Площадь коммерческих/нежилых помещений"
+              label={t("bpCommercialAreaLabel")}
               suffix="м²"
               value={building.commercialArea}
               onChange={(v) => setBuilding({ commercialArea: v })}
             />
             <NumberField
-              label="Площадь кладовых"
+              label={t("bpStorageAreaLabel")}
               suffix="м²"
               value={building.storageArea}
               onChange={(v) => setBuilding({ storageArea: v })}
             />
             <NumberField
-              label="Асфальт / брусчатка территории"
+              label={t("bpYardPavedLabel")}
               suffix="м²"
               value={building.yardPavedArea}
               onChange={(v) => setBuilding({ yardPavedArea: v })}
             />
             <NumberField
-              label="Газон / озеленение"
+              label={t("bpYardGreenLabel")}
               suffix="м²"
               value={building.yardGreenArea}
               onChange={(v) => setBuilding({ yardGreenArea: v })}
             />
             <NumberField
-              label="Площадь паркинга"
+              label={t("bpParkingAreaLabel")}
               suffix="м²"
               value={building.parkingArea}
               onChange={(v) => setBuilding({ parkingArea: v })}
             />
           </div>
           <p className="mt-2 text-xs text-slate-400">
-            Полезная площадь для формулы тарифа (S полез.) = жилая + коммерческая + кладовые +
-            паркинг ={" "}
+            {t("bpUsefulAreaPrefix")}{" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">
               {usefulArea.toLocaleString("ru-RU")} м²
             </span>
-            . Кладовые и машиноместа участвуют в базе тарифа наравне с жильём, но платят по своему
-            коэффициенту ниже — не по полной ставке автоматически.
+            . {t("bpUsefulAreaSuffix")}
           </p>
         </div>
 
         <div>
-          <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Конструктив</h4>
+          <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{t("bpStructureHeading")}</h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <NumberField
-              label="Количество квартир / помещений"
+              label={t("bpApartmentsLabel")}
               value={building.apartments}
               onChange={(v) => setBuilding({ apartments: Math.round(v) })}
             />
             <NumberField
-              label="Количество подъездов / входов"
+              label={t("bpEntrancesLabel")}
               value={building.entrances}
               onChange={(v) =>
                 setBuilding({
@@ -245,27 +232,27 @@ export function BuildingProfileForm() {
               error={touched ? errors.entrances : undefined}
             />
             <NumberField
-              label="Этажность (среднее по подъездам)"
+              label={t("bpFloorsLabel")}
               value={Math.round(totalFloors / Math.max(1, building.entrances))}
               onChange={(v) =>
                 setBuilding({
                   floorsPerEntrance: Array(building.entrances).fill(Math.round(v)),
                 })
               }
-              hint={`Всего этажей по объекту: ${totalFloors}`}
+              hint={`${t("bpFloorsHintPrefix")} ${totalFloors}`}
             />
             <NumberField
-              label="Количество лифтов"
+              label={t("bpElevatorsLabel")}
               value={building.elevators}
               onChange={(v) => setBuilding({ elevators: Math.round(v) })}
             />
             <NumberField
-              label="Количество паркомест"
+              label={t("bpParkingSpotsLabel")}
               value={building.parkingSpots}
               onChange={(v) => setBuilding({ parkingSpots: Math.round(v) })}
             />
             <NumberField
-              label="Годовой доход от аренды/рекламы (Д год)"
+              label={t("bpAnnualIncomeLabel")}
               suffix="₸"
               value={building.annualCommercialIncome}
               onChange={(v) => setBuilding({ annualCommercialIncome: v })}
@@ -275,73 +262,68 @@ export function BuildingProfileForm() {
 
         <div>
           <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Взносы и коэффициенты
+            {t("bpFeesHeading")}
           </h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <NumberField
-              label="Взнос на капремонт (в кратности МРП/м²/мес.)"
+              label={t("bpCapRepairLabel")}
               value={building.capitalRepairMrpMultiplier}
               step={0.001}
               onChange={(v) => setBuilding({ capitalRepairMrpMultiplier: v })}
-              hint="Минимум 0,005 МРП — ст.60-1 Закона «О жилищных отношениях» (для жилых объектов)"
+              hint={t("bpCapRepairHint")}
               error={touched ? errors.capitalRepairMrpMultiplier : undefined}
             />
             <NumberField
-              label="Коэффициент тарифа для нежилых помещений"
+              label={t("bpCommercialCoefLabel")}
               value={building.commercialRateCoefficient}
               step={0.1}
               onChange={(v) => setBuilding({ commercialRateCoefficient: v })}
-              hint="Решение общего собрания; 1.0 = равный тариф"
+              hint={t("bpCommercialCoefHint")}
             />
             <NumberField
-              label="Коэффициент тарифа для кладовых"
+              label={t("bpStorageCoefLabel")}
               value={building.storageRateCoefficient}
               step={0.1}
               onChange={(v) => setBuilding({ storageRateCoefficient: v })}
-              hint="Решение общего собрания; 1.0 = равный тариф, обычно ниже"
+              hint={t("bpStorageCoefHint")}
             />
             <NumberField
-              label="Коэффициент тарифа для машиномест"
+              label={t("bpParkingCoefLabel")}
               value={building.parkingRateCoefficient}
               step={0.1}
               onChange={(v) => setBuilding({ parkingRateCoefficient: v })}
-              hint="Решение общего собрания; 1.0 = равный тариф, обычно ниже"
+              hint={t("bpParkingCoefHint")}
             />
           </div>
         </div>
 
         <div>
           <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Паркинг — минимум и резерв на неплатежи
+            {t("bpParkingFloorHeading")}
           </h4>
-          <p className="mb-2 text-xs text-slate-400">
-            Собственники машиномест часто не проживают в доме — площадная ставка (коэффициент выше)
-            может не дотягивать до реальной себестоимости содержания паркинга. Ниже — фиксированный
-            минимум платы за место и запас на ожидаемую долю неплательщиков; начисляемая ставка =
-            max(площадная ставка, минимум) / (1 − % неплательщиков).
-          </p>
+          <p className="mb-2 text-xs text-slate-400">{t("bpParkingFloorDesc")}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <NumberField
-              label="Минимум платы за место"
+              label={t("bpParkingFlatFeeLabel")}
               suffix="₸/мес."
               value={building.parkingFlatFeePerSpot}
               step={500}
               onChange={(v) => setBuilding({ parkingFlatFeePerSpot: v })}
-              hint="0 = минимум не действует, платят только по площадной ставке"
+              hint={t("bpParkingFlatFeeHint")}
               error={touched ? errors.parkingFlatFeePerSpot : undefined}
             />
             <NumberField
-              label="Ожидаемый % неплательщиков среди владельцев машиномест"
+              label={t("bpNonPaymentLabel")}
               suffix="%"
               value={building.parkingNonPaymentRatePercent}
               step={5}
               onChange={(v) => setBuilding({ parkingNonPaymentRatePercent: v })}
-              hint="0 = резерв не действует. Не угадывайте — берите из фактической истории сборов по паркингу"
+              hint={t("bpNonPaymentHint")}
               error={touched ? errors.parkingNonPaymentRatePercent : undefined}
             />
             {building.parkingSpots > 0 && (
               <div className="flex flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800/40">
-                <span className="text-slate-400">Итоговая начисляемая ставка за место</span>
+                <span className="text-slate-400">{t("bpBilledRateLabel")}</span>
                 <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">
                   {formatKztPrecise(computeParkingBilledPerSpot(tariff, building))} ₸/мес.
                 </span>

@@ -11,11 +11,13 @@ import { parseOwnersListFile, type ParseOwnersListResult } from "@/lib/import/pa
 import { computeRegistryTotals, computeUnitMonthlyAccrual } from "@/lib/calculator/ownerRegistryEngine";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 import { UNIT_TYPE_LABELS, type UnitType } from "@/lib/calculator/types";
 
 const UNIT_TYPES = Object.keys(UNIT_TYPE_LABELS) as UnitType[];
 
 export function OwnerRegistry() {
+  const t = useT();
   const project = useActiveProject();
   const tariff = useActiveTariff();
   const addUnit = useProjectsStore((s) => s.addUnit);
@@ -58,14 +60,12 @@ export function OwnerRegistry() {
     try {
       const result = await parseOwnersListFile(file);
       if (result.rows.length === 0) {
-        setImportError(
-          "Не удалось распознать ни одной строки. Проверьте, что в файле есть колонки «№ помещения» и «Площадь».",
-        );
+        setImportError(t("orImportErrorNoRows"));
         return;
       }
       setPreview(result);
     } catch {
-      setImportError("Не удалось прочитать файл. Поддерживаются .csv и .xlsx (ведомости ЕРЦ/1С в табличном виде).");
+      setImportError(t("orImportErrorReadFail"));
     }
   }
 
@@ -92,41 +92,35 @@ export function OwnerRegistry() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-emerald-600" />
-            <CardTitle>Реестр собственников</CardTitle>
+            <CardTitle>{t("orTitle")}</CardTitle>
           </div>
-          <CardDescription>
-            Каждое помещение — квартира, нежилое помещение, кладовая, машиноместо — это отдельный
-            объект права со своим голосом на собрании (по площади) и своей строкой в начислениях.
-            Реестр — основа для расчёта кворума (Шаг «Протокол собрания») и для ведомости
-            начислений.
-          </CardDescription>
+          <CardDescription>{t("orDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {UNIT_TYPES.map((t) => (
-              <div key={t} className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">
-                <div className="text-xs text-slate-400">{UNIT_TYPE_LABELS[t]}</div>
-                <div className="font-semibold tabular-nums">{totals.byType[t].count} шт.</div>
-                <div className="text-xs text-slate-500 tabular-nums">{totals.byType[t].area} м²</div>
+            {UNIT_TYPES.map((ut) => (
+              <div key={ut} className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">
+                <div className="text-xs text-slate-400">{UNIT_TYPE_LABELS[ut]}</div>
+                <div className="font-semibold tabular-nums">{totals.byType[ut].count} {t("orCountSuffix")}</div>
+                <div className="text-xs text-slate-500 tabular-nums">{totals.byType[ut].area} м²</div>
               </div>
             ))}
           </div>
           <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-sm dark:border-emerald-900 dark:bg-emerald-950/30">
-            Всего в реестре: <b>{totals.totalUnits}</b> объектов, суммарная площадь —{" "}
-            <b>{totals.totalArea.toLocaleString("ru-RU")} м²</b> (это знаменатель кворума и базы
-            голосования).
+            {t("orTotalPrefix")} <b>{totals.totalUnits}</b> {t("orTotalMid")}{" "}
+            <b>{totals.totalArea.toLocaleString("ru-RU")} м²</b> {t("orTotalSuffix")}
           </div>
 
           {hasMismatch && (
             <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
-                Площади реестра не совпадают с профилем объекта (Шаг 1): жилая{" "}
+                {t("orMismatchIntro")}{" "}
                 {livingMismatch !== 0 && <b>{fmtDiff(livingMismatch)} м²</b>}
-                {livingMismatch === 0 && "совпадает"}, коммерческая {fmtDiff(commercialMismatch)} м²,
-                кладовые {fmtDiff(storageMismatch)} м², машиноместа {fmtDiff(parkingMismatch)} м². Это
-                нормально, если реестр ещё не заполнен полностью — сверьте перед формированием
-                протокола.
+                {livingMismatch === 0 && t("orMatches")}
+                {t("orMismatchCommercial")} {fmtDiff(commercialMismatch)} м²
+                {t("orMismatchStorage")} {fmtDiff(storageMismatch)} м²
+                {t("orMismatchParking")} {fmtDiff(parkingMismatch)} м²{t("orMismatchOutro")}
               </p>
             </div>
           )}
@@ -136,7 +130,7 @@ export function OwnerRegistry() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Поиск по № помещения или ФИО…"
+                placeholder={t("orSearchPlaceholder")}
                 className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900"
               />
             </div>
@@ -145,9 +139,9 @@ export function OwnerRegistry() {
               onChange={(e) => setNewType(e.target.value as UnitType)}
               className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
             >
-              {UNIT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {UNIT_TYPE_LABELS[t]}
+              {UNIT_TYPES.map((ut) => (
+                <option key={ut} value={ut}>
+                  {UNIT_TYPE_LABELS[ut]}
                 </option>
               ))}
             </select>
@@ -155,7 +149,7 @@ export function OwnerRegistry() {
               onClick={() => addUnit({ unitType: newType, number: "", area: 0, ownerName: "" })}
               className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
             >
-              <Plus className="h-4 w-4" /> Добавить
+              <Plus className="h-4 w-4" /> {t("orAddButton")}
             </button>
             <input
               ref={fileInputRef}
@@ -172,14 +166,14 @@ export function OwnerRegistry() {
               onClick={() => fileInputRef.current?.click()}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
             >
-              <Upload className="h-4 w-4" /> Импорт из Excel/CSV (ЕРЦ/1С)
+              <Upload className="h-4 w-4" /> {t("orImportButton")}
             </button>
             <button
               onClick={handleExport}
               disabled={exportBusy || units.length === 0}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
             >
-              <FileSpreadsheet className="h-4 w-4" /> {exportBusy ? "Формирование…" : "Экспорт ведомости с начислениями"}
+              <FileSpreadsheet className="h-4 w-4" /> {exportBusy ? t("orExportBusy") : t("orExportButton")}
             </button>
           </div>
 
@@ -193,26 +187,26 @@ export function OwnerRegistry() {
             <div className="rounded-xl border border-emerald-300 bg-emerald-50/60 p-4 dark:border-emerald-800 dark:bg-emerald-950/30">
               <div className="mb-2 flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  Предпросмотр импорта: {preview.rows.length} строк
-                  {preview.skipped ? `, пропущено ${preview.skipped} (нет № помещения или площади)` : ""}
+                  {t("orPreviewTitle")} {preview.rows.length} {t("orRowsWord")}
+                  {preview.skipped ? `${t("orSkippedPrefix")} ${preview.skipped} ${t("orSkippedExplain")}` : ""}
                 </h4>
                 <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-600">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-                Колонки распознаны как: тип — «{preview.headerMap.unitType}», № помещения — «
-                {preview.headerMap.number}», площадь — «{preview.headerMap.area}», ФИО — «
-                {preview.headerMap.ownerName}».
+                {t("orColumnsIntro")}{preview.headerMap.unitType}{t("orColumnsNumber")}
+                {preview.headerMap.number}{t("orColumnsArea")}{preview.headerMap.area}{t("orColumnsOwner")}
+                {preview.headerMap.ownerName}{t("orColumnsEnd")}
               </p>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white text-xs dark:border-slate-800 dark:bg-slate-900">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
                     <tr>
-                      <th className="p-2 text-left">Тип</th>
-                      <th className="p-2 text-left">№</th>
-                      <th className="p-2 text-right">Площадь</th>
-                      <th className="p-2 text-left">ФИО</th>
+                      <th className="p-2 text-left">{t("orTableType")}</th>
+                      <th className="p-2 text-left">{t("orTableNumber")}</th>
+                      <th className="p-2 text-right">{t("orTableArea")}</th>
+                      <th className="p-2 text-left">{t("orTableOwner")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -227,7 +221,7 @@ export function OwnerRegistry() {
                   </tbody>
                 </table>
                 {preview.rows.length > 50 && (
-                  <p className="p-2 text-center text-slate-400">…и ещё {preview.rows.length - 50}</p>
+                  <p className="p-2 text-center text-slate-400">{t("orMoreRowsPrefix")} {preview.rows.length - 50}</p>
                 )}
               </div>
               <div className="mt-3 flex gap-2">
@@ -235,13 +229,13 @@ export function OwnerRegistry() {
                   onClick={confirmImport}
                   className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
                 >
-                  Импортировать {preview.rows.length} записей
+                  {t("orImportConfirmPrefix")} {preview.rows.length} {t("orImportConfirmSuffix")}
                 </button>
                 <button
                   onClick={() => setPreview(null)}
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300"
                 >
-                  Отмена
+                  {t("orCancelButton")}
                 </button>
               </div>
             </div>
@@ -250,9 +244,7 @@ export function OwnerRegistry() {
           <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
             {filtered.length === 0 && (
               <p className="py-6 text-center text-sm text-slate-400">
-                {units.length === 0
-                  ? "Реестр пуст — импортируйте ведомость или добавьте помещения вручную."
-                  : "Ничего не найдено."}
+                {units.length === 0 ? t("orEmptyRegistry") : t("orNothingFound")}
               </p>
             )}
             {filtered.map((u) => {
@@ -266,21 +258,21 @@ export function OwnerRegistry() {
                       value={u.number}
                       onChange={(v) => updateUnit(u.id, { number: v })}
                       className="w-20 font-medium"
-                      placeholder="№"
+                      placeholder={t("orNumberPlaceholder")}
                     />
                     <InlineText
                       value={u.ownerName}
                       onChange={(v) => updateUnit(u.id, { ownerName: v })}
                       className="min-w-[10rem] flex-1"
-                      placeholder="ФИО собственника"
+                      placeholder={t("orOwnerNamePlaceholder")}
                     />
                     <label className="flex items-center gap-1 text-xs text-slate-500">
-                      S, м²
+                      {t("orAreaLabel")}
                       <InlineNumber value={u.area} onChange={(v) => updateUnit(u.id, { area: v })} className="w-16" step={0.1} />
                     </label>
-                    <span className="text-xs tabular-nums text-slate-400">голос {share}%</span>
+                    <span className="text-xs tabular-nums text-slate-400">{t("orVoteSharePrefix")} {share}%</span>
                     <span className="text-xs font-semibold tabular-nums text-slate-600 dark:text-slate-300">
-                      {formatKzt(accrual)}/мес.
+                      {formatKzt(accrual)}{t("orPerMonthSuffix")}
                     </span>
                     <button
                       onClick={() => removeUnit(u.id)}
@@ -291,7 +283,7 @@ export function OwnerRegistry() {
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
                     <label className="flex items-center gap-1">
-                      Подъезд
+                      {t("orEntranceLabel")}
                       <InlineNumber
                         value={u.entrance ?? 0}
                         onChange={(v) => updateUnit(u.id, { entrance: v || undefined })}
@@ -299,26 +291,26 @@ export function OwnerRegistry() {
                       />
                     </label>
                     <label className="flex items-center gap-1">
-                      Этаж
+                      {t("orFloorLabel")}
                       <InlineNumber value={u.floor ?? 0} onChange={(v) => updateUnit(u.id, { floor: v || undefined })} className="w-12" />
                     </label>
                     <InlineText
                       value={u.ownerPhone ?? ""}
                       onChange={(v) => updateUnit(u.id, { ownerPhone: v || undefined })}
                       className="w-28"
-                      placeholder="телефон"
+                      placeholder={t("orPhonePlaceholder")}
                     />
                     <InlineText
                       value={u.ownerEmail ?? ""}
                       onChange={(v) => updateUnit(u.id, { ownerEmail: v || undefined })}
                       className="w-40"
-                      placeholder="email"
+                      placeholder={t("orEmailPlaceholder")}
                     />
                     <InlineText
                       value={u.documentRef ?? ""}
                       onChange={(v) => updateUnit(u.id, { documentRef: v || undefined })}
                       className="w-40"
-                      placeholder="№ документа о праве собственности"
+                      placeholder={t("orDocumentPlaceholder")}
                     />
                   </div>
                 </div>

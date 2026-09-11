@@ -8,8 +8,10 @@ import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { computePresetTariff } from "@/lib/calculator/engine";
 import { formatKzt, formatKztPrecise } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 
 export function ScenarioComparator() {
+  const t = useT();
   const project = useActiveProject();
   const baseDb = project.baseDb;
   const building = project.building;
@@ -27,14 +29,9 @@ export function ScenarioComparator() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Scale className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Шаг 3. Сравнение пресетов обслуживания</CardTitle>
+          <CardTitle>{t("scTitle")}</CardTitle>
         </div>
-        <CardDescription>
-          Тот же выбор, что и «Класс обслуживания» в Шаге 1 — здесь видно тариф сразу по всем
-          пресетам (встроенным и своим) на текущей конфигурации объекта. Клик по карточке
-          применяет пресет к конструктору статей — после этого позиции можно донастроить вручную.
-          Создать свой пресет или посмотреть, что именно меняет каждый — во вкладке «Пресеты».
-        </CardDescription>
+        <CardDescription>{t("scDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -52,8 +49,8 @@ export function ScenarioComparator() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-slate-800 dark:text-slate-100">{preset.label}</span>
-                  {active && <Badge variant="success">выбрано</Badge>}
-                  {!preset.builtIn && <Badge variant="outline">свой</Badge>}
+                  {active && <Badge variant="success">{t("scSelectedBadge")}</Badge>}
+                  {!preset.builtIn && <Badge variant="outline">{t("scCustomBadge")}</Badge>}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{preset.description}</p>
                 <div className="mt-auto">
@@ -61,7 +58,7 @@ export function ScenarioComparator() {
                     {formatKztPrecise(result.tariffPerSqm)} ₸/м²
                   </div>
                   <div className="text-xs text-slate-400">
-                    {formatKzt(result.monthlyBudget)} в месяц по объекту
+                    {formatKzt(result.monthlyBudget)} {t("scPerMonthSuffix")}
                   </div>
                 </div>
               </button>

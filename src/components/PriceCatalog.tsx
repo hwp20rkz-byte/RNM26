@@ -8,6 +8,7 @@ import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { parsePriceListFile, type ParsePriceListResult } from "@/lib/import/parsePriceList";
 import { formatKzt } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 import type { CostCategory } from "@/lib/calculator/types";
 
 function flattenCategoryLabel(categories: CostCategory[], cat: CostCategory): string {
@@ -28,6 +29,7 @@ export function PriceCatalog() {
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [targetCategory, setTargetCategory] = useState<Record<string, string>>({});
+  const t = useT();
 
   const categories = project.db.categories;
 
@@ -44,14 +46,12 @@ export function PriceCatalog() {
     try {
       const result = await parsePriceListFile(file);
       if (result.rows.length === 0) {
-        setImportError(
-          "Не удалось распознать ни одной строки. Проверьте, что в файле есть колонка с наименованием.",
-        );
+        setImportError(t("pcImportErrorNoRows"));
         return;
       }
       setPreview(result);
     } catch {
-      setImportError("Не удалось прочитать файл. Поддерживаются .csv и .xlsx.");
+      setImportError(t("pcImportErrorReadFail"));
     }
   }
 
@@ -67,12 +67,9 @@ export function PriceCatalog() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-emerald-600" />
-            <CardTitle>Справочник статей расходов</CardTitle>
+            <CardTitle>{t("pcTitle")}</CardTitle>
           </div>
-          <CardDescription>
-            Общая база материалов, услуг и расценок — не привязана к одному объекту. Загрузите
-            прайс-лист (.csv/.xlsx), добавьте позиции вручную и переиспользуйте их в любом проекте.
-          </CardDescription>
+          <CardDescription>{t("pcDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -81,7 +78,7 @@ export function PriceCatalog() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Поиск по названию или тегу…"
+                placeholder={t("pcSearchPlaceholder")}
                 className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900"
               />
             </div>
@@ -100,15 +97,15 @@ export function PriceCatalog() {
               onClick={() => fileInputRef.current?.click()}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
             >
-              <Upload className="h-4 w-4" /> Загрузить прайс-лист
+              <Upload className="h-4 w-4" /> {t("pcUploadButton")}
             </button>
             <button
               onClick={() =>
-                addCatalogEntry({ name: "Новая позиция", unit: "шт.", unitPrice: 0, defaultQty: 1 })
+                addCatalogEntry({ name: t("pcNewEntryName"), unit: t("pcNewEntryUnit"), unitPrice: 0, defaultQty: 1 })
               }
               className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
             >
-              <Plus className="h-4 w-4" /> Новая запись
+              <Plus className="h-4 w-4" /> {t("pcNewEntryButton")}
             </button>
           </div>
 
@@ -122,24 +119,25 @@ export function PriceCatalog() {
             <div className="rounded-xl border border-emerald-300 bg-emerald-50/60 p-4 dark:border-emerald-800 dark:bg-emerald-950/30">
               <div className="mb-2 flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  Предпросмотр импорта: {preview.rows.length} строк{preview.skipped ? `, пропущено ${preview.skipped}` : ""}
+                  {t("pcPreviewTitle")} {preview.rows.length} {t("pcRowsWord")}
+                  {preview.skipped ? `${t("pcSkippedPrefix")} ${preview.skipped}` : ""}
                 </h4>
                 <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-600">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-                Колонки распознаны как: наименование — «{preview.headerMap.name}», ед.изм. — «
-                {preview.headerMap.unit}», кол-во — «{preview.headerMap.qty}», цена — «{preview.headerMap.price}».
+                {t("pcColumnsIntro")}{preview.headerMap.name}{t("pcColumnsUnit")}
+                {preview.headerMap.unit}{t("pcColumnsQty")}{preview.headerMap.qty}{t("pcColumnsPrice")}{preview.headerMap.price}{t("pcColumnsEnd")}
               </p>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white text-xs dark:border-slate-800 dark:bg-slate-900">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
                     <tr>
-                      <th className="p-2 text-left">Наименование</th>
-                      <th className="p-2 text-left">Ед.</th>
-                      <th className="p-2 text-right">Кол-во</th>
-                      <th className="p-2 text-right">Цена</th>
+                      <th className="p-2 text-left">{t("pcTableName")}</th>
+                      <th className="p-2 text-left">{t("pcTableUnit")}</th>
+                      <th className="p-2 text-right">{t("pcTableQty")}</th>
+                      <th className="p-2 text-right">{t("pcTablePrice")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -154,7 +152,7 @@ export function PriceCatalog() {
                   </tbody>
                 </table>
                 {preview.rows.length > 50 && (
-                  <p className="p-2 text-center text-slate-400">…и ещё {preview.rows.length - 50}</p>
+                  <p className="p-2 text-center text-slate-400">{t("pcMoreRowsPrefix")} {preview.rows.length - 50}</p>
                 )}
               </div>
               <div className="mt-3 flex gap-2">
@@ -162,13 +160,13 @@ export function PriceCatalog() {
                   onClick={confirmImport}
                   className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
                 >
-                  Импортировать {preview.rows.length} записей
+                  {t("pcImportConfirmPrefix")} {preview.rows.length} {t("pcImportConfirmSuffix")}
                 </button>
                 <button
                   onClick={() => setPreview(null)}
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300"
                 >
-                  Отмена
+                  {t("pcCancelButton")}
                 </button>
               </div>
             </div>
@@ -177,7 +175,7 @@ export function PriceCatalog() {
           <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
             {filtered.length === 0 && (
               <p className="py-6 text-center text-sm text-slate-400">
-                {catalog.length === 0 ? "Справочник пуст — загрузите прайс-лист или добавьте запись." : "Ничего не найдено."}
+                {catalog.length === 0 ? t("pcEmptyCatalog") : t("pcNothingFound")}
               </p>
             )}
             {filtered.map((entry) => (
@@ -196,7 +194,7 @@ export function PriceCatalog() {
                   value={entry.defaultQty}
                   onChange={(v) => updateCatalogEntry(entry.id, { defaultQty: v })}
                   className="w-16"
-                  title="Кол-во по умолчанию"
+                  title={t("pcDefaultQtyTooltip")}
                 />
                 <InlineText
                   value={entry.unit}
@@ -209,7 +207,7 @@ export function PriceCatalog() {
                   onChange={(v) => updateCatalogEntry(entry.id, { unitPrice: v })}
                   className="w-24"
                   step={0.01}
-                  title="Цена, ₸"
+                  title={t("pcPriceTooltip")}
                 />
                 <span className="text-xs text-slate-300">₸</span>
 
@@ -233,7 +231,7 @@ export function PriceCatalog() {
                   }
                   className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
                 >
-                  В проект «{project.name}»
+                  {t("pcAddToProjectPrefix")}{project.name}{t("pcAddToProjectSuffix")}
                 </button>
                 <button
                   onClick={() => removeCatalogEntry(entry.id)}

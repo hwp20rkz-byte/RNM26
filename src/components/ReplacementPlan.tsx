@@ -21,11 +21,13 @@ import { computeAllWear, computeCapitalFundProjection, computeReplacementPlan } 
 import { computeCapitalRepairAnnual, computeParkingSurplusAnnual } from "@/lib/calculator/engine";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const HORIZONS = [3, 5, 10] as const;
 
 export function ReplacementPlan() {
+  const t = useT();
   const project = useActiveProject();
   const tariff = useActiveTariff();
   const setCapitalFundBalance = useProjectsStore((s) => s.setCapitalFundBalance);
@@ -86,8 +88,8 @@ export function ReplacementPlan() {
     () =>
       projection.map((p) => ({
         year: String(p.year),
-        "Плановые траты": p.plannedSpend,
-        "Баланс фонда": p.balance,
+        plannedSpend: p.plannedSpend,
+        balance: p.balance,
       })),
     [projection],
   );
@@ -102,18 +104,13 @@ export function ReplacementPlan() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>План капитального ремонта и замены</CardTitle>
-        <CardDescription>
-          Группировка оборудования по плановому году замены (по возрасту / нормативному сроку или
-          ручной корректировке износа из реестра) и проекция фонда капремонта — ориентир для
-          принятия решения общим собранием, не замена сметной документации на конкретный проект
-          капремонта.
-        </CardDescription>
+        <CardTitle>{t("rpTitle")}</CardTitle>
+        <CardDescription>{t("rpDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-slate-500">Горизонт планирования:</span>
+            <span className="text-slate-500">{t("rpHorizonLabel")}</span>
             {HORIZONS.map((h) => (
               <button
                 key={h}
@@ -124,13 +121,13 @@ export function ReplacementPlan() {
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                 }`}
               >
-                {h} лет
+                {h} {t("arYearsWord")}
               </button>
             ))}
           </div>
 
           <label className="flex items-center gap-2 text-slate-500">
-            Текущий баланс фонда капремонта, ₸
+            {t("rpCurrentBalanceLabel")}
             <InlineNumber
               value={project.capitalFundBalance}
               onChange={setCapitalFundBalance}
@@ -140,7 +137,7 @@ export function ReplacementPlan() {
           </label>
 
           <label className="flex items-center gap-2 text-slate-500">
-            Поступления в фонд, ₸/год
+            {t("rpAnnualIncomeLabel")}
             <InlineNumber value={annualIncome} onChange={(v) => setIncomeOverride(v)} className="w-28" step={10000} />
           </label>
           {isOverridden ? (
@@ -148,10 +145,10 @@ export function ReplacementPlan() {
               onClick={() => setIncomeOverride(null)}
               className="text-xs text-emerald-600 hover:underline"
             >
-              сбросить к взносу по смете ({formatKzt(defaultAnnualIncome)}/год)
+              {t("rpResetToDefaultPrefix")}{formatKzt(defaultAnnualIncome)}{t("rpResetToDefaultSuffix")}
             </button>
           ) : (
-            <span className="text-xs text-slate-400">= взнос на капремонт по текущей смете (ст. 2.11)</span>
+            <span className="text-xs text-slate-400">{t("rpDefaultIncomeNote")}</span>
           )}
 
           <button
@@ -159,54 +156,50 @@ export function ReplacementPlan() {
             disabled={exportBusy !== null}
             className="ml-auto inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:border-emerald-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
-            <FileSpreadsheet className="h-3.5 w-3.5" /> {exportBusy === "xlsx" ? "Формирование…" : "Excel"}
+            <FileSpreadsheet className="h-3.5 w-3.5" /> {exportBusy === "xlsx" ? t("rpFormingText") : t("rpExcelButton")}
           </button>
           <button
             onClick={handleExportDocx}
             disabled={exportBusy !== null}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:border-emerald-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
-            <FileText className="h-3.5 w-3.5" /> {exportBusy === "docx" ? "Формирование…" : "Word"}
+            <FileText className="h-3.5 w-3.5" /> {exportBusy === "docx" ? t("rpFormingText") : t("rpWordButton")}
           </button>
           <button
             onClick={() => window.print()}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
-            PDF (печать)
+            {t("rpPdfButton")}
           </button>
         </div>
 
         <div className="flex flex-wrap gap-4">
           <div className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
-            <div className="text-xs text-slate-400">Требуется на {horizon} лет</div>
+            <div className="text-xs text-slate-400">{t("rpRequiredForLabel")} {horizon} {t("arYearsWord")}</div>
             <div className="font-semibold tabular-nums">{formatKzt(totalPlanCost)}</div>
           </div>
           <div className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
-            <div className="text-xs text-slate-400">Накопится при текущем взносе за {horizon} лет</div>
+            <div className="text-xs text-slate-400">{t("rpWouldAccumulateLabel")} {horizon} {t("arYearsWord")}</div>
             <div className="font-semibold tabular-nums">{formatKzt(wouldAccumulate)}</div>
           </div>
           <div className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
-            <div className="text-xs text-slate-400">{gap > 0 ? "Нехватка" : "Запас"}</div>
+            <div className="text-xs text-slate-400">{gap > 0 ? t("rpDeficitLabel") : t("rpReserveLabel")}</div>
             <div className={`font-semibold tabular-nums ${gap > 0 ? "text-rose-600" : "text-emerald-600"}`}>
               {formatKzt(Math.abs(gap))}
             </div>
           </div>
           {firstDeficitYear !== undefined && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-              <Badge variant="warning">Дефицит</Badge>
-              При текущих поступлениях баланс фонда уходит в минус с {firstDeficitYear} года —
-              нужно повышать взносы или пересматривать сроки замены.
+              <Badge variant="warning">{t("rpDeficitBadge")}</Badge>
+              {t("rpDeficitWarningPrefix")} {firstDeficitYear} {t("rpDeficitWarningSuffix")}
             </div>
           )}
         </div>
 
         {parkingSurplusAnnual > 0 && (
           <p className="text-xs text-slate-400">
-            Справочно: из паркинга (пол за место + резерв на неплатежи, Шаг 1) сверх пропорциональной
-            площадной доли собирается {formatKzt(parkingSurplusAnnual)}/год — деньги идут в общий
-            фонд выше, отдельно не обособлены (решение о реальном целевом фонде — вопрос собрания).
-            {recreationAssets.length === 0 &&
-              " Чтобы копить именно на спортплощадку/поле, заведите их как оборудование категории «Спорт и отдых» в Реестре — они попадут в план замены выше."}
+            {t("rpParkingSurplusPrefix")} {formatKzt(parkingSurplusAnnual)}{t("rpParkingSurplusSuffix")}
+            {recreationAssets.length === 0 && t("rpRecreationHint")}
           </p>
         )}
 
@@ -215,11 +208,11 @@ export function ReplacementPlan() {
             <LineChart data={chartData} margin={{ left: 8, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={(v) => `${Math.round(v / 1_000_000)}М`} />
+              <YAxis fontSize={11} tickFormatter={(v) => `${Math.round(v / 1_000_000)}${t("millionSuffix")}`} />
               <RTooltip formatter={(v) => formatKzt(Number(v))} />
               <Legend />
-              <Line type="monotone" dataKey="Баланс фонда" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="Плановые траты" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="balance" name={t("chartFundBalanceLabel")} stroke="#059669" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="plannedSpend" name={t("chartPlannedSpendLabel")} stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -234,7 +227,7 @@ export function ReplacementPlan() {
                 </span>
               </div>
               {y.assetIds.length === 0 ? (
-                <p className="mt-1 text-xs text-slate-400">Замен не запланировано.</p>
+                <p className="mt-1 text-xs text-slate-400">{t("rpNoReplacementsPlanned")}</p>
               ) : (
                 <ul className="mt-2 flex flex-col gap-1.5">
                   {y.assetIds.map((id) => {
@@ -243,7 +236,7 @@ export function ReplacementPlan() {
                     return (
                       <li key={id} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                         <span className="flex-1">{asset.name}</span>
-                        {asset.criticalSafety && <Badge variant="danger">безопасность</Badge>}
+                        {asset.criticalSafety && <Badge variant="danger">{t("arSafetyBadge")}</Badge>}
                         <span className="tabular-nums text-slate-400">
                           {formatKzt(asset.quantity * asset.replacementUnitCost)}
                         </span>
@@ -251,7 +244,7 @@ export function ReplacementPlan() {
                           onClick={() => insertReplacementIntoSmeta(id, "2.7")}
                           className="rounded-md border border-slate-200 px-2 py-0.5 font-medium text-slate-500 hover:border-slate-400 dark:border-slate-700"
                         >
-                          В смету
+                          {t("rpAddToBudgetButton")}
                         </button>
                       </li>
                     );

@@ -12,13 +12,19 @@ import { computeAllWear, computeReplacementPlan } from "@/lib/calculator/wearEng
 import { computeCapitalRepairAnnual } from "@/lib/calculator/engine";
 import { findMinTariff } from "@/lib/calculator/minTariffs";
 import { downloadBlob } from "@/lib/export/download";
+import { useT } from "@/lib/i18n/useT";
 import { MEETING_FORMAT_LABELS, UNIT_TYPE_LABELS, type MeetingFormat, type VoteChoice } from "@/lib/calculator/types";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const CAPITAL_PLAN_HORIZON = 5;
-const VOTE_LABELS: Record<VoteChoice, string> = { for: "За", against: "Против", abstain: "Возд." };
 
 export function ProtocolBuilder() {
+  const t = useT();
+  const VOTE_LABELS: Record<VoteChoice, string> = {
+    for: t("pbForLabel"),
+    against: t("pbAgainstLabel"),
+    abstain: t("pbAbstainLabel"),
+  };
   const project = useActiveProject();
   const tariff = useActiveTariff();
   const createMeeting = useProjectsStore((s) => s.createMeeting);
@@ -38,7 +44,7 @@ export function ProtocolBuilder() {
   const quorum = useMemo(() => (meeting ? computeQuorum(project.units, meeting) : null), [project.units, meeting]);
 
   function handleCreateMeeting() {
-    const id = createMeeting("Годовое общее собрание", new Date().toISOString().slice(0, 10), "in_person");
+    const id = createMeeting(t("pbNewMeetingTitle"), new Date().toISOString().slice(0, 10), "in_person");
     setActiveMeetingId(id);
   }
 
@@ -76,19 +82,14 @@ export function ProtocolBuilder() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Gavel className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Протокол общего собрания</CardTitle>
+          <CardTitle>{t("pbTitle")}</CardTitle>
         </div>
-        <CardDescription>
-          Кворум и результаты голосования считаются от реестра собственников (Шаг «Собственники»).
-          В протокол автоматически подтягиваются критичные показатели: износ оборудования, план
-          капремонта, просроченные регламентные работы, сравнение тарифа с минимальным по региону.
-        </CardDescription>
+        <CardDescription>{t("pbDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {project.units.length === 0 && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-            Реестр собственников пуст — кворум посчитать не из чего. Сначала заполните вкладку
-            «Собственники».
+            {t("pbEmptyRegistryWarning")}
           </div>
         )}
 
@@ -98,7 +99,7 @@ export function ProtocolBuilder() {
             onChange={(e) => setActiveMeetingId(e.target.value || null)}
             className="h-9 min-w-[14rem] rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
           >
-            <option value="">— выберите собрание —</option>
+            <option value="">{t("pbSelectMeetingOption")}</option>
             {project.meetings.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.title} ({m.meetingDate})
@@ -109,7 +110,7 @@ export function ProtocolBuilder() {
             onClick={handleCreateMeeting}
             className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
           >
-            <Plus className="h-4 w-4" /> Новое собрание
+            <Plus className="h-4 w-4" /> {t("pbNewMeetingButton")}
           </button>
           {meeting && (
             <button
@@ -119,7 +120,7 @@ export function ProtocolBuilder() {
               }}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-500 hover:border-rose-300 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-900"
             >
-              <Trash2 className="h-3.5 w-3.5" /> Удалить собрание
+              <Trash2 className="h-3.5 w-3.5" /> {t("pbDeleteMeetingButton")}
             </button>
           )}
         </div>
@@ -153,42 +154,42 @@ export function ProtocolBuilder() {
                 value={meeting.chair ?? ""}
                 onChange={(v) => updateMeeting(meeting.id, { chair: v || undefined })}
                 className="w-40"
-                placeholder="председательствующий"
+                placeholder={t("pbChairPlaceholder")}
               />
               <InlineText
                 value={meeting.secretary ?? ""}
                 onChange={(v) => updateMeeting(meeting.id, { secretary: v || undefined })}
                 className="w-36"
-                placeholder="секретарь"
+                placeholder={t("pbSecretaryPlaceholder")}
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-4 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/30">
               <span>
-                Присутствует: <b>{quorum.presentArea.toLocaleString("ru-RU")}</b> из{" "}
+                {t("pbPresentPrefix")} <b>{quorum.presentArea.toLocaleString("ru-RU")}</b> {t("pbOfPrefix")}{" "}
                 <b>{quorum.totalArea.toLocaleString("ru-RU")}</b> м² (<b>{quorum.quorumPercent}%</b>)
               </span>
               <Badge variant={quorum.quorumMet ? "success" : "danger"}>
-                {quorum.quorumMet ? "Кворум состоялся" : "Кворум не состоялся"}
+                {quorum.quorumMet ? t("pbQuorumMet") : t("pbQuorumNotMet")}
               </Badge>
               <div className="ml-auto flex gap-2">
                 <button
                   onClick={() => markAllPresent(meeting.id, true)}
                   className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:border-emerald-400 dark:border-slate-700"
                 >
-                  Отметить всех присутствующими
+                  {t("pbMarkAllPresentButton")}
                 </button>
                 <button
                   onClick={() => markAllPresent(meeting.id, false)}
                   className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:border-rose-300 dark:border-slate-700"
                 >
-                  Снять всех
+                  {t("pbUnmarkAllButton")}
                 </button>
               </div>
             </div>
 
             <div className="flex flex-col gap-1 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-              <h4 className="mb-1 text-sm font-semibold">Регистрация участников</h4>
+              <h4 className="mb-1 text-sm font-semibold">{t("pbParticipantsHeading")}</h4>
               <div className="flex max-h-56 flex-col gap-1 overflow-y-auto text-sm">
                 {project.units.map((u) => {
                   const participant = meeting.participants.find((p) => p.unitId === u.id);
@@ -207,23 +208,23 @@ export function ProtocolBuilder() {
                     </label>
                   );
                 })}
-                {project.units.length === 0 && <p className="py-2 text-center text-xs text-slate-400">Реестр пуст.</p>}
+                {project.units.length === 0 && <p className="py-2 text-center text-xs text-slate-400">{t("pbEmptyRegistryShort")}</p>}
               </div>
             </div>
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-semibold">Повестка дня</h4>
+                <h4 className="text-sm font-semibold">{t("pbAgendaHeading")}</h4>
                 <button
-                  onClick={() => addAgendaItem(meeting.id, { title: "Новый вопрос", majorityRule: "simple" })}
+                  onClick={() => addAgendaItem(meeting.id, { title: t("pbNewQuestionTitle"), majorityRule: "simple" })}
                   className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Вопрос
+                  <Plus className="h-3.5 w-3.5" /> {t("pbAddQuestionButton")}
                 </button>
               </div>
 
               {meeting.agendaItems.length === 0 && (
-                <p className="text-center text-xs text-slate-400">Повестка пуста — добавьте вопрос.</p>
+                <p className="text-center text-xs text-slate-400">{t("pbEmptyAgenda")}</p>
               )}
 
               {meeting.agendaItems.map((item) => {
@@ -244,10 +245,10 @@ export function ProtocolBuilder() {
                         onChange={(e) => updateAgendaItem(meeting.id, item.id, { majorityRule: e.target.value as "simple" | "qualified" })}
                         className="h-8 rounded-md border border-slate-200 bg-transparent px-1.5 text-xs dark:border-slate-700"
                       >
-                        <option value="simple">Простое большинство (&gt;50%)</option>
-                        <option value="qualified">Квалифицированное (≥2/3)</option>
+                        <option value="simple">{t("pbSimpleMajorityOption")}</option>
+                        <option value="qualified">{t("pbQualifiedMajorityOption")}</option>
                       </select>
-                      <Badge variant={result.passed ? "success" : "danger"}>{result.passed ? "Принято" : "Не принято"}</Badge>
+                      <Badge variant={result.passed ? "success" : "danger"}>{result.passed ? t("pbPassed") : t("pbNotPassed")}</Badge>
                       <button
                         onClick={() => removeAgendaItem(meeting.id, item.id)}
                         className="rounded-md p-1.5 text-slate-300 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950"
@@ -257,8 +258,8 @@ export function ProtocolBuilder() {
                     </div>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      За {result.forArea.toLocaleString("ru-RU")} м² ({result.forPercentOfPresent}%) · Против{" "}
-                      {result.againstArea.toLocaleString("ru-RU")} м² · Возд. {result.abstainArea.toLocaleString("ru-RU")} м² · порог{" "}
+                      {t("pbForLabel")} {result.forArea.toLocaleString("ru-RU")} м² ({result.forPercentOfPresent}%) · {t("pbAgainstLabel")}{" "}
+                      {result.againstArea.toLocaleString("ru-RU")} м² · {t("pbAbstainLabel")} {result.abstainArea.toLocaleString("ru-RU")} м² · {t("pbThresholdLabel")}{" "}
                       {result.thresholdPercent}%
                     </p>
 
@@ -301,7 +302,7 @@ export function ProtocolBuilder() {
               disabled={exportBusy}
               className="inline-flex items-center gap-2 self-start rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              <FileText className="h-4 w-4" /> {exportBusy ? "Формирование…" : "Сформировать протокол (Word)"}
+              <FileText className="h-4 w-4" /> {exportBusy ? t("pbExportBusy") : t("pbExportButton")}
             </button>
           </>
         )}

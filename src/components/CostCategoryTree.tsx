@@ -21,6 +21,7 @@ import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { getChildren, itemAnnualCost, payrollAnnualCost } from "@/lib/calculator/engine";
 import { formatKzt } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 import type { CostCategory, CostItem, PayrollPosition, StaffMode } from "@/lib/calculator/types";
 import { SERVICE_CLASS_LABELS } from "@/lib/calculator/presets";
 
@@ -136,6 +137,7 @@ function ItemGroupList({
   const addPayroll = useProjectsStore((s) => s.addPayroll);
   const toggleStaffOutsourceGroup = useProjectsStore((s) => s.toggleStaffOutsourceGroup);
   const taxRates = useActiveProject().db.taxRates;
+  const t = useT();
 
   const groups = new Set<string>();
   for (const p of payroll) if (p.staffOutsourceGroup) groups.add(p.staffOutsourceGroup);
@@ -148,19 +150,19 @@ function ItemGroupList({
         return (
           <div key={g} className="mb-1 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5 text-xs dark:bg-slate-800/60">
             <Wrench className="h-3.5 w-3.5 text-slate-400" />
-            <span className="text-slate-500 dark:text-slate-400">Режим:</span>
+            <span className="text-slate-500 dark:text-slate-400">{t("cctModeLabel")}</span>
             <div className="inline-flex overflow-hidden rounded-full border border-slate-300 text-[11px] dark:border-slate-700">
               <button
                 className={`px-2 py-0.5 ${!activeIsStaff ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "text-slate-500"}`}
                 onClick={() => toggleStaffOutsourceGroup(g, "outsource")}
               >
-                Аутсорс
+                {t("cctOutsource")}
               </button>
               <button
                 className={`px-2 py-0.5 ${activeIsStaff ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "text-slate-500"}`}
                 onClick={() => toggleStaffOutsourceGroup(g, "staff")}
               >
-                Штат
+                {t("cctStaff")}
               </button>
             </div>
           </div>
@@ -198,19 +200,19 @@ function ItemGroupList({
       <div className="mt-1 flex gap-2 pl-8">
         <button
           onClick={() =>
-            addItem(categoryId, { name: "Новая позиция", unit: "шт.", unitPrice: 0, annualQty: 1 })
+            addItem(categoryId, { name: t("cctNewItemName"), unit: t("cctNewItemUnit"), unitPrice: 0, annualQty: 1 })
           }
           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
         >
-          <Plus className="h-3.5 w-3.5" /> Добавить позицию
+          <Plus className="h-3.5 w-3.5" /> {t("cctAddItem")}
         </button>
         <button
           onClick={() =>
-            addPayroll(categoryId, { role: "Новая должность", mode: "staff", headcount: 1, monthlySalaryOrContract: 0 })
+            addPayroll(categoryId, { role: t("cctNewPositionName"), mode: "staff", headcount: 1, monthlySalaryOrContract: 0 })
           }
           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
         >
-          <UserPlus className="h-3.5 w-3.5" /> Добавить сотрудника
+          <UserPlus className="h-3.5 w-3.5" /> {t("cctAddEmployee")}
         </button>
       </div>
     </div>
@@ -238,6 +240,7 @@ function RowShell({
   children: React.ReactNode;
   trailing: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="group flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/40">
       <Switch checked={enabled} onCheckedChange={onToggle} />
@@ -255,14 +258,14 @@ function RowShell({
           </TooltipTrigger>
           <TooltipContent>
             <p>{tooltip}</p>
-            {source && <p className="mt-1 text-slate-300">Источник: {source}</p>}
+            {source && <p className="mt-1 text-slate-300">{t("cctSourceLabel")} {source}</p>}
           </TooltipContent>
         </Tooltip>
       )}
       {trailing}
       <button
         onClick={onRemove}
-        title="Удалить позицию"
+        title={t("cctRemoveTooltip")}
         className="shrink-0 rounded-md p-1 text-slate-300 opacity-0 transition-opacity hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100 dark:hover:bg-rose-950"
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -284,6 +287,7 @@ function ItemRow({
   onUpdate: (patch: Partial<CostItem>) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   return (
     <RowShell
       enabled={item.enabled}
@@ -295,9 +299,9 @@ function ItemRow({
       trailing={
         <span
           className={`shrink-0 text-sm font-medium tabular-nums ${item.enabled ? "text-slate-700 dark:text-slate-200" : "text-slate-300"}`}
-          title={`${item.annualQty} × ${formatKzt(item.unitPrice)} = ${formatKzt(annual)}/год ÷ 12`}
+          title={`${item.annualQty} × ${formatKzt(item.unitPrice)} = ${formatKzt(annual)}${t("cctPerYearSuffix")} ÷ 12`}
         >
-          {formatKzt(annual / 12)}/мес
+          {formatKzt(annual / 12)}{t("cctPerMonthSuffix")}
         </span>
       }
     >
@@ -306,19 +310,17 @@ function ItemRow({
         onChange={(v) => onUpdate({ name: v })}
         className="min-w-[10rem] flex-1 font-medium"
       />
-      <InlineNumber value={item.annualQty} onChange={(v) => onUpdate({ annualQty: v })} className="w-16" title="Кол-во раз в год" />
-      <InlineText value={item.unit} onChange={(v) => onUpdate({ unit: v })} className="w-16 text-slate-400" placeholder="ед." />
+      <InlineNumber value={item.annualQty} onChange={(v) => onUpdate({ annualQty: v })} className="w-16" title={t("cctQtyPerYearTooltip")} />
+      <InlineText value={item.unit} onChange={(v) => onUpdate({ unit: v })} className="w-16 text-slate-400" placeholder={t("cctUnitPlaceholder")} />
       <span className="text-slate-300">×</span>
-      <InlineNumber value={item.unitPrice} onChange={(v) => onUpdate({ unitPrice: v })} className="w-24" step={0.01} title="Цена за 1 раз, ₸" />
-      <span className="text-xs text-slate-300">₸/раз</span>
-      <span className="text-xs text-slate-400" title="Кол-во раз в год × Цена за раз">
-        = {formatKzt(annual)}/год
+      <InlineNumber value={item.unitPrice} onChange={(v) => onUpdate({ unitPrice: v })} className="w-24" step={0.01} title={t("cctPricePerUnitTooltip")} />
+      <span className="text-xs text-slate-300">{t("cctPerTimeSuffix")}</span>
+      <span className="text-xs text-slate-400" title={t("cctAnnualBreakdownTooltip")}>
+        = {formatKzt(annual)}{t("cctPerYearSuffix")}
       </span>
     </RowShell>
   );
 }
-
-const MODE_LABEL: Record<StaffMode, string> = { staff: "штат", outsource: "аутсорс" };
 
 function PayrollRow({
   position,
@@ -333,6 +335,7 @@ function PayrollRow({
   onUpdate: (patch: Partial<PayrollPosition>) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   return (
     <RowShell
       enabled={position.enabled}
@@ -344,7 +347,7 @@ function PayrollRow({
       icon={<Users className="h-3.5 w-3.5 shrink-0 text-slate-400" />}
       trailing={
         <span className={`shrink-0 text-sm font-medium tabular-nums ${position.enabled ? "text-slate-700 dark:text-slate-200" : "text-slate-300"}`}>
-          {formatKzt(annual / 12)}/мес
+          {formatKzt(annual / 12)}{t("cctPerMonthSuffix")}
         </span>
       }
     >
@@ -354,24 +357,24 @@ function PayrollRow({
         className="min-w-[10rem] flex-1 font-medium"
       />
       <span className="text-slate-300">×</span>
-      <InlineNumber value={position.headcount} onChange={(v) => onUpdate({ headcount: Math.max(1, Math.round(v)) })} className="w-12" title="Численность, чел." />
-      <span className="text-slate-300">чел.,</span>
+      <InlineNumber value={position.headcount} onChange={(v) => onUpdate({ headcount: Math.max(1, Math.round(v)) })} className="w-12" title={t("cctHeadcountTooltip")} />
+      <span className="text-slate-300">{t("cctHeadcountSuffix")}</span>
       <InlineNumber
         value={position.monthlySalaryOrContract}
         onChange={(v) => onUpdate({ monthlySalaryOrContract: v })}
         className="w-24"
         step={1000}
-        title="Оклад/договор в мес., ₸"
+        title={t("cctSalaryTooltip")}
       />
-      <span className="text-xs text-slate-300">₸/мес</span>
+      <span className="text-xs text-slate-300">{t("cctSalarySuffix")}</span>
       {!position.staffOutsourceGroup && (
         <select
           value={position.mode}
           onChange={(e) => onUpdate({ mode: e.target.value as StaffMode })}
           className="h-7 rounded-md border border-slate-200 bg-transparent px-1 text-xs text-slate-500 dark:border-slate-700"
         >
-          <option value="staff">{MODE_LABEL.staff}</option>
-          <option value="outsource">{MODE_LABEL.outsource}</option>
+          <option value="staff">{t("cctModeStaffOption")}</option>
+          <option value="outsource">{t("cctModeOutsourceOption")}</option>
         </select>
       )}
     </RowShell>

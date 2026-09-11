@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { computeUsefulArea, getChildren } from "@/lib/calculator/engine";
 import { formatKzt } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 
 const PALETTE = [
   "#059669",
@@ -34,6 +35,7 @@ const PALETTE = [
 ];
 
 export function BudgetCharts() {
+  const t = useT();
   const project = useActiveProject();
   const db = project.db;
   const building = project.building;
@@ -69,8 +71,8 @@ export function BudgetCharts() {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Распределение бюджета</CardTitle>
-          <CardDescription>По статьям сметы, ₸/мес.</CardDescription>
+          <CardTitle>{t("bcDistributionTitle")}</CardTitle>
+          <CardDescription>{t("bcDistributionDesc")}</CardDescription>
         </CardHeader>
         <CardContent
           className="flex flex-col gap-2 overflow-hidden sm:flex-row sm:items-center"
@@ -105,8 +107,8 @@ export function BudgetCharts() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Затраты на м² по статьям</CardTitle>
-          <CardDescription>₸/м² в месяц, топ-10 статей</CardDescription>
+          <CardTitle>{t("bcPerSqmTitle")}</CardTitle>
+          <CardDescription>{t("bcPerSqmDesc")}</CardDescription>
         </CardHeader>
         <CardContent style={{ height: "var(--ui-chart-h)" }}>
           <ResponsiveContainer width="100%" height="100%">

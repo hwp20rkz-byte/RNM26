@@ -40,7 +40,7 @@ export default function HomePage() {
   if (!hydrated) {
     return (
       <main className="mx-auto flex w-full max-w-6xl flex-1 items-center justify-center px-4 py-6">
-        <p className="text-sm text-slate-400">Загрузка…</p>
+        <p className="text-sm text-slate-400">{t("loadingText")}</p>
       </main>
     );
   }
@@ -69,26 +69,22 @@ export default function HomePage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ListTree className="h-5 w-5 text-emerald-600" />
-              <CardTitle>Шаг 2. Конструктор статей расходов и справочник</CardTitle>
+              <CardTitle>{t("step2Title")}</CardTitle>
             </div>
-            <CardDescription>
-              Каждая величина — кол-во, ед. изм., цена, оклад — редактируется прямо в строке,
-              тариф пересчитывается мгновенно. Во вкладке «Справочник» — общая база материалов и
-              услуг с импортом прайс-листов, переиспользуемая между объектами.
-            </CardDescription>
+            <CardDescription>{t("step2Desc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="constructor">
               <TabsList>
-                <TabsTrigger value="constructor">Конструктор</TabsTrigger>
-                <TabsTrigger value="catalog">Справочник</TabsTrigger>
-                <TabsTrigger value="presets">Пресеты</TabsTrigger>
-                <TabsTrigger value="wear">Износ и капремонт</TabsTrigger>
-                <TabsTrigger value="owners">Собственники</TabsTrigger>
-                <TabsTrigger value="maintenance">Календарь ТО</TabsTrigger>
-                <TabsTrigger value="budget">План/факт</TabsTrigger>
-                <TabsTrigger value="protocol">Протокол собрания</TabsTrigger>
-                <TabsTrigger value="inventory">Инженерия и ЗИП</TabsTrigger>
+                <TabsTrigger value="constructor">{t("tabConstructor")}</TabsTrigger>
+                <TabsTrigger value="catalog">{t("tabCatalog")}</TabsTrigger>
+                <TabsTrigger value="presets">{t("tabPresets")}</TabsTrigger>
+                <TabsTrigger value="wear">{t("tabWear")}</TabsTrigger>
+                <TabsTrigger value="owners">{t("tabOwners")}</TabsTrigger>
+                <TabsTrigger value="maintenance">{t("tabMaintenance")}</TabsTrigger>
+                <TabsTrigger value="budget">{t("tabBudget")}</TabsTrigger>
+                <TabsTrigger value="protocol">{t("tabProtocol")}</TabsTrigger>
+                <TabsTrigger value="inventory">{t("tabInventory")}</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
                 <CostCategoryTree />
@@ -102,9 +98,9 @@ export default function HomePage() {
               <TabsContent value="wear">
                 <Tabs defaultValue="registry">
                   <TabsList>
-                    <TabsTrigger value="registry">Реестр оборудования</TabsTrigger>
-                    <TabsTrigger value="types">Справочник типов</TabsTrigger>
-                    <TabsTrigger value="plan">План замены</TabsTrigger>
+                    <TabsTrigger value="registry">{t("wearTabRegistry")}</TabsTrigger>
+                    <TabsTrigger value="types">{t("wearTabTypes")}</TabsTrigger>
+                    <TabsTrigger value="plan">{t("wearTabPlan")}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="registry">
                     <AssetRegistry />
@@ -132,9 +128,9 @@ export default function HomePage() {
               <TabsContent value="inventory">
                 <Tabs defaultValue="stock">
                   <TabsList>
-                    <TabsTrigger value="stock">Склад ЗИП</TabsTrigger>
-                    <TabsTrigger value="log">Журнал работ</TabsTrigger>
-                    <TabsTrigger value="orders">Наряды</TabsTrigger>
+                    <TabsTrigger value="stock">{t("invTabStock")}</TabsTrigger>
+                    <TabsTrigger value="log">{t("invTabLog")}</TabsTrigger>
+                    <TabsTrigger value="orders">{t("invTabOrders")}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="stock">
                     <SparePartsRegistry />
@@ -159,12 +155,7 @@ export default function HomePage() {
 
         <ExportBar />
 
-        <p className="pb-4 text-center text-xs text-slate-400">
-          Расчёт носит справочный характер. Часть позиций (спецодежда, инвентарь, регламентные
-          работы по инженерии, минимальные тарифы маслихатов) — рыночные оценки 2025-2026 гг.,
-          требующие сверки перед утверждением сметы на общем собрании собственников. Объекты и
-          сметы сохраняются локально в браузере.
-        </p>
+        <p className="pb-4 text-center text-xs text-slate-400">{t("footerDisclaimer")}</p>
       </div>
 
       <PrintSummary />

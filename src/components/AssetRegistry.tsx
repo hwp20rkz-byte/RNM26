@@ -11,6 +11,7 @@ import { computeAllWear, CONDITION_LABELS } from "@/lib/calculator/wearEngine";
 import { computeMaintenanceTasks, MAINTENANCE_STATUS_LABELS } from "@/lib/calculator/maintenanceCalendar";
 import { EQUIPMENT_CATEGORY_LABELS } from "@/lib/calculator/data/equipmentTypes";
 import { formatKzt } from "@/lib/utils";
+import { useT } from "@/lib/i18n/useT";
 import type { AssetCondition, EquipmentCategory, MaintenanceStatus } from "@/lib/calculator/types";
 
 const MAINTENANCE_BADGE: Record<MaintenanceStatus, "success" | "warning" | "danger" | "outline"> = {
@@ -39,6 +40,7 @@ const CONDITION_BAR_COLOR: Record<AssetCondition, string> = {
 const CURRENT_YEAR = new Date().getFullYear();
 
 export function AssetRegistry() {
+  const t = useT();
   const project = useActiveProject();
   const equipmentTypes = useProjectsStore((s) => s.equipmentTypes);
   const addAsset = useProjectsStore((s) => s.addAsset);
@@ -75,9 +77,9 @@ export function AssetRegistry() {
   }, [computedTasks]);
 
   function handleAdd() {
-    const type = equipmentTypes.find((t) => t.id === newTypeId);
+    const type = equipmentTypes.find((et) => et.id === newTypeId);
     addAsset({
-      name: type?.name ?? "Новое оборудование",
+      name: type?.name ?? t("arNewAssetDefaultName"),
       category: (type?.category ?? "other") as EquipmentCategory,
       quantity: 1,
       installedYear: CURRENT_YEAR,
@@ -93,24 +95,18 @@ export function AssetRegistry() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Gauge className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Реестр оборудования и износ</CardTitle>
+          <CardTitle>{t("arTitle")}</CardTitle>
         </div>
-        <CardDescription>
-          Износ% = Возраст / Нормативный срок × 100 — практичная оценка «по паспорту», приоритет
-          для планирования, а не замена экспертного обследования (методика ВСН 53-86(р)). Для
-          лифтов истечение срока — не рекомендация, а требование ТР ТС 011/2011: эксплуатация без
-          экспертизы промышленной безопасности не допускается. Отсортировано по убыванию износа.
-        </CardDescription>
+        <CardDescription>{t("arDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {expiredCritical.length > 0 && (
           <div className="flex items-start gap-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-800 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Назначенный срок истёк у критичного по безопасности оборудования:{" "}
-              <b>{expiredCritical.map((a) => a.name).join(", ")}</b>. Для лифтов дальнейшая
-              эксплуатация без экспертизы промышленной безопасности (продление/модернизация/замена)
-              не допускается по ТР ТС 011/2011.
+              {t("arCriticalWarningPrefix")}{" "}
+              <b>{expiredCritical.map((a) => a.name).join(", ")}</b>
+              {t("arCriticalWarningSuffix")}
             </p>
           </div>
         )}
@@ -121,9 +117,9 @@ export function AssetRegistry() {
             onChange={(e) => setNewTypeId(e.target.value)}
             className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
           >
-            {equipmentTypes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {EQUIPMENT_CATEGORY_LABELS[t.category]} — {t.name} ({t.normativeLifeYears} лет)
+            {equipmentTypes.map((et) => (
+              <option key={et.id} value={et.id}>
+                {EQUIPMENT_CATEGORY_LABELS[et.category]} — {et.name} ({et.normativeLifeYears} {t("arYearsWord")})
               </option>
             ))}
           </select>
@@ -131,15 +127,13 @@ export function AssetRegistry() {
             onClick={handleAdd}
             className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
           >
-            <Plus className="h-4 w-4" /> Добавить в реестр
+            <Plus className="h-4 w-4" /> {t("arAddButton")}
           </button>
         </div>
 
         <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
           {sortedAssets.length === 0 && (
-            <p className="py-6 text-center text-sm text-slate-400">
-              Реестр пуст — добавьте оборудование из справочника типов выше.
-            </p>
+            <p className="py-6 text-center text-sm text-slate-400">{t("arEmptyRegistry")}</p>
           )}
           {sortedAssets.map((asset) => {
             const wear = wearById.get(asset.id)!;
@@ -155,7 +149,7 @@ export function AssetRegistry() {
                   <Badge variant="outline">{EQUIPMENT_CATEGORY_LABELS[asset.category]}</Badge>
                   {asset.criticalSafety && (
                     <Badge variant="outline" className="gap-1 text-rose-500">
-                      <AlertTriangle className="h-3 w-3" /> безопасность
+                      <AlertTriangle className="h-3 w-3" /> {t("arSafetyBadge")}
                     </Badge>
                   )}
                   <Badge variant={CONDITION_BADGE[wear.condition]}>{CONDITION_LABELS[wear.condition]}</Badge>
@@ -175,13 +169,13 @@ export function AssetRegistry() {
                     value={asset.location ?? ""}
                     onChange={(v) => updateAsset(asset.id, { location: v || undefined })}
                     className="w-48"
-                    placeholder="расположение, напр. «ИТП №1, контур отопления»"
+                    placeholder={t("arLocationPlaceholder")}
                   />
                   <InlineText
                     value={asset.serialNumber ?? ""}
                     onChange={(v) => updateAsset(asset.id, { serialNumber: v || undefined })}
                     className="w-32"
-                    placeholder="серийный номер"
+                    placeholder={t("arSerialPlaceholder")}
                   />
                   {nearestTask && (
                     <span className="flex items-center gap-1">
@@ -189,7 +183,8 @@ export function AssetRegistry() {
                         {MAINTENANCE_STATUS_LABELS[nearestTask.status]}
                       </Badge>
                       {nearestTask.task.name}
-                      {nearestTask.nextServiceDate && ` до ${nearestTask.nextServiceDate.toLocaleDateString("ru-RU")}`}
+                      {nearestTask.nextServiceDate &&
+                        ` ${t("arUntilPrefix")} ${nearestTask.nextServiceDate.toLocaleDateString("ru-RU")}`}
                     </span>
                   )}
                 </div>
@@ -203,38 +198,38 @@ export function AssetRegistry() {
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
                   <label className="flex items-center gap-1">
-                    Кол-во
+                    {t("arQtyLabel")}
                     <InlineNumber value={asset.quantity} onChange={(v) => updateAsset(asset.id, { quantity: Math.max(1, Math.round(v)) })} className="w-14" />
                   </label>
                   <label className="flex items-center gap-1">
-                    Год ввода
+                    {t("arInstalledYearLabel")}
                     <InlineNumber value={asset.installedYear} onChange={(v) => updateAsset(asset.id, { installedYear: Math.round(v) })} className="w-16" />
                   </label>
                   <label className="flex items-center gap-1">
-                    Норм. срок, лет
+                    {t("arNormLifeLabel")}
                     <InlineNumber value={asset.normativeLifeYears} onChange={(v) => updateAsset(asset.id, { normativeLifeYears: Math.max(1, Math.round(v)) })} className="w-14" />
                   </label>
                   <label className="flex items-center gap-1">
-                    Цена замены/ед., ₸
+                    {t("arReplacementCostLabel")}
                     <InlineNumber value={asset.replacementUnitCost} onChange={(v) => updateAsset(asset.id, { replacementUnitCost: v })} className="w-24" step={1000} />
                   </label>
                   <span>
-                    Возраст: <b>{wear.ageYears} лет</b>
+                    {t("arAgeLabel")} <b>{wear.ageYears} {t("arYearsWord")}</b>
                   </span>
                   <span>
-                    Остаток ресурса: <b>{wear.remainingYears} лет</b>
+                    {t("arRemainingLabel")} <b>{wear.remainingYears} {t("arYearsWord")}</b>
                   </span>
                   <span>
-                    Плановый год замены: <b>{wear.targetReplacementYear}</b>
+                    {t("arTargetYearLabel")} <b>{wear.targetReplacementYear}</b>
                   </span>
                   <span>
-                    Стоимость замены: <b>{formatKzt(wear.replacementCost)}</b>
+                    {t("arReplacementCostTotalLabel")} <b>{formatKzt(wear.replacementCost)}</b>
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <label className="flex items-center gap-1 text-slate-400">
-                    Ручная корректировка износа, %
+                    {t("arManualOverrideLabel")}
                     <InlineNumber
                       value={asset.manualWearOverridePercent ?? wear.wearPercent}
                       onChange={(v) => updateAsset(asset.id, { manualWearOverridePercent: v })}
@@ -245,7 +240,7 @@ export function AssetRegistry() {
                         onClick={() => updateAsset(asset.id, { manualWearOverridePercent: undefined })}
                         className="text-emerald-600 hover:underline"
                       >
-                        сбросить
+                        {t("arResetButton")}
                       </button>
                     )}
                   </label>
@@ -267,7 +262,7 @@ export function AssetRegistry() {
                     onClick={() => insertReplacementIntoSmeta(asset.id, targetCategory[asset.id] ?? "2.7")}
                     className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
                   >
-                    В смету «{project.name}»
+                    {t("arAddToBudgetPrefix")}{project.name}{t("arAddToBudgetSuffix")}
                   </button>
                 </div>
               </div>
