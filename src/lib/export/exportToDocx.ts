@@ -24,6 +24,20 @@ const BORDER = {
   right: { style: BorderStyle.SINGLE, size: 2, color: "CBD5E1" },
 };
 
+/**
+ * Год и месяц для одной строки сметы должны сходиться друг с другом при
+ * печати (год = мес × 12), а не просто оба быть "верным" округлением от
+ * непрерывной суммы независимо — иначе при делении без остатка на 12
+ * (напр. 306000,9 ₸/год) отдельное округление даёт год=306 001, а
+ * мес×12=306 000 — расхождение в 1 ₸, которое видно в распечатанном
+ * документе. Месяц округляется первым (он ближе к тому, что реально
+ * платят раз в месяц), год всегда выводится как месяц × 12.
+ */
+export function yearMonthDisplay(annual: number): { annualRounded: number; monthlyRounded: number } {
+  const monthlyRounded = Math.round(annual / 12);
+  return { annualRounded: monthlyRounded * 12, monthlyRounded };
+}
+
 function cell(text: string, opts: { bold?: boolean; width?: number; shaded?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}) {
   return new TableCell({
     width: opts.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
@@ -85,6 +99,7 @@ export async function exportToDocxBlob(
       n += 1;
       const annual = payrollAnnualCost(p, db.taxRates, priceMultiplier);
       subtotalAnnual += annual;
+      const ym = yearMonthDisplay(annual);
       rows.push(
         new TableRow({
           children: [
@@ -93,8 +108,8 @@ export async function exportToDocxBlob(
             cell("мес."),
             cell("12", { align: AlignmentType.CENTER }),
             cell(formatKztPrecise(annual / 12), { align: AlignmentType.RIGHT }),
-            cell(formatKzt(annual), { align: AlignmentType.RIGHT }),
-            cell(formatKzt(annual / 12), { align: AlignmentType.RIGHT }),
+            cell(formatKzt(ym.annualRounded), { align: AlignmentType.RIGHT }),
+            cell(formatKzt(ym.monthlyRounded), { align: AlignmentType.RIGHT }),
           ],
         }),
       );
@@ -103,6 +118,7 @@ export async function exportToDocxBlob(
       n += 1;
       const annual = itemAnnualCost(it, priceMultiplier);
       subtotalAnnual += annual;
+      const ym = yearMonthDisplay(annual);
       rows.push(
         new TableRow({
           children: [
@@ -111,12 +127,13 @@ export async function exportToDocxBlob(
             cell(it.unit),
             cell(it.annualQty.toLocaleString("ru-RU"), { align: AlignmentType.CENTER }),
             cell(formatKztPrecise(it.unitPrice * priceMultiplier), { align: AlignmentType.RIGHT }),
-            cell(formatKzt(annual), { align: AlignmentType.RIGHT }),
-            cell(formatKzt(annual / 12), { align: AlignmentType.RIGHT }),
+            cell(formatKzt(ym.annualRounded), { align: AlignmentType.RIGHT }),
+            cell(formatKzt(ym.monthlyRounded), { align: AlignmentType.RIGHT }),
           ],
         }),
       );
     }
+    const subtotalYm = yearMonthDisplay(subtotalAnnual);
     rows.push(
       new TableRow({
         children: [
@@ -125,8 +142,8 @@ export async function exportToDocxBlob(
           cell("", { shaded: true }),
           cell("", { shaded: true }),
           cell("", { shaded: true }),
-          cell(formatKzt(subtotalAnnual), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
-          cell(formatKzt(subtotalAnnual / 12), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
+          cell(formatKzt(subtotalYm.annualRounded), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
+          cell(formatKzt(subtotalYm.monthlyRounded), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
         ],
       }),
     );
@@ -134,6 +151,7 @@ export async function exportToDocxBlob(
 
   const capitalRepairAnnual =
     building.capitalRepairMrpMultiplier * db.taxRates.mrpValue * computeUsefulArea(building) * 12;
+  const capitalRepairYm = yearMonthDisplay(capitalRepairAnnual);
   rows.push(
     new TableRow({
       children: [
@@ -142,8 +160,8 @@ export async function exportToDocxBlob(
         cell("", { shaded: true }),
         cell("", { shaded: true }),
         cell("", { shaded: true }),
-        cell(formatKzt(capitalRepairAnnual), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
-        cell(formatKzt(capitalRepairAnnual / 12), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
+        cell(formatKzt(capitalRepairYm.annualRounded), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
+        cell(formatKzt(capitalRepairYm.monthlyRounded), { bold: true, shaded: true, align: AlignmentType.RIGHT }),
       ],
     }),
   );
