@@ -24,6 +24,7 @@ import type {
   SavedSmeta,
   ServicePreset,
   SparePartItem,
+  TerritoryPassport,
   VoteChoice,
   WorkOrder,
   WorkOrderChecklistItem,
@@ -31,6 +32,8 @@ import type {
 } from "@/lib/calculator/types";
 import { applyWriteOffToStock, computeMaterialsCost } from "@/lib/calculator/inventoryEngine";
 import { generateTicketNumber } from "@/lib/calculator/workOrderEngine";
+import { defaultTerritoryVolume, instantiateTerritoryCostItem } from "@/lib/calculator/territoryWorkEngine";
+import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
 import { buildBlankDatabase, buildDefaultDatabase } from "@/lib/calculator/database";
 import { BUILTIN_PRESETS, DEFAULT_BUILDING, buildBlankBuilding } from "@/lib/calculator/presets";
 import { applyPreset, computeTariff } from "@/lib/calculator/engine";
@@ -38,6 +41,25 @@ import { seedCatalogFromDatabase } from "@/lib/calculator/catalogSeed";
 import { EQUIPMENT_TYPES } from "@/lib/calculator/data/equipmentTypes";
 import { seedDemoAssets } from "@/lib/calculator/data/demoAssets";
 import { genId } from "@/lib/id";
+
+const TERRITORY_CATEGORY_ID = "2.3";
+
+function blankTerritoryPassport(): TerritoryPassport {
+  return {
+    id: genId("territory"),
+    pavementAreaSqm: 0,
+    accessRoadAreaSqm: 0,
+    greeneryAreaSqm: 0,
+    accessRoadLengthKm: 0,
+    treeCount: 0,
+    shrubCount: 0,
+    urnCount: 0,
+    lightingFixtureCount: 0,
+    playgroundCount: 0,
+    wasteSiteCount: 0,
+    compiledAt: nowIso(),
+  };
+}
 
 export type BudgetPeriod = "month" | "quarter" | "year";
 
@@ -97,6 +119,10 @@ interface ProjectsState {
 
   // --- профиль объекта ---
   setBuilding: (patch: Partial<BuildingProfile>) => void;
+
+  // --- придомовая территория (Приложение Б, №22-НҚ) ---
+  setTerritoryPassport: (patch: Partial<TerritoryPassport>) => void;
+  applyTerritoryPassportToDb: () => void;
 
   // --- пресеты обслуживания ---
   setPreset: (id: string) => void;
@@ -348,6 +374,30 @@ export const useProjectsStore = create<ProjectsState>()(
             const p = s.projects[s.activeProjectId];
             const building = { ...p.building, ...patch };
             return { projects: { ...s.projects, [p.id]: touchProject({ ...p, building }) } };
+          });
+        },
+
+        setTerritoryPassport: (patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const territoryPassport = { ...(p.territoryPassport ?? blankTerritoryPassport()), ...patch };
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, territoryPassport }) } };
+          });
+        },
+
+        applyTerritoryPassportToDb: () => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const passport = p.territoryPassport;
+            if (!passport) return s;
+            const mrpValue = p.db.taxRates.mrpValue;
+            const generated = TERRITORY_WORK_CATALOG.map((workItem) => {
+              const volume = defaultTerritoryVolume(workItem, passport);
+              return instantiateTerritoryCostItem(workItem, TERRITORY_CATEGORY_ID, volume, mrpValue, volume > 0);
+            });
+            const keepExisting = p.db.items.filter((i) => !i.id.startsWith("terr-"));
+            const db = { ...p.db, items: [...keepExisting, ...generated] };
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, db }) } };
           });
         },
 

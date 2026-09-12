@@ -19,6 +19,7 @@ import { ProtocolBuilder } from "@/components/ProtocolBuilder";
 import { SparePartsRegistry } from "@/components/SparePartsRegistry";
 import { MaintenanceLog } from "@/components/MaintenanceLog";
 import { WorkOrderBoard } from "@/components/WorkOrderBoard";
+import { TerritoryPassportForm } from "@/components/TerritoryPassportForm";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
@@ -85,6 +86,7 @@ export default function HomePage() {
                 <TabsTrigger value="budget">{t("tabBudget")}</TabsTrigger>
                 <TabsTrigger value="protocol">{t("tabProtocol")}</TabsTrigger>
                 <TabsTrigger value="inventory">{t("tabInventory")}</TabsTrigger>
+                <TabsTrigger value="territory">{t("tabTerritory")}</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
                 <CostCategoryTree />
@@ -142,6 +144,9 @@ export default function HomePage() {
                     <WorkOrderBoard />
                   </TabsContent>
                 </Tabs>
+              </TabsContent>
+              <TabsContent value="territory">
+                <TerritoryPassportForm />
               </TabsContent>
             </Tabs>
           </CardContent>

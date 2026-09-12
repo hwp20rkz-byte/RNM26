@@ -284,6 +284,8 @@ export interface Project {
   maintenanceLogs: MaintenanceLogEntry[];
   /** Наряды — слой планирования/согласования/SLA поверх журнала работ */
   workOrders: WorkOrder[];
+  /** Паспорт придомовой территории — опционально, включает детальный каталог статьи 2.3 (см. territoryWorkEngine) */
+  territoryPassport?: TerritoryPassport;
   createdAt: string;
   updatedAt: string;
 }

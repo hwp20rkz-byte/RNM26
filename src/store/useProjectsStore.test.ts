@@ -752,3 +752,38 @@ describe("наряды (WorkOrder)", () => {
     expect(project.maintenanceLogs.filter((l) => assetIds.includes(l.assetId ?? "")).length).toBe(2);
   });
 });
+
+describe("паспорт придомовой территории", () => {
+  it("setTerritoryPassport создаёт паспорт при первом вызове и мержит патчи", () => {
+    expect(selectActiveProject(useProjectsStore.getState()).territoryPassport).toBeUndefined();
+    useProjectsStore.getState().setTerritoryPassport({ pavementAreaSqm: 1000 });
+    let project = selectActiveProject(useProjectsStore.getState());
+    expect(project.territoryPassport?.pavementAreaSqm).toBe(1000);
+    useProjectsStore.getState().setTerritoryPassport({ treeCount: 20 });
+    project = selectActiveProject(useProjectsStore.getState());
+    expect(project.territoryPassport?.pavementAreaSqm).toBe(1000);
+    expect(project.territoryPassport?.treeCount).toBe(20);
+  });
+
+  it("applyTerritoryPassportToDb ничего не делает без паспорта", () => {
+    const before = selectActiveProject(useProjectsStore.getState()).db.items.length;
+    useProjectsStore.getState().applyTerritoryPassportToDb();
+    expect(selectActiveProject(useProjectsStore.getState()).db.items.length).toBe(before);
+  });
+
+  it("applyTerritoryPassportToDb добавляет позиции каталога в статью 2.3 и не дублирует их при повторном вызове", () => {
+    useProjectsStore.getState().setTerritoryPassport({ pavementAreaSqm: 5000, greeneryAreaSqm: 2000, treeCount: 10 });
+    useProjectsStore.getState().applyTerritoryPassportToDb();
+    const project1 = selectActiveProject(useProjectsStore.getState());
+    const territoryItems1 = project1.db.items.filter((i) => i.id.startsWith("terr-"));
+    expect(territoryItems1.length).toBe(109);
+    expect(territoryItems1.every((i) => i.categoryId === "2.3")).toBe(true);
+    const enabledCount1 = territoryItems1.filter((i) => i.enabled).length;
+    expect(enabledCount1).toBeGreaterThan(0);
+    expect(enabledCount1).toBeLessThan(109);
+
+    useProjectsStore.getState().applyTerritoryPassportToDb();
+    const project2 = selectActiveProject(useProjectsStore.getState());
+    expect(project2.db.items.filter((i) => i.id.startsWith("terr-")).length).toBe(109);
+  });
+});

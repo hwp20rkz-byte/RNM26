@@ -1,4 +1,4 @@
-import type { CostItem, ItemFrequency, TerritoryWorkItem } from "./types";
+import type { CostItem, ItemFrequency, TerritoryPassport, TerritoryWorkItem } from "./types";
 
 /**
  * Число выполнений работы в год = длительность применимого периода / интервал
@@ -49,6 +49,7 @@ export function instantiateTerritoryCostItem(
   categoryId: string,
   volume: number,
   mrpValue: number,
+  enabled = true,
 ): CostItem {
   const occurrencesPerYear = computeTerritoryWorkOccurrencesPerYear(item);
   const rateApplications = volume / item.unitSize;
@@ -60,11 +61,38 @@ export function instantiateTerritoryCostItem(
     annualQty: rateApplications * occurrencesPerYear,
     unitPrice: item.ratePerUnitMrp * mrpValue,
     frequency: frequencyForInterval(item.intervalDays),
-    enabled: true,
+    enabled,
     minServiceClass: item.minServiceClass,
     tooltip: item.verified
       ? item.source
       : `⚠ Не сверено с оригиналом документа: ${item.source}`,
     source: item.source,
   };
+}
+
+/**
+ * Оценка объёма (V) позиции по данным паспорта территории — стартовое
+ * приближение для заполнения детальной сметы, а не точный обмер. Для
+ * позиций без прямого соответствия в паспорте (ремонт МАФ, скамей,
+ * ограждений, контейнеров и т.п. без учёта их числа) возвращает 0 —
+ * пользователь указывает объём вручную через инлайн-редактирование в
+ * дереве статей после генерации.
+ */
+export function defaultTerritoryVolume(item: TerritoryWorkItem, passport: TerritoryPassport): number {
+  switch (item.unit) {
+    case "km":
+      return passport.accessRoadLengthKm;
+    case "sqm":
+      if (item.category === "access_road_service") return passport.accessRoadAreaSqm;
+      if (item.category === "greenery_lawn" || item.category === "greenery_shrubs") return passport.greeneryAreaSqm;
+      return passport.pavementAreaSqm;
+    case "element":
+      if (item.category === "greenery_trees") return passport.treeCount;
+      if (item.category === "greenery_shrubs") return passport.shrubCount;
+      if (item.category === "playground_surface") return passport.playgroundCount;
+      if (item.category === "waste_site_service") return passport.wasteSiteCount;
+      return 0;
+    default:
+      return 0;
+  }
 }

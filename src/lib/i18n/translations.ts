@@ -119,6 +119,7 @@ const RU = {
   tabBudget: "План/факт",
   tabProtocol: "Протокол собрания",
   tabInventory: "Инженерия и ЗИП",
+  tabTerritory: "Территория",
   wearTabRegistry: "Реестр оборудования",
   wearTabTypes: "Справочник типов",
   wearTabPlan: "План замены",
@@ -127,6 +128,28 @@ const RU = {
   invTabOrders: "Наряды",
   footerDisclaimer:
     "Расчёт носит справочный характер. Часть позиций (спецодежда, инвентарь, регламентные работы по инженерии, минимальные тарифы маслихатов) — рыночные оценки 2025-2026 гг., требующие сверки перед утверждением сметы на общем собрании собственников. Объекты и сметы сохраняются локально в браузере.",
+
+  // Паспорт придомовой территории (TerritoryPassportForm)
+  terrTitle: "Паспорт придомовой территории",
+  terrDesc:
+    "Детализация статьи 2.3 сметы по данным паспорта — объёмы автоматически рассчитываются из площадей/количеств ниже, каталог расценок из Приложения Б применяется в тенге.",
+  terrFieldPavement: "Площадь покрытий (дорожки, отмостка), м²",
+  terrFieldAccessRoadArea: "Площадь подъездных путей, м²",
+  terrFieldGreenery: "Площадь газонов и озеленения, м²",
+  terrFieldAccessRoadLength: "Протяжённость подъездных путей, км",
+  terrFieldTrees: "Количество деревьев, шт.",
+  terrFieldShrubs: "Количество кустарников, шт.",
+  terrFieldUrns: "Количество урн, шт.",
+  terrFieldLighting: "Опоры/светильники освещения, шт.",
+  terrFieldPlaygrounds: "Детские/спортивные площадки, шт.",
+  terrFieldWasteSites: "Контейнерные площадки, шт.",
+  terrApplyButton: "Сформировать / обновить смету (ст. 2.3)",
+  terrPreviewTotal: "Предварительный годовой итог по каталогу:",
+  terrPreviewMatched: "позиций с ненулевым объёмом из 109 в каталоге",
+  terrUnverifiedWarning:
+    "⚠ Расценки — прямая транскрипция документа, но периодичность работ реконструирована из-за повреждённой формулы в исходном файле. Требуется сверка с оригиналом приказа/PDF перед утверждением сметы.",
+  terrSourceNote: "Источник: Методические рекомендации №22-НҚ от 01.12.2023 (Приложение Б), утв. Комитетом по делам строительства и ЖКХ МИИР РК",
+  terrAppliedHint: "Позиции добавлены в статью 2.3 «Конструктора статей» с префиксом номера из Приложения Б — включайте/выключайте и правьте количество там же.",
 
   // Шаг 2: Конструктор статей (CostCategoryTree)
   cctModeLabel: "Режим:",
@@ -732,6 +755,7 @@ const KZ: Record<TranslationKey, string> = {
   tabBudget: "Жоспар/факт",
   tabProtocol: "Жиналыс хаттамасы",
   tabInventory: "Инженерия және ЗИП",
+  tabTerritory: "Аумақ",
   wearTabRegistry: "Жабдық тізілімі",
   wearTabTypes: "Түрлер анықтамалығы",
   wearTabPlan: "Ауыстыру жоспары",
@@ -740,6 +764,27 @@ const KZ: Record<TranslationKey, string> = {
   invTabOrders: "Нарядтар",
   footerDisclaimer:
     "Есептеу анықтамалық сипатта. Кейбір позициялар (арнайы киім, мүкәммал, инженерияның регламенттік жұмыстары, мәслихаттардың ең төменгі тарифтері) — 2025-2026 жж. нарықтық бағалар, меншік иелерінің жалпы жиналысында сметаны бекітпес бұрын тексеруді қажет етеді. Нысандар мен сметалар браузерде жергілікті сақталады.",
+
+  terrTitle: "Үй маңы аумағының паспорты",
+  terrDesc:
+    "Паспорт деректері бойынша 2.3 сметасы бабын нақтылау — көлемдер төмендегі аудан/санынан автоматты есептеледі, Б қосымшасының бағалар каталогы теңгемен қолданылады.",
+  terrFieldPavement: "Жабындар ауданы (жолдар, отмостка), м²",
+  terrFieldAccessRoadArea: "Кіреберіс жолдарының ауданы, м²",
+  terrFieldGreenery: "Газон және көгалдандыру ауданы, м²",
+  terrFieldAccessRoadLength: "Кіреберіс жолдарының ұзындығы, км",
+  terrFieldTrees: "Ағаштар саны, дана",
+  terrFieldShrubs: "Бұталар саны, дана",
+  terrFieldUrns: "Урналар саны, дана",
+  terrFieldLighting: "Жарықтандыру тіректері/шамдары, дана",
+  terrFieldPlaygrounds: "Балалар/спорт алаңдары, дана",
+  terrFieldWasteSites: "Контейнер алаңдары, дана",
+  terrApplyButton: "Сметаны құру / жаңарту (2.3-бап)",
+  terrPreviewTotal: "Каталог бойынша алдын ала жылдық қорытынды:",
+  terrPreviewMatched: "каталогтағы 109 позициядан көлемі нөлден өзге позиция",
+  terrUnverifiedWarning:
+    "⚠ Бағалар — құжаттың тікелей транскрипциясы, бірақ жұмыс мерзімділігі бастапқы файлдағы бүлінген формула салдарынан қайта құрылды. Сметаны бекітпес бұрын бұйрықтың/PDF-тің түпнұсқасымен салыстыру қажет.",
+  terrSourceNote: "Дереккөз: ҚР ИИДМ Құрылыс және ТКШ істері комитетінің 01.12.2023 ж. №22-НҚ бұйрығымен бекітілген әдістемелік ұсынымдар (Б қосымшасы)",
+  terrAppliedHint: "Позициялар «Баптар конструкторының» 2.3 бабына Б қосымшасының нөмір префиксімен қосылды — қосу/өшіру және санын түзету сол жерде жасалады.",
 
   cctModeLabel: "Режим:",
   cctOutsource: "Аутсорс",
@@ -1321,6 +1366,7 @@ const EN: Record<TranslationKey, string> = {
   tabBudget: "Plan/actual",
   tabProtocol: "Meeting protocol",
   tabInventory: "Engineering & spares",
+  tabTerritory: "Grounds",
   wearTabRegistry: "Equipment registry",
   wearTabTypes: "Type catalog",
   wearTabPlan: "Replacement plan",
@@ -1329,6 +1375,27 @@ const EN: Record<TranslationKey, string> = {
   invTabOrders: "Work orders",
   footerDisclaimer:
     "The calculation is for reference. Some items (workwear, inventory, routine engineering work, maslikhat minimum tariffs) are 2025-2026 market estimates that need verification before the budget is approved at the general meeting of owners. Properties and budgets are saved locally in the browser.",
+
+  terrTitle: "Grounds & access roads passport",
+  terrDesc:
+    "Detail for budget line 2.3 based on the passport data below — quantities are computed automatically from the areas/counts, using the rate catalog from Appendix B (in tenge).",
+  terrFieldPavement: "Paved area (walkways, plinth), m²",
+  terrFieldAccessRoadArea: "Access road area, m²",
+  terrFieldGreenery: "Lawn & greenery area, m²",
+  terrFieldAccessRoadLength: "Access road length, km",
+  terrFieldTrees: "Number of trees",
+  terrFieldShrubs: "Number of shrubs",
+  terrFieldUrns: "Number of litter bins",
+  terrFieldLighting: "Lighting fixtures/poles",
+  terrFieldPlaygrounds: "Playgrounds/sports areas",
+  terrFieldWasteSites: "Waste container sites",
+  terrApplyButton: "Generate / update budget (line 2.3)",
+  terrPreviewTotal: "Estimated annual total from the catalog:",
+  terrPreviewMatched: "of 109 catalog items with a non-zero quantity",
+  terrUnverifiedWarning:
+    "⚠ Rates are a direct transcription of the source document, but work frequency was reconstructed because the original formula was corrupted in the source file. Verify against the original order/PDF before approving the budget.",
+  terrSourceNote: "Source: Methodological Recommendations No. 22-НҚ dated 01.12.2023 (Appendix B), approved by the MIID RK Construction and Housing Committee",
+  terrAppliedHint: "Items were added to line 2.3 of the \"Cost item builder\" with the Appendix B number prefix — enable/disable and edit quantities there.",
 
   cctModeLabel: "Mode:",
   cctOutsource: "Outsourced",
