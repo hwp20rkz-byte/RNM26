@@ -144,6 +144,7 @@ const RU = {
   terrFieldPlaygrounds: "Детские/спортивные площадки, шт.",
   terrFieldWasteSites: "Контейнерные площадки, шт.",
   terrApplyButton: "Сформировать / обновить смету (ст. 2.3)",
+  terrExportButton: "Бланк паспорта (Word)",
   terrPreviewTotal: "Предварительный годовой итог по каталогу:",
   terrPreviewMatched: "позиций с ненулевым объёмом из 109 в каталоге",
   terrUnverifiedWarning:
@@ -779,6 +780,7 @@ const KZ: Record<TranslationKey, string> = {
   terrFieldPlaygrounds: "Балалар/спорт алаңдары, дана",
   terrFieldWasteSites: "Контейнер алаңдары, дана",
   terrApplyButton: "Сметаны құру / жаңарту (2.3-бап)",
+  terrExportButton: "Паспорт бланкі (Word)",
   terrPreviewTotal: "Каталог бойынша алдын ала жылдық қорытынды:",
   terrPreviewMatched: "каталогтағы 109 позициядан көлемі нөлден өзге позиция",
   terrUnverifiedWarning:
@@ -1390,6 +1392,7 @@ const EN: Record<TranslationKey, string> = {
   terrFieldPlaygrounds: "Playgrounds/sports areas",
   terrFieldWasteSites: "Waste container sites",
   terrApplyButton: "Generate / update budget (line 2.3)",
+  terrExportButton: "Passport form (Word)",
   terrPreviewTotal: "Estimated annual total from the catalog:",
   terrPreviewMatched: "of 109 catalog items with a non-zero quantity",
   terrUnverifiedWarning:

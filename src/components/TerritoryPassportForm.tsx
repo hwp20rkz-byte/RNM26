@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
-import { Trees, AlertTriangle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Trees, AlertTriangle, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberField } from "@/components/NumberField";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
 import { computeTerritoryWorkAnnualCost, defaultTerritoryVolume } from "@/lib/calculator/territoryWorkEngine";
+import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
 import { useT } from "@/lib/i18n/useT";
 import type { TerritoryPassport } from "@/lib/calculator/types";
@@ -32,6 +33,19 @@ export function TerritoryPassportForm() {
   const applyTerritoryPassportToDb = useProjectsStore((s) => s.applyTerritoryPassportToDb);
   const passport = project.territoryPassport;
   const mrpValue = project.db.taxRates.mrpValue;
+  const [exportBusy, setExportBusy] = useState(false);
+
+  async function handleExportDocx() {
+    if (!passport) return;
+    setExportBusy(true);
+    try {
+      const { exportTerritoryPassportToDocxBlob } = await import("@/lib/export/exportTerritoryPassportToDocx");
+      const blob = await exportTerritoryPassportToDocxBlob(project.building, passport);
+      downloadBlob(blob, `Паспорт_территории_${project.name.replace(/[^\p{L}\p{N}]+/gu, "_")}.docx`);
+    } finally {
+      setExportBusy(false);
+    }
+  }
 
   const preview = useMemo(() => {
     if (!passport) return { total: 0, matched: 0 };
@@ -82,6 +96,13 @@ export function TerritoryPassportForm() {
             <b className="text-slate-900 dark:text-slate-100">{formatKzt(preview.total)}</b>
             <span className="text-slate-400"> · {preview.matched} {t("terrPreviewMatched")}</span>
           </div>
+          <button
+            onClick={handleExportDocx}
+            disabled={!passport || exportBusy}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:border-emerald-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <FileText className="h-3.5 w-3.5" /> {t("terrExportButton")}
+          </button>
           <button
             onClick={applyTerritoryPassportToDb}
             className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
