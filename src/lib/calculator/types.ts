@@ -752,3 +752,145 @@ export interface WorkOrder {
   updatedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Придомовая территория и подъездные пути — Методические рекомендации по
+// содержанию и уборке придомовых территорий объектов кондоминиума, утв.
+// приказом Комитета по делам строительства и ЖКХ МИИР РК №22-НҚ от
+// 01.12.2023 (заменили Инструкцию №5 от 10.01.2012). Это ОТДЕЛЬНЫЙ документ
+// от Методики №166 (которая формирует основную формулу тарифа В) — здесь
+// детализируется состав и стоимость работ внутри статей 2.3/2.10.
+//
+// Источник данных был получен как PDF→Markdown конвертация; формула (1) из
+// раздела 9.3 в исходном файле потеряна (осталась только текстовая
+// расшифровка переменных). Значения ниже — реконструкция по перекрёстной
+// сверке с Приложением А, ПОМЕЧЕНА как непроверенная (см. `verified` у
+// TerritoryWorkItem) до сверки с оригиналом приказа/PDF.
+// ---------------------------------------------------------------------------
+
+/** Паспорт придомовой территории — форма из Приложения В методических рекомендаций. */
+export interface TerritoryPassport {
+  id: string;
+  /** Площадь покрытий пешеходных дорожек и отмостки, м² */
+  pavementAreaSqm: number;
+  /** Площадь подъездных путей (проездов, парковок на придомовой территории), м² */
+  accessRoadAreaSqm: number;
+  /** Площадь газонов и прочего озеленения, м² */
+  greeneryAreaSqm: number;
+  /** Протяжённость подъездных путей для расчёта работ, тарифицируемых на 1 км, км */
+  accessRoadLengthKm: number;
+  /** Количество деревьев */
+  treeCount: number;
+  /** Количество кустарников */
+  shrubCount: number;
+  /** Количество урн */
+  urnCount: number;
+  /** Количество опор/светильников уличного освещения придомовой территории */
+  lightingFixtureCount: number;
+  /** Количество детских/спортивных площадок */
+  playgroundCount: number;
+  /** Количество контейнерных площадок ТБО */
+  wasteSiteCount: number;
+  /** Дата составления/актуализации паспорта, ISO-дата */
+  compiledAt: string;
+  notes?: string;
+}
+
+/** Категория работ по содержанию придомовой территории (Приложение А, разделы). */
+export type TerritoryWorkCategory =
+  | "manual_cleaning_warm"
+  | "manual_cleaning_cold"
+  | "mechanized_cleaning_warm"
+  | "mechanized_cleaning_cold"
+  | "snow_removal"
+  | "anti_ice_treatment"
+  | "pavement_repair_asphalt"
+  | "pavement_repair_tile"
+  | "maf_repair_wood"
+  | "maf_repair_metal"
+  | "playground_surface"
+  | "urn_service"
+  | "lighting_service"
+  | "greenery_lawn"
+  | "greenery_trees"
+  | "greenery_shrubs"
+  | "waste_site_service"
+  | "access_road_service"
+  | "other";
+
+export const TERRITORY_WORK_CATEGORY_LABELS: Record<TerritoryWorkCategory, string> = {
+  manual_cleaning_warm: "Ручная уборка — тёплый период",
+  manual_cleaning_cold: "Ручная уборка — холодный период",
+  mechanized_cleaning_warm: "Механизированная уборка — тёплый период",
+  mechanized_cleaning_cold: "Механизированная уборка — холодный период",
+  snow_removal: "Уборка и вывоз снега",
+  anti_ice_treatment: "Противогололёдная обработка",
+  pavement_repair_asphalt: "Текущий ремонт покрытий (асфальт)",
+  pavement_repair_tile: "Текущий ремонт покрытий (плитка)",
+  maf_repair_wood: "Ремонт МАФ (дерево)",
+  maf_repair_metal: "Ремонт МАФ (металл)",
+  playground_surface: "Обслуживание покрытий детских площадок",
+  urn_service: "Обслуживание урн",
+  lighting_service: "Обслуживание освещения",
+  greenery_lawn: "Уход за газонами",
+  greenery_trees: "Уход за деревьями",
+  greenery_shrubs: "Уход за кустарниками",
+  waste_site_service: "Обслуживание контейнерных площадок",
+  access_road_service: "Содержание подъездных путей",
+  other: "Прочее",
+};
+
+/** Базовая физическая единица расценки по Приложению Б (без деноминации — см. `TerritoryWorkItem.unitSize`). */
+export type TerritoryWorkUnit =
+  | "sqm"
+  | "km"
+  | "linear_m"
+  | "cubic_m"
+  | "machine_hour"
+  | "element"
+  | "card";
+
+export const TERRITORY_WORK_UNIT_LABELS: Record<TerritoryWorkUnit, string> = {
+  sqm: "м²",
+  km: "км",
+  linear_m: "пог. м",
+  cubic_m: "м³",
+  machine_hour: "маш.-час",
+  element: "элемент",
+  card: "паспорт/карточка",
+};
+
+/**
+ * Позиция каталога работ по Приложению А+Б методических рекомендаций
+ * №22-НҚ. Расценка выражена в кратности МРП (Приложение Б); периодичность
+ * задаётся парой periodDays/intervalDays (Приложение А, столбцы «кратность
+ * и сроки») — см. `computeTerritoryWorkOccurrencesPerYear`.
+ */
+export interface TerritoryWorkItem {
+  id: string;
+  /** Номер позиции по Приложению А/Б исходного документа, если известен */
+  sourceCode?: string;
+  name: string;
+  category: TerritoryWorkCategory;
+  unit: TerritoryWorkUnit;
+  /** Расценка в кратности МРП за unitSize единиц `unit` (Приложение Б выражает многие ставки «на 10 м²», «на 100 п/м» и т.п.) */
+  ratePerUnitMrp: number;
+  /** Деноминация ставки — сколько единиц `unit` покрывает одна ratePerUnitMrp (напр. 100 для «100 п/м», 1 по умолчанию) */
+  unitSize: number;
+  /** Длительность применимого периода в сутках (напр. 213 — тёплый период апрель–октябрь, 365 — круглогодично) */
+  periodDays: number;
+  /** Интервал повторения работы в сутках (напр. 2 — «1 раз в двое суток») */
+  intervalDays: number;
+  /** Пояснение периода для UI, напр. «тёплый период (апрель–октябрь)» */
+  seasonLabel?: string;
+  workSteps?: string[];
+  /**
+   * Данные реконструированы из PDF→Markdown конвертации без доступа к
+   * оригинальному PDF/приказу (формула (1) раздела 9.3 в исходнике
+   * повреждена). false — требует сверки перед использованием в реальных
+   * начислениях.
+   */
+  verified: boolean;
+  source: string;
+  minServiceClass?: ServiceClass;
+}
+
