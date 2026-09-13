@@ -20,6 +20,7 @@ import type {
   ObjectType,
   OwnershipUnit,
   PayrollPosition,
+  PayrollTaxRates,
   Project,
   SavedSmeta,
   ServicePreset,
@@ -119,6 +120,9 @@ interface ProjectsState {
 
   // --- профиль объекта ---
   setBuilding: (patch: Partial<BuildingProfile>) => void;
+
+  // --- налоговые ставки / МРП ---
+  setTaxRates: (patch: Partial<PayrollTaxRates>) => void;
 
   // --- придомовая территория (Приложение Б, №22-НҚ) ---
   setTerritoryPassport: (patch: Partial<TerritoryPassport>) => void;
@@ -374,6 +378,14 @@ export const useProjectsStore = create<ProjectsState>()(
             const p = s.projects[s.activeProjectId];
             const building = { ...p.building, ...patch };
             return { projects: { ...s.projects, [p.id]: touchProject({ ...p, building }) } };
+          });
+        },
+
+        setTaxRates: (patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const db = { ...p.db, taxRates: { ...p.db.taxRates, ...patch } };
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, db }) } };
           });
         },
 

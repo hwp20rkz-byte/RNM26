@@ -1,17 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Trees, AlertTriangle, FileText } from "lucide-react";
+import { Trees, AlertTriangle, FileText, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberField } from "@/components/NumberField";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
-import { computeTerritoryWorkAnnualCost, defaultTerritoryVolume } from "@/lib/calculator/territoryWorkEngine";
+import { buildMrpForecastSeries, computeTerritoryWorkAnnualCost, defaultTerritoryVolume } from "@/lib/calculator/territoryWorkEngine";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
 import { useT } from "@/lib/i18n/useT";
 import type { TerritoryPassport } from "@/lib/calculator/types";
+
+const FORECAST_BASE_YEAR = 2025;
+const FORECAST_YEARS = [2026, 2027, 2028, 2029, 2030];
 
 const BLANK_PASSPORT: Omit<TerritoryPassport, "id" | "compiledAt"> = {
   pavementAreaSqm: 0,
@@ -33,7 +36,9 @@ export function TerritoryPassportForm() {
   const applyTerritoryPassportToDb = useProjectsStore((s) => s.applyTerritoryPassportToDb);
   const passport = project.territoryPassport;
   const mrpValue = project.db.taxRates.mrpValue;
+  const setTaxRates = useProjectsStore((s) => s.setTaxRates);
   const [exportBusy, setExportBusy] = useState(false);
+  const [growthRatePercent, setGrowthRatePercent] = useState(6);
 
   async function handleExportDocx() {
     if (!passport) return;
@@ -63,6 +68,19 @@ export function TerritoryPassportForm() {
 
   const values = passport ?? BLANK_PASSPORT;
 
+  const forecast = useMemo(() => {
+    const series = buildMrpForecastSeries(mrpValue, FORECAST_BASE_YEAR, growthRatePercent, FORECAST_YEARS);
+    if (!passport) return series.map((y) => ({ ...y, total: 0 }));
+    return series.map((y) => {
+      let total = 0;
+      for (const workItem of TERRITORY_WORK_CATALOG) {
+        const volume = defaultTerritoryVolume(workItem, passport);
+        if (volume > 0) total += computeTerritoryWorkAnnualCost(workItem, volume, y.mrpValue);
+      }
+      return { ...y, total };
+    });
+  }, [passport, mrpValue, growthRatePercent]);
+
   function patch(field: keyof typeof BLANK_PASSPORT, value: number) {
     setTerritoryPassport({ [field]: value } as Partial<TerritoryPassport>);
   }
@@ -88,6 +106,56 @@ export function TerritoryPassportForm() {
           <NumberField label={t("terrFieldLighting")} value={values.lightingFixtureCount} onChange={(v) => patch("lightingFixtureCount", v)} />
           <NumberField label={t("terrFieldPlaygrounds")} value={values.playgroundCount} onChange={(v) => patch("playgroundCount", v)} />
           <NumberField label={t("terrFieldWasteSites")} value={values.wasteSiteCount} onChange={(v) => patch("wasteSiteCount", v)} />
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("terrMrpForecastTitle")}</span>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <NumberField
+              label={t("terrMrpValueLabel")}
+              value={mrpValue}
+              onChange={(v) => setTaxRates({ mrpValue: v })}
+              suffix="₸"
+              step={1}
+            />
+            <NumberField
+              label={t("terrMrpGrowthLabel")}
+              value={growthRatePercent}
+              onChange={setGrowthRatePercent}
+              suffix="%/год"
+              step={0.5}
+            />
+          </div>
+          <p className="text-xs text-slate-400">{t("terrMrpGrowthHint")}</p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-xs">
+              <thead>
+                <tr className="text-slate-400">
+                  <th className="py-1 text-left font-medium">{t("terrMrpForecastYear")}</th>
+                  {forecast.map((y) => (
+                    <th key={y.year} className="py-1 text-right font-medium">{y.year}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-slate-200 dark:border-slate-800">
+                  <td className="py-1.5 text-slate-500 dark:text-slate-400">{t("terrMrpForecastMrpRow")}</td>
+                  {forecast.map((y) => (
+                    <td key={y.year} className="py-1.5 text-right tabular-nums text-slate-700 dark:text-slate-200">{formatKzt(y.mrpValue)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="py-1.5 text-slate-500 dark:text-slate-400">{t("terrMrpForecastTotalRow")}</td>
+                  {forecast.map((y) => (
+                    <td key={y.year} className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-slate-100">{formatKzt(y.total)}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">

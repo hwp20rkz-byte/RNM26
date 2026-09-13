@@ -753,6 +753,17 @@ describe("наряды (WorkOrder)", () => {
   });
 });
 
+describe("setTaxRates", () => {
+  it("обновляет МРП активного проекта и не трогает остальные ставки", () => {
+    const before = selectActiveProject(useProjectsStore.getState()).db.taxRates;
+    useProjectsStore.getState().setTaxRates({ mrpValue: 4200 });
+    const after = selectActiveProject(useProjectsStore.getState()).db.taxRates;
+    expect(after.mrpValue).toBe(4200);
+    expect(after.opvRate).toBe(before.opvRate);
+    expect(after.standardDeductionMrpMultiplier).toBe(before.standardDeductionMrpMultiplier);
+  });
+});
+
 describe("паспорт придомовой территории", () => {
   it("setTerritoryPassport создаёт паспорт при первом вызове и мержит патчи", () => {
     expect(selectActiveProject(useProjectsStore.getState()).territoryPassport).toBeUndefined();

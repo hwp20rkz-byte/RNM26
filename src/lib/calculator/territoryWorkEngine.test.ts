@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildMrpForecastSeries,
   computeTerritoryWorkAnnualCost,
   computeTerritoryWorkOccurrencesPerYear,
   instantiateTerritoryCostItem,
+  projectMrpValue,
 } from "./territoryWorkEngine";
 import { TERRITORY_WORK_CATALOG } from "./data/territoryWorkCatalog";
 import type { TerritoryWorkItem } from "./types";
@@ -75,8 +77,16 @@ describe("TERRITORY_WORK_CATALOG", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("каждая позиция помечена как непроверенная до сверки с оригиналом", () => {
-    expect(TERRITORY_WORK_CATALOG.every((i) => i.verified === false)).toBe(true);
+  it("позиции 1-41 (спецтехника/ручная уборка/ямочный ремонт) сверены с оригиналом PDF", () => {
+    const verifiedCodes = TERRITORY_WORK_CATALOG.filter((i) => i.verified).map((i) => i.sourceCode);
+    expect(verifiedCodes.length).toBeGreaterThanOrEqual(35);
+    expect(verifiedCodes).toContain("1");
+    expect(verifiedCodes).toContain("38");
+  });
+
+  it("позиции по МАФ/озеленению/контейнерам остаются непроверенными (не сверены построчно)", () => {
+    const maf = TERRITORY_WORK_CATALOG.find((i) => i.sourceCode === "60");
+    expect(maf?.verified).toBe(false);
   });
 
   it("расчёт годовой стоимости не даёт отрицательных или NaN значений по всему каталогу", () => {
@@ -89,5 +99,34 @@ describe("TERRITORY_WORK_CATALOG", () => {
 
   it("содержит полную транскрипцию Приложения Б (109 позиций)", () => {
     expect(TERRITORY_WORK_CATALOG).toHaveLength(109);
+  });
+});
+
+describe("projectMrpValue", () => {
+  it("возвращает базовое значение для базового года", () => {
+    expect(projectMrpValue(3932, 2025, 6, 2025)).toBe(3932);
+  });
+
+  it("применяет сложный процент за N лет", () => {
+    const v = projectMrpValue(1000, 2025, 10, 2027);
+    expect(v).toBeCloseTo(1000 * 1.1 * 1.1);
+  });
+
+  it("не проецирует назад (год раньше базового возвращает базовое значение)", () => {
+    expect(projectMrpValue(3932, 2025, 6, 2020)).toBe(3932);
+  });
+});
+
+describe("buildMrpForecastSeries", () => {
+  it("строит ряд по годам с накопленным ростом", () => {
+    const series = buildMrpForecastSeries(3932, 2025, 6, [2026, 2027, 2028, 2029, 2030]);
+    expect(series).toHaveLength(5);
+    expect(series[0].year).toBe(2026);
+    expect(series[0].mrpValue).toBeCloseTo(3932 * 1.06, 1);
+    expect(series[4].mrpValue).toBeGreaterThan(series[0].mrpValue);
+    // монотонный рост
+    for (let i = 1; i < series.length; i++) {
+      expect(series[i].mrpValue).toBeGreaterThan(series[i - 1].mrpValue);
+    }
   });
 });

@@ -78,6 +78,40 @@ export function instantiateTerritoryCostItem(
  * пользователь указывает объём вручную через инлайн-редактирование в
  * дереве статей после генерации.
  */
+/**
+ * Прогноз значения МРП на будущий год простым сложным ростом от базового
+ * года/значения. Ставка роста — предположение пользователя, а не
+ * официальный прогноз: МРП утверждается ежегодно Законом РК «О
+ * республиканском бюджете», и никакой формулы для будущих лет не существует.
+ * Историческая динамика 2023→2025 (3450→3692→3932 ₸, [Предположение] по
+ * памяти без сверки с официальным источником в этой сессии) — около 6-7% в
+ * год, отсюда ориентир по умолчанию в UI, но поле всегда редактируемое.
+ */
+export function projectMrpValue(baseMrpValue: number, baseYear: number, growthRatePercent: number, targetYear: number): number {
+  const years = targetYear - baseYear;
+  if (years <= 0) return baseMrpValue;
+  return baseMrpValue * Math.pow(1 + growthRatePercent / 100, years);
+}
+
+export interface MrpForecastYear {
+  year: number;
+  mrpValue: number;
+}
+
+/** Ряд прогнозных значений МРП по годам — для отображения в таблице/графике. */
+export function buildMrpForecastSeries(
+  baseMrpValue: number,
+  baseYear: number,
+  growthRatePercent: number,
+  years: number[],
+): MrpForecastYear[] {
+  return years.map((year) => ({ year, mrpValue: round2(projectMrpValue(baseMrpValue, baseYear, growthRatePercent, year)) }));
+}
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
 export function defaultTerritoryVolume(item: TerritoryWorkItem, passport: TerritoryPassport): number {
   switch (item.unit) {
     case "km":
