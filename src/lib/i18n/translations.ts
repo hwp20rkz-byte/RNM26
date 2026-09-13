@@ -542,10 +542,11 @@ const RU = {
   // Инструмент расчёта задолженности для нотариуса (NotaryDebtTool)
   ndTitle: "Расчёт задолженности для взыскания",
   ndDesc:
-    "Выберите должника по лицевому счёту, номеру помещения или ФИО — сформируйте официальный расчёт задолженности для передачи нотариусу (исполнительная надпись по бесспорному требованию).",
+    "Отметьте чекбоксами одного или нескольких должников по лицевому счёту, номеру помещения или ФИО — сформируйте официальный расчёт задолженности для передачи нотариусу (исполнительная надпись по бесспорному требованию).",
   ndNoDebtorsHint: "Нет данных о должниках — импортируйте ведомость Астана ЕРЦ на вкладке «Реестр».",
   ndSearchPlaceholder: "Поиск по ЛС, номеру, ФИО или адресу…",
   ndNothingFound: "Ничего не найдено.",
+  ndNoSelectionHint: "Отметьте одного или нескольких должников чекбоксами, чтобы сформировать расчёт.",
   ndNoOwnerNameHint: "ФИО не указано",
   ndFieldOwner: "Собственник:",
   ndFieldAccount: "Лицевой счёт:",
@@ -1316,10 +1317,11 @@ const KZ: Record<TranslationKey, string> = {
 
   ndTitle: "Өндіріп алуға берешек есебі",
   ndDesc:
-    "Лицевой шот, пәтер нөмірі немесе аты-жөні бойынша борышкерді таңдаңыз — нотариусқа беруге арналған ресми берешек есебін жасаңыз (даусыз талап бойынша орындау жазбасы).",
+    "Лицевой шот, пәтер нөмірі немесе аты-жөні бойынша бір немесе бірнеше борышкерді құсбелгімен белгілеңіз — нотариусқа беруге арналған ресми берешек есебін жасаңыз (даусыз талап бойынша орындау жазбасы).",
   ndNoDebtorsHint: "Борышкерлер туралы деректер жоқ — «Тізілім» қойындысында Астана ЕРЦ ведомосін импорттаңыз.",
   ndSearchPlaceholder: "ЛС, нөмір, аты-жөні немесе мекенжай бойынша іздеу…",
   ndNothingFound: "Ештеңе табылмады.",
+  ndNoSelectionHint: "Есепті жасау үшін бір немесе бірнеше борышкерді құсбелгімен белгілеңіз.",
   ndNoOwnerNameHint: "Аты-жөні көрсетілмеген",
   ndFieldOwner: "Меншік иесі:",
   ndFieldAccount: "Лицевой шот:",
@@ -2076,10 +2078,11 @@ const EN: Record<TranslationKey, string> = {
 
   ndTitle: "Debt calculation for collection",
   ndDesc:
-    "Select a debtor by account number, unit number, or owner name — generate a formal debt calculation for submission to a notary (writ of execution for an undisputed claim).",
+    "Check one or more debtors by account number, unit number, or owner name — generate a formal debt calculation for submission to a notary (writ of execution for an undisputed claim).",
   ndNoDebtorsHint: "No debtor data — import an Astana ERC statement on the \"Registry\" tab.",
   ndSearchPlaceholder: "Search by account, unit, owner name, or address…",
   ndNothingFound: "Nothing found.",
+  ndNoSelectionHint: "Check one or more debtors to generate a calculation.",
   ndNoOwnerNameHint: "Owner name not set",
   ndFieldOwner: "Owner:",
   ndFieldAccount: "Personal account:",

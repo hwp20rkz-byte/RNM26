@@ -12,16 +12,17 @@ import { formatKzt } from "@/lib/utils";
 import { useT } from "@/lib/i18n/useT";
 
 /**
- * Инструмент расчёта задолженности по одному лицевому счёту для передачи
+ * Инструмент расчёта задолженности по лицевым счетам для передачи
  * нотариусу (исполнительная надпись по бесспорному требованию) — в отличие
- * от DebtDashboard, здесь не аналитика по реестру, а подготовка одного
- * официального документа на конкретного должника.
+ * от DebtDashboard, здесь не аналитика по реестру, а подготовка официального
+ * документа на одного ИЛИ несколько выбранных должников разом (чекбоксы +
+ * «выбрать все»), со сводной таблицей и общей суммой при батче.
  */
 export function NotaryDebtTool() {
   const t = useT();
   const project = useActiveProject();
   const [search, setSearch] = useState("");
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportBusy, setExportBusy] = useState(false);
 
   const debtors = useMemo(
@@ -46,16 +47,47 @@ export function NotaryDebtTool() {
     );
   }, [debtors, search]);
 
-  const selected = useMemo(() => debtors.find((d) => d.unit.id === selectedUnitId) ?? null, [debtors, selectedUnitId]);
+  const selectedDebtors = useMemo(() => debtors.filter((d) => selectedIds.has(d.unit.id)), [debtors, selectedIds]);
+  const combinedTotalKzt = useMemo(
+    () => selectedDebtors.reduce((sum, d) => sum + d.status.totalDebtKzt, 0),
+    [selectedDebtors],
+  );
+
+  const allFilteredSelected = filteredDebtors.length > 0 && filteredDebtors.every((d) => selectedIds.has(d.unit.id));
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllFiltered() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        for (const d of filteredDebtors) next.delete(d.unit.id);
+      } else {
+        for (const d of filteredDebtors) next.add(d.unit.id);
+      }
+      return next;
+    });
+  }
 
   async function handleExport() {
-    if (!selected) return;
+    if (selectedDebtors.length === 0) return;
     setExportBusy(true);
     try {
       const { exportDebtClaimToDocxBlob } = await import("@/lib/export/exportDebtClaimToDocx");
-      const blob = await exportDebtClaimToDocxBlob({ building: project.building, unit: selected.unit });
-      const safeAccount = (selected.unit.personalAccount || selected.unit.number).replace(/[^\p{L}\p{N}]+/gu, "_");
-      downloadBlob(blob, `Расчёт_задолженности_${safeAccount}.docx`);
+      const units = selectedDebtors.map((d) => d.unit);
+      const blob = await exportDebtClaimToDocxBlob({ building: project.building, units });
+      const filename =
+        units.length === 1
+          ? `Расчёт_задолженности_${(units[0].personalAccount || units[0].number).replace(/[^\p{L}\p{N}]+/gu, "_")}.docx`
+          : `Расчёт_задолженности_сводный_${units.length}_ЛС.docx`;
+      downloadBlob(blob, filename);
     } finally {
       setExportBusy(false);
     }
@@ -87,71 +119,102 @@ export function NotaryDebtTool() {
               />
             </div>
 
+            <label className="flex w-fit items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={allFilteredSelected}
+                onChange={toggleSelectAllFiltered}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              {t("orSelectAllVisible")}
+            </label>
+
             <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800">
               {filteredDebtors.length === 0 ? (
                 <p className="px-3 py-4 text-center text-sm text-slate-400">{t("ndNothingFound")}</p>
               ) : (
                 <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredDebtors.map(({ unit, status }) => (
-                    <button
+                    <label
                       key={unit.id}
-                      onClick={() => setSelectedUnitId(unit.id)}
-                      className={`flex flex-wrap items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-900 ${
-                        selectedUnitId === unit.id ? "bg-rose-50 dark:bg-rose-950/20" : ""
+                      className={`flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-900 ${
+                        selectedIds.has(unit.id) ? "bg-rose-50 dark:bg-rose-950/20" : ""
                       }`}
                     >
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(unit.id)}
+                        onChange={() => toggleSelected(unit.id)}
+                        className="h-4 w-4 flex-shrink-0 rounded border-slate-300"
+                      />
                       <span className="font-medium text-slate-700 dark:text-slate-200">
                         {unit.address ? `${unit.address}, ` : ""}№{unit.number}
                       </span>
                       <span className="text-slate-400">{unit.ownerName || t("ndNoOwnerNameHint")}</span>
                       {unit.personalAccount && <span className="text-slate-400">ЛС {unit.personalAccount}</span>}
                       <span className="ml-auto font-semibold text-rose-600 dark:text-rose-400">{formatKzt(status.totalDebtKzt)}</span>
-                    </button>
+                    </label>
                   ))}
                 </div>
               )}
             </div>
 
-            {selected && (
+            {selectedDebtors.length === 0 ? (
+              <p className="text-xs text-slate-400">{t("ndNoSelectionHint")}</p>
+            ) : (
               <div className="rounded-xl border border-rose-300 bg-rose-50/60 p-4 dark:border-rose-900 dark:bg-rose-950/20">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    {selected.unit.address ? `${selected.unit.address}, ` : ""}№{selected.unit.number}
+                    {t("orSelectedCountPrefix")} {selectedDebtors.length}
                   </h4>
                   <Badge variant="danger">{t("orDebtorBadge")}</Badge>
                 </div>
-                <dl className="mb-3 grid grid-cols-1 gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-slate-400">{t("ndFieldOwner")}</dt>
-                    <dd className="font-medium text-slate-700 dark:text-slate-200">{selected.unit.ownerName || "—"}</dd>
+
+                {selectedDebtors.length === 1 ? (
+                  <dl className="mb-3 grid grid-cols-1 gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-400">{t("ndFieldOwner")}</dt>
+                      <dd className="font-medium text-slate-700 dark:text-slate-200">{selectedDebtors[0].unit.ownerName || "—"}</dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-400">{t("ndFieldAccount")}</dt>
+                      <dd className="font-medium text-slate-700 dark:text-slate-200">{selectedDebtors[0].unit.personalAccount || "—"}</dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-400">{t("orDebtElevatorLabel")}</dt>
+                      <dd className="font-medium tabular-nums text-slate-700 dark:text-slate-200">
+                        {formatKzt(Math.max(0, selectedDebtors[0].status.elevatorDebtKzt))} (≈
+                        {selectedDebtors[0].status.elevatorDebtMonths} {t("orDebtMonthsSuffix")})
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-400">{t("orDebtOperationalLabel")}</dt>
+                      <dd className="font-medium tabular-nums text-slate-700 dark:text-slate-200">
+                        {formatKzt(Math.max(0, selectedDebtors[0].status.operationalDebtKzt))} (≈
+                        {selectedDebtors[0].status.operationalDebtMonths} {t("orDebtMonthsSuffix")})
+                      </dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <div className="mb-3 flex max-h-40 flex-col divide-y divide-rose-100 overflow-y-auto rounded-lg border border-rose-200 bg-white text-xs dark:divide-rose-900 dark:border-rose-900 dark:bg-slate-900">
+                    {selectedDebtors.map(({ unit, status }) => (
+                      <div key={unit.id} className="flex flex-wrap items-center gap-2 px-3 py-1.5">
+                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                          {unit.address ? `${unit.address}, ` : ""}№{unit.number}
+                        </span>
+                        <span className="text-slate-400">{unit.ownerName || t("ndNoOwnerNameHint")}</span>
+                        <span className="ml-auto font-semibold text-rose-600 dark:text-rose-400">{formatKzt(status.totalDebtKzt)}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-slate-400">{t("ndFieldAccount")}</dt>
-                    <dd className="font-medium text-slate-700 dark:text-slate-200">{selected.unit.personalAccount || "—"}</dd>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-slate-400">{t("orDebtElevatorLabel")}</dt>
-                    <dd className="font-medium tabular-nums text-slate-700 dark:text-slate-200">
-                      {formatKzt(Math.max(0, selected.status.elevatorDebtKzt))} (≈{selected.status.elevatorDebtMonths}{" "}
-                      {t("orDebtMonthsSuffix")})
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-slate-400">{t("orDebtOperationalLabel")}</dt>
-                    <dd className="font-medium tabular-nums text-slate-700 dark:text-slate-200">
-                      {formatKzt(Math.max(0, selected.status.operationalDebtKzt))} (≈{selected.status.operationalDebtMonths}{" "}
-                      {t("orDebtMonthsSuffix")})
-                    </dd>
-                  </div>
-                </dl>
+                )}
+
                 <div className="mb-3 rounded-lg border border-rose-200 bg-white px-3 py-2 dark:border-rose-900 dark:bg-slate-900">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-slate-600 dark:text-slate-300">{t("ndTotalLabel")}</span>
-                    <span className="text-lg font-semibold text-rose-600 dark:text-rose-400">
-                      {formatKzt(selected.status.totalDebtKzt)}
-                    </span>
+                    <span className="text-lg font-semibold text-rose-600 dark:text-rose-400">{formatKzt(combinedTotalKzt)}</span>
                   </div>
-                  <p className="mt-1 text-xs italic text-slate-400">{amountToWordsKzt(selected.status.totalDebtKzt)}</p>
+                  <p className="mt-1 text-xs italic text-slate-400">{amountToWordsKzt(combinedTotalKzt)}</p>
                 </div>
 
                 <button
