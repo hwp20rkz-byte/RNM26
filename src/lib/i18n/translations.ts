@@ -119,13 +119,13 @@ const RU = {
   tabBudget: "План/факт",
   tabProtocol: "Протокол собрания",
   tabInventory: "Инженерия и ЗИП",
+  tabOrders: "Наряды",
   tabTerritory: "Территория",
   wearTabRegistry: "Реестр оборудования",
   wearTabTypes: "Справочник типов",
   wearTabPlan: "План замены",
   invTabStock: "Склад ЗИП",
   invTabLog: "Журнал работ",
-  invTabOrders: "Наряды",
   footerDisclaimer:
     "Расчёт носит справочный характер. Часть позиций (спецодежда, инвентарь, регламентные работы по инженерии, минимальные тарифы маслихатов) — рыночные оценки 2025-2026 гг., требующие сверки перед утверждением сметы на общем собрании собственников. Объекты и сметы сохраняются локально в браузере.",
 
@@ -172,7 +172,7 @@ const RU = {
   twsNoPassportHint: "Сначала заполните «Паспорт территории» на соседней вкладке — план строится по указанным там объёмам.",
   twsEmptyState: "На выбранный период нет позиций с регулярной периодичностью.",
   twsExcludedNote:
-    "Позиции «по мере необходимости» (ремонт МАФ, скамей, ограждений, контейнеров — К=1) в календарь не включены, у них нет содержательной даты. Создавайте по ним наряд по факту обнаружения повреждения — кнопка «Создать наряд» доступна и для них через раздел «Инженерия и ЗИП» → «Наряды».",
+    "Позиции «по мере необходимости» (ремонт МАФ, скамей, ограждений, контейнеров — К=1) в календарь не включены, у них нет содержательной даты. Создавайте по ним наряд по факту обнаружения повреждения — кнопка «Создать наряд» доступна и для них, наряд появится на вкладке «Наряды».",
   twsTabDay: "День",
   twsTabWeek: "Неделя",
   twsTabMonth: "Месяц",
@@ -199,7 +199,7 @@ const RU = {
   twsCreateOrderButton: "Создать наряд",
   twsOrderLinkedPrefix: "Наряд",
   twsOrdersIntegrationHint:
-    "«Создать наряд» формирует формальный наряд (вкладка «Наряды» в разделе «Инженерия и ЗИП») со сроком исполнения на дату позиции — используйте, когда работу нужно поручить и проконтролировать отдельно от чек-листа ниже.",
+    "«Создать наряд» формирует формальный наряд (вкладка «Наряды») со сроком исполнения на дату позиции — используйте, когда работу нужно поручить и проконтролировать отдельно от чек-листа ниже.",
   twsDetailsToggle: "Подробнее",
   twsFieldCategory: "Вид работ",
   twsFieldUnit: "Ед. изм.",
@@ -817,13 +817,13 @@ const KZ: Record<TranslationKey, string> = {
   tabBudget: "Жоспар/факт",
   tabProtocol: "Жиналыс хаттамасы",
   tabInventory: "Инженерия және ЗИП",
+  tabOrders: "Нарядтар",
   tabTerritory: "Аумақ",
   wearTabRegistry: "Жабдық тізілімі",
   wearTabTypes: "Түрлер анықтамалығы",
   wearTabPlan: "Ауыстыру жоспары",
   invTabStock: "ЗИП қоймасы",
   invTabLog: "Жұмыстар журналы",
-  invTabOrders: "Нарядтар",
   footerDisclaimer:
     "Есептеу анықтамалық сипатта. Кейбір позициялар (арнайы киім, мүкәммал, инженерияның регламенттік жұмыстары, мәслихаттардың ең төменгі тарифтері) — 2025-2026 жж. нарықтық бағалар, меншік иелерінің жалпы жиналысында сметаны бекітпес бұрын тексеруді қажет етеді. Нысандар мен сметалар браузерде жергілікті сақталады.",
 
@@ -867,7 +867,7 @@ const KZ: Record<TranslationKey, string> = {
   twsNoPassportHint: "Алдымен көрші қойындыдағы «Аумақ паспортын» толтырыңыз — жоспар сол жердегі көлемдер бойынша құрылады.",
   twsEmptyState: "Таңдалған кезеңде тұрақты мерзімділігі бар позициялар жоқ.",
   twsExcludedNote:
-    "«Қажеттілігіне қарай» позициялар (МАФ, орындықтар, қоршаулар, контейнерлерді жөндеу — К=1) күнтізбеге қосылмаған, оларда мазмұнды күні жоқ. Бұзылу анықталған сәтте «Инженерия және ЗИП» → «Нарядтар» бөлімі арқылы наряд құрыңыз.",
+    "«Қажеттілігіне қарай» позициялар (МАФ, орындықтар, қоршаулар, контейнерлерді жөндеу — К=1) күнтізбеге қосылмаған, оларда мазмұнды күні жоқ. Бұзылу анықталған сәтте «Наряд құру» түймесі арқылы наряд құрыңыз — ол «Нарядтар» қойындысында пайда болады.",
   twsTabDay: "Күн",
   twsTabWeek: "Апта",
   twsTabMonth: "Ай",
@@ -894,7 +894,7 @@ const KZ: Record<TranslationKey, string> = {
   twsCreateOrderButton: "Наряд құру",
   twsOrderLinkedPrefix: "Наряд",
   twsOrdersIntegrationHint:
-    "«Наряд құру» осы позицияның күніне орындау мерзімі бар формальды наряд жасайды («Инженерия және ЗИП» бөлімінің «Нарядтар» қойындысы) — жұмысты бөлек тапсырып, бақылау керек болғанда пайдаланыңыз.",
+    "«Наряд құру» осы позицияның күніне орындау мерзімі бар формальды наряд жасайды («Нарядтар» қойындысы) — жұмысты бөлек тапсырып, бақылау керек болғанда пайдаланыңыз.",
   twsDetailsToggle: "Толығырақ",
   twsFieldCategory: "Жұмыс түрі",
   twsFieldUnit: "Өлш. бірл.",
@@ -1488,13 +1488,13 @@ const EN: Record<TranslationKey, string> = {
   tabBudget: "Plan/actual",
   tabProtocol: "Meeting protocol",
   tabInventory: "Engineering & spares",
+  tabOrders: "Work orders",
   tabTerritory: "Grounds",
   wearTabRegistry: "Equipment registry",
   wearTabTypes: "Type catalog",
   wearTabPlan: "Replacement plan",
   invTabStock: "Spare parts stock",
   invTabLog: "Work log",
-  invTabOrders: "Work orders",
   footerDisclaimer:
     "The calculation is for reference. Some items (workwear, inventory, routine engineering work, maslikhat minimum tariffs) are 2025-2026 market estimates that need verification before the budget is approved at the general meeting of owners. Properties and budgets are saved locally in the browser.",
 
@@ -1538,7 +1538,7 @@ const EN: Record<TranslationKey, string> = {
   twsNoPassportHint: "Fill in the \"Grounds passport\" on the neighboring tab first — the schedule is built from the quantities entered there.",
   twsEmptyState: "No recurring items fall in the selected period.",
   twsExcludedNote:
-    "\"As-needed\" items (street furniture, bench, fence, and container repairs — K=1) are not included in the calendar since they have no meaningful date. Create a work order for them on discovery of damage via \"Engineering & spares\" → \"Work orders\".",
+    "\"As-needed\" items (street furniture, bench, fence, and container repairs — K=1) are not included in the calendar since they have no meaningful date. Create a work order for them on discovery of damage — it will appear on the \"Work orders\" tab.",
   twsTabDay: "Day",
   twsTabWeek: "Week",
   twsTabMonth: "Month",
@@ -1565,7 +1565,7 @@ const EN: Record<TranslationKey, string> = {
   twsCreateOrderButton: "Create work order",
   twsOrderLinkedPrefix: "Work order",
   twsOrdersIntegrationHint:
-    "\"Create work order\" generates a formal work order (the \"Work orders\" tab under \"Engineering & spares\") due on this item's date — use it when the task needs to be assigned and tracked separately from the checklist below.",
+    "\"Create work order\" generates a formal work order (the \"Work orders\" tab) due on this item's date — use it when the task needs to be assigned and tracked separately from the checklist below.",
   twsDetailsToggle: "Details",
   twsFieldCategory: "Work type",
   twsFieldUnit: "Unit",

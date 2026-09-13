@@ -87,6 +87,7 @@ export default function HomePage() {
                 <TabsTrigger value="budget">{t("tabBudget")}</TabsTrigger>
                 <TabsTrigger value="protocol">{t("tabProtocol")}</TabsTrigger>
                 <TabsTrigger value="inventory">{t("tabInventory")}</TabsTrigger>
+                <TabsTrigger value="orders">{t("tabOrders")}</TabsTrigger>
                 <TabsTrigger value="territory">{t("tabTerritory")}</TabsTrigger>
               </TabsList>
               <TabsContent value="constructor">
@@ -133,7 +134,6 @@ export default function HomePage() {
                   <TabsList>
                     <TabsTrigger value="stock">{t("invTabStock")}</TabsTrigger>
                     <TabsTrigger value="log">{t("invTabLog")}</TabsTrigger>
-                    <TabsTrigger value="orders">{t("invTabOrders")}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="stock">
                     <SparePartsRegistry />
@@ -141,10 +141,10 @@ export default function HomePage() {
                   <TabsContent value="log">
                     <MaintenanceLog />
                   </TabsContent>
-                  <TabsContent value="orders">
-                    <WorkOrderBoard />
-                  </TabsContent>
                 </Tabs>
+              </TabsContent>
+              <TabsContent value="orders">
+                <WorkOrderBoard />
               </TabsContent>
               <TabsContent value="territory">
                 <Tabs defaultValue="passport">
