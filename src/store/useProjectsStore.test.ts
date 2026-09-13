@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useProjectsStore, selectActiveProject } from "./useProjectsStore";
 import { computeTariff } from "@/lib/calculator/engine";
+import type { ErcUnitStatement } from "@/lib/import/parseErcStatement";
 
 const INITIAL_STATE = useProjectsStore.getState();
 
@@ -412,6 +413,75 @@ describe("реестр собственников и общие собрания
     const meetingId = useProjectsStore.getState().createMeeting("Собрание", "2026-05-01", "in_person");
     useProjectsStore.getState().removeMeeting(meetingId);
     expect(selectActiveProject(useProjectsStore.getState()).meetings.find((m) => m.id === meetingId)).toBeUndefined();
+  });
+});
+
+function ercUnit(unitNumber: string, personalAccount: string, elevatorClosing: number, operationalClosing: number): ErcUnitStatement {
+  return {
+    personalAccount,
+    address: "ул.Тест, д.1",
+    unitNumber,
+    area: 50,
+    services: [
+      {
+        serviceLabel: "ТО лифтов",
+        kind: "elevator_maintenance",
+        tariff: 1500,
+        openingBalanceKzt: 0,
+        accrualKzt: 1500,
+        paymentKzt: 0,
+        thirdPartyPaymentKzt: 0,
+        adjustmentKzt: 0,
+        closingBalanceKzt: elevatorClosing,
+      },
+      {
+        serviceLabel: "Эксплуатационные расходы КСК",
+        kind: "operational_expenses",
+        tariff: 69.2,
+        openingBalanceKzt: 0,
+        accrualKzt: 3460,
+        paymentKzt: 0,
+        thirdPartyPaymentKzt: 0,
+        adjustmentKzt: 0,
+        closingBalanceKzt: operationalClosing,
+      },
+    ],
+    totalClosingBalanceKzt: elevatorClosing + operationalClosing,
+  };
+}
+
+describe("импорт ведомости ЕРЦ (долги)", () => {
+  it("создаёт новый юнит с пустым ФИО и долговыми полями, если номер квартиры не найден в реестре", () => {
+    const result = useProjectsStore.getState().importDebtStatement([ercUnit("1", "1001", 3000, 0)], "08/2026");
+    expect(result).toEqual({ created: 1, updated: 0 });
+    const units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(1);
+    expect(units[0].ownerName).toBe("");
+    expect(units[0].unitType).toBe("apartment");
+    expect(units[0].personalAccount).toBe("1001");
+    expect(units[0].source).toBe("Импорт из ведомости Астана ЕРЦ");
+    expect(units[0].debtElevatorKzt).toBe(3000);
+    expect(units[0].debtPeriod).toBe("08/2026");
+  });
+
+  it("обновляет долг существующего юнита по номеру квартиры, сохраняя уже заполненное ФИО", () => {
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "7", area: 45, ownerName: "Иванов И.И." });
+    const result = useProjectsStore.getState().importDebtStatement([ercUnit("7", "2007", 0, 4500)], "08/2026");
+    expect(result).toEqual({ created: 0, updated: 1 });
+    const units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(1);
+    expect(units[0].ownerName).toBe("Иванов И.И.");
+    expect(units[0].debtOperationalKzt).toBe(4500);
+    expect(units[0].source).toBe("Импорт из ведомости Астана ЕРЦ");
+  });
+
+  it("повторный импорт той же квартиры не дублирует запись, а обновляет долг", () => {
+    useProjectsStore.getState().importDebtStatement([ercUnit("3", "3003", 1500, 0)], "07/2026");
+    useProjectsStore.getState().importDebtStatement([ercUnit("3", "3003", 0, 0)], "08/2026");
+    const units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(1);
+    expect(units[0].debtElevatorKzt).toBe(0);
+    expect(units[0].debtPeriod).toBe("08/2026");
   });
 });
 

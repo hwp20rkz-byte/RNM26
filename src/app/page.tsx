@@ -13,6 +13,7 @@ import { AssetRegistry } from "@/components/AssetRegistry";
 import { EquipmentTypeCatalog } from "@/components/EquipmentTypeCatalog";
 import { ReplacementPlan } from "@/components/ReplacementPlan";
 import { OwnerRegistry } from "@/components/OwnerRegistry";
+import { DebtDashboard } from "@/components/DebtDashboard";
 import { MaintenanceCalendar } from "@/components/MaintenanceCalendar";
 import { BudgetActual } from "@/components/BudgetActual";
 import { ProtocolBuilder } from "@/components/ProtocolBuilder";
@@ -118,7 +119,18 @@ export default function HomePage() {
                 </Tabs>
               </TabsContent>
               <TabsContent value="owners">
-                <OwnerRegistry />
+                <Tabs defaultValue="registry">
+                  <TabsList>
+                    <TabsTrigger value="registry">{t("orTabRegistry")}</TabsTrigger>
+                    <TabsTrigger value="debt">{t("orTabDebt")}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="registry">
+                    <OwnerRegistry />
+                  </TabsContent>
+                  <TabsContent value="debt">
+                    <DebtDashboard />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
               <TabsContent value="maintenance">
                 <MaintenanceCalendar />

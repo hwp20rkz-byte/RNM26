@@ -1,14 +1,21 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, FileSpreadsheet, Plus, Trash2, Upload, Users, X } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, Plus, Send, Trash2, Upload, Users, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InlineNumber, InlineText } from "@/components/InlineEdit";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject, useActiveTariff } from "@/store/hooks";
 import { parseOwnersListFile, type ParseOwnersListResult } from "@/lib/import/parseOwnersList";
-import { computeRegistryTotals, computeUnitMonthlyAccrual } from "@/lib/calculator/ownerRegistryEngine";
+import { parseErcStatementFile, type ParseErcStatementResult } from "@/lib/import/parseErcStatement";
+import {
+  buildDebtNoticeMessage,
+  buildWaLinkToPhone,
+  computeRegistryTotals,
+  computeUnitDebtStatus,
+  computeUnitMonthlyAccrual,
+} from "@/lib/calculator/ownerRegistryEngine";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
 import { useT } from "@/lib/i18n/useT";
@@ -24,6 +31,7 @@ export function OwnerRegistry() {
   const updateUnit = useProjectsStore((s) => s.updateUnit);
   const removeUnit = useProjectsStore((s) => s.removeUnit);
   const importUnits = useProjectsStore((s) => s.importUnits);
+  const importDebtStatement = useProjectsStore((s) => s.importDebtStatement);
 
   const [search, setSearch] = useState("");
   const [newType, setNewType] = useState<UnitType>("apartment");
@@ -31,6 +39,12 @@ export function OwnerRegistry() {
   const [importError, setImportError] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [debtPreview, setDebtPreview] = useState<ParseErcStatementResult | null>(null);
+  const [debtPreviewAddress, setDebtPreviewAddress] = useState("");
+  const [debtImportError, setDebtImportError] = useState<string | null>(null);
+  const [debtImportResult, setDebtImportResult] = useState<{ created: number; updated: number } | null>(null);
+  const debtFileInputRef = useRef<HTMLInputElement>(null);
 
   const units = project.units;
   const totals = useMemo(() => computeRegistryTotals(units), [units]);
@@ -73,6 +87,37 @@ export function OwnerRegistry() {
     if (!preview) return;
     importUnits(preview.rows);
     setPreview(null);
+  }
+
+  async function handleDebtFile(file: File) {
+    setDebtImportError(null);
+    setDebtImportResult(null);
+    try {
+      const result = await parseErcStatementFile(file);
+      if (result.units.length === 0) {
+        setDebtImportError(t("orDebtImportErrorNoData"));
+        return;
+      }
+      setDebtPreview(result);
+      setDebtPreviewAddress(result.addresses[0]?.address ?? "");
+    } catch {
+      setDebtImportError(t("orDebtImportErrorReadFail"));
+    }
+  }
+
+  function confirmDebtImport() {
+    if (!debtPreview) return;
+    const unitsForAddress = debtPreview.units.filter((u) => u.address === debtPreviewAddress);
+    const result = importDebtStatement(unitsForAddress, debtPreview.period);
+    setDebtImportResult(result);
+    setDebtPreview(null);
+  }
+
+  function sendDebtReminder(unit: (typeof units)[number]) {
+    if (!unit.ownerPhone) return;
+    const status = computeUnitDebtStatus(unit);
+    const message = buildDebtNoticeMessage(unit, status, project.name);
+    window.open(buildWaLinkToPhone(unit.ownerPhone, message), "_blank");
   }
 
   async function handleExport() {
@@ -168,6 +213,23 @@ export function OwnerRegistry() {
             >
               <Upload className="h-4 w-4" /> {t("orImportButton")}
             </button>
+            <input
+              ref={debtFileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleDebtFile(f);
+                e.target.value = "";
+              }}
+            />
+            <button
+              onClick={() => debtFileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-700 hover:border-rose-400 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-300"
+            >
+              <Upload className="h-4 w-4" /> {t("orDebtImportButton")}
+            </button>
             <button
               onClick={handleExport}
               disabled={exportBusy || units.length === 0}
@@ -241,6 +303,93 @@ export function OwnerRegistry() {
             </div>
           )}
 
+          {debtImportError && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
+              {debtImportError}
+            </div>
+          )}
+
+          {debtImportResult && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+              {t("orDebtImportResultPrefix")} {debtImportResult.created} {t("orDebtImportResultCreated")}, {debtImportResult.updated}{" "}
+              {t("orDebtImportResultUpdated")}.
+            </div>
+          )}
+
+          {debtPreview && (
+            <div className="rounded-xl border border-rose-300 bg-rose-50/60 p-4 dark:border-rose-900 dark:bg-rose-950/20">
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t("orDebtPreviewTitle")}</h4>
+                <button onClick={() => setDebtPreview(null)} className="text-slate-400 hover:text-slate-600">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+                {t("orDebtPreviewPeriod")} <b>{debtPreview.period || "—"}</b> · {t("orDebtPreviewProvider")}{" "}
+                <b>{debtPreview.serviceProvider || "—"}</b>
+              </p>
+              <label className="mb-3 flex flex-col gap-1">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{t("orDebtPreviewAddressLabel")}</span>
+                <select
+                  value={debtPreviewAddress}
+                  onChange={(e) => setDebtPreviewAddress(e.target.value)}
+                  className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                >
+                  {debtPreview.addresses.map((a) => (
+                    <option key={a.address} value={a.address}>
+                      {a.address} — {a.unitCount} {t("orDebtPreviewUnitsWord")}, {a.debtorCount} {t("orDebtPreviewDebtorsWord")},{" "}
+                      {formatKzt(a.totalDebtKzt)} {t("orDebtPreviewTotalDebtLabel")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white text-xs dark:border-slate-800 dark:bg-slate-900">
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
+                    <tr>
+                      <th className="p-2 text-left">{t("orTableNumber")}</th>
+                      <th className="p-2 text-right">{t("orTableArea")}</th>
+                      <th className="p-2 text-right">{t("orDebtElevatorLabel")}</th>
+                      <th className="p-2 text-right">{t("orDebtOperationalLabel")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {debtPreview.units
+                      .filter((u) => u.address === debtPreviewAddress)
+                      .slice(0, 50)
+                      .map((u) => {
+                        const elevator = u.services.find((s) => s.kind === "elevator_maintenance");
+                        const operational = u.services.find((s) => s.kind === "operational_expenses");
+                        return (
+                          <tr key={u.personalAccount} className="border-t border-slate-100 dark:border-slate-800">
+                            <td className="p-2">{u.unitNumber}</td>
+                            <td className="p-2 text-right">{u.area}</td>
+                            <td className={cellClass(elevator?.closingBalanceKzt)}>{formatKzt(elevator?.closingBalanceKzt ?? 0)}</td>
+                            <td className={cellClass(operational?.closingBalanceKzt)}>{formatKzt(operational?.closingBalanceKzt ?? 0)}</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={confirmDebtImport}
+                  className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700"
+                >
+                  {t("orDebtImportConfirmPrefix")} {debtPreview.units.filter((u) => u.address === debtPreviewAddress).length}{" "}
+                  {t("orDebtImportConfirmSuffix")}
+                </button>
+                <button
+                  onClick={() => setDebtPreview(null)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                >
+                  {t("orCancelButton")}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
             {filtered.length === 0 && (
               <p className="py-6 text-center text-sm text-slate-400">
@@ -250,8 +399,16 @@ export function OwnerRegistry() {
             {filtered.map((u) => {
               const accrual = computeUnitMonthlyAccrual(u, tariff.tariffPerSqm, project.building);
               const share = totals.totalArea > 0 ? round2((u.area / totals.totalArea) * 100) : 0;
+              const debt = u.debtImportedAt ? computeUnitDebtStatus(u) : null;
               return (
-                <div key={u.id} className="flex flex-col gap-1.5 py-2.5">
+                <div
+                  key={u.id}
+                  className={
+                    debt?.isDebtor
+                      ? "flex flex-col gap-1.5 rounded-lg border-l-4 border-rose-500 bg-rose-50/70 py-2.5 pl-2 dark:bg-rose-950/20"
+                      : "flex flex-col gap-1.5 py-2.5"
+                  }
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{UNIT_TYPE_LABELS[u.unitType]}</Badge>
                     <InlineText
@@ -281,6 +438,37 @@ export function OwnerRegistry() {
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
+                  {debt?.isDebtor && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Badge variant="danger">{t("orDebtorBadge")}</Badge>
+                      {debt.elevatorDebtKzt > 0 && (
+                        <span className="text-rose-700 dark:text-rose-300">
+                          {t("orDebtElevatorLabel")}: {formatKzt(debt.elevatorDebtKzt)} (≈{debt.elevatorDebtMonths} {t("orDebtMonthsSuffix")})
+                        </span>
+                      )}
+                      {debt.operationalDebtKzt > 0 && (
+                        <span className="text-rose-700 dark:text-rose-300">
+                          {t("orDebtOperationalLabel")}: {formatKzt(debt.operationalDebtKzt)} (≈{debt.operationalDebtMonths}{" "}
+                          {t("orDebtMonthsSuffix")})
+                        </span>
+                      )}
+                      {u.ownerPhone ? (
+                        <button
+                          onClick={() => sendDebtReminder(u)}
+                          className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-white px-2 py-1 font-medium text-rose-700 hover:border-rose-400 dark:border-rose-800 dark:bg-slate-900 dark:text-rose-300"
+                        >
+                          <Send className="h-3 w-3" /> {t("orDebtWaButton")}
+                        </button>
+                      ) : (
+                        <span className="text-slate-400">({t("orDebtNoPhoneHint")})</span>
+                      )}
+                    </div>
+                  )}
+                  {u.source && (
+                    <Badge variant="outline" className="w-fit border-slate-300 text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                      {u.source}
+                    </Badge>
+                  )}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
                     <label className="flex items-center gap-1">
                       {t("orEntranceLabel")}
@@ -330,4 +518,10 @@ function fmtDiff(v: number): string {
 
 function round2(v: number): number {
   return Math.round(v * 100) / 100;
+}
+
+function cellClass(closingBalanceKzt: number | undefined): string {
+  return closingBalanceKzt && closingBalanceKzt > 0.5
+    ? "p-2 text-right font-medium text-rose-600 dark:text-rose-400"
+    : "p-2 text-right text-slate-500 dark:text-slate-400";
 }

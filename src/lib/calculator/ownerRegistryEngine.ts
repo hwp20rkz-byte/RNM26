@@ -167,6 +167,142 @@ export function computeRegistryTotals(units: OwnershipUnit[]): RegistryTotals {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Задолженность из импортированной ведомости ЕРЦ (см. parseErcStatement.ts).
+// «Месяцы задолженности» — оценка, не факт: исходная сальдовая ведомость —
+// снимок ОДНОГО расчётного периода (начальное+начисление+платёж за месяц),
+// без помесячной истории. Формула closingBalance / accrual(этот период)
+// предполагает, что тариф и объём начисления были стабильны в предыдущие
+// месяцы — верно для ТО лифтов (фиксированная ставка на помещение) и почти
+// всегда верно для эксплуатационных расходов (тариф×площадь, площадь не
+// меняется), но при изменении тарифа задним числом даёт приближение, а не
+// точный факт. Точный расчёт требует помесячных ведомостей за весь период.
+// ---------------------------------------------------------------------------
+
+const DEBT_EPSILON = 0.5;
+
+export function computeDebtMonths(closingBalanceKzt: number, monthlyChargeKzt: number): number {
+  if (closingBalanceKzt <= DEBT_EPSILON || monthlyChargeKzt <= 0) return 0;
+  return round1(closingBalanceKzt / monthlyChargeKzt);
+}
+
+export interface UnitDebtStatus {
+  /** Долг к взысканию (только положительные составляющие) — то, что показываем как «задолженность», ₸ */
+  totalDebtKzt: number;
+  /** Сырая сумма конечных сальдо — может быть отрицательной (переплата/аванс), ₸ */
+  totalBalanceKzt: number;
+  elevatorDebtKzt: number;
+  operationalDebtKzt: number;
+  elevatorDebtMonths: number;
+  operationalDebtMonths: number;
+  isDebtor: boolean;
+}
+
+export function computeUnitDebtStatus(unit: OwnershipUnit): UnitDebtStatus {
+  const elevatorDebtKzt = unit.debtElevatorKzt ?? 0;
+  const operationalDebtKzt = unit.debtOperationalKzt ?? 0;
+  const totalBalanceKzt = round2(elevatorDebtKzt + operationalDebtKzt);
+  return {
+    totalDebtKzt: round2(Math.max(0, elevatorDebtKzt) + Math.max(0, operationalDebtKzt)),
+    totalBalanceKzt,
+    elevatorDebtKzt,
+    operationalDebtKzt,
+    elevatorDebtMonths: computeDebtMonths(elevatorDebtKzt, unit.monthlyChargeElevatorKzt ?? 0),
+    operationalDebtMonths: computeDebtMonths(operationalDebtKzt, unit.monthlyChargeOperationalKzt ?? 0),
+    isDebtor: totalBalanceKzt > DEBT_EPSILON,
+  };
+}
+
+export interface RegistryDebtSummary {
+  unitsWithDebtData: number;
+  debtorCount: number;
+  totalDebtKzt: number;
+  elevatorDebtKzt: number;
+  operationalDebtKzt: number;
+  /** Средние месяцы долга — только среди должников по конкретной услуге, не по всем юнитам */
+  averageDebtMonthsElevator: number;
+  averageDebtMonthsOperational: number;
+  topDebtors: { unit: OwnershipUnit; status: UnitDebtStatus }[];
+  debtPeriod?: string;
+}
+
+export function computeRegistryDebtSummary(units: OwnershipUnit[], topN = 10): RegistryDebtSummary {
+  const withDebtData = units.filter((u) => u.debtImportedAt);
+  const statuses = withDebtData.map((unit) => ({ unit, status: computeUnitDebtStatus(unit) }));
+  const debtors = statuses.filter((s) => s.status.isDebtor);
+
+  const elevatorDebtors = debtors.filter((s) => s.status.elevatorDebtMonths > 0);
+  const operationalDebtors = debtors.filter((s) => s.status.operationalDebtMonths > 0);
+  const avg = (list: typeof debtors, pick: (s: UnitDebtStatus) => number) =>
+    list.length > 0 ? round1(list.reduce((sum, s) => sum + pick(s.status), 0) / list.length) : 0;
+
+  const topDebtors = [...debtors].sort((a, b) => b.status.totalDebtKzt - a.status.totalDebtKzt).slice(0, topN);
+
+  const debtPeriod = withDebtData
+    .map((u) => u.debtPeriod)
+    .filter((p): p is string => !!p)
+    .sort()
+    .at(-1);
+
+  return {
+    unitsWithDebtData: withDebtData.length,
+    debtorCount: debtors.length,
+    totalDebtKzt: round2(debtors.reduce((sum, s) => sum + s.status.totalDebtKzt, 0)),
+    elevatorDebtKzt: round2(debtors.reduce((sum, s) => sum + Math.max(0, s.status.elevatorDebtKzt), 0)),
+    operationalDebtKzt: round2(debtors.reduce((sum, s) => sum + Math.max(0, s.status.operationalDebtKzt), 0)),
+    averageDebtMonthsElevator: avg(elevatorDebtors, (s) => s.elevatorDebtMonths),
+    averageDebtMonthsOperational: avg(operationalDebtors, (s) => s.operationalDebtMonths),
+    topDebtors,
+    debtPeriod,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// WhatsApp-уведомление конкретному должнику — в отличие от buildWaLink в
+// workOrderEngine.ts (общая ссылка без номера, для рассылки по мессенджеру
+// вручную), здесь ссылка ведёт на конкретный номер телефона должника из
+// реестра (wa.me/<номер>), т.к. у нас есть OwnershipUnit.ownerPhone.
+// ---------------------------------------------------------------------------
+
+/** Приводит телефон к цифрам международного формата для wa.me (KZ: 8xxx -> 7xxx, 10 цифр без кода -> +7). */
+export function normalizePhoneForWa(phone: string): string {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("8")) digits = "7" + digits.slice(1);
+  if (digits.length === 10) digits = "7" + digits;
+  return digits;
+}
+
+export function buildWaLinkToPhone(phone: string, text: string): string {
+  return `https://wa.me/${normalizePhoneForWa(phone)}?text=${encodeURIComponent(text)}`;
+}
+
+function formatKztPlain(v: number): string {
+  return `${Math.round(v).toLocaleString("ru-RU")} ₸`;
+}
+
+export function buildDebtNoticeMessage(unit: OwnershipUnit, status: UnitDebtStatus, buildingName: string): string {
+  const lines = [
+    `*Уведомление о задолженности*`,
+    `Объект: ${buildingName}`,
+    `Квартира №${unit.number}${unit.ownerName ? `, ${unit.ownerName}` : ""}`,
+    "",
+  ];
+  if (status.operationalDebtKzt > DEBT_EPSILON) {
+    lines.push(`Эксплуатационные расходы: ${formatKztPlain(status.operationalDebtKzt)} (≈${status.operationalDebtMonths} мес.)`);
+  }
+  if (status.elevatorDebtKzt > DEBT_EPSILON) {
+    lines.push(`ТО лифтов: ${formatKztPlain(status.elevatorDebtKzt)} (≈${status.elevatorDebtMonths} мес.)`);
+  }
+  lines.push("", `Итого к оплате: ${formatKztPlain(status.totalDebtKzt)}`);
+  if (unit.debtPeriod) lines.push(`Период ведомости: ${unit.debtPeriod}`);
+  lines.push("", "Просьба погасить задолженность. По вопросам обращайтесь в правление.");
+  return lines.join("\n");
+}
+
+function round1(v: number): number {
+  return Math.round(v * 10) / 10;
+}
+
 function round2(v: number): number {
   return Math.round(v * 100) / 100;
 }

@@ -33,6 +33,7 @@ import type {
   WorkOrderStatus,
 } from "@/lib/calculator/types";
 import { applyWriteOffToStock, computeMaterialsCost } from "@/lib/calculator/inventoryEngine";
+import type { ErcUnitStatement } from "@/lib/import/parseErcStatement";
 import { generateTicketNumber } from "@/lib/calculator/workOrderEngine";
 import { defaultTerritoryVolume, instantiateTerritoryCostItem } from "@/lib/calculator/territoryWorkEngine";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
@@ -206,6 +207,8 @@ interface ProjectsState {
   importUnits: (
     rows: (Pick<OwnershipUnit, "unitType" | "number" | "area" | "ownerName"> & Partial<OwnershipUnit>)[],
   ) => number;
+  /** Апсерт долговых полей в существующие units по номеру квартиры (создаёт недостающие с пустым ФИО) */
+  importDebtStatement: (units: ErcUnitStatement[], period: string) => { created: number; updated: number };
 
   // --- общие собрания ---
   createMeeting: (title: string, meetingDate: string, format: MeetingFormat) => string;
@@ -830,6 +833,54 @@ export const useProjectsStore = create<ProjectsState>()(
             };
           });
           return newUnits.length;
+        },
+
+        importDebtStatement: (statementUnits, period) => {
+          const ts = nowIso();
+          let created = 0;
+          let updated = 0;
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const units = [...p.units];
+            for (const su of statementUnits) {
+              const elevator = su.services.find((sv) => sv.kind === "elevator_maintenance");
+              const operational = su.services.find((sv) => sv.kind === "operational_expenses");
+              const debtFields = {
+                source: "Импорт из ведомости Астана ЕРЦ",
+                personalAccount: su.personalAccount,
+                debtElevatorKzt: elevator?.closingBalanceKzt ?? 0,
+                debtOperationalKzt: operational?.closingBalanceKzt ?? 0,
+                monthlyChargeElevatorKzt: elevator?.accrualKzt ?? 0,
+                monthlyChargeOperationalKzt: operational?.accrualKzt ?? 0,
+                debtPeriod: period,
+                debtImportedAt: ts,
+              };
+              const idx = units.findIndex((u) => u.unitType === "apartment" && u.number === su.unitNumber);
+              if (idx >= 0) {
+                units[idx] = {
+                  ...units[idx],
+                  ...debtFields,
+                  area: su.area > 0 ? su.area : units[idx].area,
+                  updatedAt: ts,
+                };
+                updated += 1;
+              } else {
+                units.push({
+                  id: genId("unit"),
+                  unitType: "apartment",
+                  number: su.unitNumber,
+                  area: su.area,
+                  ownerName: "",
+                  createdAt: ts,
+                  updatedAt: ts,
+                  ...debtFields,
+                });
+                created += 1;
+              }
+            }
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, units }) } };
+          });
+          return { created, updated };
         },
 
         // --- общие собрания ---
