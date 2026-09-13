@@ -154,8 +154,10 @@ const RU = {
   terrMrpForecastTotalRow: "Итог по каталогу, ₸/год",
   terrPreviewTotal: "Предварительный годовой итог по каталогу:",
   terrPreviewMatched: "позиций с ненулевым объёмом из 109 в каталоге",
-  terrUnverifiedWarning:
-    "⚠ Расценки — прямая транскрипция документа, но периодичность работ реконструирована из-за повреждённой формулы в исходном файле. Требуется сверка с оригиналом приказа/PDF перед утверждением сметы.",
+  terrVerifiedNote:
+    "позиций (спецтехника, ручная уборка, ямочный ремонт) сверены построчно с оригиналом приказа — расценка и периодичность подтверждены.",
+  terrUnverifiedNote:
+    "позиций (МАФ, скамьи, озеленение, контейнеры) — расценка сверена, а периодичность «по мере необходимости» (К=1) принята по аналогии с подтверждённым принципом ремонтных работ, построчно не сверена.",
   terrSourceNote: "Источник: Методические рекомендации №22-НҚ от 01.12.2023 (Приложение Б), утв. Комитетом по делам строительства и ЖКХ МИИР РК",
   terrAppliedHint: "Позиции добавлены в статью 2.3 «Конструктора статей» с префиксом номера из Приложения Б — включайте/выключайте и правьте количество там же.",
 
@@ -797,8 +799,10 @@ const KZ: Record<TranslationKey, string> = {
   terrMrpForecastTotalRow: "Каталог қорытындысы, ₸/жыл",
   terrPreviewTotal: "Каталог бойынша алдын ала жылдық қорытынды:",
   terrPreviewMatched: "каталогтағы 109 позициядан көлемі нөлден өзге позиция",
-  terrUnverifiedWarning:
-    "⚠ Бағалар — құжаттың тікелей транскрипциясы, бірақ жұмыс мерзімділігі бастапқы файлдағы бүлінген формула салдарынан қайта құрылды. Сметаны бекітпес бұрын бұйрықтың/PDF-тің түпнұсқасымен салыстыру қажет.",
+  terrVerifiedNote:
+    "позиция (арнайы техника, қолмен тазалау, шұңқыр жөндеу) бұйрықтың түпнұсқасымен жолма-жол салыстырылды — баға мен мерзімділік расталды.",
+  terrUnverifiedNote:
+    "позиция (МАФ, орындықтар, көгалдандыру, контейнерлер) — баға салыстырылды, ал «қажеттілігіне қарай» мерзімділігі (К=1) жөндеу жұмыстарының расталған принципі бойынша ұқсастықпен қабылданды, жолма-жол салыстырылмаған.",
   terrSourceNote: "Дереккөз: ҚР ИИДМ Құрылыс және ТКШ істері комитетінің 01.12.2023 ж. №22-НҚ бұйрығымен бекітілген әдістемелік ұсынымдар (Б қосымшасы)",
   terrAppliedHint: "Позициялар «Баптар конструкторының» 2.3 бабына Б қосымшасының нөмір префиксімен қосылды — қосу/өшіру және санын түзету сол жерде жасалады.",
 
@@ -1416,8 +1420,10 @@ const EN: Record<TranslationKey, string> = {
   terrMrpForecastTotalRow: "Catalog total, ₸/yr",
   terrPreviewTotal: "Estimated annual total from the catalog:",
   terrPreviewMatched: "of 109 catalog items with a non-zero quantity",
-  terrUnverifiedWarning:
-    "⚠ Rates are a direct transcription of the source document, but work frequency was reconstructed because the original formula was corrupted in the source file. Verify against the original order/PDF before approving the budget.",
+  terrVerifiedNote:
+    "items (heavy equipment, manual cleaning, pothole repair) were checked line by line against the original order — both the rate and the frequency are confirmed.",
+  terrUnverifiedNote:
+    "items (street furniture, benches, greenery, waste sites) — the rate is confirmed, but the \"as-needed\" frequency (K=1) was assumed by analogy with the confirmed repair-work principle, not checked line by line.",
   terrSourceNote: "Source: Methodological Recommendations No. 22-НҚ dated 01.12.2023 (Appendix B), approved by the MIID RK Construction and Housing Committee",
   terrAppliedHint: "Items were added to line 2.3 of the \"Cost item builder\" with the Appendix B number prefix — enable/disable and edit quantities there.",
 

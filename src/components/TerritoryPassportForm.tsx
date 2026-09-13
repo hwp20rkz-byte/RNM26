@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Trees, AlertTriangle, FileText, TrendingUp } from "lucide-react";
+import { Trees, AlertTriangle, CheckCircle2, FileText, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberField } from "@/components/NumberField";
 import { useProjectsStore } from "@/store/useProjectsStore";
@@ -84,6 +84,9 @@ export function TerritoryPassportForm() {
   function patch(field: keyof typeof BLANK_PASSPORT, value: number) {
     setTerritoryPassport({ [field]: value } as Partial<TerritoryPassport>);
   }
+
+  const verifiedCount = useMemo(() => TERRITORY_WORK_CATALOG.filter((i) => i.verified).length, []);
+  const unverifiedCount = TERRITORY_WORK_CATALOG.length - verifiedCount;
 
   return (
     <Card>
@@ -181,10 +184,17 @@ export function TerritoryPassportForm() {
 
         <p className="text-xs text-slate-400">{t("terrAppliedHint")}</p>
 
-        <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-          <span>{t("terrUnverifiedWarning")}</span>
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <span>{verifiedCount} / {TERRITORY_WORK_CATALOG.length} {t("terrVerifiedNote")}</span>
         </div>
+
+        {unverifiedCount > 0 && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span>{unverifiedCount} {t("terrUnverifiedNote")}</span>
+          </div>
+        )}
 
         <p className="text-xs text-slate-400">{t("terrSourceNote")}</p>
       </CardContent>
