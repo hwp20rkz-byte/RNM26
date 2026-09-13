@@ -85,8 +85,8 @@ export function StickyHud() {
     >
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-emerald-50 p-2 dark:bg-emerald-950">
-            <Gauge className="h-5 w-5 text-emerald-600" />
+          <div className="rounded-xl bg-[var(--brand-soft)] p-2">
+            <Gauge className="h-5 w-5 text-[var(--brand)]" />
           </div>
           <div>
             <div className="flex items-baseline gap-2">

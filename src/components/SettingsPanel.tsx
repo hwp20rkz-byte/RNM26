@@ -1,16 +1,53 @@
 "use client";
 
-import { Settings as SettingsIcon } from "lucide-react";
+import { Check, Settings as SettingsIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n/useT";
 import {
+  COLOR_THEME_VALUES,
   useUiPrefsStore,
+  type ColorTheme,
   type Density,
   type FontScale,
   type IconScale,
   type Locale,
   type ThemePreference,
 } from "@/store/useUiPrefsStore";
+
+// Только для превью в палитре — сама тема красится через var(--brand) в
+// globals.css; здесь нужны конкретные hex, чтобы показать все 5 вариантов
+// одновременно (переключатель не может смотреть на CSS-переменную темы,
+// которая ещё не выбрана).
+const COLOR_THEME_SWATCH: Record<ColorTheme, string> = {
+  emerald: "#059669",
+  sky: "#0284c7",
+  violet: "#7c3aed",
+  amber: "#d97706",
+  teal: "#0d9488",
+};
+
+function ColorThemeSwatches({ value, onChange, labels }: { value: ColorTheme; onChange: (v: ColorTheme) => void; labels: Record<ColorTheme, string> }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {COLOR_THEME_VALUES.map((ct) => (
+        <button
+          key={ct}
+          type="button"
+          title={labels[ct]}
+          aria-label={labels[ct]}
+          aria-pressed={value === ct}
+          onClick={() => onChange(ct)}
+          className={`flex h-8 w-8 items-center justify-center rounded-full ring-offset-2 ring-offset-white transition-shadow dark:ring-offset-slate-900 ${
+            value === ct ? "ring-2 ring-slate-400 dark:ring-slate-500" : "hover:ring-2 hover:ring-slate-200 dark:hover:ring-slate-700"
+          }`}
+          style={{ background: COLOR_THEME_SWATCH[ct] }}
+        >
+          {value === ct && <Check className="h-4 w-4 text-white" />}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Section({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -57,13 +94,23 @@ export function SettingsPanel() {
   const iconScale = useUiPrefsStore((s) => s.iconScale);
   const density = useUiPrefsStore((s) => s.density);
   const theme = useUiPrefsStore((s) => s.theme);
+  const colorTheme = useUiPrefsStore((s) => s.colorTheme);
   const locale = useUiPrefsStore((s) => s.locale);
   const setFontScale = useUiPrefsStore((s) => s.setFontScale);
   const setIconScale = useUiPrefsStore((s) => s.setIconScale);
   const setDensity = useUiPrefsStore((s) => s.setDensity);
   const setTheme = useUiPrefsStore((s) => s.setTheme);
+  const setColorTheme = useUiPrefsStore((s) => s.setColorTheme);
   const setLocale = useUiPrefsStore((s) => s.setLocale);
   const reset = useUiPrefsStore((s) => s.reset);
+
+  const colorThemeLabels: Record<ColorTheme, string> = {
+    emerald: t("colorThemeEmerald"),
+    sky: t("colorThemeSky"),
+    violet: t("colorThemeViolet"),
+    amber: t("colorThemeAmber"),
+    teal: t("colorThemeTeal"),
+  };
 
   return (
     <Dialog>
@@ -71,15 +118,15 @@ export function SettingsPanel() {
         <button
           title={t("settingsButton")}
           aria-label={t("settingsButton")}
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 p-2 text-slate-500 transition-colors hover:border-emerald-400 hover:text-emerald-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-emerald-600 dark:hover:text-emerald-400"
+          className="inline-flex items-center justify-center rounded-xl border border-slate-200 p-2 text-slate-500 transition-colors hover:border-[var(--brand)] hover:text-[var(--brand)] dark:border-slate-700 dark:text-slate-400"
         >
           <SettingsIcon className="h-4 w-4" />
         </button>
       </DialogTrigger>
       <DialogContent>
         <div className="flex items-start gap-3 border-b border-slate-200 p-5 dark:border-slate-800">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950">
-            <SettingsIcon className="h-4.5 w-4.5 text-emerald-600" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)]">
+            <SettingsIcon className="h-4.5 w-4.5 text-[var(--brand)]" />
           </div>
           <div className="min-w-0 pr-6">
             <DialogTitle>{t("settingsTitle")}</DialogTitle>
@@ -136,6 +183,10 @@ export function SettingsPanel() {
                 ["system", t("themeSystem")],
               ]}
             />
+          </Section>
+
+          <Section label={t("colorThemeLabel")} hint={t("colorThemeHint")}>
+            <ColorThemeSwatches value={colorTheme} onChange={setColorTheme} labels={colorThemeLabels} />
           </Section>
 
           <Section label={t("languageLabel")} hint={t("languageHint")}>

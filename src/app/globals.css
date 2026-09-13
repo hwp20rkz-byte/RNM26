@@ -28,6 +28,31 @@
   --foreground: #e2e8f0;
 }
 
+/*
+ * Цветовые темы — только акцентный/брендовый цвет (шапка, HUD, бейджи по
+ * умолчанию, активная вкладка). Семантические цвета (успех/предупреждение/
+ * долг-опасность — emerald/amber/rose в отдельных местах интерфейса)
+ * остаются как есть при любой теме: их смысл важнее единообразия палитры.
+ * --brand/--brand-soft меняются между светлым и тёмным режимом (как и
+ * везде в приложении: -600/-50 на светлом, -400/-950 на тёмном);
+ * --brand-solid — самостоятельный закрашенный чип (белая иконка поверх
+ * тёмного оттенка), не зависит от режима, поэтому не дублируется.
+ */
+[data-color-theme="emerald"] { --brand: #059669; --brand-soft: #ecfdf5; --brand-solid: #047857; }
+[data-theme="dark"][data-color-theme="emerald"] { --brand: #34d399; --brand-soft: #022c22; }
+
+[data-color-theme="sky"] { --brand: #0284c7; --brand-soft: #f0f9ff; --brand-solid: #0369a1; }
+[data-theme="dark"][data-color-theme="sky"] { --brand: #38bdf8; --brand-soft: #082f49; }
+
+[data-color-theme="violet"] { --brand: #7c3aed; --brand-soft: #f5f3ff; --brand-solid: #6d28d9; }
+[data-theme="dark"][data-color-theme="violet"] { --brand: #a78bfa; --brand-soft: #2e1065; }
+
+[data-color-theme="amber"] { --brand: #d97706; --brand-soft: #fffbeb; --brand-solid: #b45309; }
+[data-theme="dark"][data-color-theme="amber"] { --brand: #fbbf24; --brand-soft: #451a03; }
+
+[data-color-theme="teal"] { --brand: #0d9488; --brand-soft: #f0fdfa; --brand-solid: #0f766e; }
+[data-theme="dark"][data-color-theme="teal"] { --brand: #2dd4bf; --brand-soft: #042f2e; }
+
 [data-font-scale="sm"] { --ui-font-scale: 0.9; }
 [data-font-scale="lg"] { --ui-font-scale: 1.15; }
 [data-icon-scale="sm"] { --ui-icon-scale: 0.85; }

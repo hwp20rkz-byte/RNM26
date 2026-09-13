@@ -31,6 +31,7 @@ const THEME_INIT_SCRIPT = `(function(){try{
   var dark = theme === "dark" || (theme === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
   var root = document.documentElement;
   root.setAttribute("data-theme", dark ? "dark" : "light");
+  root.setAttribute("data-color-theme", s.colorTheme || "emerald");
   root.setAttribute("data-font-scale", s.fontScale || "md");
   root.setAttribute("data-icon-scale", s.iconScale || "md");
   root.setAttribute("data-density", s.density || "comfortable");

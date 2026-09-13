@@ -52,8 +52,8 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6">
       <header className="no-print mb-4 flex items-center gap-2">
-        <div className="rounded-xl bg-slate-900 p-2 dark:bg-white">
-          <HomeIcon className="h-5 w-5 text-white dark:text-slate-900" />
+        <div className="rounded-xl bg-[var(--brand-solid)] p-2">
+          <HomeIcon className="h-5 w-5 text-white" />
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-bold text-slate-900 dark:text-white">{t("appTitle")}</h1>

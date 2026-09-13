@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 type Variant = "default" | "success" | "warning" | "danger" | "outline";
 
 const variants: Record<Variant, string> = {
-  default: "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900",
+  default: "bg-[var(--brand-solid)] text-white",
   success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
   warning: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   danger: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
