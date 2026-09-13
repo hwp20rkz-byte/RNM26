@@ -31,11 +31,13 @@ export function OwnerRegistry() {
   const addUnit = useProjectsStore((s) => s.addUnit);
   const updateUnit = useProjectsStore((s) => s.updateUnit);
   const removeUnit = useProjectsStore((s) => s.removeUnit);
+  const removeUnits = useProjectsStore((s) => s.removeUnits);
   const importUnits = useProjectsStore((s) => s.importUnits);
   const importDebtStatement = useProjectsStore((s) => s.importDebtStatement);
 
   const [search, setSearch] = useState("");
   const [addressFilter, setAddressFilter] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [newType, setNewType] = useState<UnitType>("apartment");
   const [preview, setPreview] = useState<ParseOwnersListResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export function OwnerRegistry() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [debtPreview, setDebtPreview] = useState<ParseErcStatementResult | null>(null);
-  const [debtPreviewAddress, setDebtPreviewAddress] = useState("");
+  const [debtPreviewSelectedAddresses, setDebtPreviewSelectedAddresses] = useState<Set<string>>(new Set());
   const [debtImportError, setDebtImportError] = useState<string | null>(null);
   const [debtImportResult, setDebtImportResult] = useState<{ created: number; updated: number } | null>(null);
   const debtFileInputRef = useRef<HTMLInputElement>(null);
@@ -124,18 +126,68 @@ export function OwnerRegistry() {
         return;
       }
       setDebtPreview(result);
-      setDebtPreviewAddress(result.addresses[0]?.address ?? "");
+      // По умолчанию выбраны все обнаруженные адреса — чтобы импортировать сразу
+      // несколько/все корпуса за одно подтверждение, а не по одному.
+      setDebtPreviewSelectedAddresses(new Set(result.addresses.map((a) => a.address)));
     } catch {
       setDebtImportError(t("orDebtImportErrorReadFail"));
     }
   }
 
+  function toggleDebtPreviewAddress(address: string) {
+    setDebtPreviewSelectedAddresses((prev) => {
+      const next = new Set(prev);
+      if (next.has(address)) next.delete(address);
+      else next.add(address);
+      return next;
+    });
+  }
+
   function confirmDebtImport() {
     if (!debtPreview) return;
-    const unitsForAddress = debtPreview.units.filter((u) => u.address === debtPreviewAddress);
-    const result = importDebtStatement(unitsForAddress, debtPreview.period);
+    const unitsSelected = debtPreview.units.filter((u) => debtPreviewSelectedAddresses.has(u.address));
+    if (unitsSelected.length === 0) return;
+    const result = importDebtStatement(unitsSelected, debtPreview.period);
     setDebtImportResult(result);
     setDebtPreview(null);
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+
+  function toggleSelectAllVisible() {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        for (const u of filtered) next.delete(u.id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const u of filtered) next.add(u.id);
+      return next;
+    });
+  }
+
+  function deleteSelected() {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`${t("orBulkDeleteConfirmPrefix")}${selectedIds.size}${t("orBulkDeleteConfirmSuffix")}`)) return;
+    removeUnits([...selectedIds]);
+    setSelectedIds(new Set());
+  }
+
+  function clearWholeRegistry() {
+    if (units.length === 0) return;
+    if (!window.confirm(`${t("orClearRegistryConfirmPrefix")}${units.length}${t("orClearRegistryConfirmSuffix")}`)) return;
+    removeUnits(units.map((u) => u.id));
+    setSelectedIds(new Set());
   }
 
   function sendDebtReminder(unit: (typeof units)[number]) {
@@ -159,6 +211,13 @@ export function OwnerRegistry() {
         }
       >
         <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="checkbox"
+            checked={selectedIds.has(u.id)}
+            onChange={() => toggleSelected(u.id)}
+            className="h-4 w-4 rounded border-slate-300"
+            aria-label={t("orSelectRowLabel")}
+          />
           <Badge variant="outline">{UNIT_TYPE_LABELS[u.unitType]}</Badge>
           <InlineText
             value={u.number}
@@ -499,25 +558,50 @@ export function OwnerRegistry() {
                 {t("orDebtPreviewPeriod")} <b>{debtPreview.period || "—"}</b> · {t("orDebtPreviewProvider")}{" "}
                 <b>{debtPreview.serviceProvider || "—"}</b>
               </p>
-              <label className="mb-3 flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{t("orDebtPreviewAddressLabel")}</span>
-                <select
-                  value={debtPreviewAddress}
-                  onChange={(e) => setDebtPreviewAddress(e.target.value)}
-                  className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                >
+              <div className="mb-3 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{t("orDebtPreviewAddressLabel")}</span>
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      onClick={() => setDebtPreviewSelectedAddresses(new Set(debtPreview.addresses.map((a) => a.address)))}
+                      className="text-rose-700 hover:underline dark:text-rose-300"
+                    >
+                      {t("orDebtPreviewSelectAll")}
+                    </button>
+                    <button
+                      onClick={() => setDebtPreviewSelectedAddresses(new Set())}
+                      className="text-slate-500 hover:underline dark:text-slate-400"
+                    >
+                      {t("orDebtPreviewSelectNone")}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 rounded-lg border border-slate-200 bg-white p-1.5 dark:border-slate-800 dark:bg-slate-900">
                   {debtPreview.addresses.map((a) => (
-                    <option key={a.address} value={a.address}>
-                      {a.address} — {a.unitCount} {t("orDebtPreviewUnitsWord")}, {a.debtorCount} {t("orDebtPreviewDebtorsWord")},{" "}
-                      {formatKzt(a.totalDebtKzt)} {t("orDebtPreviewTotalDebtLabel")}
-                    </option>
+                    <label
+                      key={a.address}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={debtPreviewSelectedAddresses.has(a.address)}
+                        onChange={() => toggleDebtPreviewAddress(a.address)}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      <span className="flex-1 font-medium text-slate-700 dark:text-slate-200">{a.address}</span>
+                      <span className="text-slate-400">
+                        {a.unitCount} {t("orDebtPreviewUnitsWord")}, {a.debtorCount} {t("orDebtPreviewDebtorsWord")}
+                      </span>
+                      <span className="font-semibold text-rose-600 dark:text-rose-400">{formatKzt(a.totalDebtKzt)}</span>
+                    </label>
                   ))}
-                </select>
-              </label>
+                </div>
+              </div>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white text-xs dark:border-slate-800 dark:bg-slate-900">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
                     <tr>
+                      {debtPreview.addresses.length > 1 && <th className="p-2 text-left">{t("orAddressFilterLabel")}</th>}
                       <th className="p-2 text-left">{t("orTableNumber")}</th>
                       <th className="p-2 text-right">{t("orTableArea")}</th>
                       <th className="p-2 text-right">{t("orDebtElevatorLabel")}</th>
@@ -526,13 +610,14 @@ export function OwnerRegistry() {
                   </thead>
                   <tbody>
                     {debtPreview.units
-                      .filter((u) => u.address === debtPreviewAddress)
+                      .filter((u) => debtPreviewSelectedAddresses.has(u.address))
                       .slice(0, 50)
                       .map((u) => {
                         const elevator = u.services.find((s) => s.kind === "elevator_maintenance");
                         const operational = u.services.find((s) => s.kind === "operational_expenses");
                         return (
                           <tr key={u.personalAccount} className="border-t border-slate-100 dark:border-slate-800">
+                            {debtPreview.addresses.length > 1 && <td className="p-2 text-slate-500">{u.address}</td>}
                             <td className="p-2">{u.unitNumber}</td>
                             <td className="p-2 text-right">{u.area}</td>
                             <td className={cellClass(elevator?.closingBalanceKzt)}>{formatKzt(elevator?.closingBalanceKzt ?? 0)}</td>
@@ -546,9 +631,10 @@ export function OwnerRegistry() {
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={confirmDebtImport}
-                  className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700"
+                  disabled={debtPreviewSelectedAddresses.size === 0}
+                  className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {t("orDebtImportConfirmPrefix")} {debtPreview.units.filter((u) => u.address === debtPreviewAddress).length}{" "}
+                  {t("orDebtImportConfirmPrefix")} {debtPreview.units.filter((u) => debtPreviewSelectedAddresses.has(u.address)).length}{" "}
                   {t("orDebtImportConfirmSuffix")}
                 </button>
                 <button
@@ -558,6 +644,39 @@ export function OwnerRegistry() {
                   {t("orCancelButton")}
                 </button>
               </div>
+            </div>
+          )}
+
+          {units.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-900/40">
+              <label className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleSelectAllVisible}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                {t("orSelectAllVisible")}
+              </label>
+              {selectedIds.size > 0 && (
+                <>
+                  <span className="text-slate-400">
+                    {t("orSelectedCountPrefix")} {selectedIds.size}
+                  </span>
+                  <button
+                    onClick={deleteSelected}
+                    className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-white px-2 py-1 font-medium text-rose-700 hover:border-rose-400 dark:border-rose-800 dark:bg-slate-900 dark:text-rose-300"
+                  >
+                    <Trash2 className="h-3 w-3" /> {t("orDeleteSelectedButton")}
+                  </button>
+                </>
+              )}
+              <button
+                onClick={clearWholeRegistry}
+                className="ml-auto inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-500 hover:border-rose-400 hover:text-rose-600 dark:border-slate-700 dark:text-slate-400"
+              >
+                <Trash2 className="h-3 w-3" /> {t("orClearRegistryButton")}
+              </button>
             </div>
           )}
 

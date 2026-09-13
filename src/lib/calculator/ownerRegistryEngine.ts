@@ -182,6 +182,13 @@ export interface AddressGroup {
   totalArea: number;
 }
 
+/** Общий компаратор сортировки групп по адресу — «без адреса» всегда в конце списка. */
+function compareByAddress(a: { address: string }, b: { address: string }): number {
+  if (!a.address) return 1;
+  if (!b.address) return -1;
+  return a.address.localeCompare(b.address, "ru");
+}
+
 export function groupUnitsByAddress(units: OwnershipUnit[]): AddressGroup[] {
   const map = new Map<string, AddressGroup>();
   for (const u of units) {
@@ -191,11 +198,7 @@ export function groupUnitsByAddress(units: OwnershipUnit[]): AddressGroup[] {
     g.totalArea = round2(g.totalArea + u.area);
     map.set(key, g);
   }
-  return [...map.values()].sort((a, b) => {
-    if (!a.address) return 1; // «без адреса» — в конец списка
-    if (!b.address) return -1;
-    return a.address.localeCompare(b.address, "ru");
-  });
+  return [...map.values()].sort(compareByAddress);
 }
 
 // ---------------------------------------------------------------------------
@@ -286,6 +289,53 @@ export function computeRegistryDebtSummary(units: OwnershipUnit[], topN = 10): R
     topDebtors,
     debtPeriod,
   };
+}
+
+export interface AddressDebtSummary {
+  /** Пустая строка — юниты без указанного адреса */
+  address: string;
+  unitsWithDebtData: number;
+  debtorCount: number;
+  totalDebtKzt: number;
+  elevatorDebtKzt: number;
+  operationalDebtKzt: number;
+  debtors: { unit: OwnershipUnit; status: UnitDebtStatus }[];
+}
+
+/**
+ * Разбивка задолженности по адресу/корпусу — see groupUnitsByAddress для
+ * контекста, почему это нужно: один реестр может охватывать несколько
+ * корпусов с пересекающейся нумерацией квартир, и без разбивки по адресу
+ * общий список должников выглядит «перемешанным».
+ */
+export function computeDebtSummaryByAddress(units: OwnershipUnit[]): AddressDebtSummary[] {
+  const withDebtData = units.filter((u) => u.debtImportedAt);
+  const map = new Map<string, AddressDebtSummary>();
+  for (const unit of withDebtData) {
+    const key = unit.address?.trim() || "";
+    const g = map.get(key) ?? {
+      address: key,
+      unitsWithDebtData: 0,
+      debtorCount: 0,
+      totalDebtKzt: 0,
+      elevatorDebtKzt: 0,
+      operationalDebtKzt: 0,
+      debtors: [],
+    };
+    g.unitsWithDebtData += 1;
+    const status = computeUnitDebtStatus(unit);
+    if (status.isDebtor) {
+      g.debtorCount += 1;
+      g.totalDebtKzt = round2(g.totalDebtKzt + status.totalDebtKzt);
+      g.elevatorDebtKzt = round2(g.elevatorDebtKzt + Math.max(0, status.elevatorDebtKzt));
+      g.operationalDebtKzt = round2(g.operationalDebtKzt + Math.max(0, status.operationalDebtKzt));
+      g.debtors.push({ unit, status });
+    }
+    map.set(key, g);
+  }
+  return [...map.values()]
+    .map((g) => ({ ...g, debtors: g.debtors.sort((a, b) => b.status.totalDebtKzt - a.status.totalDebtKzt) }))
+    .sort(compareByAddress);
 }
 
 // ---------------------------------------------------------------------------

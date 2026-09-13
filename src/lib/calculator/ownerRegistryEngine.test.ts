@@ -4,6 +4,7 @@ import {
   buildWaLinkToPhone,
   computeAgendaItemResult,
   computeDebtMonths,
+  computeDebtSummaryByAddress,
   computeQuorum,
   computeRegistryDebtSummary,
   computeRegistryTotals,
@@ -371,6 +372,59 @@ describe("computeRegistryDebtSummary", () => {
     expect(summary.unitsWithDebtData).toBe(0);
     expect(summary.debtorCount).toBe(0);
     expect(summary.totalDebtKzt).toBe(0);
+  });
+});
+
+describe("computeDebtSummaryByAddress", () => {
+  const units: OwnershipUnit[] = [
+    unit({
+      id: "a1",
+      area: 50,
+      number: "1",
+      address: "ул.Акмешит, д.9",
+      debtElevatorKzt: 3000,
+      debtOperationalKzt: 0,
+      monthlyChargeElevatorKzt: 1500,
+      debtImportedAt: ts,
+    }),
+    unit({
+      id: "a2",
+      area: 40,
+      number: "1", // тот же номер, другой корпус — не должно смешиваться с a1
+      address: "ул.Акмешит, д.9/1",
+      debtElevatorKzt: 0,
+      debtOperationalKzt: 5000,
+      monthlyChargeOperationalKzt: 2500,
+      debtImportedAt: ts,
+    }),
+    unit({ id: "a3", area: 30, number: "2", address: "ул.Акмешит, д.9", debtImportedAt: ts }), // не должник
+    unit({ id: "a4", area: 20, number: "3" }), // без импорта долга — не учитывается
+  ];
+
+  it("группирует должников по адресу, не смешивая одинаковые номера квартир из разных корпусов", () => {
+    const byAddress = computeDebtSummaryByAddress(units);
+    const groupAddresses = byAddress.map((g) => g.address);
+    expect(groupAddresses).toEqual(["ул.Акмешит, д.9", "ул.Акмешит, д.9/1"]);
+
+    const g9 = byAddress.find((g) => g.address === "ул.Акмешит, д.9")!;
+    expect(g9.debtorCount).toBe(1);
+    expect(g9.totalDebtKzt).toBe(3000);
+    expect(g9.debtors.map((d) => d.unit.id)).toEqual(["a1"]);
+
+    const g91 = byAddress.find((g) => g.address === "ул.Акмешит, д.9/1")!;
+    expect(g91.debtorCount).toBe(1);
+    expect(g91.totalDebtKzt).toBe(5000);
+    expect(g91.debtors.map((d) => d.unit.id)).toEqual(["a2"]);
+  });
+
+  it("не включает адреса без должников и юниты без импорта долга", () => {
+    const byAddress = computeDebtSummaryByAddress(units);
+    expect(byAddress.every((g) => g.debtorCount > 0)).toBe(true);
+    expect(byAddress.flatMap((g) => g.debtors.map((d) => d.unit.id))).not.toContain("a4");
+  });
+
+  it("пустой реестр — пустой список групп", () => {
+    expect(computeDebtSummaryByAddress([unit({ id: "x", area: 10 })])).toEqual([]);
   });
 });
 

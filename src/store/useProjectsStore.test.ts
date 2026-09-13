@@ -351,6 +351,22 @@ describe("реестр собственников и общие собрания
     expect(units).toHaveLength(0);
   });
 
+  it("removeUnits — массовое удаление (напр. очистка реестра)", () => {
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "1", area: 45, ownerName: "А" });
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "2", area: 50, ownerName: "Б" });
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "3", area: 55, ownerName: "В" });
+    const units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(3);
+
+    useProjectsStore.getState().removeUnits([units[0].id, units[2].id]);
+    const remaining = selectActiveProject(useProjectsStore.getState()).units;
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].number).toBe("2");
+
+    useProjectsStore.getState().removeUnits(remaining.map((u) => u.id));
+    expect(selectActiveProject(useProjectsStore.getState()).units).toHaveLength(0);
+  });
+
   it("importUnits добавляет только строки с номером помещения", () => {
     const count = useProjectsStore.getState().importUnits([
       { unitType: "apartment", number: "1", area: 40, ownerName: "А" },

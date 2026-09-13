@@ -204,6 +204,8 @@ interface ProjectsState {
   ) => void;
   updateUnit: (id: string, patch: Partial<OwnershipUnit>) => void;
   removeUnit: (id: string) => void;
+  /** Массовое удаление помещений из реестра (напр. «очистить весь реестр» или выделенную группу) */
+  removeUnits: (ids: string[]) => void;
   importUnits: (
     rows: (Pick<OwnershipUnit, "unitType" | "number" | "area" | "ownerName"> & Partial<OwnershipUnit>)[],
   ) => number;
@@ -810,6 +812,15 @@ export const useProjectsStore = create<ProjectsState>()(
           set((s) => {
             const p = s.projects[s.activeProjectId];
             const units = p.units.filter((u) => u.id !== id);
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, units }) } };
+          });
+        },
+
+        removeUnits: (ids) => {
+          const idSet = new Set(ids);
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const units = p.units.filter((u) => !idSet.has(u.id));
             return { projects: { ...s.projects, [p.id]: touchProject({ ...p, units }) } };
           });
         },

@@ -1,21 +1,41 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
-import { AlertCircle, Info, Send, Users } from "lucide-react";
+import { AlertCircle, Building2, Info, Send, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useActiveProject } from "@/store/hooks";
-import { buildDebtNoticeMessage, buildWaLinkToPhone, computeRegistryDebtSummary } from "@/lib/calculator/ownerRegistryEngine";
+import {
+  buildDebtNoticeMessage,
+  buildWaLinkToPhone,
+  computeDebtSummaryByAddress,
+  computeRegistryDebtSummary,
+} from "@/lib/calculator/ownerRegistryEngine";
 import { formatKzt } from "@/lib/utils";
 import { useT } from "@/lib/i18n/useT";
 
 const COLOR_ELEVATOR = "#7c3aed";
 const COLOR_OPERATIONAL = "#dc2626";
+const ALL_ADDRESSES = "__all__";
 
 export function DebtDashboard() {
   const t = useT();
   const project = useActiveProject();
-  const summary = useMemo(() => computeRegistryDebtSummary(project.units, 10), [project.units]);
+  const [selectedAddress, setSelectedAddress] = useState<string>(ALL_ADDRESSES);
+
+  // topN = units.length -> «топ» покрывает всех должников без урезания (см. запрос
+  // пользователя: «не все квартиры отображает»), таблица не ограничена искусственно.
+  const summary = useMemo(
+    () => computeRegistryDebtSummary(project.units, project.units.length || 1),
+    [project.units],
+  );
+  const byAddress = useMemo(() => computeDebtSummaryByAddress(project.units), [project.units]);
+  const hasMultipleAddresses = byAddress.length > 1;
+
+  const visibleDebtors = useMemo(() => {
+    if (selectedAddress === ALL_ADDRESSES) return summary.topDebtors;
+    return byAddress.find((g) => g.address === selectedAddress)?.debtors ?? [];
+  }, [selectedAddress, summary.topDebtors, byAddress]);
 
   const byServiceData = useMemo(
     () =>
@@ -28,15 +48,15 @@ export function DebtDashboard() {
 
   const topDebtorsChartData = useMemo(
     () =>
-      summary.topDebtors.map((d) => ({
-        name: `№${d.unit.number}`,
+      visibleDebtors.slice(0, 10).map((d) => ({
+        name: hasMultipleAddresses ? `${d.unit.address || "—"}, №${d.unit.number}` : `№${d.unit.number}`,
         value: d.status.totalDebtKzt,
       })),
-    [summary.topDebtors],
+    [visibleDebtors, hasMultipleAddresses],
   );
 
   function sendReminder(unitId: string) {
-    const entry = summary.topDebtors.find((d) => d.unit.id === unitId);
+    const entry = visibleDebtors.find((d) => d.unit.id === unitId);
     if (!entry || !entry.unit.ownerPhone) return;
     const message = buildDebtNoticeMessage(entry.unit, entry.status, project.name);
     window.open(buildWaLinkToPhone(entry.unit.ownerPhone, message), "_blank");
@@ -79,6 +99,53 @@ export function DebtDashboard() {
               />
             </div>
 
+            {hasMultipleAddresses && (
+              <div>
+                <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <Building2 className="h-3.5 w-3.5" /> {t("ddByAddressTitle")}
+                </h4>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <button
+                    onClick={() => setSelectedAddress(ALL_ADDRESSES)}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                      selectedAddress === ALL_ADDRESSES
+                        ? "border-rose-400 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30"
+                        : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950"
+                    }`}
+                  >
+                    <div className="font-medium text-slate-700 dark:text-slate-200">{t("ddAllAddresses")}</div>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className="text-slate-400">
+                        {summary.debtorCount} {t("ddAddressDebtorsSuffix")}
+                      </span>
+                      <span className="font-semibold text-rose-600 dark:text-rose-400">{formatKzt(summary.totalDebtKzt)}</span>
+                    </div>
+                  </button>
+                  {byAddress.map((g) => (
+                    <button
+                      key={g.address}
+                      onClick={() => setSelectedAddress(g.address)}
+                      className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                        selectedAddress === g.address
+                          ? "border-rose-400 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30"
+                          : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950"
+                      }`}
+                    >
+                      <div className="truncate font-medium text-slate-700 dark:text-slate-200">
+                        {g.address || t("orAddressUnknown")}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between">
+                        <span className="text-slate-400">
+                          {g.debtorCount} {t("ddAddressDebtorsSuffix")}
+                        </span>
+                        <span className="font-semibold text-rose-600 dark:text-rose-400">{formatKzt(g.totalDebtKzt)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {summary.debtorCount > 0 && (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
@@ -113,7 +180,7 @@ export function DebtDashboard() {
                       <BarChart data={topDebtorsChartData} layout="vertical" margin={{ left: 8, right: 8 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-slate-200 dark:stroke-slate-800" />
                         <XAxis type="number" tickFormatter={(v: number) => formatKzt(v)} tick={{ fontSize: 11 }} />
-                        <YAxis type="category" dataKey="name" width={48} tick={{ fontSize: 11 }} />
+                        <YAxis type="category" dataKey="name" width={hasMultipleAddresses ? 96 : 48} tick={{ fontSize: 11 }} />
                         <RTooltip formatter={(v) => formatKzt(Number(v))} />
                         <Bar dataKey="value" fill={COLOR_OPERATIONAL} radius={[0, 4, 4, 0]} />
                       </BarChart>
@@ -123,43 +190,54 @@ export function DebtDashboard() {
               </div>
             )}
 
-            {summary.topDebtors.length > 0 && (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-900">
-                    <tr>
-                      <th className="p-2 text-left">{t("ddTableUnit")}</th>
-                      <th className="p-2 text-left">{t("ddTableOwner")}</th>
-                      <th className="p-2 text-right">{t("ddTableDebt")}</th>
-                      <th className="p-2 text-right">{t("ddTableMonths")}</th>
-                      <th className="p-2 text-left">{t("ddTablePhone")}</th>
-                      <th className="p-2 text-left">{t("ddTableAction")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.topDebtors.map(({ unit, status }) => (
-                      <tr key={unit.id} className="border-t border-slate-100 dark:border-slate-800">
-                        <td className="p-2 font-medium">{unit.number}</td>
-                        <td className="p-2">{unit.ownerName || "—"}</td>
-                        <td className="p-2 text-right font-medium text-rose-600 dark:text-rose-400">{formatKzt(status.totalDebtKzt)}</td>
-                        <td className="p-2 text-right tabular-nums text-slate-500">
-                          {Math.max(status.elevatorDebtMonths, status.operationalDebtMonths)}
-                        </td>
-                        <td className="p-2">{unit.ownerPhone || <span className="text-slate-400">{t("orDebtNoPhoneHint")}</span>}</td>
-                        <td className="p-2">
-                          {unit.ownerPhone && (
-                            <button
-                              onClick={() => sendReminder(unit.id)}
-                              className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-white px-2 py-1 font-medium text-rose-700 hover:border-rose-400 dark:border-rose-800 dark:bg-slate-900 dark:text-rose-300"
-                            >
-                              <Send className="h-3 w-3" /> {t("orDebtWaButton")}
-                            </button>
-                          )}
-                        </td>
+            {visibleDebtors.length > 0 && (
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    {t("ddDebtorsListTitle")} ({visibleDebtors.length})
+                  </h4>
+                </div>
+                <div className="max-h-[480px] overflow-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900">
+                      <tr>
+                        {hasMultipleAddresses && <th className="p-2 text-left">{t("ddTableAddress")}</th>}
+                        <th className="p-2 text-left">{t("ddTableUnit")}</th>
+                        <th className="p-2 text-left">{t("ddTableOwner")}</th>
+                        <th className="p-2 text-right">{t("ddTableDebt")}</th>
+                        <th className="p-2 text-right">{t("ddTableMonths")}</th>
+                        <th className="p-2 text-left">{t("ddTablePhone")}</th>
+                        <th className="p-2 text-left">{t("ddTableAction")}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {visibleDebtors.map(({ unit, status }) => (
+                        <tr key={unit.id} className="border-t border-slate-100 dark:border-slate-800">
+                          {hasMultipleAddresses && (
+                            <td className="p-2 text-slate-500">{unit.address || t("orAddressUnknown")}</td>
+                          )}
+                          <td className="p-2 font-medium">{unit.number}</td>
+                          <td className="p-2">{unit.ownerName || "—"}</td>
+                          <td className="p-2 text-right font-medium text-rose-600 dark:text-rose-400">{formatKzt(status.totalDebtKzt)}</td>
+                          <td className="p-2 text-right tabular-nums text-slate-500">
+                            {Math.max(status.elevatorDebtMonths, status.operationalDebtMonths)}
+                          </td>
+                          <td className="p-2">{unit.ownerPhone || <span className="text-slate-400">{t("orDebtNoPhoneHint")}</span>}</td>
+                          <td className="p-2">
+                            {unit.ownerPhone && (
+                              <button
+                                onClick={() => sendReminder(unit.id)}
+                                className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-white px-2 py-1 font-medium text-rose-700 hover:border-rose-400 dark:border-rose-800 dark:bg-slate-900 dark:text-rose-300"
+                              >
+                                <Send className="h-3 w-3" /> {t("orDebtWaButton")}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 

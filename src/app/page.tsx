@@ -14,6 +14,7 @@ import { EquipmentTypeCatalog } from "@/components/EquipmentTypeCatalog";
 import { ReplacementPlan } from "@/components/ReplacementPlan";
 import { OwnerRegistry } from "@/components/OwnerRegistry";
 import { DebtDashboard } from "@/components/DebtDashboard";
+import { NotaryDebtTool } from "@/components/NotaryDebtTool";
 import { MaintenanceCalendar } from "@/components/MaintenanceCalendar";
 import { BudgetActual } from "@/components/BudgetActual";
 import { ProtocolBuilder } from "@/components/ProtocolBuilder";
@@ -123,12 +124,16 @@ export default function HomePage() {
                   <TabsList>
                     <TabsTrigger value="registry">{t("orTabRegistry")}</TabsTrigger>
                     <TabsTrigger value="debt">{t("orTabDebt")}</TabsTrigger>
+                    <TabsTrigger value="collection">{t("orTabCollection")}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="registry">
                     <OwnerRegistry />
                   </TabsContent>
                   <TabsContent value="debt">
                     <DebtDashboard />
+                  </TabsContent>
+                  <TabsContent value="collection">
+                    <NotaryDebtTool />
                   </TabsContent>
                 </Tabs>
               </TabsContent>

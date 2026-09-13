@@ -463,6 +463,7 @@ const RU = {
   // Собственники: подвкладки (реестр / задолженность)
   orTabRegistry: "Реестр",
   orTabDebt: "Задолженность",
+  orTabCollection: "Взыскание",
 
   // Импорт сальдовой ведомости ЕРЦ (долги) — OwnerRegistry
   orDebtImportButton: "Импорт ведомости Астана ЕРЦ",
@@ -472,6 +473,8 @@ const RU = {
   orDebtPreviewPeriod: "Период:",
   orDebtPreviewProvider: "Поставщик:",
   orDebtPreviewAddressLabel: "Дом/корпус для импорта:",
+  orDebtPreviewSelectAll: "Выбрать все",
+  orDebtPreviewSelectNone: "Снять все",
   orDebtPreviewUnitsWord: "кв.",
   orDebtPreviewDebtorsWord: "должников",
   orDebtPreviewTotalDebtLabel: "долг на конец периода:",
@@ -498,6 +501,16 @@ const RU = {
   orMultiAddressNote:
     "Реестр охватывает несколько адресов/корпусов — сверка с профилем объекта (Шаг 1, один дом) не проводится, ориентируйтесь на подытоги по каждому корпусу.",
 
+  orSelectRowLabel: "Выбрать строку",
+  orSelectAllVisible: "Выбрать все",
+  orSelectedCountPrefix: "Выбрано:",
+  orDeleteSelectedButton: "Удалить выбранные",
+  orClearRegistryButton: "Очистить весь реестр",
+  orBulkDeleteConfirmPrefix: "Удалить выбранные помещения (",
+  orBulkDeleteConfirmSuffix: " шт.)? Действие необратимо.",
+  orClearRegistryConfirmPrefix: "Полностью очистить реестр собственников — удалить все помещения (",
+  orClearRegistryConfirmSuffix: " шт.)? Действие необратимо, отменить будет нельзя.",
+
   // Дашборд задолженности (DebtDashboard)
   ddTitle: "Задолженность собственников",
   ddDesc:
@@ -510,7 +523,12 @@ const RU = {
   ddKpiAvgMonthsElevator: "Ср. просрочка, лифты",
   ddKpiAvgMonthsOperational: "Ср. просрочка, экспл.",
   ddByServiceTitle: "Долг по видам услуг",
+  ddByAddressTitle: "Разбивка по домам/корпусам",
+  ddAllAddresses: "Все дома",
+  ddAddressDebtorsSuffix: "должников",
+  ddDebtorsListTitle: "Список должников",
   ddTopDebtorsTitle: "Топ должников",
+  ddTableAddress: "Дом/корпус",
   ddTableUnit: "Кв.",
   ddTableOwner: "Собственник",
   ddTableDebt: "Долг, ₸",
@@ -520,6 +538,22 @@ const RU = {
   ddEstimateNote:
     "Число месяцев — расчётная оценка (долг / начисление за текущий период), а не точная помесячная история: исходная ведомость — снимок одного расчётного периода, без данных за прошлые месяцы.",
   ddPeriodPrefix: "Данные по ведомости за",
+
+  // Инструмент расчёта задолженности для нотариуса (NotaryDebtTool)
+  ndTitle: "Расчёт задолженности для взыскания",
+  ndDesc:
+    "Выберите должника по лицевому счёту, номеру помещения или ФИО — сформируйте официальный расчёт задолженности для передачи нотариусу (исполнительная надпись по бесспорному требованию).",
+  ndNoDebtorsHint: "Нет данных о должниках — импортируйте ведомость Астана ЕРЦ на вкладке «Реестр».",
+  ndSearchPlaceholder: "Поиск по ЛС, номеру, ФИО или адресу…",
+  ndNothingFound: "Ничего не найдено.",
+  ndNoOwnerNameHint: "ФИО не указано",
+  ndFieldOwner: "Собственник:",
+  ndFieldAccount: "Лицевой счёт:",
+  ndTotalLabel: "Итого задолженность",
+  ndExportBusy: "Формирование…",
+  ndExportButton: "Скачать расчёт (.docx)",
+  ndLegalNote:
+    "Документ формируется на основании данных последней импортированной ведомости и не заменяет акт сверки взаиморасчётов и уведомление должника — эти шаги необходимо выполнить самостоятельно перед обращением к нотариусу за исполнительной надписью (ст. 91-92 Закона РК «О нотариате»).",
 
   // MaintenanceCalendar
   mcTitle: "Календарь регламентных работ (ТОиР/ППР)",
@@ -1208,6 +1242,7 @@ const KZ: Record<TranslationKey, string> = {
 
   orTabRegistry: "Тізілім",
   orTabDebt: "Берешек",
+  orTabCollection: "Өндіріп алу",
 
   orDebtImportButton: "Астана ЕРЦ ведомосін импорттау",
   orDebtImportErrorReadFail: "Файлды оқу мүмкін болмады. Астана ЕРЦ сальдо ведомосі қолдау көрсетіледі (.xlsx, №215 нысаны).",
@@ -1216,6 +1251,8 @@ const KZ: Record<TranslationKey, string> = {
   orDebtPreviewPeriod: "Кезең:",
   orDebtPreviewProvider: "Жеткізуші:",
   orDebtPreviewAddressLabel: "Импорттауға үй/корпус:",
+  orDebtPreviewSelectAll: "Барлығын таңдау",
+  orDebtPreviewSelectNone: "Барлығын алып тастау",
   orDebtPreviewUnitsWord: "пәт.",
   orDebtPreviewDebtorsWord: "борышкер",
   orDebtPreviewTotalDebtLabel: "кезең соңындағы берешек:",
@@ -1241,6 +1278,16 @@ const KZ: Record<TranslationKey, string> = {
   orMultiAddressNote:
     "Тізілім бірнеше мекенжай/корпусты қамтиды — нысан профилімен (1-қадам, бір үй) салыстыру жүргізілмейді, әр корпус бойынша аралық қорытындыларға назар аударыңыз.",
 
+  orSelectRowLabel: "Жолды таңдау",
+  orSelectAllVisible: "Барлығын таңдау",
+  orSelectedCountPrefix: "Таңдалды:",
+  orDeleteSelectedButton: "Таңдалғандарды жою",
+  orClearRegistryButton: "Барлық тізілімді тазарту",
+  orBulkDeleteConfirmPrefix: "Таңдалған үй-жайларды жою (",
+  orBulkDeleteConfirmSuffix: " дана)? Әрекетті қайтару мүмкін емес.",
+  orClearRegistryConfirmPrefix: "Меншік иелерінің тізілімін толық тазарту — барлық үй-жайларды жою (",
+  orClearRegistryConfirmSuffix: " дана)? Әрекетті қайтару мүмкін емес.",
+
   ddTitle: "Меншік иелерінің берешегі",
   ddDesc: "Соңғы импортталған ЕРЦ ведомосі бойынша пайдалану шығындары мен ТҚ лифттер берешегінің аналитикасы.",
   ddNoDataHint: "Берешек аналитикасын көру үшін «Тізілім» қойындысында Астана ЕРЦ ведомосін импорттаңыз.",
@@ -1251,7 +1298,12 @@ const KZ: Record<TranslationKey, string> = {
   ddKpiAvgMonthsElevator: "Орт. мерзімі, лифттер",
   ddKpiAvgMonthsOperational: "Орт. мерзімі, пайдалану",
   ddByServiceTitle: "Қызмет түрлері бойынша берешек",
+  ddByAddressTitle: "Үй/корпус бойынша бөлу",
+  ddAllAddresses: "Барлық үйлер",
+  ddAddressDebtorsSuffix: "борышкер",
+  ddDebtorsListTitle: "Борышкерлер тізімі",
   ddTopDebtorsTitle: "Топ борышкерлер",
+  ddTableAddress: "Үй/корпус",
   ddTableUnit: "Пәт.",
   ddTableOwner: "Меншік иесі",
   ddTableDebt: "Берешек, ₸",
@@ -1261,6 +1313,21 @@ const KZ: Record<TranslationKey, string> = {
   ddEstimateNote:
     "Ай саны — есептік бағалау (берешек / ағымдағы кезең есептемесі), нақты айлық тарих емес: бастапқы ведомость — бір есептік кезеңнің суреті, өткен айлар деректерінсіз.",
   ddPeriodPrefix: "Ведомость деректері бойынша кезең",
+
+  ndTitle: "Өндіріп алуға берешек есебі",
+  ndDesc:
+    "Лицевой шот, пәтер нөмірі немесе аты-жөні бойынша борышкерді таңдаңыз — нотариусқа беруге арналған ресми берешек есебін жасаңыз (даусыз талап бойынша орындау жазбасы).",
+  ndNoDebtorsHint: "Борышкерлер туралы деректер жоқ — «Тізілім» қойындысында Астана ЕРЦ ведомосін импорттаңыз.",
+  ndSearchPlaceholder: "ЛС, нөмір, аты-жөні немесе мекенжай бойынша іздеу…",
+  ndNothingFound: "Ештеңе табылмады.",
+  ndNoOwnerNameHint: "Аты-жөні көрсетілмеген",
+  ndFieldOwner: "Меншік иесі:",
+  ndFieldAccount: "Лицевой шот:",
+  ndTotalLabel: "Барлығы берешек",
+  ndExportBusy: "Қалыптастырылуда…",
+  ndExportButton: "Есепті жүктеу (.docx)",
+  ndLegalNote:
+    "Құжат соңғы импортталған ведомость деректері негізінде қалыптастырылады және өзара есеп айырысуды салыстыру актісі мен борышкерге хабарламаны алмастырмайды — бұл қадамдарды нотариусқа орындау жазбасы алу үшін жүгінер алдында өз бетіңізбен орындау қажет (ҚР «Нотариат туралы» Заңының 91-92 баптары).",
 
   mcTitle: "Регламенттік жұмыстар күнтізбесі (ТҚ/ЖКЖ)",
   mcDesc:
@@ -1935,6 +2002,7 @@ const EN: Record<TranslationKey, string> = {
 
   orTabRegistry: "Registry",
   orTabDebt: "Debt",
+  orTabCollection: "Collection",
 
   orDebtImportButton: "Import Astana ERC statement",
   orDebtImportErrorReadFail: "Could not read the file. Astana ERC balance statement is supported (.xlsx, form No. 215).",
@@ -1943,6 +2011,8 @@ const EN: Record<TranslationKey, string> = {
   orDebtPreviewPeriod: "Period:",
   orDebtPreviewProvider: "Provider:",
   orDebtPreviewAddressLabel: "Building/block to import:",
+  orDebtPreviewSelectAll: "Select all",
+  orDebtPreviewSelectNone: "Select none",
   orDebtPreviewUnitsWord: "units",
   orDebtPreviewDebtorsWord: "debtors",
   orDebtPreviewTotalDebtLabel: "debt at period end:",
@@ -1968,6 +2038,16 @@ const EN: Record<TranslationKey, string> = {
   orMultiAddressNote:
     "The registry spans several addresses/blocks — comparison against the object profile (Step 1, one building) is skipped; use the per-block subtotals above instead.",
 
+  orSelectRowLabel: "Select row",
+  orSelectAllVisible: "Select all",
+  orSelectedCountPrefix: "Selected:",
+  orDeleteSelectedButton: "Delete selected",
+  orClearRegistryButton: "Clear entire registry",
+  orBulkDeleteConfirmPrefix: "Delete the selected units (",
+  orBulkDeleteConfirmSuffix: ")? This cannot be undone.",
+  orClearRegistryConfirmPrefix: "Completely clear the owner registry — delete all units (",
+  orClearRegistryConfirmSuffix: ")? This cannot be undone.",
+
   ddTitle: "Owner debt",
   ddDesc: "Debt analytics for operating expenses and elevator maintenance from the latest imported ERC statement.",
   ddNoDataHint: "Import an Astana ERC statement on the \"Registry\" tab to see debt analytics.",
@@ -1978,7 +2058,12 @@ const EN: Record<TranslationKey, string> = {
   ddKpiAvgMonthsElevator: "Avg. months overdue, elevator",
   ddKpiAvgMonthsOperational: "Avg. months overdue, operating",
   ddByServiceTitle: "Debt by service",
+  ddByAddressTitle: "Breakdown by building/block",
+  ddAllAddresses: "All buildings",
+  ddAddressDebtorsSuffix: "debtors",
+  ddDebtorsListTitle: "Debtors list",
   ddTopDebtorsTitle: "Top debtors",
+  ddTableAddress: "Building/block",
   ddTableUnit: "Unit",
   ddTableOwner: "Owner",
   ddTableDebt: "Debt, ₸",
@@ -1988,6 +2073,21 @@ const EN: Record<TranslationKey, string> = {
   ddEstimateNote:
     "The month count is an estimate (debt / current period's charge), not an exact monthly history: the source statement is a snapshot of a single billing period, with no data for past months.",
   ddPeriodPrefix: "Statement data as of",
+
+  ndTitle: "Debt calculation for collection",
+  ndDesc:
+    "Select a debtor by account number, unit number, or owner name — generate a formal debt calculation for submission to a notary (writ of execution for an undisputed claim).",
+  ndNoDebtorsHint: "No debtor data — import an Astana ERC statement on the \"Registry\" tab.",
+  ndSearchPlaceholder: "Search by account, unit, owner name, or address…",
+  ndNothingFound: "Nothing found.",
+  ndNoOwnerNameHint: "Owner name not set",
+  ndFieldOwner: "Owner:",
+  ndFieldAccount: "Personal account:",
+  ndTotalLabel: "Total debt",
+  ndExportBusy: "Generating…",
+  ndExportButton: "Download calculation (.docx)",
+  ndLegalNote:
+    "The document is generated from the latest imported statement and does not replace a reconciliation act or a debtor notification — these steps must be completed separately before applying to a notary for a writ of execution (Articles 91-92 of the Law of the RK \"On Notaries\").",
 
   mcTitle: "Maintenance schedule (routine work)",
   mcDesc:
