@@ -69,6 +69,20 @@ describe("instantiateTerritoryCostItem", () => {
     const result = instantiateTerritoryCostItem(item, "2.3", 1000, 3500);
     expect(result.tooltip).toBe("проверено вручную");
   });
+
+  it("переводит единицу измерения в русский ярлык, а не отдаёт сырой ключ enum", () => {
+    const sqmItem = makeItem({ unit: "sqm", unitSize: 1000 });
+    expect(instantiateTerritoryCostItem(sqmItem, "2.3", 1000, 3500).unit).toBe("1000 м²");
+
+    const kmItem = makeItem({ unit: "km", unitSize: 1 });
+    expect(instantiateTerritoryCostItem(kmItem, "2.3", 1000, 3500).unit).toBe("км");
+
+    const hourItem = makeItem({ unit: "machine_hour", unitSize: 1 });
+    expect(instantiateTerritoryCostItem(hourItem, "2.3", 1000, 3500).unit).toBe("маш.-час");
+
+    const elementItem = makeItem({ unit: "element", unitSize: 1 });
+    expect(instantiateTerritoryCostItem(elementItem, "2.3", 1000, 3500).unit).toBe("элемент");
+  });
 });
 
 describe("TERRITORY_WORK_CATALOG", () => {
@@ -77,16 +91,20 @@ describe("TERRITORY_WORK_CATALOG", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("позиции 1-41 (спецтехника/ручная уборка/ямочный ремонт) сверены с оригиналом PDF", () => {
+  it("подавляющее большинство позиций сверено построчно с оригиналом PDF", () => {
     const verifiedCodes = TERRITORY_WORK_CATALOG.filter((i) => i.verified).map((i) => i.sourceCode);
-    expect(verifiedCodes.length).toBeGreaterThanOrEqual(35);
+    expect(verifiedCodes.length).toBeGreaterThanOrEqual(95);
     expect(verifiedCodes).toContain("1");
     expect(verifiedCodes).toContain("38");
+    expect(verifiedCodes).toContain("60"); // МАФ — сверено (Приложение А, поз. 57)
+    expect(verifiedCodes).toContain("82"); // мойка контейнера — сверено, К скорректирована на 36
   });
 
-  it("позиции по МАФ/озеленению/контейнерам остаются непроверенными (не сверены построчно)", () => {
-    const maf = TERRITORY_WORK_CATALOG.find((i) => i.sourceCode === "60");
-    expect(maf?.verified).toBe(false);
+  it("укрупнённые позиции озеленения и контейнерных площадок остаются непроверенными (нет однозначного соответствия Приложению А)", () => {
+    for (const code of ["47", "48", "79", "104", "105", "106", "107", "108", "109"]) {
+      const catalogItem = TERRITORY_WORK_CATALOG.find((i) => i.sourceCode === code);
+      expect(catalogItem?.verified, `sourceCode=${code}`).toBe(false);
+    }
   });
 
   it("расчёт годовой стоимости не даёт отрицательных или NaN значений по всему каталогу", () => {

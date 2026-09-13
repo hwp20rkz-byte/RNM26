@@ -1,4 +1,5 @@
 import type { CostItem, ItemFrequency, TerritoryPassport, TerritoryWorkItem } from "./types";
+import { TERRITORY_WORK_UNIT_LABELS } from "./types";
 
 /**
  * Число выполнений работы в год = длительность применимого периода / интервал
@@ -57,7 +58,7 @@ export function instantiateTerritoryCostItem(
     id: `terr-${item.id}`,
     categoryId,
     name: item.sourceCode ? `${item.sourceCode} ${item.name}` : item.name,
-    unit: item.unitSize === 1 ? item.unit : `${item.unitSize} ${item.unit}`,
+    unit: item.unitSize === 1 ? TERRITORY_WORK_UNIT_LABELS[item.unit] : `${item.unitSize} ${TERRITORY_WORK_UNIT_LABELS[item.unit]}`,
     annualQty: rateApplications * occurrencesPerYear,
     unitPrice: item.ratePerUnitMrp * mrpValue,
     frequency: frequencyForInterval(item.intervalDays),
