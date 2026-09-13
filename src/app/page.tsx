@@ -20,6 +20,7 @@ import { SparePartsRegistry } from "@/components/SparePartsRegistry";
 import { MaintenanceLog } from "@/components/MaintenanceLog";
 import { WorkOrderBoard } from "@/components/WorkOrderBoard";
 import { TerritoryPassportForm } from "@/components/TerritoryPassportForm";
+import { TerritoryWorkSchedule } from "@/components/TerritoryWorkSchedule";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { BudgetCharts } from "@/components/charts/BudgetCharts";
 import { ExportBar } from "@/components/ExportBar";
@@ -146,7 +147,18 @@ export default function HomePage() {
                 </Tabs>
               </TabsContent>
               <TabsContent value="territory">
-                <TerritoryPassportForm />
+                <Tabs defaultValue="passport">
+                  <TabsList>
+                    <TabsTrigger value="passport">{t("terrTabPassport")}</TabsTrigger>
+                    <TabsTrigger value="schedule">{t("terrTabSchedule")}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="passport">
+                    <TerritoryPassportForm />
+                  </TabsContent>
+                  <TabsContent value="schedule">
+                    <TerritoryWorkSchedule />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
           </CardContent>

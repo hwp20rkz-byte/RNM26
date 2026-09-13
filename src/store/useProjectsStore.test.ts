@@ -798,3 +798,35 @@ describe("паспорт придомовой территории", () => {
     expect(project2.db.items.filter((i) => i.id.startsWith("terr-")).length).toBe(109);
   });
 });
+
+describe("план работ по территории — отметки исполнения", () => {
+  it("setTerritoryTaskCompletion создаёт запись и проставляет completedAt при завершении", () => {
+    const key = "twi-1__2026-09-15";
+    useProjectsStore.getState().setTerritoryTaskCompletion(key, "twi-1", "2026-09-15", { completed: true, completedBy: "Иванов И.И." });
+    const project = selectActiveProject(useProjectsStore.getState());
+    const record = project.territoryTaskCompletions[key];
+    expect(record.completed).toBe(true);
+    expect(record.completedBy).toBe("Иванов И.И.");
+    expect(record.completedAt).toBeTruthy();
+  });
+
+  it("снятие галочки убирает completedAt, но сохраняет прочие поля", () => {
+    const key = "twi-1__2026-09-15";
+    useProjectsStore.getState().setTerritoryTaskCompletion(key, "twi-1", "2026-09-15", { completed: true, note: "готово" });
+    useProjectsStore.getState().setTerritoryTaskCompletion(key, "twi-1", "2026-09-15", { completed: false });
+    const project = selectActiveProject(useProjectsStore.getState());
+    const record = project.territoryTaskCompletions[key];
+    expect(record.completed).toBe(false);
+    expect(record.completedAt).toBeUndefined();
+    expect(record.note).toBe("готово");
+  });
+
+  it("createWorkOrderFromTerritoryTask создаёт наряд и связывает его с отметкой плана", () => {
+    const key = "twi-1__2026-09-15";
+    const orderId = useProjectsStore.getState().createWorkOrderFromTerritoryTask(key, "twi-1", "2026-09-15", "Тестовая работа");
+    const project = selectActiveProject(useProjectsStore.getState());
+    expect(project.workOrders.some((o) => o.id === orderId)).toBe(true);
+    expect(project.workOrders.find((o) => o.id === orderId)?.deadline).toBe("2026-09-15");
+    expect(project.territoryTaskCompletions[key].workOrderId).toBe(orderId);
+  });
+});

@@ -21,6 +21,7 @@ import type {
   OwnershipUnit,
   PayrollPosition,
   PayrollTaxRates,
+  TerritoryTaskCompletion,
   Project,
   SavedSmeta,
   ServicePreset,
@@ -97,6 +98,7 @@ function seedInitialProject(presets: ServicePreset[]): Project {
     spareParts: [],
     maintenanceLogs: [],
     workOrders: [],
+    territoryTaskCompletions: {},
     createdAt: ts,
     updatedAt: ts,
   };
@@ -127,6 +129,21 @@ interface ProjectsState {
   // --- придомовая территория (Приложение Б, №22-НҚ) ---
   setTerritoryPassport: (patch: Partial<TerritoryPassport>) => void;
   applyTerritoryPassportToDb: () => void;
+
+  // --- план работ по территории ---
+  setTerritoryTaskCompletion: (
+    key: string,
+    territoryWorkItemId: string,
+    date: string,
+    patch: Partial<Pick<TerritoryTaskCompletion, "completed" | "completedBy" | "note">>,
+  ) => void;
+  /** Создаёт формальный наряд (см. WorkOrder) из отметки плана работ и связывает её с ним */
+  createWorkOrderFromTerritoryTask: (
+    key: string,
+    territoryWorkItemId: string,
+    date: string,
+    title: string,
+  ) => string;
 
   // --- пресеты обслуживания ---
   setPreset: (id: string) => void;
@@ -340,6 +357,7 @@ export const useProjectsStore = create<ProjectsState>()(
             spareParts: [],
             maintenanceLogs: [],
             workOrders: [],
+            territoryTaskCompletions: {},
             createdAt: ts,
             updatedAt: ts,
           };
@@ -411,6 +429,53 @@ export const useProjectsStore = create<ProjectsState>()(
             const db = { ...p.db, items: [...keepExisting, ...generated] };
             return { projects: { ...s.projects, [p.id]: touchProject({ ...p, db }) } };
           });
+        },
+
+        setTerritoryTaskCompletion: (key, territoryWorkItemId, date, patch) => {
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const existing = p.territoryTaskCompletions[key];
+            const nextCompleted = patch.completed ?? existing?.completed ?? false;
+            const record: TerritoryTaskCompletion = {
+              key,
+              territoryWorkItemId,
+              date,
+              completed: nextCompleted,
+              completedBy: patch.completedBy ?? existing?.completedBy,
+              note: patch.note ?? existing?.note,
+              completedAt: nextCompleted ? (existing?.completedAt ?? nowIso()) : undefined,
+              workOrderId: existing?.workOrderId,
+            };
+            const territoryTaskCompletions = { ...p.territoryTaskCompletions, [key]: record };
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, territoryTaskCompletions }) } };
+          });
+        },
+
+        createWorkOrderFromTerritoryTask: (key, territoryWorkItemId, date, title) => {
+          const workItem = TERRITORY_WORK_CATALOG.find((i) => i.id === territoryWorkItemId);
+          const orderId = get().createWorkOrder({
+            title,
+            description: workItem
+              ? `Наряд по позиции плана работ по территории: ${workItem.sourceCode ? `${workItem.sourceCode} ` : ""}${workItem.name} (${date}).`
+              : `Наряд по позиции плана работ по территории (${date}).`,
+            deadline: date,
+          });
+          set((s) => {
+            const p = s.projects[s.activeProjectId];
+            const existing = p.territoryTaskCompletions[key];
+            const record: TerritoryTaskCompletion = existing ?? {
+              key,
+              territoryWorkItemId,
+              date,
+              completed: false,
+            };
+            const territoryTaskCompletions = {
+              ...p.territoryTaskCompletions,
+              [key]: { ...record, workOrderId: orderId },
+            };
+            return { projects: { ...s.projects, [p.id]: touchProject({ ...p, territoryTaskCompletions }) } };
+          });
+          return orderId;
         },
 
         setPreset: (id) => {
@@ -1288,7 +1353,7 @@ export const useProjectsStore = create<ProjectsState>()(
       name: "qazaqosi-projects-v1",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      version: 7,
+      version: 8,
       // v0 → v1: project.scenario:"economy"|"standard"|"business" → presetId,
       //          пресетов не существовало вовсе.
       // v1 → v2: у проектов не было assets[]/capitalFundBalance, справочника
@@ -1311,6 +1376,8 @@ export const useProjectsStore = create<ProjectsState>()(
       //          для паркинга) — бэкофилл нейтральными 0/0 (пол/резерв не
       //          действуют), не меняет расчёт существующих проектов, пока
       //          пользователь не включит их явно на Шаге 1.
+      // v7 → v8: у проектов не было territoryTaskCompletions (отметки плана
+      //          работ по территории) — добавляем как пустой объект.
       migrate: (persisted, version) => {
         type LooseProject = Project & {
           scenario?: string;
@@ -1323,6 +1390,7 @@ export const useProjectsStore = create<ProjectsState>()(
           spareParts?: Project["spareParts"];
           maintenanceLogs?: Project["maintenanceLogs"];
           workOrders?: Project["workOrders"];
+          territoryTaskCompletions?: Project["territoryTaskCompletions"];
         };
         let state = persisted as {
           projects?: Record<string, LooseProject>;
@@ -1428,6 +1496,14 @@ export const useProjectsStore = create<ProjectsState>()(
             savedSmetas[id] = { ...sm, building: backfillParking(sm.building) };
           }
           state = { ...state, projects, savedSmetas };
+        }
+
+        if (version < 8) {
+          const projects: Record<string, LooseProject> = {};
+          for (const [id, p] of Object.entries(state.projects ?? {})) {
+            projects[id] = { ...p, territoryTaskCompletions: p.territoryTaskCompletions ?? {} };
+          }
+          state = { ...state, projects };
         }
 
         return {

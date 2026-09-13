@@ -234,15 +234,15 @@ export function ReplacementPlan() {
                     const asset = assetById.get(id);
                     if (!asset) return null;
                     return (
-                      <li key={id} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                        <span className="flex-1">{asset.name}</span>
+                      <li key={id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+                        <span className="min-w-0 flex-1 truncate">{asset.name}</span>
                         {asset.criticalSafety && <Badge variant="danger">{t("arSafetyBadge")}</Badge>}
-                        <span className="tabular-nums text-slate-400">
+                        <span className="shrink-0 tabular-nums text-slate-400">
                           {formatKzt(asset.quantity * asset.replacementUnitCost)}
                         </span>
                         <button
                           onClick={() => insertReplacementIntoSmeta(id, "2.7")}
-                          className="rounded-md border border-slate-200 px-2 py-0.5 font-medium text-slate-500 hover:border-slate-400 dark:border-slate-700"
+                          className="shrink-0 rounded-md border border-slate-200 px-2 py-0.5 font-medium text-slate-500 hover:border-slate-400 dark:border-slate-700"
                         >
                           {t("rpAddToBudgetButton")}
                         </button>

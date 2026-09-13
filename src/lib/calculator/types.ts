@@ -286,6 +286,8 @@ export interface Project {
   workOrders: WorkOrder[];
   /** Паспорт придомовой территории — опционально, включает детальный каталог статьи 2.3 (см. territoryWorkEngine) */
   territoryPassport?: TerritoryPassport;
+  /** Отметки выполнения плана работ по территории, ключ `${itemId}__${date}` — см. territoryScheduleEngine */
+  territoryTaskCompletions: Record<string, TerritoryTaskCompletion>;
   createdAt: string;
   updatedAt: string;
 }
@@ -886,13 +888,38 @@ export interface TerritoryWorkItem {
   seasonLabel?: string;
   workSteps?: string[];
   /**
-   * Данные реконструированы из PDF→Markdown конвертации без доступа к
-   * оригинальному PDF/приказу (формула (1) раздела 9.3 в исходнике
-   * повреждена). false — требует сверки перед использованием в реальных
-   * начислениях.
+   * true — расценка (Приложение Б) и кратность (Приложение А) сверены
+   * построчно с оригиналом приказа №22-НҚ. false — периодичность принята по
+   * аналогии с подтверждённым принципом для похожих позиций (обычно
+   * «по мере необходимости», К=1), но конкретная строка Приложения А для
+   * этой позиции не сверялась.
    */
   verified: boolean;
   source: string;
   minServiceClass?: ServiceClass;
+}
+
+// ---------------------------------------------------------------------------
+// План работ по территории — день/неделя/месяц/квартал поверх каталога
+// Приложения Б. Даты выполнения НЕ хранятся построчно на весь год (позиция
+// с К=213 давала бы 213 записей на один пункт) — генерируются на лету
+// функцией `computeTerritoryScheduleOccurrences` по periodDays/intervalDays
+// позиции, а хранится только то, что реально отметил дворник: одна запись
+// на факт исполнения/отметки конкретной даты, ключ — `${itemId}__${date}`.
+// ---------------------------------------------------------------------------
+
+export interface TerritoryTaskCompletion {
+  /** `${territoryWorkItemId}__${YYYY-MM-DD}` */
+  key: string;
+  territoryWorkItemId: string;
+  /** Дата плановой даты выполнения, ISO (YYYY-MM-DD) */
+  date: string;
+  completed: boolean;
+  /** Имя дворника/исполнителя, кто фактически отметил выполнение */
+  completedBy?: string;
+  completedAt?: string;
+  note?: string;
+  /** Если по этой дате создан формальный наряд — id WorkOrder */
+  workOrderId?: string;
 }
 
