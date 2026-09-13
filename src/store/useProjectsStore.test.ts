@@ -416,10 +416,16 @@ describe("реестр собственников и общие собрания
   });
 });
 
-function ercUnit(unitNumber: string, personalAccount: string, elevatorClosing: number, operationalClosing: number): ErcUnitStatement {
+function ercUnit(
+  unitNumber: string,
+  personalAccount: string,
+  elevatorClosing: number,
+  operationalClosing: number,
+  address = "ул.Тест, д.1",
+): ErcUnitStatement {
   return {
     personalAccount,
-    address: "ул.Тест, д.1",
+    address,
     unitNumber,
     area: 50,
     services: [
@@ -482,6 +488,43 @@ describe("импорт ведомости ЕРЦ (долги)", () => {
     expect(units).toHaveLength(1);
     expect(units[0].debtElevatorKzt).toBe(0);
     expect(units[0].debtPeriod).toBe("08/2026");
+  });
+
+  it("КРИТИЧНО: импорт двух корпусов с пересекающейся нумерацией квартир не смешивает их долги", () => {
+    // Корпус А, квартира «1» — должник по ТО лифтов
+    useProjectsStore.getState().importDebtStatement([ercUnit("1", "A-1001", 5000, 0, "ул.Акмешит, д.9")], "08/2026");
+    // Корпус Б, квартира «1» — свой отдельный ЛС, без долга
+    useProjectsStore.getState().importDebtStatement([ercUnit("1", "B-2001", 0, 0, "ул.Акмешит, д.9/1")], "08/2026");
+
+    const units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(2); // не схлопнулось в одну запись
+    const unitA = units.find((u) => u.personalAccount === "A-1001")!;
+    const unitB = units.find((u) => u.personalAccount === "B-2001")!;
+    expect(unitA.address).toBe("ул.Акмешит, д.9");
+    expect(unitA.number).toBe("1");
+    expect(unitA.debtElevatorKzt).toBe(5000);
+    expect(unitB.address).toBe("ул.Акмешит, д.9/1");
+    expect(unitB.number).toBe("1");
+    expect(unitB.debtElevatorKzt).toBe(0); // корпус Б не унаследовал долг корпуса А
+  });
+
+  it("юнит без адреса (легаси/добавлен вручную) усыновляет адрес первого совпавшего импорта, дальше не путается с другим корпусом", () => {
+    useProjectsStore.getState().addUnit({ unitType: "apartment", number: "5", area: 40, ownerName: "Легаси" });
+    useProjectsStore.getState().importDebtStatement([ercUnit("5", "A-5005", 1000, 0, "ул.Акмешит, д.9")], "08/2026");
+    let units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(1);
+    expect(units[0].ownerName).toBe("Легаси");
+    expect(units[0].address).toBe("ул.Акмешит, д.9");
+
+    // Другой корпус с тем же номером «5» — легаси-запись уже привязана к корпусу А, значит создаётся новая
+    useProjectsStore.getState().importDebtStatement([ercUnit("5", "B-6005", 2000, 0, "ул.Акмешит, д.9/1")], "08/2026");
+    units = selectActiveProject(useProjectsStore.getState()).units;
+    expect(units).toHaveLength(2);
+    const legacyUnit = units.find((u) => u.personalAccount === "A-5005")!;
+    const newUnit = units.find((u) => u.personalAccount === "B-6005")!;
+    expect(legacyUnit.debtElevatorKzt).toBe(1000);
+    expect(newUnit.debtElevatorKzt).toBe(2000);
+    expect(newUnit.address).toBe("ул.Акмешит, д.9/1");
   });
 });
 

@@ -9,6 +9,7 @@ import {
   computeRegistryTotals,
   computeUnitDebtStatus,
   computeUnitMonthlyAccrual,
+  groupUnitsByAddress,
   normalizePhoneForWa,
 } from "./ownerRegistryEngine";
 import type { AgendaItem, GeneralMeeting, OwnershipUnit } from "./types";
@@ -231,6 +232,37 @@ describe("computeRegistryTotals", () => {
     expect(totals.byType.commercial.count).toBe(1);
     expect(totals.byType.commercial.area).toBe(10);
     expect(totals.byType.storage.count).toBe(0);
+  });
+});
+
+describe("groupUnitsByAddress", () => {
+  it("группирует юниты по адресу и считает подытоги", () => {
+    const units: OwnershipUnit[] = [
+      unit({ id: "a1", area: 50, number: "1", address: "ул.А, д.1" }),
+      unit({ id: "a2", area: 60, number: "2", address: "ул.А, д.1" }),
+      unit({ id: "b1", area: 70, number: "1", address: "ул.Б, д.2" }),
+    ];
+    const groups = groupUnitsByAddress(units);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toEqual({ address: "ул.А, д.1", unitCount: 2, totalArea: 110 });
+    expect(groups[1]).toEqual({ address: "ул.Б, д.2", unitCount: 1, totalArea: 70 });
+  });
+
+  it("юниты без адреса попадают в отдельную группу с пустым address, в конце списка", () => {
+    const units: OwnershipUnit[] = [
+      unit({ id: "a1", area: 50, number: "1", address: "ул.А, д.1" }),
+      unit({ id: "n1", area: 30, number: "9" }),
+    ];
+    const groups = groupUnitsByAddress(units);
+    expect(groups).toHaveLength(2);
+    expect(groups[1]).toEqual({ address: "", unitCount: 1, totalArea: 30 });
+  });
+
+  it("один общий адрес — одна группа", () => {
+    const groups = groupUnitsByAddress(UNITS);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].address).toBe("");
+    expect(groups[0].unitCount).toBe(4);
   });
 });
 

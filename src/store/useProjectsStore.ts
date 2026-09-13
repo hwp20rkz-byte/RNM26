@@ -847,6 +847,7 @@ export const useProjectsStore = create<ProjectsState>()(
               const operational = su.services.find((sv) => sv.kind === "operational_expenses");
               const debtFields = {
                 source: "Импорт из ведомости Астана ЕРЦ",
+                address: su.address,
                 personalAccount: su.personalAccount,
                 debtElevatorKzt: elevator?.closingBalanceKzt ?? 0,
                 debtOperationalKzt: operational?.closingBalanceKzt ?? 0,
@@ -855,7 +856,24 @@ export const useProjectsStore = create<ProjectsState>()(
                 debtPeriod: period,
                 debtImportedAt: ts,
               };
-              const idx = units.findIndex((u) => u.unitType === "apartment" && u.number === su.unitNumber);
+              // Номер квартиры один и тот же в разных корпусах — сопоставляем
+              // сперва по ЛС (глобально уникален), и только если ЛС на юните
+              // ещё не проставлен — по номеру плюс адресу: существующий юнит
+              // либо ещё не имеет адреса (тогда усыновляет адрес этого импорта
+              // — обычный случай для ранее созданных вручную/из старого
+              // импорта записей), либо его адрес должен совпасть буквально.
+              // Без этого условия импорт второго корпуса перезаписывал бы
+              // квартиры первого с тем же номером чужими долгами.
+              let idx = units.findIndex((u) => u.unitType === "apartment" && u.personalAccount && u.personalAccount === su.personalAccount);
+              if (idx < 0) {
+                idx = units.findIndex(
+                  (u) =>
+                    u.unitType === "apartment" &&
+                    !u.personalAccount &&
+                    (!u.address || u.address === su.address) &&
+                    u.number === su.unitNumber,
+                );
+              }
               if (idx >= 0) {
                 units[idx] = {
                   ...units[idx],

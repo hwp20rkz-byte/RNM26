@@ -168,6 +168,37 @@ export function computeRegistryTotals(units: OwnershipUnit[]): RegistryTotals {
 }
 
 // ---------------------------------------------------------------------------
+// Разбивка реестра по адресу/корпусу — нужна, когда один проект (обычно у
+// управляющей организации, обслуживающей несколько домов под одним ОО/КСК)
+// собирает в один реестр помещения из нескольких корпусов: номера квартир в
+// разных корпусах пересекаются («кв. 1» есть в каждом доме), поэтому без
+// разбивки по адресу они визуально сливаются в один диапазон.
+// ---------------------------------------------------------------------------
+
+export interface AddressGroup {
+  /** Пустая строка — юниты без указанного адреса (не путать с undefined: это ключ группы) */
+  address: string;
+  unitCount: number;
+  totalArea: number;
+}
+
+export function groupUnitsByAddress(units: OwnershipUnit[]): AddressGroup[] {
+  const map = new Map<string, AddressGroup>();
+  for (const u of units) {
+    const key = u.address?.trim() || "";
+    const g = map.get(key) ?? { address: key, unitCount: 0, totalArea: 0 };
+    g.unitCount += 1;
+    g.totalArea = round2(g.totalArea + u.area);
+    map.set(key, g);
+  }
+  return [...map.values()].sort((a, b) => {
+    if (!a.address) return 1; // «без адреса» — в конец списка
+    if (!b.address) return -1;
+    return a.address.localeCompare(b.address, "ru");
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Задолженность из импортированной ведомости ЕРЦ (см. parseErcStatement.ts).
 // «Месяцы задолженности» — оценка, не факт: исходная сальдовая ведомость —
 // снимок ОДНОГО расчётного периода (начальное+начисление+платёж за месяц),

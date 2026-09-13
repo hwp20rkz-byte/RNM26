@@ -489,6 +489,15 @@ const RU = {
   orDebtNoPhoneHint: "нет телефона",
   orDebtPeriodLabel: "Период ведомости:",
 
+  // Разбивка реестра по адресам/корпусам
+  orAddressFilterLabel: "Дом/корпус:",
+  orAddressFilterAll: "Все дома",
+  orAddressUnknown: "Без адреса",
+  orAddressPlaceholder: "дом/корпус (адрес)",
+  orAddressGroupUnitsWord: "кв.",
+  orMultiAddressNote:
+    "Реестр охватывает несколько адресов/корпусов — сверка с профилем объекта (Шаг 1, один дом) не проводится, ориентируйтесь на подытоги по каждому корпусу.",
+
   // Дашборд задолженности (DebtDashboard)
   ddTitle: "Задолженность собственников",
   ddDesc:
@@ -1224,6 +1233,14 @@ const KZ: Record<TranslationKey, string> = {
   orDebtNoPhoneHint: "телефон жоқ",
   orDebtPeriodLabel: "Ведомость кезеңі:",
 
+  orAddressFilterLabel: "Үй/корпус:",
+  orAddressFilterAll: "Барлық үйлер",
+  orAddressUnknown: "Мекенжайсыз",
+  orAddressPlaceholder: "үй/корпус (мекенжай)",
+  orAddressGroupUnitsWord: "пәт.",
+  orMultiAddressNote:
+    "Тізілім бірнеше мекенжай/корпусты қамтиды — нысан профилімен (1-қадам, бір үй) салыстыру жүргізілмейді, әр корпус бойынша аралық қорытындыларға назар аударыңыз.",
+
   ddTitle: "Меншік иелерінің берешегі",
   ddDesc: "Соңғы импортталған ЕРЦ ведомосі бойынша пайдалану шығындары мен ТҚ лифттер берешегінің аналитикасы.",
   ddNoDataHint: "Берешек аналитикасын көру үшін «Тізілім» қойындысында Астана ЕРЦ ведомосін импорттаңыз.",
@@ -1942,6 +1959,14 @@ const EN: Record<TranslationKey, string> = {
   orDebtWaButton: "Remind via WhatsApp",
   orDebtNoPhoneHint: "no phone",
   orDebtPeriodLabel: "Statement period:",
+
+  orAddressFilterLabel: "Building/block:",
+  orAddressFilterAll: "All buildings",
+  orAddressUnknown: "No address",
+  orAddressPlaceholder: "building/block (address)",
+  orAddressGroupUnitsWord: "units",
+  orMultiAddressNote:
+    "The registry spans several addresses/blocks — comparison against the object profile (Step 1, one building) is skipped; use the per-block subtotals above instead.",
 
   ddTitle: "Owner debt",
   ddDesc: "Debt analytics for operating expenses and elevator maintenance from the latest imported ERC statement.",
