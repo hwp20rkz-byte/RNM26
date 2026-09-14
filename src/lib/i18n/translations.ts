@@ -152,6 +152,7 @@ const RU = {
   terrFieldWasteSites: "Контейнерные площадки, шт.",
   terrApplyButton: "Сформировать / обновить смету (ст. 2.3)",
   terrExportButton: "Бланк паспорта (Word)",
+  terrMafActExportButton: "Акт обследования МАФ (Word)",
   terrMrpForecastTitle: "МРП и прогноз расценок на 2026-2030 гг.",
   terrMrpValueLabel: "Текущее значение МРП, ₸",
   terrMrpGrowthLabel: "Предполагаемый рост МРП",
@@ -170,6 +171,13 @@ const RU = {
   terrZoneOsiLabel: "Оплачивают собственники (ОСИ)",
   terrZoneAkimatLabel: "К возмещению из бюджета акимата (п. 4.2)",
   terrZoneHint: "Информационная разбивка прямых затрат по тому, какая площадь/показатель паспорта задействован в расчёте позиции. Не меняет смету — все 109 позиций по-прежнему суммируются в статью 2.3 при нажатии «Применить».",
+  terrMaterialsTitle: "Потребность в материалах на сезон",
+  terrMaterialsNameCol: "Материал",
+  terrMaterialsRequiredCol: "Требуется",
+  terrMaterialsAvailableCol: "На складе",
+  terrMaterialsShortfallCol: "Дефицит",
+  terrMaterialsHint:
+    "Расчётная годовая потребность по паспорту территории (антигололёдная обработка — по проверенным нормам приказа, полив/удобрения — оценочно). «На складе» — сумма остатков позиций склада ЗИП, привязанных к материалу (вкладка «Инженерия и ЗИП» → «Склад»).",
   terrAppliedHint: "Позиции добавлены в статью 2.3 «Конструктора статей» с префиксом номера из Приложения Б — включайте/выключайте и правьте количество там же.",
 
   // Территория: подвкладки (паспорт / план работ)
@@ -690,6 +698,8 @@ const RU = {
   sprDeficitBadge: "дефицит",
   sprPrintLabelTooltip: "Печать QR-этикетки",
   sprLabelSubtitle: "Склад ЗИП",
+  sprMaterialKindTooltip: "Привязка к материалу территории (для расчёта потребности по паспорту территории)",
+  sprMaterialKindUnset: "Не привязан к территории",
 
   // MaintenanceLog
   mlTitle: "Журнал работ по инженерным системам",
@@ -975,6 +985,7 @@ const KZ: Record<TranslationKey, string> = {
   terrFieldWasteSites: "Контейнер алаңдары, дана",
   terrApplyButton: "Сметаны құру / жаңарту (2.3-бап)",
   terrExportButton: "Паспорт бланкі (Word)",
+  terrMafActExportButton: "МАФ тексеру актісі (Word)",
   terrMrpForecastTitle: "АЕК және 2026-2030 жж. бағаларды болжау",
   terrMrpValueLabel: "Ағымдағы АЕК мәні, ₸",
   terrMrpGrowthLabel: "Болжамды АЕК өсімі",
@@ -993,6 +1004,13 @@ const KZ: Record<TranslationKey, string> = {
   terrZoneOsiLabel: "Меншік иелері төлейді (ОСИ)",
   terrZoneAkimatLabel: "Жергілікті бюджеттен өтелуге тиіс (4.2-т.)",
   terrZoneHint: "Тікелей шығындардың ақпараттық бөлінісі — паспорттың қай көрсеткіші есепке алынғанына қарай. Сметаны өзгертпейді — «Қолдану» батырмасы барлық 109 позицияны 2.3-бапқа бұрынғыдай қосады.",
+  terrMaterialsTitle: "Маусымдық материалдарға қажеттілік",
+  terrMaterialsNameCol: "Материал",
+  terrMaterialsRequiredCol: "Қажет",
+  terrMaterialsAvailableCol: "Қоймада",
+  terrMaterialsShortfallCol: "Тапшылық",
+  terrMaterialsHint:
+    "Аумақ паспорты бойынша есептелген жылдық қажеттілік (мұздан қорғау — бұйрықтың тексерілген нормалары бойынша, суару/тыңайтқыш — бағалау). «Қоймада» — материалға байланыстырылған ЗИП қоймасы позицияларының қалдықтар сомасы («Инженерия және ЗИП» → «Қойма» қойындысы).",
   terrAppliedHint: "Позициялар «Баптар конструкторының» 2.3 бабына Б қосымшасының нөмір префиксімен қосылды — қосу/өшіру және санын түзету сол жерде жасалады.",
 
   terrTabPassport: "Аумақ паспорты",
@@ -1491,6 +1509,8 @@ const KZ: Record<TranslationKey, string> = {
   sprDeficitBadge: "тапшы",
   sprPrintLabelTooltip: "QR-жапсырманы басып шығару",
   sprLabelSubtitle: "ЗИП қоймасы",
+  sprMaterialKindTooltip: "Аумақ материалына байланыстыру (аумақ паспорты бойынша қажеттілікті есептеу үшін)",
+  sprMaterialKindUnset: "Аумаққа байланыстырылмаған",
 
   mlTitle: "Инженерлік жүйелер бойынша жұмыстар журналы",
   mlDesc:
@@ -1766,6 +1786,7 @@ const EN: Record<TranslationKey, string> = {
   terrFieldWasteSites: "Waste container sites",
   terrApplyButton: "Generate / update budget (line 2.3)",
   terrExportButton: "Passport form (Word)",
+  terrMafActExportButton: "MAF inspection act (Word)",
   terrMrpForecastTitle: "MRP and 2026-2030 rate forecast",
   terrMrpValueLabel: "Current MRP value, ₸",
   terrMrpGrowthLabel: "Assumed MRP growth",
@@ -1784,6 +1805,13 @@ const EN: Record<TranslationKey, string> = {
   terrZoneOsiLabel: "Paid by owners (OSI)",
   terrZoneAkimatLabel: "To be reimbursed from the akimat budget (cl. 4.2)",
   terrZoneHint: "Informational breakdown of direct costs by which passport figure the item's volume comes from. Does not change the estimate — all 109 items still sum into article 2.3 when you click \"Apply\".",
+  terrMaterialsTitle: "Seasonal material requirement",
+  terrMaterialsNameCol: "Material",
+  terrMaterialsRequiredCol: "Required",
+  terrMaterialsAvailableCol: "In stock",
+  terrMaterialsShortfallCol: "Shortfall",
+  terrMaterialsHint:
+    "Calculated annual requirement from the territory passport (de-icing — from the order's verified norms, watering/fertilizer — an estimate). \"In stock\" sums the on-hand quantity of spare-parts stock items linked to that material (Engineering & Stock tab → Stock).",
   terrAppliedHint: "Items were added to line 2.3 of the \"Cost item builder\" with the Appendix B number prefix — enable/disable and edit quantities there.",
 
   terrTabPassport: "Grounds passport",
@@ -2281,6 +2309,8 @@ const EN: Record<TranslationKey, string> = {
   sprDeficitBadge: "low stock",
   sprPrintLabelTooltip: "Print QR label",
   sprLabelSubtitle: "Spare parts stock",
+  sprMaterialKindTooltip: "Link to a territory material (for the territory passport's material requirement calculation)",
+  sprMaterialKindUnset: "Not linked to territory",
 
   mlTitle: "Engineering systems work log",
   mlDesc:

@@ -1,4 +1,4 @@
-import type { SparePartItem, TerritoryNormativeRates, TerritoryPassport, TerritoryWorkItem } from "./types";
+import type { SparePartItem, TerritoryMaterialKind, TerritoryNormativeRates, TerritoryPassport, TerritoryWorkItem } from "./types";
 import { TERRITORY_WORK_CATALOG } from "./data/territoryWorkCatalog";
 import { DEFAULT_TERRITORY_NORMATIVE_RATES } from "./data/territoryNormativeRates";
 import { computeTerritoryWorkAnnualCost, computeTerritoryWorkOccurrencesPerYear, defaultTerritoryVolume } from "./territoryWorkEngine";
@@ -212,20 +212,12 @@ export function computeTerritoryBudget(
 
 // ---------------------------------------------------------------------------
 // Сопоставление годовой потребности в материалах (computeMaterialRequirements
-// выше) со складом ЗИП. У SparePartItem нет персистентного поля,
-// определяющего, каким территориальным материалом является конкретная
-// позиция склада — это сознательное решение этого спринта: сопоставление
-// передаётся вызывающим кодом явным параметром `mapping`, а не хранится в
-// проекте. Постоянная привязка (поле на SparePartItem + точка в UI, чтобы
-// его можно было проставить) — предмет следующей согласованной итерации.
+// выше) со складом ЗИП. `SparePartItem.territoryMaterialKind` (types.ts) —
+// персистентное поле, которое пользователь проставляет вручную в реестре
+// склада (SparePartsRegistry.tsx); эта функция строит сравнение по явному
+// `mapping` (вызывающий код группирует id позиций склада по виду материала),
+// не читая store напрямую — движок остаётся чистой функцией.
 // ---------------------------------------------------------------------------
-
-export type TerritoryMaterialKind =
-  | "antiIceSandSalt"
-  | "antiIceReagent"
-  | "wateringWater"
-  | "fertilizerTreeCircle"
-  | "fertilizerLawnReseed";
 
 export type TerritoryMaterialUnit = "kg" | "m3";
 

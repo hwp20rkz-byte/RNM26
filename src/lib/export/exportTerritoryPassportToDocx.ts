@@ -16,7 +16,10 @@ function para(text: string, opts: { spacing?: number; bold?: boolean } = {}) {
  * поля, которых нет в модели данных приложения (ФИО руководителя, номер
  * договора на вывоз ТБО, наличие дворников/номер договора на уборку,
  * дата выдачи, подпись представителя МИО), оставлены как пустые бланки
- * для заполнения от руки — как в оригинале.
+ * для заполнения от руки — как в оригинале. Перед бланком — стандартный
+ * для казахстанского делопроизводства адресный блок «Акиму ... от ...»
+ * (аким района/города — заполняется от руки, наименование ОСИ — из
+ * профиля дома), чтобы документ можно было сразу подавать в акимат.
  */
 export async function exportTerritoryPassportToDocxBlob(
   building: BuildingProfile,
@@ -30,6 +33,29 @@ export async function exportTerritoryPassportToDocxBlob(
       {
         properties: { page: { size: { orientation: "portrait" } } },
         children: [
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 0 },
+            children: [new TextRun({ text: "Акиму ____________________________________ района/города" })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 100 },
+            children: [new TextRun({ text: "(наименование акимата)", italics: true, color: "64748B", size: 16 })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 0 },
+            children: [new TextRun({ text: `от ${building.name || "____________________________________"}` })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 400 },
+            children: [
+              new TextRun({ text: "(наименование ОСИ/КСК/сервисной компании)", italics: true, color: "64748B", size: 16 }),
+            ],
+          }),
+
           new Paragraph({
             alignment: AlignmentType.CENTER,
             heading: HeadingLevel.TITLE,

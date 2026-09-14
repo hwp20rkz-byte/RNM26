@@ -1,18 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Trees, AlertTriangle, CheckCircle2, FileText, Scale, TrendingUp } from "lucide-react";
+import { Trees, AlertTriangle, CheckCircle2, ClipboardList, Droplets, FileText, Scale, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberField } from "@/components/NumberField";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
 import { buildMrpForecastSeries, computeTerritoryWorkAnnualCost, defaultTerritoryVolume } from "@/lib/calculator/territoryWorkEngine";
-import { computeTerritoryBudget } from "@/lib/calculator/territoryNormativeEngine";
+import {
+  computeMaterialRequirements,
+  computeTerritoryBudget,
+  computeTerritoryMaterialShortfall,
+  type MaterialRequirementsResult,
+  type TerritoryMaterialStockMapping,
+} from "@/lib/calculator/territoryNormativeEngine";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
 import { useT } from "@/lib/i18n/useT";
-import type { TerritoryPassport } from "@/lib/calculator/types";
+import { TERRITORY_MATERIAL_KIND_LABELS, type TerritoryPassport } from "@/lib/calculator/types";
+
+const ZERO_MATERIAL_REQUIREMENTS: MaterialRequirementsResult = {
+  antiIceSandSaltKg: 0,
+  antiIceReagentKg: 0,
+  wateringSeasonWaterM3: 0,
+  fertilizerTreeCircleKg: 0,
+  fertilizerLawnReseedKg: 0,
+};
 
 const FORECAST_BASE_YEAR = 2025;
 const FORECAST_YEARS = [2026, 2027, 2028, 2029, 2030];
@@ -39,6 +53,7 @@ export function TerritoryPassportForm() {
   const mrpValue = project.db.taxRates.mrpValue;
   const setTaxRates = useProjectsStore((s) => s.setTaxRates);
   const [exportBusy, setExportBusy] = useState(false);
+  const [mafExportBusy, setMafExportBusy] = useState(false);
   const [growthRatePercent, setGrowthRatePercent] = useState(6);
 
   async function handleExportDocx() {
@@ -50,6 +65,17 @@ export function TerritoryPassportForm() {
       downloadBlob(blob, `Паспорт_территории_${project.name.replace(/[^\p{L}\p{N}]+/gu, "_")}.docx`);
     } finally {
       setExportBusy(false);
+    }
+  }
+
+  async function handleExportMafAct() {
+    setMafExportBusy(true);
+    try {
+      const { exportMafInspectionActToDocxBlob } = await import("@/lib/export/exportMafInspectionActToDocx");
+      const blob = await exportMafInspectionActToDocxBlob(project.building, passport);
+      downloadBlob(blob, `Акт_обследования_МАФ_${project.name.replace(/[^\p{L}\p{N}]+/gu, "_")}.docx`);
+    } finally {
+      setMafExportBusy(false);
     }
   }
 
@@ -73,6 +99,25 @@ export function TerritoryPassportForm() {
     }
     return computeTerritoryBudget(passport, mrpValue);
   }, [passport, mrpValue]);
+
+  const materialRequirements = useMemo(
+    () => (passport ? computeMaterialRequirements(passport) : ZERO_MATERIAL_REQUIREMENTS),
+    [passport],
+  );
+
+  const materialMapping = useMemo(() => {
+    const mapping: TerritoryMaterialStockMapping = {};
+    for (const sp of project.spareParts) {
+      if (!sp.territoryMaterialKind) continue;
+      (mapping[sp.territoryMaterialKind] ??= []).push(sp.id);
+    }
+    return mapping;
+  }, [project.spareParts]);
+
+  const materialShortfall = useMemo(
+    () => computeTerritoryMaterialShortfall(materialRequirements, project.spareParts, materialMapping),
+    [materialRequirements, project.spareParts, materialMapping],
+  );
 
   const values = passport ?? BLANK_PASSPORT;
 
@@ -183,6 +228,13 @@ export function TerritoryPassportForm() {
             <FileText className="h-3.5 w-3.5" /> {t("terrExportButton")}
           </button>
           <button
+            onClick={handleExportMafAct}
+            disabled={mafExportBusy}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:border-emerald-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <ClipboardList className="h-3.5 w-3.5" /> {t("terrMafActExportButton")}
+          </button>
+          <button
             onClick={applyTerritoryPassportToDb}
             className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
@@ -218,6 +270,42 @@ export function TerritoryPassportForm() {
             </div>
           </div>
           <p className="text-xs text-slate-400">{t("terrZoneHint")}</p>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">
+          <div className="flex items-center gap-2">
+            <Droplets className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("terrMaterialsTitle")}</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-xs">
+              <thead>
+                <tr className="text-slate-400">
+                  <th className="py-1 text-left font-medium">{t("terrMaterialsNameCol")}</th>
+                  <th className="py-1 text-right font-medium">{t("terrMaterialsRequiredCol")}</th>
+                  <th className="py-1 text-right font-medium">{t("terrMaterialsAvailableCol")}</th>
+                  <th className="py-1 text-right font-medium">{t("terrMaterialsShortfallCol")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {materialShortfall.map((row) => (
+                  <tr key={row.kind} className="border-t border-slate-200 dark:border-slate-800">
+                    <td className="py-1.5 text-slate-600 dark:text-slate-300">{TERRITORY_MATERIAL_KIND_LABELS[row.kind]}</td>
+                    <td className="py-1.5 text-right tabular-nums text-slate-700 dark:text-slate-200">
+                      {row.requiredQty.toLocaleString("ru-RU")} {row.unit === "kg" ? "кг" : "м³"}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums text-slate-700 dark:text-slate-200">
+                      {row.availableQty.toLocaleString("ru-RU")} {row.unit === "kg" ? "кг" : "м³"}
+                    </td>
+                    <td className={`py-1.5 text-right tabular-nums font-medium ${row.isShort ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                      {row.isShort ? `${row.shortfall.toLocaleString("ru-RU")} ${row.unit === "kg" ? "кг" : "м³"}` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-400">{t("terrMaterialsHint")}</p>
         </div>
 
         <p className="text-xs text-slate-400">{t("terrAppliedHint")}</p>

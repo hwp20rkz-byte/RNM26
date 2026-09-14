@@ -614,6 +614,27 @@ export const SPARE_PART_CATEGORY_LABELS: Record<SparePartCategory, string> = {
   tool: "Инструмент",
 };
 
+/**
+ * Вид материала содержания территории (Приказ №22-НҚ), которым может быть
+ * позиция склада ЗИП — используется для сопоставления фактических остатков
+ * с расчётной годовой потребностью (`computeMaterialRequirements` /
+ * `computeTerritoryMaterialShortfall` в territoryNormativeEngine.ts).
+ */
+export type TerritoryMaterialKind =
+  | "antiIceSandSalt"
+  | "antiIceReagent"
+  | "wateringWater"
+  | "fertilizerTreeCircle"
+  | "fertilizerLawnReseed";
+
+export const TERRITORY_MATERIAL_KIND_LABELS: Record<TerritoryMaterialKind, string> = {
+  antiIceSandSalt: "Пескосоляная смесь/щебень",
+  antiIceReagent: "Антигололёдный реагент",
+  wateringWater: "Вода для полива",
+  fertilizerTreeCircle: "Удобрение приствольных кругов",
+  fertilizerLawnReseed: "Семена/удобрение для подсева газона",
+};
+
 /** Позиция склада ЗИП конкретного объекта — фактические остатки, не прайс-лист. */
 export interface SparePartItem {
   id: string;
@@ -627,6 +648,8 @@ export interface SparePartItem {
   avgUnitPrice: number;
   /** Ссылка на запись глобального справочника материалов (CatalogEntry), если позиция оттуда */
   catalogEntryId?: string;
+  /** Если позиция представляет собой материал содержания территории — какой именно (для сопоставления со сметой по Приказу №22-НҚ) */
+  territoryMaterialKind?: TerritoryMaterialKind;
   qrCodeId?: string;
   notes?: string;
   createdAt: string;

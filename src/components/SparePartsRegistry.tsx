@@ -12,11 +12,17 @@ import { buildLabelSheetHtml, openLabelSheet } from "@/lib/inventory/qrLabels";
 import { parseInventoryListFile, type ParseInventoryListResult } from "@/lib/import/parseInventoryList";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
-import { SPARE_PART_CATEGORY_LABELS, type SparePartCategory } from "@/lib/calculator/types";
+import {
+  SPARE_PART_CATEGORY_LABELS,
+  TERRITORY_MATERIAL_KIND_LABELS,
+  type SparePartCategory,
+  type TerritoryMaterialKind,
+} from "@/lib/calculator/types";
 import { genId } from "@/lib/id";
 import { useT } from "@/lib/i18n/useT";
 
 const CATEGORIES = Object.keys(SPARE_PART_CATEGORY_LABELS) as SparePartCategory[];
+const TERRITORY_MATERIAL_KINDS = Object.keys(TERRITORY_MATERIAL_KIND_LABELS) as TerritoryMaterialKind[];
 
 export function SparePartsRegistry() {
   const t = useT();
@@ -213,6 +219,23 @@ export function SparePartsRegistry() {
           {rows.map(({ item, isLow }) => (
             <div key={item.id} className="flex flex-wrap items-center gap-2 py-2.5">
               <Badge variant="outline">{SPARE_PART_CATEGORY_LABELS[item.category]}</Badge>
+              <select
+                value={item.territoryMaterialKind ?? ""}
+                onChange={(e) =>
+                  updateSparePart(item.id, {
+                    territoryMaterialKind: (e.target.value || undefined) as TerritoryMaterialKind | undefined,
+                  })
+                }
+                title={t("sprMaterialKindTooltip")}
+                className="h-7 rounded-md border border-transparent bg-transparent px-1 text-xs text-slate-400 hover:border-slate-200 focus:border-slate-300 focus:outline-none dark:hover:border-slate-700"
+              >
+                <option value="">{t("sprMaterialKindUnset")}</option>
+                {TERRITORY_MATERIAL_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {TERRITORY_MATERIAL_KIND_LABELS[kind]}
+                  </option>
+                ))}
+              </select>
               <InlineText
                 value={item.name}
                 onChange={(v) => updateSparePart(item.id, { name: v })}
