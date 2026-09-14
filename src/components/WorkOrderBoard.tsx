@@ -125,8 +125,10 @@ export function WorkOrderBoard() {
     setChecklistDraft([]);
   }
 
+  const needsAssetSelection = !isBatch && project.assets.length > 0 && targetAssetIds.length === 0;
+
   function submit() {
-    if (!title.trim() || !deadline) return;
+    if (!title.trim() || !deadline || needsAssetSelection) return;
     createWorkOrder({
       title: title.trim(),
       description: description.trim(),
@@ -487,7 +489,7 @@ export function WorkOrderBoard() {
 
             <div className="mt-3">
               <p className="mb-1 text-xs text-slate-500">
-                {isBatch ? t("woEquipmentPoolLabel") : t("woEquipmentOptionalLabel")}
+                {isBatch ? t("woEquipmentPoolLabel") : t("woEquipmentRequiredLabel")}
               </p>
               <div className="flex max-h-32 flex-col gap-1 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-800">
                 {project.assets.map((a) => (
@@ -508,6 +510,7 @@ export function WorkOrderBoard() {
                 ))}
                 {project.assets.length === 0 && <p className="text-xs text-slate-400">{t("woEmptyAssetRegistry")}</p>}
               </div>
+              {needsAssetSelection && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{t("woEquipmentRequiredHint")}</p>}
               {isBatch && targetAssetIds.length > 0 && (
                 <button onClick={autoGenerateChecklist} className="mt-1 text-xs text-emerald-600 hover:underline">
                   {t("woAutoGenerateChecklistButton")}
@@ -558,7 +561,7 @@ export function WorkOrderBoard() {
             <div className="mt-4 flex gap-2">
               <button
                 onClick={submit}
-                disabled={!title.trim() || !deadline}
+                disabled={!title.trim() || !deadline || needsAssetSelection}
                 className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" /> {t("woCreateButton")}
