@@ -959,3 +959,64 @@ describe("план работ по территории — отметки ис�
     expect(project.territoryTaskCompletions[key].workOrderId).toBe(orderId);
   });
 });
+
+describe("applyNormativeTerritoryPlan — пакетная генерация нарядов из плана территории", () => {
+  it("создаёт один наряд на позицию за весь диапазон, а не наряд на каждую дату", () => {
+    const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", ["twi-1"]);
+    expect(createdIds.length).toBe(1);
+    const project = selectActiveProject(useProjectsStore.getState());
+    const order = project.workOrders.find((o) => o.id === createdIds[0]);
+    expect(order).toBeTruthy();
+    expect(order!.checklist.length).toBeGreaterThan(1);
+    expect(order!.checklist.every((c) => !c.isCompleted)).toBe(true);
+  });
+
+  it("дедлайн наряда — последняя дата в диапазоне, чек-лист отсортирован по датам", () => {
+    const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", ["twi-1"]);
+    const project = selectActiveProject(useProjectsStore.getState());
+    const order = project.workOrders.find((o) => o.id === createdIds[0])!;
+    const dates = order.checklist.map((c) => c.text);
+    expect([...dates].sort()).toEqual(dates);
+    expect(order.deadline).toBe(dates[dates.length - 1]);
+  });
+
+  it("связывает каждую попавшую в диапазон отметку плана с созданным нарядом", () => {
+    const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", ["twi-1"]);
+    const project = selectActiveProject(useProjectsStore.getState());
+    const linkedKeys = Object.values(project.territoryTaskCompletions).filter((c) => c.workOrderId === createdIds[0]);
+    const order = project.workOrders.find((o) => o.id === createdIds[0])!;
+    expect(linkedKeys.length).toBe(order.checklist.length);
+  });
+
+  it("повторный вызов на тот же диапазон не создаёт дублирующий наряд — вхождения уже привязаны", () => {
+    const first = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", ["twi-1"]);
+    const second = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", ["twi-1"]);
+    expect(first.length).toBe(1);
+    expect(second.length).toBe(0);
+    const project = selectActiveProject(useProjectsStore.getState());
+    expect(project.workOrders.length).toBe(1);
+  });
+
+  it("пропускает вхождения, уже отмеченные выполненными вручную", () => {
+    useProjectsStore.getState().setTerritoryTaskCompletion("twi-1__2026-04-01", "twi-1", "2026-04-01", { completed: true });
+    const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", ["twi-1"]);
+    const project = selectActiveProject(useProjectsStore.getState());
+    const order = project.workOrders.find((o) => o.id === createdIds[0])!;
+    expect(order.checklist.some((c) => c.text === "2026-04-01")).toBe(false);
+  });
+
+  it("несколько выбранных позиций каталога дают несколько нарядов", () => {
+    const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", ["twi-1", "twi-30"]);
+    expect(createdIds.length).toBe(2);
+  });
+
+  it("возвращает пустой массив, если у выбранных позиций нет вхождений в диапазоне", () => {
+    const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-01", ["twi-104"]);
+    expect(createdIds).toEqual([]);
+  });
+
+  it("возвращает пустой массив для пустого списка позиций", () => {
+    const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", []);
+    expect(createdIds).toEqual([]);
+  });
+});

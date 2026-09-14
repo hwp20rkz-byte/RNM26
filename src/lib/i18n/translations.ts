@@ -207,6 +207,13 @@ const RU = {
   twsOrderLinkedPrefix: "Наряд",
   twsOrdersIntegrationHint:
     "«Создать наряд» формирует формальный наряд (вкладка «Наряды») со сроком исполнения на дату позиции — используйте, когда работу нужно поручить и проконтролировать отдельно от чек-листа ниже.",
+  twsBatchTitle: "Пакетная генерация нарядов за период",
+  twsBatchHint:
+    "На каждую выбранную позицию будет создан один наряд на весь текущий период (день/неделя/месяц/квартал — по вкладке выше), с чек-листом по датам внутри. Уже выполненные или уже привязанные к наряду даты пропускаются.",
+  twsBatchSelectAll: "Выбрать все",
+  twsBatchNoItems: "На выбранный период нет позиций для генерации нарядов.",
+  twsBatchButton: "Создать наряды за период",
+  twsBatchResultPrefix: "Создано нарядов:",
   twsDetailsToggle: "Подробнее",
   twsFieldCategory: "Вид работ",
   twsFieldUnit: "Ед. изм.",
@@ -1005,6 +1012,13 @@ const KZ: Record<TranslationKey, string> = {
   twsOrderLinkedPrefix: "Наряд",
   twsOrdersIntegrationHint:
     "«Наряд құру» осы позицияның күніне орындау мерзімі бар формальды наряд жасайды («Нарядтар» қойындысы) — жұмысты бөлек тапсырып, бақылау керек болғанда пайдаланыңыз.",
+  twsBatchTitle: "Кезең үшін нарядтарды топтап жасау",
+  twsBatchHint:
+    "Таңдалған әр позиция бойынша ағымдағы кезеңнің (күн/апта/ай/тоқсан — жоғарыдағы қойындыға сәйкес) толық ұзақтығына бір наряд жасалады, ішінде күндер бойынша чек-лист болады. Орындалған немесе нарядқа байланысқан күндер өткізіп жіберіледі.",
+  twsBatchSelectAll: "Барлығын таңдау",
+  twsBatchNoItems: "Таңдалған кезеңде наряд жасауға позиция жоқ.",
+  twsBatchButton: "Кезең үшін нарядтар жасау",
+  twsBatchResultPrefix: "Жасалған нарядтар:",
   twsDetailsToggle: "Толығырақ",
   twsFieldCategory: "Жұмыс түрі",
   twsFieldUnit: "Өлш. бірл.",
@@ -1773,6 +1787,13 @@ const EN: Record<TranslationKey, string> = {
   twsOrderLinkedPrefix: "Work order",
   twsOrdersIntegrationHint:
     "\"Create work order\" generates a formal work order (the \"Work orders\" tab) due on this item's date — use it when the task needs to be assigned and tracked separately from the checklist below.",
+  twsBatchTitle: "Batch-generate work orders for this period",
+  twsBatchHint:
+    "For each selected item, one work order is created covering the whole current period (day/week/month/quarter — per the tab above), with a checklist listing each date. Dates already completed or already linked to a work order are skipped.",
+  twsBatchSelectAll: "Select all",
+  twsBatchNoItems: "No items to generate work orders for in this period.",
+  twsBatchButton: "Create work orders for this period",
+  twsBatchResultPrefix: "Work orders created:",
   twsDetailsToggle: "Details",
   twsFieldCategory: "Work type",
   twsFieldUnit: "Unit",

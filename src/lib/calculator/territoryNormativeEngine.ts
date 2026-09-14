@@ -1,4 +1,4 @@
-import type { TerritoryNormativeRates, TerritoryPassport, TerritoryWorkItem } from "./types";
+import type { SparePartItem, TerritoryNormativeRates, TerritoryPassport, TerritoryWorkItem } from "./types";
 import { TERRITORY_WORK_CATALOG } from "./data/territoryWorkCatalog";
 import { DEFAULT_TERRITORY_NORMATIVE_RATES } from "./data/territoryNormativeRates";
 import { computeTerritoryWorkAnnualCost, computeTerritoryWorkOccurrencesPerYear, defaultTerritoryVolume } from "./territoryWorkEngine";
@@ -208,4 +208,82 @@ export function computeTerritoryBudget(
     totalDirect,
     totalWithIndirect: round2(totalDirect + indirectCosts),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Сопоставление годовой потребности в материалах (computeMaterialRequirements
+// выше) со складом ЗИП. У SparePartItem нет персистентного поля,
+// определяющего, каким территориальным материалом является конкретная
+// позиция склада — это сознательное решение этого спринта: сопоставление
+// передаётся вызывающим кодом явным параметром `mapping`, а не хранится в
+// проекте. Постоянная привязка (поле на SparePartItem + точка в UI, чтобы
+// его можно было проставить) — предмет следующей согласованной итерации.
+// ---------------------------------------------------------------------------
+
+export type TerritoryMaterialKind =
+  | "antiIceSandSalt"
+  | "antiIceReagent"
+  | "wateringWater"
+  | "fertilizerTreeCircle"
+  | "fertilizerLawnReseed";
+
+export type TerritoryMaterialUnit = "kg" | "m3";
+
+const TERRITORY_MATERIAL_UNIT: Record<TerritoryMaterialKind, TerritoryMaterialUnit> = {
+  antiIceSandSalt: "kg",
+  antiIceReagent: "kg",
+  wateringWater: "m3",
+  fertilizerTreeCircle: "kg",
+  fertilizerLawnReseed: "kg",
+};
+
+function requiredQtyByKind(required: MaterialRequirementsResult): Record<TerritoryMaterialKind, number> {
+  return {
+    antiIceSandSalt: required.antiIceSandSaltKg,
+    antiIceReagent: required.antiIceReagentKg,
+    wateringWater: required.wateringSeasonWaterM3,
+    fertilizerTreeCircle: required.fertilizerTreeCircleKg,
+    fertilizerLawnReseed: required.fertilizerLawnReseedKg,
+  };
+}
+
+/** Для каждого вида материала — id позиций склада ЗИП (SparePartItem.id), которые его представляют. */
+export type TerritoryMaterialStockMapping = Partial<Record<TerritoryMaterialKind, string[]>>;
+
+export interface TerritoryMaterialShortfallRow {
+  kind: TerritoryMaterialKind;
+  unit: TerritoryMaterialUnit;
+  requiredQty: number;
+  availableQty: number;
+  shortfall: number;
+  isShort: boolean;
+}
+
+/**
+ * Сравнивает годовую потребность в материалах с фактическими остатками
+ * склада ЗИП по явному сопоставлению `mapping`. Чистая функция: не читает
+ * и не пишет в проект, ничего не сохраняет — все данные приходят
+ * параметрами и результат ничего не меняет в SparePartItem[].
+ */
+export function computeTerritoryMaterialShortfall(
+  required: MaterialRequirementsResult,
+  spareParts: SparePartItem[],
+  mapping: TerritoryMaterialStockMapping,
+): TerritoryMaterialShortfallRow[] {
+  const requiredByKind = requiredQtyByKind(required);
+  const byId = new Map(spareParts.map((sp) => [sp.id, sp] as const));
+  return (Object.keys(requiredByKind) as TerritoryMaterialKind[]).map((kind) => {
+    const ids = mapping[kind] ?? [];
+    const availableQty = round2(ids.reduce((sum, id) => sum + (byId.get(id)?.quantityOnHand ?? 0), 0));
+    const requiredQty = requiredByKind[kind];
+    const shortfall = round2(Math.max(0, requiredQty - availableQty));
+    return {
+      kind,
+      unit: TERRITORY_MATERIAL_UNIT[kind],
+      requiredQty,
+      availableQty,
+      shortfall,
+      isShort: shortfall > 0,
+    };
+  });
 }

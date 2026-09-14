@@ -36,6 +36,7 @@ import { applyWriteOffToStock, computeMaterialsCost } from "@/lib/calculator/inv
 import type { ErcUnitStatement } from "@/lib/import/parseErcStatement";
 import { generateTicketNumber } from "@/lib/calculator/workOrderEngine";
 import { defaultTerritoryVolume, instantiateTerritoryCostItem } from "@/lib/calculator/territoryWorkEngine";
+import { computeTerritorySchedule } from "@/lib/calculator/territoryScheduleEngine";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
 import { buildBlankDatabase, buildDefaultDatabase } from "@/lib/calculator/database";
 import { BUILTIN_PRESETS, DEFAULT_BUILDING, buildBlankBuilding } from "@/lib/calculator/presets";
@@ -145,6 +146,15 @@ interface ProjectsState {
     date: string,
     title: string,
   ) => string;
+  /**
+   * Пакетная генерация нарядов из плана работ по территории: по каждой
+   * выбранной позиции каталога, попавшей в диапазон [startDate, endDate],
+   * создаётся ОДИН наряд на весь диапазон (чек-лист — по одной строке на
+   * дату), а не наряд на каждое отдельное вхождение — так наряды не
+   * дублируются на каждый день. Уже выполненные или уже привязанные к
+   * наряду вхождения пропускаются. Возвращает id созданных нарядов.
+   */
+  applyNormativeTerritoryPlan: (startDate: string, endDate: string, territoryWorkItemIds: string[]) => string[];
 
   // --- пресеты обслуживания ---
   setPreset: (id: string) => void;
@@ -481,6 +491,48 @@ export const useProjectsStore = create<ProjectsState>()(
             return { projects: { ...s.projects, [p.id]: touchProject({ ...p, territoryTaskCompletions }) } };
           });
           return orderId;
+        },
+
+        applyNormativeTerritoryPlan: (startDate, endDate, territoryWorkItemIds) => {
+          const state = get();
+          const project = state.projects[state.activeProjectId];
+          const items = TERRITORY_WORK_CATALOG.filter((i) => territoryWorkItemIds.includes(i.id));
+          const entries = computeTerritorySchedule(items, project.territoryTaskCompletions, startDate, endDate);
+
+          const byItem = new Map<string, typeof entries>();
+          for (const entry of entries) {
+            if (entry.completion?.completed || entry.completion?.workOrderId) continue;
+            const list = byItem.get(entry.item.id) ?? [];
+            list.push(entry);
+            byItem.set(entry.item.id, list);
+          }
+
+          const createdIds: string[] = [];
+          for (const itemEntries of byItem.values()) {
+            const item = itemEntries[0].item;
+            const dates = itemEntries.map((e) => e.date).sort();
+            const rangeLabel = startDate === endDate ? startDate : `${startDate}…${endDate}`;
+            const orderId = get().createWorkOrder({
+              title: `${item.sourceCode ? `${item.sourceCode} ` : ""}${item.name} — ${rangeLabel}`,
+              description: `Плановые даты выполнения по нормативному плану территории (${dates.length}): ${dates.join(", ")}.`,
+              deadline: dates[dates.length - 1],
+              checklist: dates.map((d) => ({ id: genId("check"), text: d, isCompleted: false })),
+            });
+            createdIds.push(orderId);
+
+            set((s) => {
+              const p = s.projects[s.activeProjectId];
+              const territoryTaskCompletions = { ...p.territoryTaskCompletions };
+              for (const entry of itemEntries) {
+                const existing = territoryTaskCompletions[entry.key];
+                territoryTaskCompletions[entry.key] = existing
+                  ? { ...existing, workOrderId: orderId }
+                  : { key: entry.key, territoryWorkItemId: entry.item.id, date: entry.date, completed: false, workOrderId: orderId };
+              }
+              return { projects: { ...s.projects, [p.id]: touchProject({ ...p, territoryTaskCompletions }) } };
+            });
+          }
+          return createdIds;
         },
 
         setPreset: (id) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TerritoryPassport } from "./types";
+import type { SparePartItem, TerritoryPassport } from "./types";
 import { TERRITORY_WORK_CATALOG } from "./data/territoryWorkCatalog";
 import { DEFAULT_TERRITORY_NORMATIVE_RATES } from "./data/territoryNormativeRates";
 import {
@@ -8,8 +8,24 @@ import {
   classifyTerritoryItemZone,
   computeMaterialRequirements,
   computeTerritoryBudget,
+  computeTerritoryMaterialShortfall,
   validateIndirectCostShare,
 } from "./territoryNormativeEngine";
+
+function makeSparePart(overrides: Partial<SparePartItem> = {}): SparePartItem {
+  return {
+    id: "sp-1",
+    name: "Тестовая позиция",
+    unit: "кг",
+    category: "consumable",
+    quantityOnHand: 0,
+    minThreshold: 0,
+    avgUnitPrice: 0,
+    createdAt: "2026-09-14T00:00:00.000Z",
+    updatedAt: "2026-09-14T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 function makePassport(overrides: Partial<TerritoryPassport> = {}): TerritoryPassport {
   return {
@@ -288,5 +304,79 @@ describe("computeTerritoryBudget", () => {
     computeTerritoryBudget(passport, MRP_VALUE, 200);
     expect(passport).toEqual(passportSnapshot);
     expect(TERRITORY_WORK_CATALOG.length).toBe(catalogLength);
+  });
+});
+
+describe("computeTerritoryMaterialShortfall", () => {
+  const REQUIRED = computeMaterialRequirements(FULL_PASSPORT);
+
+  it("reports zero shortfall when stock fully covers requirement", () => {
+    const spareParts = [makeSparePart({ id: "sp-sand", quantityOnHand: REQUIRED.antiIceSandSaltKg })];
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, spareParts, { antiIceSandSalt: ["sp-sand"] });
+    const row = rows.find((r) => r.kind === "antiIceSandSalt")!;
+    expect(row.shortfall).toBe(0);
+    expect(row.isShort).toBe(false);
+    expect(row.availableQty).toBe(REQUIRED.antiIceSandSaltKg);
+  });
+
+  it("reports the exact shortfall when stock is below requirement", () => {
+    const spareParts = [makeSparePart({ id: "sp-sand", quantityOnHand: REQUIRED.antiIceSandSaltKg - 10 })];
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, spareParts, { antiIceSandSalt: ["sp-sand"] });
+    const row = rows.find((r) => r.kind === "antiIceSandSalt")!;
+    expect(row.shortfall).toBe(10);
+    expect(row.isShort).toBe(true);
+  });
+
+  it("never reports negative shortfall when stock exceeds requirement", () => {
+    const spareParts = [makeSparePart({ id: "sp-sand", quantityOnHand: REQUIRED.antiIceSandSaltKg + 500 })];
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, spareParts, { antiIceSandSalt: ["sp-sand"] });
+    const row = rows.find((r) => r.kind === "antiIceSandSalt")!;
+    expect(row.shortfall).toBe(0);
+  });
+
+  it("sums quantityOnHand across multiple spare-part ids mapped to the same material", () => {
+    const spareParts = [
+      makeSparePart({ id: "sp-a", quantityOnHand: 100 }),
+      makeSparePart({ id: "sp-b", quantityOnHand: 50 }),
+    ];
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, spareParts, { antiIceReagent: ["sp-a", "sp-b"] });
+    const row = rows.find((r) => r.kind === "antiIceReagent")!;
+    expect(row.availableQty).toBe(150);
+  });
+
+  it("treats an unmapped material kind as zero available stock", () => {
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, [], {});
+    for (const row of rows) {
+      expect(row.availableQty).toBe(0);
+      expect(row.shortfall).toBe(row.requiredQty);
+    }
+  });
+
+  it("ignores a mapped id that does not exist in the spare-parts list", () => {
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, [], { antiIceSandSalt: ["missing-id"] });
+    const row = rows.find((r) => r.kind === "antiIceSandSalt")!;
+    expect(row.availableQty).toBe(0);
+  });
+
+  it("assigns m3 unit to watering water and kg to every other material", () => {
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, [], {});
+    expect(rows.find((r) => r.kind === "wateringWater")!.unit).toBe("m3");
+    for (const row of rows.filter((r) => r.kind !== "wateringWater")) {
+      expect(row.unit).toBe("kg");
+    }
+  });
+
+  it("returns exactly one row per material kind", () => {
+    const rows = computeTerritoryMaterialShortfall(REQUIRED, [], {});
+    expect(rows.map((r) => r.kind).sort()).toEqual(
+      ["antiIceReagent", "antiIceSandSalt", "fertilizerLawnReseed", "fertilizerTreeCircle", "wateringWater"].sort(),
+    );
+  });
+
+  it("does not mutate the spare-parts array", () => {
+    const spareParts = [makeSparePart({ id: "sp-sand", quantityOnHand: 100 })];
+    const snapshot = spareParts.map((s) => ({ ...s }));
+    computeTerritoryMaterialShortfall(REQUIRED, spareParts, { antiIceSandSalt: ["sp-sand"] });
+    expect(spareParts).toEqual(snapshot);
   });
 });

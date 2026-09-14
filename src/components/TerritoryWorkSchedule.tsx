@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Info, ListChecks, Users } from "lucide-react";
+import { CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Info, ListChecks, PlusSquare, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -24,7 +24,7 @@ import {
   type TerritoryScheduleEntry,
   type TerritoryScheduleStatus,
 } from "@/lib/calculator/territoryScheduleEngine";
-import { TERRITORY_WORK_CATEGORY_LABELS, TERRITORY_WORK_UNIT_LABELS } from "@/lib/calculator/types";
+import { TERRITORY_WORK_CATEGORY_LABELS, TERRITORY_WORK_UNIT_LABELS, type TerritoryWorkItem } from "@/lib/calculator/types";
 import { formatKzt } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -83,10 +83,13 @@ export function TerritoryWorkSchedule() {
   const passport = project.territoryPassport;
   const setTerritoryTaskCompletion = useProjectsStore((s) => s.setTerritoryTaskCompletion);
   const createWorkOrderFromTerritoryTask = useProjectsStore((s) => s.createWorkOrderFromTerritoryTask);
+  const applyNormativeTerritoryPlan = useProjectsStore((s) => s.applyNormativeTerritoryPlan);
 
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [batchResultCount, setBatchResultCount] = useState<number | null>(null);
 
   const schedulableItems = useMemo(() => {
     if (!passport) return [];
@@ -101,6 +104,14 @@ export function TerritoryWorkSchedule() {
   );
 
   const summary = useMemo(() => summarizeTerritorySchedule(entries), [entries]);
+
+  const uniqueScheduledItems = useMemo(() => {
+    const seen = new Map<string, TerritoryWorkItem>();
+    for (const e of entries) if (!seen.has(e.item.id)) seen.set(e.item.id, e.item);
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  }, [entries]);
+
+  const allSelected = uniqueScheduledItems.length > 0 && uniqueScheduledItems.every((i) => selectedItemIds.has(i.id));
 
   const byDay = useMemo(() => {
     const map = new Map<string, TerritoryScheduleEntry[]>();
@@ -129,6 +140,29 @@ export function TerritoryWorkSchedule() {
   function handleCreateOrder(entry: TerritoryScheduleEntry) {
     const title = `${entry.item.sourceCode ? `${entry.item.sourceCode} ` : ""}${entry.item.name} — ${entry.date}`;
     createWorkOrderFromTerritoryTask(entry.key, entry.item.id, entry.date, title);
+  }
+
+  function toggleItemSelected(itemId: string, checked: boolean) {
+    setBatchResultCount(null);
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(itemId);
+      else next.delete(itemId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setBatchResultCount(null);
+    setSelectedItemIds(allSelected ? new Set() : new Set(uniqueScheduledItems.map((i) => i.id)));
+  }
+
+  function handleBatchGenerate() {
+    const ids = uniqueScheduledItems.filter((i) => selectedItemIds.has(i.id)).map((i) => i.id);
+    if (ids.length === 0) return;
+    const created = applyNormativeTerritoryPlan(range.start, range.end, ids);
+    setBatchResultCount(created.length);
+    setSelectedItemIds(new Set());
   }
 
   function entryRow(entry: TerritoryScheduleEntry) {
@@ -289,6 +323,58 @@ export function TerritoryWorkSchedule() {
                   {t("twsTodayButton")}
                 </button>
               </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
+              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <PlusSquare className="h-3.5 w-3.5" /> {t("twsBatchTitle")}
+              </div>
+              <p className="mb-2 text-xs text-slate-400">{t("twsBatchHint")}</p>
+              {uniqueScheduledItems.length === 0 ? (
+                <div className="text-xs text-slate-400">{t("twsBatchNoItems")}</div>
+              ) : (
+                <>
+                  <label className="mb-1.5 inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="h-3.5 w-3.5 accent-emerald-600"
+                    />
+                    {t("twsBatchSelectAll")}
+                  </label>
+                  <div className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-md border border-slate-100 p-2 dark:border-slate-800">
+                    {uniqueScheduledItems.map((item) => (
+                      <label key={item.id} className="inline-flex cursor-pointer items-start gap-2 text-xs text-slate-700 dark:text-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={selectedItemIds.has(item.id)}
+                          onChange={(e) => toggleItemSelected(item.id, e.target.checked)}
+                          className="mt-0.5 h-3.5 w-3.5 accent-emerald-600"
+                        />
+                        <span>
+                          {item.sourceCode ? `${item.sourceCode}. ` : ""}
+                          {item.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={handleBatchGenerate}
+                      disabled={selectedItemIds.size === 0}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:border-emerald-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                    >
+                      <ClipboardList className="h-3.5 w-3.5" /> {t("twsBatchButton")}
+                    </button>
+                    {batchResultCount !== null && (
+                      <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                        {t("twsBatchResultPrefix")} {batchResultCount}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
