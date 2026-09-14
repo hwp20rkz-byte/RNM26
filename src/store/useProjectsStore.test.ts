@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useProjectsStore, selectActiveProject } from "./useProjectsStore";
 import { computeTariff } from "@/lib/calculator/engine";
+import { genericWorkStepsForCategory } from "@/lib/calculator/data/territoryGenericWorkSteps";
 import type { ErcUnitStatement } from "@/lib/import/parseErcStatement";
 
 const INITIAL_STATE = useProjectsStore.getState();
@@ -1018,5 +1019,37 @@ describe("applyNormativeTerritoryPlan — пакетная генерация н
   it("возвращает пустой массив для пустого списка позиций", () => {
     const createdIds = useProjectsStore.getState().applyNormativeTerritoryPlan("2026-04-01", "2026-04-30", []);
     expect(createdIds).toEqual([]);
+  });
+});
+
+describe("createWorkOrderFromTerritoryItem — наряд по позиции «по мере необходимости»", () => {
+  it("создаёт наряд с непустым чек-листом", () => {
+    const orderId = useProjectsStore.getState().createWorkOrderFromTerritoryItem("twi-104", "Валка деревьев");
+    const project = selectActiveProject(useProjectsStore.getState());
+    const order = project.workOrders.find((o) => o.id === orderId);
+    expect(order).toBeTruthy();
+    expect(order!.checklist.length).toBeGreaterThan(0);
+  });
+
+  it("чек-лист соответствует типовым шагам категории позиции", () => {
+    // twi-80 (окраска металлических павильонов, waste_site_service) — К=1, не входит в расписание
+    const orderId = useProjectsStore.getState().createWorkOrderFromTerritoryItem("twi-80", "Окраска павильонов");
+    const project = selectActiveProject(useProjectsStore.getState());
+    const order = project.workOrders.find((o) => o.id === orderId)!;
+    expect(order.checklist.map((c) => c.text)).toEqual(genericWorkStepsForCategory("waste_site_service"));
+  });
+
+  it("не пишет ничего в territoryTaskCompletions", () => {
+    const before = Object.keys(selectActiveProject(useProjectsStore.getState()).territoryTaskCompletions).length;
+    useProjectsStore.getState().createWorkOrderFromTerritoryItem("twi-104", "Валка деревьев");
+    const after = Object.keys(selectActiveProject(useProjectsStore.getState()).territoryTaskCompletions).length;
+    expect(after).toBe(before);
+  });
+
+  it("возвращает наряд даже для неизвестного id позиции (фолбэк на общие шаги)", () => {
+    const orderId = useProjectsStore.getState().createWorkOrderFromTerritoryItem("twi-unknown", "Ручной наряд");
+    const project = selectActiveProject(useProjectsStore.getState());
+    const order = project.workOrders.find((o) => o.id === orderId)!;
+    expect(order.checklist.length).toBeGreaterThan(0);
   });
 });

@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Trees, AlertTriangle, CheckCircle2, FileText, TrendingUp } from "lucide-react";
+import { Trees, AlertTriangle, CheckCircle2, FileText, Scale, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberField } from "@/components/NumberField";
 import { useProjectsStore } from "@/store/useProjectsStore";
 import { useActiveProject } from "@/store/hooks";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
 import { buildMrpForecastSeries, computeTerritoryWorkAnnualCost, defaultTerritoryVolume } from "@/lib/calculator/territoryWorkEngine";
+import { computeTerritoryBudget } from "@/lib/calculator/territoryNormativeEngine";
 import { downloadBlob } from "@/lib/export/download";
 import { formatKzt } from "@/lib/utils";
 import { useT } from "@/lib/i18n/useT";
@@ -64,6 +65,13 @@ export function TerritoryPassportForm() {
       }
     }
     return { total, matched };
+  }, [passport, mrpValue]);
+
+  const budget = useMemo(() => {
+    if (!passport) {
+      return { directCostsOsi: 0, directCostsAkimat: 0, totalDirect: 0, indirectCosts: 0, indirectCostRatio: 0, indirectLimitExceeded: false, totalWithIndirect: 0 };
+    }
+    return computeTerritoryBudget(passport, mrpValue);
   }, [passport, mrpValue]);
 
   const values = passport ?? BLANK_PASSPORT;
@@ -180,6 +188,36 @@ export function TerritoryPassportForm() {
           >
             {t("terrApplyButton")}
           </button>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">
+          <div className="flex items-center gap-2">
+            <Scale className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("terrZoneTitle")}</span>
+          </div>
+          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+            <div
+              className="h-full bg-emerald-500"
+              style={{ width: `${budget.totalDirect > 0 ? (budget.directCostsOsi / budget.totalDirect) * 100 : 0}%` }}
+            />
+            <div
+              className="h-full bg-amber-500"
+              style={{ width: `${budget.totalDirect > 0 ? (budget.directCostsAkimat / budget.totalDirect) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
+              <span className="text-slate-500 dark:text-slate-400">{t("terrZoneOsiLabel")}</span>
+              <b className="ml-auto text-slate-900 dark:text-slate-100">{formatKzt(budget.directCostsOsi)}</b>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500" />
+              <span className="text-slate-500 dark:text-slate-400">{t("terrZoneAkimatLabel")}</span>
+              <b className="ml-auto text-slate-900 dark:text-slate-100">{formatKzt(budget.directCostsAkimat)}</b>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400">{t("terrZoneHint")}</p>
         </div>
 
         <p className="text-xs text-slate-400">{t("terrAppliedHint")}</p>

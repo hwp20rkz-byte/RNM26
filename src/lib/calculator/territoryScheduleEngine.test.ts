@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildRoofSnowWarningMessage,
+  buildSnowRemovalNoticeMessage,
   computeTerritorySchedule,
   computeTerritoryScheduleOccurrences,
   computeTerritoryScheduleStatus,
@@ -150,5 +152,47 @@ describe("summarizeTerritorySchedule", () => {
     expect(summary.overdue).toBe(0); // 04-01 done, остальные в будущем относительно 04-15? проверим ниже
     expect(summary.byCategory[0]).toMatchObject({ category: "manual_cleaning_warm", total: 3, completed: 1 });
     expect(summary.byCompletedBy).toEqual([{ name: "Иванов", count: 1 }]);
+  });
+});
+
+describe("buildSnowRemovalNoticeMessage", () => {
+  it("содержит название дома и дату", () => {
+    const msg = buildSnowRemovalNoticeMessage("ЖК «Коркем-1»", "2026-11-15");
+    expect(msg).toContain("ЖК «Коркем-1»");
+    expect(msg).toContain("2026-11-15");
+  });
+
+  it("включает время начала, когда оно передано", () => {
+    const msg = buildSnowRemovalNoticeMessage("Дом 1", "2026-11-15", "09:00");
+    expect(msg).toContain("09:00");
+  });
+
+  it("не падает и не оставляет пустых строк без времени начала", () => {
+    const msg = buildSnowRemovalNoticeMessage("Дом 1", "2026-11-15");
+    expect(msg.split("\n").every((line) => line.length > 0)).toBe(true);
+  });
+
+  it("не ссылается на номер пункта приказа в тексте", () => {
+    const msg = buildSnowRemovalNoticeMessage("Дом 1", "2026-11-15", "09:00");
+    expect(msg).not.toMatch(/п\.\s*\d/);
+  });
+});
+
+describe("buildRoofSnowWarningMessage", () => {
+  it("содержит название дома", () => {
+    const msg = buildRoofSnowWarningMessage("ЖК «Коркем-1»");
+    expect(msg).toContain("ЖК «Коркем-1»");
+  });
+
+  it("включает дату, когда она передана, и осмысленный текст без неё", () => {
+    const withDate = buildRoofSnowWarningMessage("Дом 1", "2026-12-01");
+    expect(withDate).toContain("2026-12-01");
+    const withoutDate = buildRoofSnowWarningMessage("Дом 1");
+    expect(withoutDate.split("\n").every((line) => line.length > 0)).toBe(true);
+  });
+
+  it("не ссылается на номер пункта приказа в тексте", () => {
+    const msg = buildRoofSnowWarningMessage("Дом 1", "2026-12-01");
+    expect(msg).not.toMatch(/п\.\s*\d/);
   });
 });

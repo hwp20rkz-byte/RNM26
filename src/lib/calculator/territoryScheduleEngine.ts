@@ -169,3 +169,38 @@ export function summarizeTerritorySchedule(entries: TerritoryScheduleEntry[]): T
     byCompletedBy: [...byCompletedByMap.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
   };
 }
+
+// ---------------------------------------------------------------------------
+// WhatsApp-оповещения жителей по территории — тот же паттерн, что
+// buildWorkOrderMessage (workOrderEngine.ts) и buildDebtNoticeMessage
+// (ownerRegistryEngine.ts): массив строк -> filter(Boolean) -> join("\n"),
+// *жирный* заголовок. Без ссылок на номер пункта Приказа №22-НҚ в тексте —
+// как и в технологических картах (data/territoryGenericWorkSteps.ts), у
+// точной формулировки соответствующих пунктов нет проверяемого источника
+// в этой сессии. Ссылка для отправки строится существующим buildWaLink
+// (workOrderEngine.ts) — без адресата, «поделиться в любой чат».
+// ---------------------------------------------------------------------------
+
+/** Уведомление о механизированной уборке/вывозе снега — просьба освободить парковочные места. */
+export function buildSnowRemovalNoticeMessage(buildingName: string, date: string, startTime?: string): string {
+  const lines = [
+    "*Уважаемые жители!*",
+    buildingName,
+    startTime
+      ? `${date} с ${startTime} будет производиться механизированная уборка и вывоз снега с придомовой территории.`
+      : `${date} будет производиться механизированная уборка и вывоз снега с придомовой территории.`,
+    "Убедительная просьба освободить парковочные места на этот период — автомобили, мешающие проезду техники, могут быть перемещены.",
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
+/** Предупреждение о сбросе снега/наледи с кровли — просьба не приближаться к ограждённой зоне. */
+export function buildRoofSnowWarningMessage(buildingName: string, date?: string): string {
+  const lines = [
+    "*Внимание! Сброс снега и наледи с кровли*",
+    buildingName,
+    date ? `Работы запланированы на ${date}.` : "Работы проводятся в ближайшее время.",
+    "Возле дома будет огорожена опасная зона — просьба не приближаться, не парковать автомобили и не оставлять детей без присмотра рядом с домом на это время.",
+  ];
+  return lines.filter(Boolean).join("\n");
+}

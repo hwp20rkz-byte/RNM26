@@ -37,6 +37,7 @@ import type { ErcUnitStatement } from "@/lib/import/parseErcStatement";
 import { generateTicketNumber } from "@/lib/calculator/workOrderEngine";
 import { defaultTerritoryVolume, instantiateTerritoryCostItem } from "@/lib/calculator/territoryWorkEngine";
 import { computeTerritorySchedule } from "@/lib/calculator/territoryScheduleEngine";
+import { genericWorkStepsForCategory } from "@/lib/calculator/data/territoryGenericWorkSteps";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
 import { buildBlankDatabase, buildDefaultDatabase } from "@/lib/calculator/database";
 import { BUILTIN_PRESETS, DEFAULT_BUILDING, buildBlankBuilding } from "@/lib/calculator/presets";
@@ -155,6 +156,17 @@ interface ProjectsState {
    * наряду вхождения пропускаются. Возвращает id созданных нарядов.
    */
   applyNormativeTerritoryPlan: (startDate: string, endDate: string, territoryWorkItemIds: string[]) => string[];
+  /**
+   * Создаёт наряд по позиции каталога «по мере необходимости» (К=1 — ремонт
+   * МАФ, скамей, площадок и т.п.) — таких позиций нет в расписании
+   * (`computeTerritorySchedule` их не генерирует, `isTerritoryItemSchedulable`
+   * false), поэтому нет ни даты вхождения, ни ключа отметки плана: в
+   * отличие от `createWorkOrderFromTerritoryTask`, ничего не пишет в
+   * `territoryTaskCompletions`. Чек-лист наряда заполняется типовыми
+   * операционными шагами по категории позиции
+   * (`genericWorkStepsForCategory`). Возвращает id наряда.
+   */
+  createWorkOrderFromTerritoryItem: (territoryWorkItemId: string, title: string) => string;
 
   // --- пресеты обслуживания ---
   setPreset: (id: string) => void;
@@ -533,6 +545,20 @@ export const useProjectsStore = create<ProjectsState>()(
             });
           }
           return createdIds;
+        },
+
+        createWorkOrderFromTerritoryItem: (territoryWorkItemId, title) => {
+          const item = TERRITORY_WORK_CATALOG.find((i) => i.id === territoryWorkItemId);
+          const steps = genericWorkStepsForCategory(item?.category ?? "other");
+          const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          return get().createWorkOrder({
+            title,
+            description: item
+              ? `Наряд по позиции каталога территории «по мере необходимости»: ${item.sourceCode ? `${item.sourceCode} ` : ""}${item.name}.`
+              : "Наряд по позиции каталога территории «по мере необходимости».",
+            deadline,
+            checklist: steps.map((text) => ({ id: genId("check"), text, isCompleted: false })),
+          });
         },
 
         setPreset: (id) => {

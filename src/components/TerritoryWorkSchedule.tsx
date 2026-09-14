@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Info, ListChecks, PlusSquare, Users } from "lucide-react";
+import { CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Info, ListChecks, MessageCircle, PlusSquare, Users, Wrench } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -14,6 +14,8 @@ import { useUiPrefsStore } from "@/store/useUiPrefsStore";
 import { TERRITORY_WORK_CATALOG } from "@/lib/calculator/data/territoryWorkCatalog";
 import { defaultTerritoryVolume } from "@/lib/calculator/territoryWorkEngine";
 import {
+  buildRoofSnowWarningMessage,
+  buildSnowRemovalNoticeMessage,
   computeTerritorySchedule,
   getDayRange,
   getMonthRange,
@@ -24,6 +26,8 @@ import {
   type TerritoryScheduleEntry,
   type TerritoryScheduleStatus,
 } from "@/lib/calculator/territoryScheduleEngine";
+import { buildWaLink } from "@/lib/calculator/workOrderEngine";
+import { genericWorkStepsForCategory } from "@/lib/calculator/data/territoryGenericWorkSteps";
 import { TERRITORY_WORK_CATEGORY_LABELS, TERRITORY_WORK_UNIT_LABELS, type TerritoryWorkItem } from "@/lib/calculator/types";
 import { formatKzt } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -84,16 +88,26 @@ export function TerritoryWorkSchedule() {
   const setTerritoryTaskCompletion = useProjectsStore((s) => s.setTerritoryTaskCompletion);
   const createWorkOrderFromTerritoryTask = useProjectsStore((s) => s.createWorkOrderFromTerritoryTask);
   const applyNormativeTerritoryPlan = useProjectsStore((s) => s.applyNormativeTerritoryPlan);
+  const createWorkOrderFromTerritoryItem = useProjectsStore((s) => s.createWorkOrderFromTerritoryItem);
 
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [batchResultCount, setBatchResultCount] = useState<number | null>(null);
+  const [openAdhocId, setOpenAdhocId] = useState<string | null>(null);
+  const [adhocCreatedIds, setAdhocCreatedIds] = useState<Set<string>>(new Set());
+  const [noticeDate, setNoticeDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [noticeStartTime, setNoticeStartTime] = useState<string>("09:00");
 
   const schedulableItems = useMemo(() => {
     if (!passport) return [];
     return TERRITORY_WORK_CATALOG.filter((item) => isTerritoryItemSchedulable(item) && defaultTerritoryVolume(item, passport) > 0);
+  }, [passport]);
+
+  const adhocItems = useMemo(() => {
+    if (!passport) return [];
+    return TERRITORY_WORK_CATALOG.filter((item) => !isTerritoryItemSchedulable(item) && defaultTerritoryVolume(item, passport) > 0);
   }, [passport]);
 
   const range = useMemo(() => rangeFor(viewMode, anchor), [viewMode, anchor]);
@@ -163,6 +177,22 @@ export function TerritoryWorkSchedule() {
     const created = applyNormativeTerritoryPlan(range.start, range.end, ids);
     setBatchResultCount(created.length);
     setSelectedItemIds(new Set());
+  }
+
+  function handleCreateAdhocOrder(item: TerritoryWorkItem) {
+    const title = `${item.sourceCode ? `${item.sourceCode} ` : ""}${item.name}`;
+    createWorkOrderFromTerritoryItem(item.id, title);
+    setAdhocCreatedIds((prev) => new Set(prev).add(item.id));
+  }
+
+  function handleSnowRemovalNotice() {
+    const message = buildSnowRemovalNoticeMessage(project.name, noticeDate, noticeStartTime || undefined);
+    window.open(buildWaLink(message), "_blank");
+  }
+
+  function handleRoofSnowNotice() {
+    const message = buildRoofSnowWarningMessage(project.name, noticeDate || undefined);
+    window.open(buildWaLink(message), "_blank");
   }
 
   function entryRow(entry: TerritoryScheduleEntry) {
@@ -467,6 +497,91 @@ export function TerritoryWorkSchedule() {
               <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
               <span>{t("twsExcludedNote")}</span>
             </div>
+
+            {adhocItems.length > 0 && (
+              <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
+                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <Wrench className="h-3.5 w-3.5" /> {t("twsAdhocTitle")}
+                </div>
+                <p className="mb-2 text-xs text-slate-400">{t("twsAdhocHint")}</p>
+                <div className="flex max-h-64 flex-col gap-1.5 overflow-y-auto">
+                  {adhocItems.map((item) => {
+                    const isOpen = openAdhocId === item.id;
+                    const created = adhocCreatedIds.has(item.id);
+                    return (
+                      <div key={item.id} className="rounded-md border border-slate-100 px-2.5 py-2 text-xs dark:border-slate-800">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="flex-1 text-slate-700 dark:text-slate-200">
+                            {item.sourceCode ? `${item.sourceCode}. ` : ""}
+                            {item.name}
+                          </span>
+                          <button
+                            onClick={() => setOpenAdhocId(isOpen ? null : item.id)}
+                            className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                          >
+                            {t("twsAdhocToggleCard")}
+                          </button>
+                          <button
+                            onClick={() => handleCreateAdhocOrder(item)}
+                            disabled={created}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-700 hover:border-emerald-400 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                          >
+                            <ClipboardList className="h-3 w-3" /> {created ? t("twsCreateOrderButtonDone") : t("twsCreateOrderButton")}
+                          </button>
+                        </div>
+                        {isOpen && (
+                          <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-slate-500 dark:text-slate-400">
+                            {genericWorkStepsForCategory(item.category).map((step, i) => (
+                              <li key={i}>{step}</li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
+              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <MessageCircle className="h-3.5 w-3.5" /> {t("twsNoticeTitle")}
+              </div>
+              <p className="mb-2 text-xs text-slate-400">{t("twsNoticeHint")}</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="flex flex-col gap-1 text-xs">
+                  <span className="text-slate-400">{t("twsNoticeDateLabel")}</span>
+                  <input
+                    type="date"
+                    value={noticeDate}
+                    onChange={(e) => setNoticeDate(e.target.value)}
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs">
+                  <span className="text-slate-400">{t("twsNoticeTimeLabel")}</span>
+                  <input
+                    type="time"
+                    value={noticeStartTime}
+                    onChange={(e) => setNoticeStartTime(e.target.value)}
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950"
+                  />
+                </label>
+                <button
+                  onClick={handleSnowRemovalNotice}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> {t("twsNoticeSnowButton")}
+                </button>
+                <button
+                  onClick={handleRoofSnowNotice}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> {t("twsNoticeRoofButton")}
+                </button>
+              </div>
+            </div>
+
             <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
               <div className="mb-1 font-medium">{t("twsAssumptionsTitle")}</div>
               <p>{t("twsSeasonAssumptionNote")}</p>
