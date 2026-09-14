@@ -948,3 +948,25 @@ export interface TerritoryTaskCompletion {
   workOrderId?: string;
 }
 
+/**
+ * Нормы расхода материалов по содержанию территории — Методические
+ * рекомендации №22-НҚ (нормы посыпки/полива/удобрения, вне Приложения Б —
+ * там только расценки в МРП, без физических норм расхода материалов).
+ */
+export interface TerritoryNormativeRates {
+  /** Пескосоляная смесь/щебень, г/м² за одну обработку */
+  antiIceSandSaltGPerSqm: number;
+  /** Противогололёдные реагенты ХК, г/м² за одну обработку */
+  antiIceReagentGPerSqm: number;
+  /** Полив газона, л/м² за один полив */
+  wateringLawnLPerSqm: number;
+  /** Полив кустарника, л/куст за один полив */
+  wateringShrubLPerUnit: number;
+  /** Полив дерева, л/дерево за один полив */
+  wateringTreeLPerUnit: number;
+  /** Внесение удобрений в приствольные круги, г/м² */
+  fertilizerTreeCircleGPerSqm: number;
+  /** Подсев газона, г/м² */
+  fertilizerLawnReseedGPerSqm: number;
+}
+
