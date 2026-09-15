@@ -63,7 +63,7 @@ export default function App() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-xs transition ${
+            className={`flex flex-1 flex-col items-center gap-2 py-4 text-xs transition ${
               tab === id ? "text-accent" : "text-ink-faint"
             }`}
           >

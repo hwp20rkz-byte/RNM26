@@ -116,8 +116,8 @@ export function ChecklistMobile({
 
       {/* Геостатус */}
       <div
-        className={`mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${
-          geoValidated ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+        className={`mt-4 flex items-center gap-2 rounded-xl px-4 py-2 text-xs ${
+          geoValidated ? "bg-status-done-soft text-status-done" : "bg-status-review-soft text-status-review"
         }`}
       >
         {geoChecking ? (
@@ -167,15 +167,15 @@ export function ChecklistMobile({
                 <li key={item.id}>
                   <button
                     onClick={() => toggleItem(item.id)}
-                    className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left text-sm transition ${
+                    className={`flex w-full items-center gap-4 rounded-xl border px-4 py-4 text-left text-sm transition ${
                       checked
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                        ? "border-status-done/30 bg-status-done-soft text-status-done"
                         : "border-transparent bg-surface-raised text-ink"
                     }`}
                   >
                     <span
                       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
-                        checked ? "border-emerald-600 bg-emerald-600" : "border-ink-faint"
+                        checked ? "border-status-done bg-status-done" : "border-ink-faint"
                       }`}
                     >
                       {checked && <Check size={14} className="text-white" />}
@@ -233,7 +233,7 @@ function PhotoSlot({
   return (
     <button
       onClick={onPick}
-      className="mt-3 flex w-full items-center gap-3 rounded-xl bg-surface-raised p-3 text-left"
+      className="mt-4 flex w-full items-center gap-4 rounded-xl bg-surface-raised p-4 text-left"
     >
       <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-sunken">
         {preview ? (

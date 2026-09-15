@@ -189,10 +189,10 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
     let handler: L.Handler;
     switch (next) {
       case "draw-polygon":
-        handler = new L.Draw.Polygon(map, { showArea: false, shapeOptions: { color: "#C96442" } });
+        handler = new L.Draw.Polygon(map, { showArea: false, shapeOptions: { color: "hsl(var(--accent))" } });
         break;
       case "draw-rectangle":
-        handler = new L.Draw.Rectangle(map, { shapeOptions: { color: "#C96442" } });
+        handler = new L.Draw.Rectangle(map, { shapeOptions: { color: "hsl(var(--accent))" } });
         break;
       case "draw-marker":
         handler = new L.Draw.Marker(map);
@@ -233,22 +233,22 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
   }
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-[1100] flex flex-col gap-2 p-3">
+    <div className="absolute inset-x-0 bottom-0 z-[1100] flex flex-col gap-2 p-4">
       {pending && (
         <div className="rounded-2xl bg-surface-raised p-4 shadow-[0_-4px_24px_rgba(0,0,0,0.12)]">
-          <p className="mb-3 text-sm font-semibold text-ink">Новая зона</p>
-          <div className="space-y-2.5">
+          <p className="mb-4 text-sm font-semibold text-ink">Новая зона</p>
+          <div className="space-y-4">
             <input
               autoFocus
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Название, напр. «Газон у 9А»"
-              className="w-full rounded-xl border border-surface-sunken bg-surface px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-surface-sunken bg-surface px-4 py-4 text-sm"
             />
             <select
               value={form.zoneType}
               onChange={(e) => setForm((f) => ({ ...f, zoneType: e.target.value as ZoneType }))}
-              className="w-full rounded-xl border border-surface-sunken bg-surface px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-surface-sunken bg-surface px-4 py-4 text-sm"
             >
               {ZONE_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -259,7 +259,7 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
             <select
               value={form.buildingId}
               onChange={(e) => setForm((f) => ({ ...f, buildingId: e.target.value }))}
-              className="w-full rounded-xl border border-surface-sunken bg-surface px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-surface-sunken bg-surface px-4 py-4 text-sm"
             >
               <option value="">— двор, без привязки к зданию —</option>
               {buildings.map((b) => (
@@ -269,16 +269,16 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
               ))}
             </select>
           </div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-4 flex gap-2">
             <button
               onClick={cancelPending}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-surface-sunken px-3 py-2.5 text-sm text-ink-muted"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface-sunken px-4 py-4 text-sm text-ink-muted"
             >
               <X size={15} /> Отмена
             </button>
             <button
               onClick={confirmPending}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent px-3 py-2.5 text-sm font-medium text-white"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-4 text-sm font-medium text-white"
             >
               <Check size={15} /> Сохранить
             </button>
@@ -287,14 +287,14 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
       )}
 
       {/* Видимая панель инструментов конструктора — всегда внизу, вместо мелких иконок Leaflet в углу карты */}
-      <div className="grid grid-cols-5 gap-1.5 rounded-2xl bg-surface-raised p-2 shadow-[0_-4px_24px_rgba(0,0,0,0.12)]">
+      <div className="grid grid-cols-5 gap-2 rounded-2xl bg-surface-raised p-2 shadow-[0_-4px_24px_rgba(0,0,0,0.12)]">
         {TOOL_BUTTONS.map(({ mode: buttonMode, label, icon: Icon }) => {
           const active = mode === buttonMode;
           return (
             <button
               key={buttonMode}
               onClick={() => activateTool(buttonMode)}
-              className={`flex flex-col items-center gap-1 rounded-xl py-2.5 text-[11px] font-medium transition ${
+              className={`flex flex-col items-center gap-2 rounded-xl py-4 text-xs font-medium transition ${
                 active ? "bg-accent text-white" : "bg-surface-sunken text-ink-muted"
               }`}
             >
@@ -305,7 +305,7 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
         })}
       </div>
       {mode !== "idle" && (
-        <p className="rounded-xl bg-surface-raised/95 px-3 py-2 text-center text-xs text-ink-muted shadow-sm">
+        <p className="rounded-xl bg-surface-raised/95 px-4 py-2 text-center text-xs text-ink-muted shadow-sm">
           {mode === "draw-polygon" && "Отмечайте вершины на карте, двойной клик — завершить"}
           {mode === "draw-rectangle" && "Потяните на карте, чтобы нарисовать прямоугольник"}
           {mode === "draw-marker" && "Коснитесь карты, чтобы поставить точку"}

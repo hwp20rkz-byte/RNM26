@@ -18,16 +18,23 @@ import { YARD_CENTER, buildings } from "./zones.data";
 import { isSeedZone, loadZones, resetToSeed, saveZones } from "@/services/zoneStore";
 import { ZoneEditorLayer } from "./ZoneEditorLayer";
 
+// Цвета — CSS-переменные из tokens.css (--zone-*), не хардкод hex.
+// TBO/ENTRANCE намеренно переиспользуют --accent, MAF/STAIRS — --text-mute.
 const ZONE_STYLE: Record<ZoneType, PathOptions> = {
-  LAWN: { color: "#3F7A5C", fillColor: "#3F7A5C", fillOpacity: 0.18, weight: 1.5 },
-  PATH: { color: "#A1A1AA", fillColor: "#A1A1AA", fillOpacity: 0.15, weight: 1.5 },
-  TBO: { color: "#C96442", fillColor: "#C96442", fillOpacity: 0.25, weight: 1.5 },
-  MAF: { color: "#52525B", fillColor: "#D4D4D8", fillOpacity: 0.35, weight: 1.5 },
-  ENTRANCE: { color: "#C96442", fillColor: "#C96442", fillOpacity: 0.25, weight: 1.5 },
-  GATE: { color: "#D9A441", fillColor: "#D9A441", fillOpacity: 0.25, weight: 1.5 },
-  STAIRS: { color: "#52525B", fillColor: "#52525B", fillOpacity: 0.25, weight: 1.5 },
-  SPORT: { color: "#3B82F6", fillColor: "#3B82F6", fillOpacity: 0.18, weight: 1.5 },
-  PLAYGROUND: { color: "#D946A0", fillColor: "#D946A0", fillOpacity: 0.18, weight: 1.5 }
+  LAWN: { color: "hsl(var(--zone-lawn))", fillColor: "hsl(var(--zone-lawn))", fillOpacity: 0.18, weight: 1.5 },
+  PATH: { color: "hsl(var(--zone-path))", fillColor: "hsl(var(--zone-path))", fillOpacity: 0.15, weight: 1.5 },
+  TBO: { color: "hsl(var(--accent))", fillColor: "hsl(var(--accent))", fillOpacity: 0.25, weight: 1.5 },
+  MAF: { color: "hsl(var(--text-mute))", fillColor: "hsl(var(--zone-maf-fill))", fillOpacity: 0.35, weight: 1.5 },
+  ENTRANCE: { color: "hsl(var(--accent))", fillColor: "hsl(var(--accent))", fillOpacity: 0.25, weight: 1.5 },
+  GATE: { color: "hsl(var(--zone-gate))", fillColor: "hsl(var(--zone-gate))", fillOpacity: 0.25, weight: 1.5 },
+  STAIRS: { color: "hsl(var(--text-mute))", fillColor: "hsl(var(--text-mute))", fillOpacity: 0.25, weight: 1.5 },
+  SPORT: { color: "hsl(var(--zone-sport))", fillColor: "hsl(var(--zone-sport))", fillOpacity: 0.18, weight: 1.5 },
+  PLAYGROUND: {
+    color: "hsl(var(--zone-playground))",
+    fillColor: "hsl(var(--zone-playground))",
+    fillOpacity: 0.18,
+    weight: 1.5
+  }
 };
 
 const ZONE_ICON: Record<ZoneType, typeof MapPin> = {
@@ -148,9 +155,9 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
 
       {/* Легенда */}
       {!editMode && (
-        <div className="pointer-events-none absolute left-4 top-4 max-w-[220px] rounded-2xl bg-surface-raised/90 p-3 shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute left-4 top-4 max-w-panel rounded-2xl bg-surface-raised/90 p-4 shadow-sm backdrop-blur">
           <p className="mb-2 text-xs font-medium text-ink-muted">Ақмешіт 9 · Двор</p>
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {(Object.keys(ZONE_LABEL) as ZoneType[]).map((type) => {
               const Icon = ZONE_ICON[type];
               return (
@@ -162,7 +169,7 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
             })}
           </ul>
           {hasDraftZones && (
-            <p className="mt-2 border-t border-surface-sunken pt-2 text-[11px] leading-snug text-ink-faint">
+            <p className="mt-2 border-t border-surface-sunken pt-2 text-xs leading-snug text-ink-faint">
               Пунктир — черновые зоны без привязки к реальной геодезии. Нажмите «Редактировать
               карту», чтобы поправить или удалить.
             </p>
@@ -174,7 +181,7 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
       <div className="absolute right-4 top-4 z-[1000] flex flex-col items-end gap-2">
         <button
           onClick={() => setEditMode((v) => !v)}
-          className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-sm transition ${
+          className={`flex items-center gap-2 rounded-full px-4 py-4 text-sm font-medium shadow-sm transition ${
             editMode ? "bg-accent text-white" : "bg-surface-raised text-ink"
           }`}
         >
@@ -184,7 +191,7 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
         {editMode && (
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 rounded-full bg-surface-raised px-3 py-1.5 text-xs text-ink-muted shadow-sm"
+            className="flex items-center gap-2 rounded-full bg-surface-raised px-4 py-4 text-xs text-ink-muted shadow-sm"
           >
             <RotateCcw size={12} /> Сбросить к черновику
           </button>
@@ -192,7 +199,7 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
       </div>
 
       {editMode && (
-        <div className="pointer-events-none absolute left-4 top-4 max-w-[240px] rounded-2xl bg-surface-raised/90 p-3 text-xs leading-snug text-ink-muted shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute left-4 top-4 max-w-panel rounded-2xl bg-surface-raised/90 p-4 text-xs leading-snug text-ink-muted shadow-sm backdrop-blur">
           Панель инструментов — внизу экрана. Выберите «Полигон»/«Прямоуг.»/«Точку», чтобы
           нарисовать зону, затем укажите название и тип. «Править» и «Удалить» работают с уже
           существующими зонами на карте.
@@ -202,21 +209,21 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
       {/* Карточка выбранной зоны — точка входа диспетчеризации задачи */}
       {!editMode && selectedZone && (
         <div className="absolute inset-x-0 bottom-0 z-[1000] rounded-t-2xl bg-surface-raised p-4 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-80 sm:rounded-2xl">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-ink">{selectedZone.name}</p>
               <p className="text-xs text-ink-muted">{ZONE_LABEL[selectedZone.zoneType]}</p>
             </div>
             <button
               onClick={() => setSelectedZoneId(null)}
-              className="rounded-full px-2 py-1 text-xs text-ink-faint hover:bg-surface-sunken"
+              className="rounded-full p-4 text-xs text-ink-faint hover:bg-surface-sunken"
               aria-label="Закрыть"
             >
               ✕
             </button>
           </div>
           <button
-            className="mt-3 w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 active:scale-[0.98]"
+            className="mt-4 w-full rounded-xl bg-accent px-4 py-4 text-sm font-medium text-white transition hover:opacity-90 active:scale-[0.98]"
             onClick={() => onZoneSelect?.(selectedZone)}
           >
             Создать задачу в этой зоне

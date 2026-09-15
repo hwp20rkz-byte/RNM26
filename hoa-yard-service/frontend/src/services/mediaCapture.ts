@@ -20,10 +20,15 @@ export async function stampPhoto(file: File, label?: string): Promise<Blob> {
   const paddingX = fontSize * 0.6;
   const barHeight = fontSize * 1.8;
 
-  ctx.fillStyle = "rgba(24, 24, 27, 0.72)";
+  // HSL (not hex/rgba) per the design tokens, but fixed rather than read from
+  // tokens.css: the stamp is burned into an exported photo, so it must stay
+  // dark-bar/light-text regardless of the viewer's OS light/dark theme —
+  // reading the live --text-primary/--bg-base custom properties would
+  // invert this under prefers-color-scheme: dark and make it unreadable.
+  ctx.fillStyle = "hsl(240 10% 10% / 0.72)";
   ctx.fillRect(0, canvas.height - barHeight, metrics.width + paddingX * 2, barHeight);
 
-  ctx.fillStyle = "#FAFAF9";
+  ctx.fillStyle = "hsl(30 20% 98%)";
   ctx.textBaseline = "middle";
   ctx.fillText(stampText, paddingX, canvas.height - barHeight / 2);
 
