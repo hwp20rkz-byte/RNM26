@@ -2,12 +2,21 @@
 
 Сервис эксплуатации и благоустройства территории ЖК. См. `ARCHITECTURE.md` и `ROADMAP.md`.
 
-## Ограничения деплоя на GitHub Pages
+## Деплой на GitHub Pages
+
+Этот репозиторий уже используется другим, несвязанным проектом — **QazaqOSI**
+(калькулятор тарифов ОСИ, Next.js), который занимает корень сайта
+`https://hwp20rkz-byte.github.io/RNM26/` и деплоится своим же `.github/workflows/deploy-pages.yml`
+в корне репозитория. HOA yard service делит с ним этот единственный Pages-деплой,
+а не имеет собственный: тот же workflow дополнительно собирает `hoa-yard-service/frontend/`
+и кладёт его в `out/hoa-yard-service/`, поэтому сервис публикуется рядом, по адресу
+`https://hwp20rkz-byte.github.io/RNM26/hoa-yard-service/`, не трогая корень QazaqOSI.
 
 GitHub Pages отдаёт **только статику** — там нет сервера, который мог бы исполнять Java.
-Поэтому на Pages публикуется исключительно `frontend/` (статичный React PWA), а `backend/`
-(Spring Boot) там в принципе не может работать и должен размещаться отдельно (VPS,
-контейнерный хостинг, PaaS с поддержкой JVM и т.д.) — см. `ARCHITECTURE.md`.
+Поэтому на Pages публикуется исключительно `hoa-yard-service/frontend/` (статичный React
+PWA), а `hoa-yard-service/backend/` (Spring Boot) там в принципе не может работать и должен
+размещаться отдельно (VPS, контейнерный хостинг, PaaS с поддержкой JVM и т.д.) — см.
+`ARCHITECTURE.md`.
 
 Поскольку live-backend на Pages нет, фронтенд собран с **demo-режимом**: если переменная
 окружения `VITE_API_BASE_URL` не задана при сборке, `whatsappService.ts` вместо реальных
@@ -18,27 +27,18 @@ HTTP-запросов имитирует ответы backend (создание 
 Когда backend будет где-то развёрнут — пересоберите фронтенд с
 `VITE_API_BASE_URL=https://ваш-backend/api/v1`, и demo-режим выключится сам.
 
-### Как включить публикацию
-
-1. В репозитории: **Settings → Pages → Source → GitHub Actions** (разовая настройка,
-   руками в UI — воркфлоу этого сделать не может).
-2. Смёржить ветку с воркфлоу (`.github/workflows/deploy-pages.yml`) в `main` — он
-   триггерится на push в `main` (или запускается вручную через `workflow_dispatch`
-   на вкладке Actions).
-3. После успешного запуска сайт будет на `https://<owner>.github.io/RNM26/`.
-
 ## Локальный запуск
 
 ### Frontend
 ```bash
-cd frontend
+cd hoa-yard-service/frontend
 npm install
 npm run dev        # http://localhost:5173, demo-режим (backend не нужен)
 ```
 
 ### Backend
 ```bash
-cd backend
+cd hoa-yard-service/backend
 # нужен Postgres, см. переменные DB_URL/DB_USER/DB_PASSWORD в application.yml
 ./mvnw spring-boot:run
 ```

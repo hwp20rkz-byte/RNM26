@@ -3,9 +3,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-// На GitHub Pages сайт живёт под /<repo>/, а не в корне домена — без base
-// все абсолютные ссылки на ассеты (JS/CSS/иконки) вели бы на 404. CI (deploy-pages.yml)
-// собирает сборку с GITHUB_PAGES_BASE="/RNM26/"; локальный `npm run dev`/`build` без
+// GitHub Pages для этого репозитория уже занят другим проектом (QazaqOSI) в корне
+// сайта — HOA-фронтенд публикуется рядом, под /RNM26/hoa-yard-service/. Без base все
+// абсолютные ссылки на ассеты (JS/CSS/иконки) вели бы на 404 или наружу в корень чужого
+// сайта. CI (deploy-pages.yml в корне репозитория) собирает с
+// GITHUB_PAGES_BASE="/RNM26/hoa-yard-service/"; локальный `npm run dev`/`build` без
 // этой переменной работает как обычно, в корне.
 const base = process.env.GITHUB_PAGES_BASE ?? "/";
 

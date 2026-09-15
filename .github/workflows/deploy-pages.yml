@@ -31,6 +31,24 @@ jobs:
 
       - run: npm run build
 
+      # HOA yard-maintenance service — unrelated app, own package.json, published
+      # alongside QazaqOSI on the same Pages site under /hoa-yard-service/ instead
+      # of getting its own Pages deployment (a repo only gets one).
+      - name: Install HOA frontend dependencies
+        working-directory: hoa-yard-service/frontend
+        run: npm ci
+
+      - name: Build HOA frontend
+        working-directory: hoa-yard-service/frontend
+        env:
+          GITHUB_PAGES_BASE: /RNM26/hoa-yard-service/
+        run: npm run build
+
+      - name: Merge HOA build into Pages output
+        run: |
+          mkdir -p out/hoa-yard-service
+          cp -r hoa-yard-service/frontend/dist/. out/hoa-yard-service/
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true
