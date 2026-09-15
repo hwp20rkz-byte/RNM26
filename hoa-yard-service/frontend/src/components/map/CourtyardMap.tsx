@@ -193,9 +193,9 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
 
       {editMode && (
         <div className="pointer-events-none absolute left-4 top-4 max-w-[240px] rounded-2xl bg-surface-raised/90 p-3 text-xs leading-snug text-ink-muted shadow-sm backdrop-blur">
-          Рисуйте полигон/прямоугольник или ставьте точку инструментами справа на карте, затем
-          укажите название и тип. Существующие зоны можно двигать/редактировать вершины или
-          удалить — инструменты редактирования там же.
+          Панель инструментов — внизу экрана. Выберите «Полигон»/«Прямоуг.»/«Точку», чтобы
+          нарисовать зону, затем укажите название и тип. «Править» и «Удалить» работают с уже
+          существующими зонами на карте.
         </div>
       )}
 
