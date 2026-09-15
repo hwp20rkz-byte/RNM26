@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: hoa-yard-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/hoa_yard}
+    username: ${DB_USER:hoa_app}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+hoa:
+  security:
+    jwt:
+      # [Предположение] ключ для dev-окружения — в проде брать из секрет-хранилища
+      secret: ${JWT_SECRET:dev-only-change-me-32-bytes-minimum-key}
+      access-ttl-minutes: 15
+      refresh-ttl-days: 14
+  whatsapp:
+    provider: ${WHATSAPP_PROVIDER:green-api} # green-api | cloud-api
+    green-api:
+      instance-id: ${GREEN_API_INSTANCE_ID:}
+      token: ${GREEN_API_TOKEN:}
+      base-url: ${GREEN_API_BASE_URL:https://api.green-api.com}
+    magic-link:
+      base-url: ${MAGIC_LINK_BASE_URL:https://yard.akmeshit9.kz/m}
+      ttl-minutes: 15
+  storage:
+    media-bucket: ${MEDIA_BUCKET:hoa-yard-media}
+    reports-bucket: ${REPORTS_BUCKET:hoa-yard-reports}
