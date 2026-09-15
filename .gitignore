@@ -42,3 +42,10 @@ next-env.d.ts
 
 # design canvas scratch (Claude Design mockups, not app code)
 .design-settings/
+
+# hoa-yard-service/ (separate Vite+Spring Boot project, own build outputs)
+hoa-yard-service/frontend/node_modules/
+hoa-yard-service/frontend/dist/
+hoa-yard-service/frontend/dev-dist/
+hoa-yard-service/backend/target/
+hoa-yard-service/backend/data/
