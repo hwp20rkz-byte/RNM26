@@ -8,8 +8,8 @@ interface GamificationBarProps {
 }
 
 const BADGE_META = {
-  SPEED_BADGE: { icon: Zap, label: "Скорость", color: "text-amber-500" },
-  QUALITY_BADGE: { icon: ShieldCheck, label: "Без замечаний", color: "text-emerald-600" },
+  SPEED_BADGE: { icon: Zap, label: "Скорость", color: "text-status-review" },
+  QUALITY_BADGE: { icon: ShieldCheck, label: "Без замечаний", color: "text-status-done" },
   STREAK: { icon: Award, label: "Серия", color: "text-accent" }
 } as const;
 
@@ -31,14 +31,14 @@ export function GamificationBar({ completedCount, totalCount, points, badges }: 
         />
       </div>
       {badges.length > 0 && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-4 flex gap-2">
           {badges.map((badgeType) => {
             const meta = BADGE_META[badgeType];
             const Icon = meta.icon;
             return (
               <span
                 key={badgeType}
-                className="inline-flex items-center gap-1 rounded-full bg-surface-sunken px-2.5 py-1 text-[11px] font-medium text-ink"
+                className="inline-flex items-center gap-2 rounded-full bg-surface-sunken px-4 py-2 text-xs font-medium text-ink"
               >
                 <Icon size={12} className={meta.color} />
                 {meta.label}

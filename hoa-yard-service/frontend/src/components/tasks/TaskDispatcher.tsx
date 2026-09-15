@@ -48,15 +48,15 @@ export function TaskDispatcher({ zones, workTemplates, cleaners }: TaskDispatche
   const selectedCleaner = cleaners.find((c) => c.id === assigneeId);
 
   return (
-    <div className="mx-auto max-w-lg rounded-2xl bg-surface-raised p-5 shadow-sm">
+    <div className="mx-auto max-w-lg rounded-2xl bg-surface-raised p-6 shadow-sm">
       <h2 className="mb-4 text-base font-semibold text-ink">Назначить задачу и отправить в WhatsApp</h2>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Field label="Зона">
           <select
             value={zoneId}
             onChange={(e) => setZoneId(e.target.value)}
-            className="w-full rounded-xl border border-surface-sunken bg-surface px-3 py-2.5 text-sm"
+            className="w-full rounded-xl border border-surface-sunken bg-surface px-4 py-4 text-sm"
           >
             {zones.map((z) => (
               <option key={z.id} value={z.id}>
@@ -70,7 +70,7 @@ export function TaskDispatcher({ zones, workTemplates, cleaners }: TaskDispatche
           <select
             value={workTemplateId}
             onChange={(e) => setWorkTemplateId(e.target.value)}
-            className="w-full rounded-xl border border-surface-sunken bg-surface px-3 py-2.5 text-sm"
+            className="w-full rounded-xl border border-surface-sunken bg-surface px-4 py-4 text-sm"
           >
             {workTemplates.map((w) => (
               <option key={w.id} value={w.id}>
@@ -86,7 +86,7 @@ export function TaskDispatcher({ zones, workTemplates, cleaners }: TaskDispatche
               <button
                 key={c.id}
                 onClick={() => setAssigneeId(c.id)}
-                className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                className={`flex-1 rounded-xl border px-4 py-4 text-sm font-medium transition ${
                   assigneeId === c.id
                     ? "border-accent bg-accent/10 text-accent"
                     : "border-surface-sunken text-ink-muted"
@@ -116,12 +116,12 @@ export function TaskDispatcher({ zones, workTemplates, cleaners }: TaskDispatche
         </Field>
       </div>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
       <button
         onClick={handleDispatch}
         disabled={!zoneId || !workTemplateId || !assigneeId || step === "GENERATING" || step === "DISPATCHING"}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-semibold text-white transition disabled:opacity-50"
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-sm font-semibold text-white transition disabled:opacity-50"
       >
         {step === "GENERATING" && (
           <>
@@ -141,13 +141,13 @@ export function TaskDispatcher({ zones, workTemplates, cleaners }: TaskDispatche
       </button>
 
       {step === "DONE" && (
-        <ul className="mt-4 space-y-1.5">
+        <ul className="mt-4 space-y-2">
           {results.map((r) => (
             <li key={r.taskId} className="flex items-center gap-2 text-xs">
               {r.status === "SENT" ? (
-                <CheckCircle2 size={14} className="text-emerald-600" />
+                <CheckCircle2 size={14} className="text-status-done" />
               ) : (
-                <XCircle size={14} className="text-red-600" />
+                <XCircle size={14} className="text-danger" />
               )}
               <span className="text-ink-muted">
                 {r.phone} — {r.status === "SENT" ? "доставлено" : r.error ?? "ошибка отправки"}
@@ -163,7 +163,7 @@ export function TaskDispatcher({ zones, workTemplates, cleaners }: TaskDispatche
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-ink-muted">{label}</span>
+      <span className="mb-2 block text-xs font-medium text-ink-muted">{label}</span>
       {children}
     </label>
   );

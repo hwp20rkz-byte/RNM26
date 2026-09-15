@@ -1,0 +1,107 @@
+/**
+ * Design tokens — HOA yard service.
+ * Rule of three (primary/accent/neutral) + tonal variants, HSL only.
+ * Loaded before any component styling (index.css imports this first).
+ *
+ * Values are stored as bare "H S% L%" triplets, not full hsl(...) — this is
+ * what lets the `hsl(var(--x) / <alpha-value>)` pattern in tailwind.config.ts
+ * support opacity modifiers (bg-accent/50 etc). Any raw CSS usage must wrap
+ * explicitly: hsl(var(--accent)).
+ *
+ * Neutral hue 30 (warm, near-beige) carries surfaces and text — the same
+ * warm undertone as the previous hand-picked hex palette (#FAFAF9/#18181B),
+ * just expressed as a proper tonal ladder instead of unrelated hex values.
+ * Accent hue 15 (terracotta) is the HSL conversion of the original #C96442.
+ */
+:root {
+  /* — type — */
+  --font-body: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* one ratio (~1.125), 4 sizes — well under the 5-size cap; this is a
+     utility app with no hero/display copy, so no separate display size */
+  --text-xs: 0.75rem;   /* 12px */
+  --text-sm: 0.875rem;  /* 14px */
+  --text-body: 1rem;    /* 16px */
+  --text-lg: 1.125rem;  /* 18px */
+
+  /* — color: neutral (surfaces + text) — */
+  --bg-base: 30 20% 98%;
+  --bg-elevated: 30 20% 100%;
+  --bg-sunken: 30 12% 94%;
+  --text-primary: 240 10% 10%;
+  --text-mute: 240 6% 35%;
+  /* L=65% measured ~2.5:1 on --bg-base — fails the 4.5:1 gate; 45% clears ~5:1 */
+  --text-faint: 240 6% 45%;
+
+  /* — color: accent (CTAs, active states) — */
+  --accent: 15 62% 50%;
+  --accent-hover: 15 65% 42%;
+  --accent-soft: 15 45% 92%;
+
+  /* — color: semantic status (task lifecycle — never decorative) — */
+  /* Lightness values below are chosen for ≥3:1 (icon/swatch) or ≥4.5:1 (if
+     used as text) against --bg-base, verified by hand — amber/blue-gray read
+     much lighter than their HSL L suggests, so this is not a straight "pick a
+     nice-looking L" choice. */
+  --status-planned: 215 20% 48%;
+  --status-progress: var(--accent);
+  --status-review: 38 75% 32%;
+  --status-review-soft: 38 60% 94%;
+  --status-done: 150 35% 34%;
+  --status-done-soft: 150 30% 94%;
+  /* Error/danger — the rule's "semantic status colors (success/error/
+     warning)" allowance, not one of the 3 brand colors. HSL(0 72% 51%) is
+     the conversion of Tailwind's default red-600, ~4.6:1 on --bg-base. */
+  --danger: 0 72% 51%;
+
+  /* — space: 8pt scale — */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  --space-8: 64px;
+
+  --container: 1440px;
+
+  /* — map legend categories (CourtyardMap) — */
+  /* Deliberate exception to "exactly 3 colors": these are categorical map
+     markers (zone types on the courtyard map), not brand/decorative color —
+     the same reasoning that lets a chart legend use more than 3 hues. Kept
+     as HSL tokens for consistency, but NOT run through the same WCAG
+     text-contrast gate as --text-* or --status-*: these are strokes/fills drawn
+     over a photographic OSM raster tile, where standard flat-background
+     contrast math does not meaningfully apply. TBO/ENTRANCE intentionally
+     reuse --accent, MAF/STAIRS reuse --text-mute — same as the original
+     hand-picked hex palette this replaces.
+  */
+  --zone-lawn: 150 32% 36%;
+  --zone-path: 240 5% 65%;
+  --zone-maf-fill: 240 8% 85%;
+  --zone-gate: 38 75% 50%;
+  --zone-sport: 217 91% 60%;
+  --zone-playground: 323 66% 56%;
+}
+
+/* No in-app theme toggle exists — this only kicks in for a user whose OS
+   is already in dark mode, so it is a plain automatic media query, not
+   speculative UI infrastructure. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-base: 30 10% 8%;
+    --bg-elevated: 30 8% 12%;
+    --bg-sunken: 30 8% 16%;
+    --text-primary: 240 6% 95%;
+    --text-mute: 240 6% 68%;
+    --text-faint: 240 6% 45%;
+    --accent-soft: 15 35% 18%;
+    /* Status hues need to flip lighter against a dark surface to hold
+       contrast — reusing the light-mode L values here would read as
+       near-invisible dark-on-dark. */
+    --status-planned: 215 20% 68%;
+    --status-review: 38 75% 55%;
+    --status-review-soft: 38 40% 18%;
+    --status-done: 150 35% 45%;
+    --status-done-soft: 150 25% 16%;
+    --danger: 0 70% 65%;
+  }
+}

@@ -1,3 +1,6 @@
+@import "@fontsource-variable/inter";
+@import "./tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,8 +9,30 @@ html, body, #root {
   height: 100%;
 }
 
-/* область безопасного отступа под чёлку/жесты iOS */
 body {
+  font-family: var(--font-body);
+  background-color: hsl(var(--bg-base));
+  color: hsl(var(--text-primary));
+  /* область безопасного отступа под чёлку/жесты iOS */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Consistent focus ring across browsers — nothing here suppresses the
+   default outline, this just makes it match the design system instead of
+   whatever blue/gray the browser picks. */
+:focus-visible {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+}
+
+/* Non-negotiable per website-quality.md — motion must not run for users
+   who asked their OS not to animate things. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
