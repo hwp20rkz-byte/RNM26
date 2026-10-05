@@ -49,6 +49,27 @@ jobs:
           mkdir -p out/hoa-yard-service
           cp -r hoa-yard-service/frontend/dist/. out/hoa-yard-service/
 
+      # LSTK business plan constructor — ещё одно отдельное приложение (Vite/React,
+      # свой package.json), публикуется рядом под /lstk-business-plan/.
+      - name: Install LSTK business plan dependencies
+        working-directory: lstk-business-plan
+        run: npm ci
+
+      - name: Test LSTK business plan model
+        working-directory: lstk-business-plan
+        run: npm test
+
+      - name: Build LSTK business plan
+        working-directory: lstk-business-plan
+        env:
+          GITHUB_PAGES_BASE: /RNM26/lstk-business-plan/
+        run: npm run build
+
+      - name: Merge LSTK build into Pages output
+        run: |
+          mkdir -p out/lstk-business-plan
+          cp -r lstk-business-plan/dist/. out/lstk-business-plan/
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true
