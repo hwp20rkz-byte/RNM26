@@ -1,0 +1,91 @@
+/**
+ * Design tokens — LSTK business plan.
+ * Три брендовых цвета (HSL): primary — стальной синий (металл каркаса),
+ * accent — строительный оранжевый, neutral — холодный серый.
+ * Статусные (danger/warning/success) — только для статусов, не для декора.
+ * Значения хранятся как "H S% L%", использование: hsl(var(--x)).
+ */
+:root {
+  color-scheme: light;
+
+  /* — type: Inter Variable (self-hosted через @fontsource) + системный mono — */
+  --font-body: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  /* 5 размеров, шаг ~1.25 */
+  --text-xs: 0.75rem;   /* 12 — подписи осей, сноски */
+  --text-sm: 0.875rem;  /* 14 — поля, таблицы */
+  --text-body: 1rem;    /* 16 — основной */
+  --text-lg: 1.25rem;   /* 20 — заголовки секций */
+  --text-xl: 2rem;      /* 32 — заголовок страницы, KPI */
+
+  /* — neutral — */
+  --bg-base: 215 20% 97%;
+  --bg-elevated: 215 20% 100%;
+  --bg-sunken: 215 16% 93%;
+  --line: 215 14% 85%;
+  --text-primary: 215 30% 12%;
+  --text-mute: 215 12% 36%;
+
+  /* — primary (сталь) — */
+  --primary: 212 62% 34%;
+  --primary-hover: 212 64% 27%;
+  --primary-soft: 212 50% 93%;
+
+  /* — accent (оранжевый) — */
+  --accent: 24 88% 42%;
+  --accent-soft: 24 80% 93%;
+
+  /* — chart: полярность (рост / снижение) — те же primary/accent, шаги проверены
+     dataviz-валидатором (CVD ΔE ≥ 21, контраст ≥ 3:1 к поверхности) — */
+  --chart-pos: var(--primary);
+  --chart-neg: var(--accent);
+  --chart-grid: 215 14% 90%;
+
+  /* — status — */
+  --danger: 0 68% 42%;
+  --danger-soft: 0 70% 95%;
+  --warning: 36 90% 28%;
+  --warning-soft: 40 85% 92%;
+
+  /* — space: 8pt — */
+  --space-half: 4px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  --space-12: 96px;
+
+  --radius: 8px;
+  --control-h: 44px;
+  --container: 1440px;
+  --shadow: 0 1px 2px hsl(215 30% 12% / 0.06), 0 4px 16px hsl(215 30% 12% / 0.04);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 160ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg-base: 215 22% 9%;
+    --bg-elevated: 215 20% 13%;
+    --bg-sunken: 215 20% 7%;
+    --line: 215 14% 24%;
+    --text-primary: 215 20% 92%;
+    --text-mute: 215 12% 68%;
+    --primary: 212 70% 62%;
+    --primary-hover: 212 75% 70%;
+    --primary-soft: 212 40% 20%;
+    --accent: 24 85% 58%;
+    --accent-soft: 24 50% 18%;
+    /* в тёмной теме графикам нужны шаги темнее, чем ссылкам/тексту (OKLCH L 0.48–0.67) */
+    --chart-pos: 212 65% 55%;
+    --chart-neg: 24 82% 50%;
+    --chart-grid: 215 14% 20%;
+    --danger: 0 75% 66%;
+    --danger-soft: 0 40% 16%;
+    --warning: 38 85% 62%;
+    --warning-soft: 38 45% 15%;
+    --shadow: none;
+  }
+}

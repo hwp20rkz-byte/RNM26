@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "hoa-yard-service"]
+  "exclude": ["node_modules", "hoa-yard-service", "lstk-business-plan"]
 }

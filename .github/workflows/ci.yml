@@ -1,0 +1,67 @@
+name: CI
+
+# Проверка пулл-реквестов: те же сборки, что в deploy-pages.yml, но без деплоя.
+# Отдельный файл, а не pull_request-триггер в deploy-pages.yml: там concurrency
+# group "pages" с cancel-in-progress — прогон PR отменял бы идущий деплой.
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qazaqosi:
+    name: QazaqOSI (root)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  hoa:
+    name: HOA yard service frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hoa-yard-service/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: hoa-yard-service/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          GITHUB_PAGES_BASE: /RNM26/hoa-yard-service/
+
+  lstk:
+    name: LSTK business plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lstk-business-plan
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lstk-business-plan/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env:
+          GITHUB_PAGES_BASE: /RNM26/lstk-business-plan/

@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Separate app (Vite/React, own eslint setup if any) sharing this repo.
     "hoa-yard-service/**",
+    "lstk-business-plan/**",
   ]),
 ]);
 
