@@ -56,12 +56,19 @@ export function featureSpan(f: Feature): { from: number; to: number } {
       return { from: f.position - f.diameter / 2, to: f.position + f.diameter / 2 };
     case "lip-cut":
     case "flange-cut":
+    case "swage":
       return { from: f.position, to: f.position + f.length };
   }
 }
 
 /** Half-extent of a web feature across the web, mm */
-function halfAcross(f: Exclude<Feature, { kind: "lip-cut" | "flange-cut" }>): number {
+/** Operations that act on flanges/lips over a length, not holes in the web */
+export const END_OPERATIONS = ["lip-cut", "flange-cut", "swage"] as const;
+type EndOperation = (typeof END_OPERATIONS)[number];
+type WebFeature = Exclude<Feature, { kind: EndOperation }>;
+const isWebFeature = (f: Feature): f is WebFeature => !(END_OPERATIONS as readonly string[]).includes(f.kind);
+
+function halfAcross(f: WebFeature): number {
   switch (f.kind) {
     case "service-hole":
       return f.height / 2;
@@ -84,7 +91,7 @@ export function validateFeatures(m: Member): FeatureIssue[] {
       issues.push({ feature: f, reason: `за пределами элемента длиной ${length} мм` });
       continue;
     }
-    if (f.kind === "lip-cut" || f.kind === "flange-cut") continue;
+    if (!isWebFeature(f)) continue;
     if (!span) {
       issues.push({ feature: f, reason: "у профиля нет плоской стенки для пробивки" });
       continue;
@@ -98,15 +105,13 @@ export function validateFeatures(m: Member): FeatureIssue[] {
   return issues;
 }
 
-type WebFeature = Exclude<Feature, { kind: "lip-cut" | "flange-cut" }>;
-
 /**
  * Web features whose bounding boxes touch or overlap (minimum `bridge` mm of
  * steel between them). Overlapping punches tear the web on the machine and
  * cannot be modelled as separate holes.
  */
 export function overlappingWebFeatures(features: readonly Feature[], bridge = 1): FeatureIssue[] {
-  const web = features.filter((f): f is WebFeature => f.kind !== "lip-cut" && f.kind !== "flange-cut");
+  const web = features.filter(isWebFeature);
   const boxes = web
     .map((f) => ({ f, ...featureSpan(f), lo: f.offset - halfAcross(f), hi: f.offset + halfAcross(f) }))
     .sort((a, b) => a.from - b.from);

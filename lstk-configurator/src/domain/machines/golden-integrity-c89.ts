@@ -12,6 +12,7 @@ export const GOLDEN_INTEGRITY_C89: RollFormingMachine = {
   id: "golden-integrity-c89",
   vendor: "Botou Golden Integrity Roll Forming Machine Co., Ltd (Ботоу, Хэбэй, Китай)",
   model: "LGS C89 Light Gauge Steel Frame Roll Forming Machine",
+  shortName: "Golden Integrity C89",
   profile: {
     family: "C",
     web: { value: 89, source: `${KP}, с. 2 (чертёж профиля), с. 4 («C shape 89*41mm»)` },
@@ -37,7 +38,7 @@ export const GOLDEN_INTEGRITY_C89: RollFormingMachine = {
     { kind: "triple-web-hole", vendorName: "Triple web hole (Model 4)", feature: null, size: { value: null, note: "размеры не указаны" }, source: `${KP}, с. 9, 10` },
     { kind: "lip-notch", vendorName: "Lip notch / lip cut (Model 5)", feature: "lip-cut", size: { value: null, note: "длина подрезки не указана" }, source: `${KP}, с. 3, 4, 9, 10` },
     { kind: "dimple", vendorName: "Dimple (Model 6)", feature: "dimple", size: { value: null, note: "диаметр не указан" }, source: `${KP}, с. 3, 4, 9` },
-    { kind: "swage", vendorName: "Swage (Model 7)", feature: null, size: { value: null, note: "длина и глубина обжатия не указаны" }, source: `${KP}, с. 3, 4, 9, 11` },
+    { kind: "swage", vendorName: "Swage (Model 7)", feature: "swage", size: { value: null, note: "длина и глубина обжатия не указаны" }, source: `${KP}, с. 3, 4, 9, 11` },
     { kind: "bolt-hole", vendorName: "Bolt hole / anchor hole", feature: "bolt-hole", size: { value: null, note: "диаметр не указан" }, source: `${KP}, с. 3, 4` },
     { kind: "chamfer", vendorName: "Chamfer cut", feature: null, size: { value: null, note: "угол и размер не указаны" }, source: `${KP}, с. 4, 9` },
     { kind: "shear", vendorName: "Shear (гидравлическая отрезка)", feature: null, size: { value: null, note: "—" }, source: `${KP}, с. 4, 11` },

@@ -167,3 +167,38 @@ export function Panel({ title, children }: { title: string; children: ReactNode 
     </section>
   );
 }
+
+export function Button({
+  children,
+  onClick,
+  variant = "default",
+  title,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  variant?: "default" | "primary" | "ghost";
+  title?: string;
+}) {
+  const styles = {
+    default: "border border-line bg-surface hover:bg-sunken",
+    primary: "border border-primary bg-primary text-surface hover:opacity-90",
+    ghost: "text-primary hover:bg-primary-soft",
+  }[variant];
+  return (
+    <button type="button" title={title} onClick={onClick} className={`min-h-11 rounded-lg px-3 text-sm font-medium transition-colors ${styles}`}>
+      {children}
+    </button>
+  );
+}
+
+export function Range({ label, value, onChange, min = 0, max = 1, step = 0.01 }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number }) {
+  const id = useId();
+  return (
+    <div className="flex items-center gap-3">
+      <label htmlFor={id} className="shrink-0 text-sm text-ink-mute">
+        {label}
+      </label>
+      <input id={id} type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-11 w-full accent-[hsl(var(--primary))]" />
+    </div>
+  );
+}

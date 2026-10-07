@@ -59,7 +59,8 @@ export function createMembersGroup(members: readonly Member[], detail: DetailLev
       const geometry = createDetailedProfileGeometry(m.profile, centrelineLength(m), m.features);
       const mesh = new THREE.Mesh(geometry, steelMaterial(m.role));
       mesh.applyMatrix4(memberMatrix(m));
-      mesh.castShadow = mesh.receiveShadow = true;
+      // cast onto the ground only: self-shadowing thin steel reads as noise
+      mesh.castShadow = true;
       mesh.name = m.id;
       mesh.userData.memberId = m.id;
       mesh.userData.ownsGeometry = true;
@@ -79,7 +80,7 @@ export function createMembersGroup(members: readonly Member[], detail: DetailLev
     list.forEach((m, i) => mesh.setMatrixAt(i, memberMatrix(m, centrelineLength(m) * MM)));
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
-    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.castShadow = true;
     mesh.name = `${first.profile.id}:${first.role}`;
     mesh.userData.memberIds = list.map((m) => m.id);
     group.add(mesh);

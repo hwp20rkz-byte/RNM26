@@ -4,6 +4,11 @@ import type { ProfileSpec } from "../profiles/types";
 export type MemberRole =
   | "stud"
   | "track"
+  | "jamb"
+  | "sill"
+  | "cripple"
+  | "post"
+  | "beam"
   | "nogging"
   | "brace"
   | "top-chord"
@@ -25,6 +30,8 @@ export type Feature =
   | { kind: "bolt-hole"; position: number; offset: number; diameter: number }
   | { kind: "web-slot"; position: number; offset: number; length: number; width: number }
   | { kind: "lip-cut"; position: number; length: number }
+  /** End swage: flanges pressed in so the member end nests inside a track/chord */
+  | { kind: "swage"; position: number; length: number }
   | { kind: "flange-cut"; position: number; length: number };
 
 export interface Member {

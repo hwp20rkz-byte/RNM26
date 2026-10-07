@@ -48,6 +48,8 @@ export interface RollFormingMachine {
   id: string;
   vendor: string;
   model: string;
+  /** For UI and documents, e.g. "Golden Integrity C89" */
+  shortName: string;
   profile: {
     family: "C";
     web: Spec<number>;

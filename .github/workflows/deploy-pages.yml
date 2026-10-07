@@ -70,6 +70,25 @@ jobs:
           mkdir -p out/lstk-business-plan
           cp -r lstk-business-plan/dist/. out/lstk-business-plan/
 
+      # LSTK 3D configurator — Next.js static export (own package.json); the
+      # GITHUB_ACTIONS env makes next.config.ts set basePath /RNM26/lstk-configurator.
+      - name: Install LSTK configurator dependencies
+        working-directory: lstk-configurator
+        run: npm ci
+
+      - name: Test LSTK configurator
+        working-directory: lstk-configurator
+        run: npm test
+
+      - name: Build LSTK configurator
+        working-directory: lstk-configurator
+        run: npm run build
+
+      - name: Merge LSTK configurator build into Pages output
+        run: |
+          mkdir -p out/lstk-configurator
+          cp -r lstk-configurator/out/. out/lstk-configurator/
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true

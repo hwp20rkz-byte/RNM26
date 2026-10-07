@@ -19,6 +19,9 @@ export function steelMaterial(role: MemberRole | "default" = "default"): THREE.M
       metalness: 0.25,
       roughness: 0.5,
       side: THREE.DoubleSide,
+      // Closed extrusions: cast shadows from back faces only, otherwise a
+      // double-sided 1 mm sheet shadows itself (dark flecks on studs/posts)
+      shadowSide: THREE.BackSide,
     });
     cache.set(key, m);
   }

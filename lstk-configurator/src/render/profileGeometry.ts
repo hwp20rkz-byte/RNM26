@@ -77,6 +77,7 @@ function holePath(f: Feature): THREE.Path | null {
       return p;
     case "lip-cut":
     case "flange-cut":
+    case "swage":
       // Not modelled in 3D yet: they only remove material at the member ends
       return null;
   }
