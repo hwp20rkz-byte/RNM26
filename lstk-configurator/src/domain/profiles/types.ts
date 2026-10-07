@@ -17,6 +17,8 @@ interface ProfileBase {
   coatingGsm: number;
   /** Steel grade, informational (e.g. "S350GD") */
   grade: string;
+  /** Roll-forming line that produces this profile, if any (see domain/machines) */
+  machineId?: string;
 }
 
 /** Longitudinal V-stiffener rolled into the web centre */

@@ -41,7 +41,7 @@ interface ConfiguratorState {
 
 export const useConfigurator = create<ConfiguratorState>((set) => ({
   mode: "truss",
-  profile: { profileId: "C150x50x13x1.5", length: 3000, serviceHoles: true, thermalSlots: false, endDimples: true },
+  profile: { profileId: "C89x41x11x0.95", length: 2700, serviceHoles: true, thermalSlots: false, endDimples: true },
   truss: {
     shapeKind: "triangular",
     pitchDeg: 25,
@@ -51,8 +51,8 @@ export const useConfigurator = create<ConfiguratorState>((set) => ({
     span: 9000,
     panels: 6,
     overhang: 450,
-    chordProfileId: "C89x41x11x0.95s",
-    webProfileId: "C89x41x11x0.95s",
+    chordProfileId: "C89x41x11x0.95",
+    webProfileId: "C89x41x11x0.95",
     maxPieceLength: 12000,
   },
   view: { lighting: "studio", grid: true, detail: "instanced" },

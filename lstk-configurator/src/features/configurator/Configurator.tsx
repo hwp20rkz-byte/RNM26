@@ -7,7 +7,7 @@ import { designation, sectionProperties } from "@/domain/profiles/section";
 import type { ProfileFamily } from "@/domain/profiles/types";
 import { PATTERNS_FOR_SHAPE, type TrussShape, type WebPattern } from "@/domain/trusses/types";
 import { useConfigurator } from "@/store/configurator";
-import { buildProfileScene, buildTrussScene, cutList, metresByProfile, type SceneResult } from "./buildScene";
+import { ACTIVE_MACHINE, buildProfileScene, buildTrussScene, cutList, metresByProfile, type SceneResult } from "./buildScene";
 import { NumberInput, Panel, Segmented, Select, Toggle } from "./controls";
 
 // WebGL only exists in the browser; static export pre-renders the shell without it
@@ -17,7 +17,12 @@ const Viewport = dynamic(() => import("@/features/viewport/Viewport"), {
 });
 
 const FAMILY_LABEL: Record<ProfileFamily, string> = { C: "C — стойки, пояса", U: "U — направляющие", Z: "Z — прогоны", Hat: "Ω — обрешётка" };
-const profileOptions = PROFILE_CATALOG.map((p) => ({ value: p.id, label: designation(p), group: FAMILY_LABEL[p.family] }));
+const LINE_GROUP = "C89 — линия Golden Integrity";
+const profileOptions = PROFILE_CATALOG.map((p) => ({
+  value: p.id,
+  label: designation(p),
+  group: p.machineId ? LINE_GROUP : `${FAMILY_LABEL[p.family]} (не на линии)`,
+}));
 const memberOptions = profileOptions.filter((o) => findProfile(o.value).family === "C");
 
 const SHAPE_LABEL: Record<TrussShape["kind"], string> = { triangular: "Треугольная", trapezoidal: "Трапециевидная", parallel: "Параллельные пояса" };
@@ -126,6 +131,7 @@ export default function Configurator() {
         </Panel>
 
         <Summary mode={mode} scene={scene} profileId={profile.profileId} />
+        {scene.result && <MachinePanel issues={scene.result.machineIssues} />}
       </aside>
 
       <main className="relative order-1 h-[55dvh] w-full bg-viewport lg:order-2 lg:h-auto lg:flex-1">
@@ -231,5 +237,30 @@ function Issues({ issues }: { issues: string[] }) {
       ))}
       {issues.length > 6 && <li>… и ещё {issues.length - 6}</li>}
     </ul>
+  );
+}
+
+function MachinePanel({ issues }: { issues: SceneResult["machineIssues"] }) {
+  const errors = issues.filter((i) => i.level === "error");
+  const warnings = issues.filter((i) => i.level === "warning");
+  return (
+    <Panel title="Изготовление на линии">
+      <p className="text-sm text-ink-mute">{ACTIVE_MACHINE.vendor.split(" (")[0]}, C89</p>
+      <p className={`rounded-lg p-2 text-sm ${errors.length ? "bg-danger-soft text-danger" : "bg-ok-soft text-ok"}`}>
+        {errors.length ? "! Нельзя изготовить на этой линии" : "✓ Профиль и операции есть на линии"}
+      </p>
+      {errors.length > 0 && (
+        <ul className="flex flex-col gap-1 text-sm text-danger">
+          {errors.map((i) => (
+            <li key={i.text}>! {i.text}</li>
+          ))}
+        </ul>
+      )}
+      {warnings.map((i) => (
+        <p key={i.text} className="text-xs text-ink-mute">
+          ▲ {i.text}
+        </p>
+      ))}
+    </Panel>
   );
 }

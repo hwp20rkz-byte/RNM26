@@ -7,8 +7,8 @@ import { fabricateTruss } from "./fabricate";
 import { generateTruss, topChordY, validateTruss } from "./generate";
 import { PATTERNS_FOR_SHAPE, type TrussInput, type TrussShape } from "./types";
 
-const chord = findProfile("C89x41x11x0.95s");
-const web = findProfile("C89x41x11x0.95s");
+const chord = findProfile("C89x41x11x0.95");
+const web = findProfile("C89x41x11x0.95");
 
 const input = (shape: TrussShape, pattern: TrussInput["pattern"], panels = 6, extra: Partial<TrussInput> = {}): TrussInput => ({
   span: 9000,

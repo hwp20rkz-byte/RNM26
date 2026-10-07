@@ -115,8 +115,8 @@ describe("createTrussMesh", () => {
     pattern: "howe" as const,
     panels: 6,
     overhang: 400,
-    chordProfile: findProfile("C89x41x11x0.95s"),
-    webProfile: findProfile("C89x41x11x0.95s"),
+    chordProfile: findProfile("C89x41x11x0.95"),
+    webProfile: findProfile("C89x41x11x0.95"),
     maxPieceLength: 12000,
   };
 

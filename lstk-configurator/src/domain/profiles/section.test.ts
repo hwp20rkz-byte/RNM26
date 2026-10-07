@@ -104,13 +104,15 @@ describe("validation", () => {
   });
 
   it("rejects a swage wider than the flat web", () => {
-    const bad: CSpec = { ...(findProfile("C89x41x11x0.95s") as CSpec), swage: { width: 90, depth: 2 } };
+    const bad: CSpec = { ...(findProfile("C89x41x11x0.95") as CSpec), swage: { width: 90, depth: 2 } };
     expect(() => sectionGeometry(bad)).toThrow(/рифт/);
   });
 
   it("formats designations", () => {
     expect(designation(findProfile("C150x50x13x1.5"))).toBe("C150×50×13×1,5");
-    expect(designation(findProfile("C89x41x11x0.95s"))).toBe("C89×41×11×0,95 (рифт)");
+    expect(designation(findProfile("C89x41x11x0.95"))).toBe("C89×41×11×0,95");
+    const swaged: CSpec = { ...(findProfile("C89x41x11x0.95") as CSpec), swage: { width: 18, depth: 2.5 } };
+    expect(designation(swaged)).toBe("C89×41×11×0,95 (рифт)");
   });
 });
 

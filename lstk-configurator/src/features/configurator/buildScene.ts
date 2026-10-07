@@ -3,6 +3,8 @@ import { v3 } from "@/domain/geometry/vec";
 import { centrelineLength, validateFeatures, type FeatureIssue } from "@/domain/members/member";
 import { connectionHoles, serviceHoles, thermalSlots } from "@/domain/members/punching";
 import type { Feature, Member } from "@/domain/members/types";
+import { memberOnMachine, type MachineIssue } from "@/domain/machines/check";
+import { GOLDEN_INTEGRITY_C89 } from "@/domain/machines/golden-integrity-c89";
 import { findProfile } from "@/domain/profiles/catalog";
 import { checkDeterminacy, type DeterminacyCheck } from "@/domain/trusses/analysis";
 import { fabricateTruss } from "@/domain/trusses/fabricate";
@@ -12,10 +14,15 @@ import { createMembersGroup } from "@/render/meshes";
 import { MM } from "@/render/profileGeometry";
 import { trussShape, type Detail, type ProfileState, type TrussState } from "@/store/configurator";
 
+/** The line the configurator currently produces for */
+export const ACTIVE_MACHINE = GOLDEN_INTEGRITY_C89;
+
 export interface SceneResult {
   object: THREE.Object3D;
   members: Member[];
   issues: FeatureIssue[];
+  /** Why members cannot be made on ACTIVE_MACHINE (deduplicated) */
+  machineIssues: MachineIssue[];
   truss?: { model: TrussModel; determinacy: DeterminacyCheck; splices: number };
 }
 
@@ -49,7 +56,7 @@ export function buildProfileScene(p: ProfileState): SceneResult {
   const issues = validateFeatures(member);
   // Overlapping punches cannot be triangulated as separate holes — show the plain profile then
   const safe = issues.length === 0 ? member : { ...member, features: [] };
-  return { object: settle(createMembersGroup([safe], "detailed")), members: [member], issues };
+  return { object: settle(createMembersGroup([safe], "detailed")), members: [member], issues, machineIssues: machineIssues([member]) };
 }
 
 export function buildTrussScene(t: TrussState, detail: Detail): SceneResult {
@@ -69,8 +76,15 @@ export function buildTrussScene(t: TrussState, detail: Detail): SceneResult {
     object: settle(createMembersGroup(members, detail)),
     members,
     issues,
+    machineIssues: machineIssues(members),
     truss: { model, determinacy: checkDeterminacy(model), splices: splices.length },
   };
+}
+
+function machineIssues(members: readonly Member[]): MachineIssue[] {
+  const seen = new Map<string, MachineIssue>();
+  for (const m of members) for (const i of memberOnMachine(m, ACTIVE_MACHINE)) seen.set(i.text, i);
+  return [...seen.values()].sort((a, b) => (a.level === b.level ? 0 : a.level === "error" ? -1 : 1));
 }
 
 export interface CutListRow {
