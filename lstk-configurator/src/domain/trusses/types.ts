@@ -7,7 +7,9 @@ export type TrussShape =
   /** Gable with a vertical end post (heel) — "трапециевидная" */
   | { kind: "trapezoidal"; pitchDeg: number; heelHeight: number }
   /** Flat, parallel chords */
-  | { kind: "parallel"; depth: number };
+  | { kind: "parallel"; depth: number }
+  /** Mono-pitch: low heel at x = 0 rising to the high end at x = span */
+  | { kind: "mono"; pitchDeg: number; heelHeight: number };
 
 export type WebPattern = "fink" | "howe" | "pratt" | "warren";
 
@@ -15,6 +17,7 @@ export const PATTERNS_FOR_SHAPE: Record<TrussShape["kind"], readonly WebPattern[
   triangular: ["fink", "howe", "pratt"],
   trapezoidal: ["howe", "pratt"],
   parallel: ["pratt", "howe", "warren"],
+  mono: ["pratt", "howe"],
 };
 
 export interface TrussInput {

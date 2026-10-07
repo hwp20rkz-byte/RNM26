@@ -105,5 +105,14 @@ export function createTrussMesh(source: TrussInput | TrussModel, opts: { detail?
 export function disposeOwned(root: THREE.Object3D): void {
   root.traverse((o) => {
     if (o instanceof THREE.Mesh && o.userData.ownsGeometry) o.geometry.dispose();
+    if (o instanceof THREE.Mesh) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if (!m.userData.ownsMaterial) continue;
+        // Textures are clones of a shared canvas: dispose the clone's GPU copy only
+        if ((m as THREE.MeshStandardMaterial).map) (m as THREE.MeshStandardMaterial).map!.dispose();
+        m.dispose();
+      }
+    }
   });
 }

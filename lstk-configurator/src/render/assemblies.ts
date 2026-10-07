@@ -28,6 +28,8 @@ export function createAssembliesGroup(assemblies: readonly Assembly[], detail: D
     g.add(createMembersGroup(a.members, detail));
     tagExplode(g, new THREE.Vector3(a.explode.x, a.explode.y, a.explode.z), a.layer);
     g.userData.assemblyId = a.id;
+    // Storey for the floor-plan cut: walls on layer 2i, the floor above level i on 2i+1, roof last
+    g.userData.level = Math.ceil(a.layer / 2);
     root.add(g);
   }
   return root;
@@ -83,5 +85,13 @@ export function highlightMember(root: THREE.Object3D, id: string | null): void {
       if (!o.userData.baseMaterial) o.userData.baseMaterial = o.material;
       o.material = o.userData.memberId === id ? highlightMaterial : (o.userData.baseMaterial as THREE.Material);
     }
+  });
+}
+
+/** Floor-plan cut: hide everything above `level` (−1 shows all) */
+export function applyCut(root: THREE.Object3D, level: number): void {
+  root.traverse((o) => {
+    const l = o.userData.level as number | undefined;
+    if (l !== undefined) o.visible = level < 0 || l <= level;
   });
 }

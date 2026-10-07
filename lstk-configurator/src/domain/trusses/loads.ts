@@ -1,4 +1,5 @@
 import { solveTruss, type NodeLoad } from "./analysis";
+import { shapePitch } from "./generate";
 import type { BarRole, TrussModel } from "./types";
 
 /**
@@ -18,7 +19,7 @@ export function roofNodeLoads(model: TrussModel, qKpa: number, spacingMm: number
     share.set(b.a, (share.get(b.a) ?? 0) + plan / 2);
     share.set(b.b, (share.get(b.b) ?? 0) + plan / 2);
   }
-  const overhangPlan = (model.input.overhang / 1000) * Math.cos(Math.atan2(model.height, model.input.span / 2));
+  const overhangPlan = (model.input.overhang / 1000) * Math.cos((shapePitch(model.input.shape) * Math.PI) / 180);
   for (const n of model.nodes) if (n.support && share.has(n.id)) share.set(n.id, share.get(n.id)! + overhangPlan);
   return [...share].map(([node, m]) => ({ node, fx: 0, fy: -lineLoad * m * 1000 }));
 }

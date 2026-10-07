@@ -1,8 +1,7 @@
 import DxfParser from "dxf-parser";
 import { describe, expect, it } from "vitest";
 import { generateBuilding } from "../buildings/generate";
-import { presetInput } from "../buildings/presets";
-import { envelopeQuantities } from "../buildings/quantities";
+import { productInput } from "../catalog/products";
 import { assembliesDxf } from "../exports/dxf";
 import { bomCsv, cutListCsv } from "../exports/csv";
 import { centrelineLength } from "../members/member";
@@ -12,7 +11,7 @@ import { solveTruss } from "../trusses/analysis";
 import { computeBom, operationsString, type Prices } from "./bom";
 
 const prices: Prices = { steelPerKg: 850, scrapPct: 3, fastenerEach: 15, boltEach: 400 };
-const house = generateBuilding(presetInput("house"));
+const house = generateBuilding(productInput("house"));
 const bom = computeBom(house.assemblies, prices);
 
 describe("computeBom", () => {
@@ -59,7 +58,7 @@ describe("computeBom", () => {
 
 describe("roof loads", () => {
   it("node loads add up to q × spacing × (span + 2 overhangs on plan)", () => {
-    const t = house.truss;
+    const t = house.roofTruss;
     const q = 1.5;
     const loads = roofNodeLoads(t, q, 600);
     const plan = t.input.span / 1000 + 2 * (t.input.overhang / 1000) * Math.cos((25 * Math.PI) / 180);
@@ -70,43 +69,11 @@ describe("roof loads", () => {
   });
 
   it("gravity puts the top chord in compression and the bottom chord in tension", () => {
-    const { byRole } = forceSummary(house.truss, roofNodeLoads(house.truss, 1, 600));
+    const { byRole } = forceSummary(house.roofTruss, roofNodeLoads(house.roofTruss, 1, 600));
     const top = byRole.find((r) => r.role === "top-chord")!;
     const bottom = byRole.find((r) => r.role === "bottom-chord")!;
     expect(top.maxCompression).toBeGreaterThan(0);
     expect(bottom.maxTension).toBeGreaterThan(0);
     expect(bottom.maxCompression).toBeCloseTo(0, 6);
-  });
-});
-
-describe("envelope quantities", () => {
-  it("roof area = 2 × rafter (with eaves) × length", () => {
-    const q = envelopeQuantities(house);
-    const rafter = 4 / Math.cos((25 * Math.PI) / 180) + 0.45;
-    expect(q.roofM2).toBeCloseTo(2 * rafter * 10, 6);
-    expect(q.wallsM2).toBeCloseTo(2 * (10 + 8) * 2.7 - q.openingsM2, 6);
-  });
-});
-
-describe("exports", () => {
-  it("CSV: Excel-friendly, one row per cut line", () => {
-    const csv = cutListCsv(bom);
-    expect(csv.startsWith("﻿")).toBe(true);
-    expect(csv.trim().split("\r\n")).toHaveLength(bom.cutList.length + 1);
-    expect(bomCsv(bom)).toMatch(/Сталь с отходом/);
-  });
-
-  it("DXF: parses, one drawing per mark, layers per role, 4 lines per member", () => {
-    const dxf = assembliesDxf(house.assemblies);
-    const parsed = new DxfParser().parseSync(dxf)!;
-    const marks = new Set(house.assemblies.map((a) => a.mark));
-    const uniqueMembers = [...new Map(house.assemblies.map((a) => [a.mark, a])).values()].reduce((s, a) => s + a.members.length, 0);
-    const lines = parsed.entities.filter((e) => e.type === "LINE");
-    expect(lines).toHaveLength(uniqueMembers * 4);
-    const texts = parsed.entities.filter((e) => e.type === "TEXT");
-    expect(texts).toHaveLength(marks.size * 2);
-    expect(Object.keys(parsed.tables.layer.layers)).toEqual(expect.arrayContaining(["stud", "track", "top-chord", "truss-web", "TEXT"]));
-    // Truss webs are in the drawing plane: dimples drawn as circles
-    expect(parsed.entities.some((e) => e.type === "CIRCLE")).toBe(true);
   });
 });

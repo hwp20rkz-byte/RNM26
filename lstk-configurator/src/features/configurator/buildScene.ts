@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import type { Assembly } from "@/domain/assemblies/types";
 import { computeBom, type Bom } from "@/domain/bom/bom";
-import { generateBuilding, type Building } from "@/domain/buildings/generate";
-import { envelopeQuantities, type EnvelopeQuantities } from "@/domain/buildings/quantities";
+import type { Building } from "@/domain/buildings/generate";
+import { findProduct } from "@/domain/catalog/products";
 import { IDENTITY } from "@/domain/geometry/frame";
 import { v3 } from "@/domain/geometry/vec";
 import { memberOnMachine, type MachineIssue } from "@/domain/machines/check";
@@ -18,7 +18,9 @@ import { forceSummary, roofNodeLoads, type ForceSummary } from "@/domain/trusses
 import type { TrussModel } from "@/domain/trusses/types";
 import { generateWall } from "@/domain/walls/generate";
 import { createAssembliesGroup } from "@/render/assemblies";
-import { createCladding } from "@/render/cladding";
+import { analyze, type Analysis } from "@/domain/planner/analyze";
+import { createProps } from "@/render/props";
+import { createSkin } from "@/render/skin";
 import { trussShape, type ProjectState } from "@/store/configurator";
 
 /** The line the configurator currently produces for */
@@ -41,17 +43,23 @@ export interface Scene {
   bom: Bom;
   truss: TrussReport | null;
   building: Building | null;
-  envelope: EnvelopeQuantities | null;
+  analysis: Analysis | null;
+  /** Translation applied to centre the model — overlays (dimensions, labels) use it */
+  offset: [number, number, number];
+  /** Model size, m */
+  size: [number, number, number];
 }
 
-/** Put the model on the ground (y = 0) and centre it in x/z */
-function settle(object: THREE.Object3D): THREE.Object3D {
+/** Put the model on the ground (y = 0) and centre it in x/z; buildings stand on their own ground */
+function settle(object: THREE.Object3D, onGround: boolean): { object: THREE.Object3D; offset: [number, number, number]; size: [number, number, number] } {
   const box = new THREE.Box3().setFromObject(object);
   const centre = box.getCenter(new THREE.Vector3());
+  const sz = box.getSize(new THREE.Vector3());
   const wrapper = new THREE.Group();
-  object.position.set(-centre.x, -box.min.y, -centre.z);
+  const offset: [number, number, number] = [-centre.x, onGround ? 0 : -box.min.y, -centre.z];
+  object.position.set(...offset);
   wrapper.add(object);
-  return wrapper;
+  return { object: wrapper, offset, size: [sz.x, sz.y, sz.z] };
 }
 
 function single(id: string, mark: string, name: string, kind: Assembly["kind"], members: Member[], size: Assembly["size"]): Assembly {
@@ -79,6 +87,7 @@ export function buildScene(s: ProjectState): Scene {
   let assemblies: Assembly[];
   let truss: TrussReport | null = null;
   let building: Building | null = null;
+  let analysis: Analysis | null = null;
 
   switch (s.mode) {
     case "profile":
@@ -108,10 +117,11 @@ export function buildScene(s: ProjectState): Scene {
       break;
     }
     case "building": {
-      building = generateBuilding(s.building);
+      analysis = analyze(s.building, s.planner, s.prices);
+      building = analysis.building;
       assemblies = building.assemblies;
       const gaps = building.trussPositions.slice(1).map((x, i) => x - building!.trussPositions[i]!);
-      truss = trussReport(building.truss, s.roofLoadKpa, Math.max(...gaps, 0));
+      truss = trussReport(building.roofTruss, s.roofLoadKpa, Math.max(...gaps, 0));
       break;
     }
   }
@@ -132,8 +142,17 @@ export function buildScene(s: ProjectState): Scene {
   }
 
   const root = createAssembliesGroup(assemblies, s.view.detail);
-  if (building && s.view.cladding) root.add(createCladding(building));
-  const object = settle(root);
+  if (building && s.view.cladding) root.add(createSkin(building, s.planner.finishes));
+  if (building && s.view.props) {
+    let kinds: ReturnType<typeof findProduct>["props"] = [];
+    try {
+      kinds = findProduct(building.input.productId).props;
+    } catch {
+      /* unknown product id from an old file: no props */
+    }
+    root.add(createProps(building, kinds, s.planner.birds));
+  }
+  const { object, offset, size } = settle(root, !!building);
 
   return {
     object,
@@ -141,9 +160,11 @@ export function buildScene(s: ProjectState): Scene {
     index,
     featureIssues: [...featureIssues],
     machineIssues: [...machine.values()].sort((a, b) => (a.level === b.level ? 0 : a.level === "error" ? -1 : 1)),
-    bom: computeBom(assemblies, s.prices),
+    bom: analysis?.bom ?? computeBom(assemblies, s.prices),
     truss,
     building,
-    envelope: building ? envelopeQuantities(building) : null,
+    analysis,
+    offset,
+    size,
   };
 }

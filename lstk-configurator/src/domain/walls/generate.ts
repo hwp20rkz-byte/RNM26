@@ -74,8 +74,14 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
   const openings = [...input.openings].sort((a, b) => a.x - b.x);
   const pieces: Piece[] = [];
 
-  // Plates
-  pieces.push({ role: "track", x0: 0, y0: t / 2, x1: L, y1: t / 2, flipped: false });
+  // Plates. The bottom plate is cut out at doors and gates (nothing to trip over,
+  // a car can drive through); it runs under windows.
+  let from = 0;
+  for (const o of openings.filter((x) => x.kind !== "window")) {
+    if (o.x - from > 1) pieces.push({ role: "track", x0: from, y0: t / 2, x1: o.x, y1: t / 2, flipped: false });
+    from = o.x + o.width;
+  }
+  if (L - from > 1) pieces.push({ role: "track", x0: from, y0: t / 2, x1: L, y1: t / 2, flipped: false });
   pieces.push({ role: "track", x0: 0, y0: H - t / 2, x1: L, y1: H - t / 2, flipped: true });
 
   // Vertical full-height members: x of the web centreline
