@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { BUILDING_PRESETS, presetInput } from "@/domain/buildings/presets";
-import { applyExplode, highlightMember } from "@/render/assemblies";
+import { PRODUCTS, productInput } from "@/domain/catalog/products";
+import { applyCut, applyExplode, highlightMember } from "@/render/assemblies";
 import { DEFAULT_PROJECT, parseProject, type Mode, type ProjectState } from "@/store/configurator";
 import { buildScene } from "./buildScene";
 
@@ -14,15 +14,17 @@ describe("buildScene", () => {
     expect(s.index.size).toBe(members.length);
     expect(s.bom.totals.pieces).toBe(members.length);
     const box = new THREE.Box3().setFromObject(s.object);
-    expect(box.min.y).toBeCloseTo(0, 6);
+    expect(box.min.y).toBeGreaterThanOrEqual(-0.25); // a slab sinks into the ground, nothing else
   });
 
-  it.each(BUILDING_PRESETS.map((p) => p.id))("preset %s: no line or punching errors, cladding builds", (id) => {
-    const s = buildScene(project({ mode: "building", presetId: id, building: presetInput(id), view: { ...DEFAULT_PROJECT.view, cladding: true } }));
+  it.each(PRODUCTS.map((p) => p.id))("product %s: no line errors, skin and props build, analysis present", (id) => {
+    const s = buildScene(project({ mode: "building", building: productInput(id) }));
     expect(s.machineIssues.filter((i) => i.level === "error")).toEqual([]);
     expect(s.featureIssues).toEqual([]);
     expect(s.truss?.determinacy.ok).toBe(true);
-    expect(s.object.getObjectByName("cladding")).toBeDefined();
+    expect(s.object.getObjectByName("skin")).toBeDefined();
+    expect(s.object.getObjectByName("props")).toBeDefined();
+    expect(s.analysis!.price).toBeGreaterThan(s.analysis!.cost);
   });
 
   it("explode moves assemblies away from home and back", () => {
@@ -33,6 +35,16 @@ describe("buildScene", () => {
     expect(wall.position.distanceTo(home)).toBeGreaterThan(1);
     applyExplode(s.object, 0);
     expect(wall.position.distanceTo(home)).toBeCloseTo(0, 9);
+  });
+
+  it("plan cut hides the roof and upper storeys", () => {
+    const s = buildScene(project({ mode: "building", building: productInput("house2") }));
+    applyCut(s.object, 0);
+    expect(s.object.getObjectByName("T1#1")!.visible).toBe(false);
+    expect(s.object.getObjectByName("W5")!.visible).toBe(false);
+    expect(s.object.getObjectByName("W1")!.visible).toBe(true);
+    applyCut(s.object, -1);
+    expect(s.object.getObjectByName("T1#1")!.visible).toBe(true);
   });
 
   it("highlight colours exactly one instance", () => {
@@ -64,15 +76,21 @@ describe("parseProject", () => {
     const back = parseProject(JSON.parse(JSON.stringify(p)))!;
     expect(back.mode).toBe("truss");
     expect(back.view.explode).toBe(0);
+    expect(back.building).toEqual(p.building);
   });
 
-  it("rejects foreign JSON and fills missing fields of old saves", () => {
+  it("rejects foreign JSON and v1 saves; fills missing fields of v2 saves", () => {
     expect(parseProject({ hello: 1 })).toBeNull();
+    const v1 = JSON.parse(JSON.stringify(project({})));
+    v1.building = { kind: "enclosed", length: 6000, width: 4000, openings: {} };
+    expect(parseProject(v1)).toBeNull();
     const old = JSON.parse(JSON.stringify(project({})));
     delete old.prices;
+    delete old.planner.tariff;
     delete old.truss.spacing;
     const p = parseProject(old)!;
     expect(p.prices).toEqual(DEFAULT_PROJECT.prices);
+    expect(p.planner.tariff).toBe(48);
     expect(p.truss.spacing).toBe(600);
   });
 });

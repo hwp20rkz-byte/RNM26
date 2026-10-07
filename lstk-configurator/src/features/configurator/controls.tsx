@@ -202,3 +202,43 @@ export function Range({ label, value, onChange, min = 0, max = 1, step = 0.01 }:
     </div>
   );
 }
+
+/** Definition-list row: label left, value right */
+export function Stat({ label, value, strong, hint }: { label: ReactNode; value: ReactNode; strong?: boolean; hint?: string }) {
+  return (
+    <>
+      <dt className={strong ? "font-semibold" : "text-ink-mute"} title={hint}>
+        {label}
+      </dt>
+      <dd className={`text-right tabular-nums ${strong ? "text-base font-semibold" : ""}`}>{value}</dd>
+    </>
+  );
+}
+
+export function Stats({ children }: { children: ReactNode }) {
+  return <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">{children}</dl>;
+}
+
+/** Colour swatches (HSL strings) */
+export function Swatches({ label, value, options, onChange }: { label: string; value: string; options: readonly { value: string; label: string }[]; onChange: (v: string) => void }) {
+  const name = useId();
+  return (
+    <fieldset className="flex flex-col gap-1">
+      <legend className="mb-1 text-sm text-ink-mute">{label}</legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <label key={o.value} title={o.label} className="relative grid size-11 cursor-pointer place-items-center rounded-full has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary">
+            <input type="radio" name={name} checked={o.value === value} onChange={() => onChange(o.value)} className="sr-only" aria-label={o.label} />
+            <span className={`size-8 rounded-full border border-line shadow-inner ${o.value === value ? "ring-2 ring-primary ring-offset-2 ring-offset-surface" : ""}`} style={{ background: o.value }} />
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** Note line: muted, small */
+export function Note({ children, tone = "mute" }: { children: ReactNode; tone?: "mute" | "warn" | "ok" }) {
+  const c = { mute: "text-ink-mute", warn: "rounded-lg bg-danger-soft p-2 text-danger", ok: "rounded-lg bg-ok-soft p-2 text-ok" }[tone];
+  return <p className={`text-xs ${c}`}>{children}</p>;
+}

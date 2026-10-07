@@ -1,92 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { wallPlans } from "@/domain/buildings/generate";
-import { BUILDING_PRESETS } from "@/domain/buildings/presets";
-import { WALL_SIDE_LABEL, type WallSide } from "@/domain/buildings/types";
 import { PROFILE_CATALOG, findProfile } from "@/domain/profiles/catalog";
 import { designation } from "@/domain/profiles/section";
-import type { ProfileFamily } from "@/domain/profiles/types";
-import { PATTERNS_FOR_SHAPE, type TrussShape, type WebPattern } from "@/domain/trusses/types";
-import { useConfigurator } from "@/store/configurator";
+import { PATTERNS_FOR_SHAPE, type TrussShape } from "@/domain/trusses/types";
+import { useT } from "@/i18n";
+import { useConfigurator, type LightingPreset } from "@/store/configurator";
 import { NumberInput, Panel, Segmented, Select, Toggle } from "./controls";
 import { OpeningsEditor } from "./OpeningsEditor";
 
-const FAMILY_LABEL: Record<ProfileFamily, string> = { C: "C — стойки, пояса", U: "U — направляющие", Z: "Z — прогоны", Hat: "Ω — обрешётка" };
-const LINE_GROUP = "C89 — линия Golden Integrity";
-export const profileOptions = PROFILE_CATALOG.map((p) => ({
-  value: p.id,
-  label: designation(p),
-  group: p.machineId ? LINE_GROUP : `${FAMILY_LABEL[p.family]} (не на линии)`,
-}));
-const memberOptions = profileOptions.filter((o) => findProfile(o.value).family === "C");
-
-const SHAPE_LABEL: Record<TrussShape["kind"], string> = { triangular: "Треугольная", trapezoidal: "Трапециевидная", parallel: "Параллельные пояса" };
-export const PATTERN_LABEL: Record<WebPattern, string> = { fink: "Финк (W)", howe: "Хау", pratt: "Пратт", warren: "Уоррен" };
-
-export function BuildingPanel() {
-  const { building: b, presetId, applyPreset, setBuilding } = useConfigurator();
-  const [side, setSide] = useState<WallSide>("front");
-  const plans = wallPlans(b);
-  const plan = plans.find((p) => p.side === side)!;
-  return (
-    <>
-      <Panel title="Изделие">
-        <Select label="Шаблон" value={presetId} options={BUILDING_PRESETS.map((p) => ({ value: p.id, label: p.name }))} onChange={applyPreset} />
-        <div className="grid grid-cols-2 gap-3">
-          <NumberInput label="Длина (по коньку)" unit="мм" value={b.length} min={1500} max={30000} step={10} onChange={(length) => setBuilding({ length })} />
-          <NumberInput label="Ширина (пролёт)" unit="мм" value={b.width} min={1500} max={15000} step={10} onChange={(width) => setBuilding({ width })} />
-          <NumberInput label={b.kind === "carport" ? "Высота до балки" : "Высота стен"} unit="мм" value={b.wallHeight} min={1800} max={6000} step={10} onChange={(wallHeight) => setBuilding({ wallHeight })} />
-          <NumberInput label="Уклон кровли" unit="°" value={b.pitchDeg} min={5} max={60} step={0.5} onChange={(pitchDeg) => setBuilding({ pitchDeg })} />
-          <NumberInput label="Шаг ферм" unit="мм" value={b.trussSpacing} min={300} max={1500} step={10} onChange={(trussSpacing) => setBuilding({ trussSpacing })} />
-          {b.kind === "enclosed" ? (
-            <NumberInput label="Шаг стоек" unit="мм" value={b.studSpacing} min={300} max={1200} step={10} onChange={(studSpacing) => setBuilding({ studSpacing })} />
-          ) : (
-            <NumberInput label="Шаг стоек навеса" unit="мм" value={b.postSpacing} min={1000} max={6000} step={10} onChange={(postSpacing) => setBuilding({ postSpacing })} />
-          )}
-          <NumberInput label="Свес кровли" unit="мм" value={b.overhang} min={0} max={1200} step={10} onChange={(overhang) => setBuilding({ overhang })} />
-          <NumberInput label="Панелей фермы" value={b.trussPanels} min={2} max={16} step={2} onChange={(trussPanels) => setBuilding({ trussPanels })} />
-        </div>
-        <Select
-          label="Решётка ферм"
-          value={b.trussPattern}
-          options={PATTERNS_FOR_SHAPE.triangular.map((p) => ({ value: p, label: PATTERN_LABEL[p] }))}
-          onChange={(trussPattern) => setBuilding({ trussPattern })}
-        />
-      </Panel>
-      {b.kind === "enclosed" && (
-        <Panel title="Проёмы">
-          <Select
-            label="Стена"
-            value={side}
-            options={plans.map((p) => ({ value: p.side, label: `${p.mark} — ${WALL_SIDE_LABEL[p.side]}` }))}
-            onChange={setSide}
-          />
-          <OpeningsEditor
-            openings={b.openings[side]}
-            wallLength={plan.length}
-            onChange={(o) => setBuilding({ openings: { ...b.openings, [side]: o } })}
-          />
-        </Panel>
-      )}
-    </>
-  );
+function useProfileOptions() {
+  const t = useT();
+  return PROFILE_CATALOG.map((p) => ({
+    value: p.id,
+    label: designation(p),
+    group: p.machineId ? t("profile.lineGroup") : `${t.dyn(`family.${p.family}`)} (${t("profile.notOnLine")})`,
+  }));
 }
 
 export function WallPanel() {
+  const t = useT();
   const { wall: w, setWall } = useConfigurator();
+  const memberOptions = useProfileOptions().filter((o) => findProfile(o.value).family === "C");
   return (
     <>
-      <Panel title="Стеновая панель">
+      <Panel title={t("wall.title")}>
         <div className="grid grid-cols-2 gap-3">
-          <NumberInput label="Длина" unit="мм" value={w.length} min={300} max={15000} step={10} onChange={(length) => setWall({ length })} />
-          <NumberInput label="Высота" unit="мм" value={w.height} min={1000} max={6000} step={10} onChange={(height) => setWall({ height })} />
-          <NumberInput label="Шаг стоек" unit="мм" value={w.studSpacing} min={300} max={1200} step={10} onChange={(studSpacing) => setWall({ studSpacing })} />
+          <NumberInput label={t("wall.length")} unit={t("unit.mm")} value={w.length} min={300} max={15000} step={10} onChange={(length) => setWall({ length })} />
+          <NumberInput label={t("wall.height")} unit={t("unit.mm")} value={w.height} min={1000} max={6000} step={10} onChange={(height) => setWall({ height })} />
+          <NumberInput label={t("shape.studSpacing")} unit={t("unit.mm")} value={w.studSpacing} min={300} max={1200} step={10} onChange={(studSpacing) => setWall({ studSpacing })} />
         </div>
-        <Select label="Профиль" value={w.profileId} options={memberOptions} onChange={(profileId) => setWall({ profileId })} />
-        <Toggle label="Ригели на середине высоты" checked={w.noggings} onChange={(noggings) => setWall({ noggings })} />
+        <Select label={t("shape.profile")} value={w.profileId} options={memberOptions} onChange={(profileId) => setWall({ profileId })} />
+        <Toggle label={t("wall.noggings")} checked={w.noggings} onChange={(noggings) => setWall({ noggings })} />
       </Panel>
-      <Panel title="Проёмы">
+      <Panel title={t("wall.openings")}>
         <OpeningsEditor openings={w.openings} wallLength={w.length} onChange={(openings) => setWall({ openings })} />
       </Panel>
     </>
@@ -94,82 +40,90 @@ export function WallPanel() {
 }
 
 export function TrussPanel() {
+  const t = useT();
   const { truss, setTruss } = useConfigurator();
+  const memberOptions = useProfileOptions().filter((o) => findProfile(o.value).family === "C");
   return (
-    <Panel title="Ферма">
+    <Panel title={t("truss.panel")}>
       <Select
-        label="Форма"
+        label={t("truss.shape")}
         value={truss.shapeKind}
-        options={(Object.keys(SHAPE_LABEL) as TrussShape["kind"][]).map((k) => ({ value: k, label: SHAPE_LABEL[k] }))}
+        options={(["triangular", "trapezoidal", "parallel", "mono"] as TrussShape["kind"][]).map((k) => ({ value: k, label: t.dyn(`trussShape.${k}`) }))}
         onChange={(shapeKind) => setTruss({ shapeKind })}
       />
-      <Select
-        label="Решётка"
-        value={truss.pattern}
-        options={PATTERNS_FOR_SHAPE[truss.shapeKind].map((p) => ({ value: p, label: PATTERN_LABEL[p] }))}
-        onChange={(pattern) => setTruss({ pattern })}
-      />
+      <Select label={t("shape.pattern")} value={truss.pattern} options={PATTERNS_FOR_SHAPE[truss.shapeKind].map((p) => ({ value: p, label: t.dyn(`pattern.${p}`) }))} onChange={(pattern) => setTruss({ pattern })} />
       <div className="grid grid-cols-2 gap-3">
-        <NumberInput label="Пролёт" unit="мм" value={truss.span} min={1000} max={30000} step={10} onChange={(span) => setTruss({ span })} />
+        <NumberInput label={t("truss.span")} unit={t("unit.mm")} value={truss.span} min={1000} max={30000} step={10} onChange={(span) => setTruss({ span })} />
         {truss.shapeKind === "parallel" ? (
-          <NumberInput label="Высота" unit="мм" value={truss.depth} min={200} max={4000} step={10} onChange={(depth) => setTruss({ depth })} />
+          <NumberInput label={t("wall.height")} unit={t("unit.mm")} value={truss.depth} min={200} max={4000} step={10} onChange={(depth) => setTruss({ depth })} />
         ) : (
-          <NumberInput label="Уклон" unit="°" value={truss.pitchDeg} min={5} max={60} step={0.5} onChange={(pitchDeg) => setTruss({ pitchDeg })} />
+          <NumberInput label={t("shape.pitch")} unit="°" value={truss.pitchDeg} min={2} max={60} step={0.5} onChange={(pitchDeg) => setTruss({ pitchDeg })} />
         )}
-        {truss.shapeKind === "trapezoidal" && (
-          <NumberInput label="Высота на опоре" unit="мм" value={truss.heelHeight} min={50} max={3000} step={10} onChange={(heelHeight) => setTruss({ heelHeight })} />
+        {(truss.shapeKind === "trapezoidal" || truss.shapeKind === "mono") && (
+          <NumberInput label={t("shape.heel")} unit={t("unit.mm")} value={truss.heelHeight} min={50} max={3000} step={10} onChange={(heelHeight) => setTruss({ heelHeight })} />
         )}
-        {truss.pattern !== "fink" && <NumberInput label="Панелей" value={truss.panels} min={2} max={24} step={2} onChange={(panels) => setTruss({ panels })} />}
-        <NumberInput label="Свес" unit="мм" value={truss.overhang} min={0} max={1500} step={10} onChange={(overhang) => setTruss({ overhang })} />
-        <NumberInput label="Шаг ферм" unit="мм" value={truss.spacing} min={300} max={1500} step={10} onChange={(spacing) => setTruss({ spacing })} />
-        <NumberInput label="Макс. заготовка" unit="мм" value={truss.maxPieceLength} min={1000} max={14000} step={100} onChange={(maxPieceLength) => setTruss({ maxPieceLength })} />
+        {truss.pattern !== "fink" && <NumberInput label={t("shape.panels")} value={truss.panels} min={2} max={24} step={2} onChange={(panels) => setTruss({ panels })} />}
+        <NumberInput label={t("shape.overhang")} unit={t("unit.mm")} value={truss.overhang} min={0} max={1500} step={10} onChange={(overhang) => setTruss({ overhang })} />
+        <NumberInput label={t("shape.trussSpacing")} unit={t("unit.mm")} value={truss.spacing} min={300} max={1500} step={10} onChange={(spacing) => setTruss({ spacing })} />
+        <NumberInput label={t("truss.maxPiece")} unit={t("unit.mm")} value={truss.maxPieceLength} min={1000} max={14000} step={100} onChange={(maxPieceLength) => setTruss({ maxPieceLength })} />
       </div>
-      <Select label="Профиль поясов" value={truss.chordProfileId} options={memberOptions} onChange={(chordProfileId) => setTruss({ chordProfileId })} />
-      <Select label="Профиль решётки" value={truss.webProfileId} options={memberOptions} onChange={(webProfileId) => setTruss({ webProfileId })} />
+      <Select label={t("truss.chordProfile")} value={truss.chordProfileId} options={memberOptions} onChange={(chordProfileId) => setTruss({ chordProfileId })} />
+      <Select label={t("truss.webProfile")} value={truss.webProfileId} options={memberOptions} onChange={(webProfileId) => setTruss({ webProfileId })} />
     </Panel>
   );
 }
 
 export function ProfilePanel() {
+  const t = useT();
   const { profile, setProfile } = useConfigurator();
+  const options = useProfileOptions();
   return (
-    <Panel title="Профиль">
-      <Select label="Сечение" value={profile.profileId} options={profileOptions} onChange={(profileId) => setProfile({ profileId })} />
-      <NumberInput label="Длина" unit="мм" value={profile.length} min={300} max={12000} onChange={(length) => setProfile({ length })} />
-      <Toggle label="Сервисные отверстия" checked={profile.serviceHoles} onChange={(serviceHoles) => setProfile({ serviceHoles })} />
-      <Toggle label="Термопрорези в стенке" checked={profile.thermalSlots} onChange={(thermalSlots) => setProfile({ thermalSlots })} />
-      <Toggle label="Димплы на концах" checked={profile.endDimples} onChange={(endDimples) => setProfile({ endDimples })} />
+    <Panel title={t("mode.profile")}>
+      <Select label={t("spec.section")} value={profile.profileId} options={options} onChange={(profileId) => setProfile({ profileId })} />
+      <NumberInput label={t("wall.length")} unit={t("unit.mm")} value={profile.length} min={300} max={12000} onChange={(length) => setProfile({ length })} />
+      <Toggle label={t("profile.service")} checked={profile.serviceHoles} onChange={(serviceHoles) => setProfile({ serviceHoles })} />
+      <Toggle label={t("profile.slots")} checked={profile.thermalSlots} onChange={(thermalSlots) => setProfile({ thermalSlots })} />
+      <Toggle label={t("profile.dimples")} checked={profile.endDimples} onChange={(endDimples) => setProfile({ endDimples })} />
     </Panel>
   );
 }
 
 export function ViewPanel() {
-  const { mode, view, setView } = useConfigurator();
+  const t = useT();
+  const { mode, view, setView, building } = useConfigurator();
   return (
-    <Panel title="Вид">
-      <Segmented
-        legend="Освещение"
+    <Panel title={t("view.title")}>
+      <Segmented<LightingPreset>
+        legend={t("view.light")}
         value={view.lighting}
-        options={[
-          { value: "studio", label: "Студия" },
-          { value: "sunny", label: "Солнце" },
-          { value: "overcast", label: "Пасмурно" },
-        ]}
+        options={(["sunny", "dusk", "studio", "overcast"] as const).map((v) => ({ value: v, label: t.dyn(`light.${v}`) }))}
         onChange={(lighting) => setView({ lighting })}
       />
       {mode !== "profile" && (
         <Segmented
-          legend="Детализация"
+          legend={t("view.detail")}
           value={view.detail}
           options={[
-            { value: "instanced", label: "Быстро" },
-            { value: "detailed", label: "С отверстиями" },
+            { value: "instanced", label: t("view.fast") },
+            { value: "detailed", label: t("view.holes") },
           ]}
           onChange={(detail) => setView({ detail })}
         />
       )}
-      {mode === "building" && <Toggle label="Обшивка (кровля, стены)" checked={view.cladding} onChange={(cladding) => setView({ cladding })} />}
-      <Toggle label="Сетка 0,1 / 1 м" checked={view.grid} onChange={(grid) => setView({ grid })} />
+      {mode === "building" && (
+        <>
+          <Segmented
+            legend={t("view.cut")}
+            value={String(view.cut)}
+            options={[{ value: "-1", label: t("view.all") }, ...building.levels.map((_, i) => ({ value: String(i), label: t("view.planN", { n: i + 1 }) }))]}
+            onChange={(v) => setView({ cut: Number(v) })}
+          />
+          <Toggle label={t("view.skin")} checked={view.cladding} onChange={(cladding) => setView({ cladding })} />
+          <Toggle label={t("view.props")} checked={view.props} onChange={(props) => setView({ props })} />
+          <Toggle label={t("view.dims")} checked={view.dims} onChange={(dims) => setView({ dims })} />
+        </>
+      )}
+      <Toggle label={t("view.grid")} checked={view.grid} onChange={(grid) => setView({ grid })} />
     </Panel>
   );
 }

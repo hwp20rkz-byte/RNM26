@@ -9,7 +9,9 @@ export function validateTruss(input: TrussInput): string[] {
   if (!PATTERNS_FOR_SHAPE[shape.kind].includes(pattern)) {
     e.push(`Решётка «${pattern}» не поддерживается для формы «${shape.kind}»`);
   }
-  if (shape.kind !== "parallel" && !(shape.pitchDeg >= 5 && shape.pitchDeg <= 60)) e.push("Уклон должен быть от 5° до 60°");
+  if ((shape.kind === "triangular" || shape.kind === "trapezoidal") && !(shape.pitchDeg >= 5 && shape.pitchDeg <= 60)) e.push("Уклон должен быть от 5° до 60°");
+  if (shape.kind === "mono" && !(shape.pitchDeg >= 2 && shape.pitchDeg <= 45)) e.push("Уклон односкатной фермы — от 2° до 45°");
+  if (shape.kind === "mono" && !(shape.heelHeight >= 100)) e.push("Высота низкой опоры односкатной фермы — не меньше 100 мм");
   if (shape.kind === "trapezoidal" && !(shape.heelHeight > 0)) e.push("Высота на опоре должна быть больше нуля");
   if (shape.kind === "parallel" && !(shape.depth > 0)) e.push("Высота фермы должна быть больше нуля");
   if (pattern !== "fink" && (!Number.isInteger(panels) || panels < 2 || panels % 2 !== 0)) {
@@ -30,7 +32,14 @@ export function topChordY(input: Pick<TrussInput, "span" | "shape">, x: number):
       return shape.heelHeight + Math.tan(deg(shape.pitchDeg)) * Math.min(x, span - x);
     case "parallel":
       return shape.depth;
+    case "mono":
+      return shape.heelHeight + Math.tan(deg(shape.pitchDeg)) * x;
   }
+}
+
+/** Pitch of the top chord, degrees (0 for flat chords) */
+export function shapePitch(shape: TrussInput["shape"]): number {
+  return shape.kind === "parallel" ? 0 : shape.pitchDeg;
 }
 
 class Builder {
@@ -67,7 +76,8 @@ export function generateTruss(input: TrussInput): TrussModel {
   if (input.pattern === "fink") fink(b, input);
   else if (input.pattern === "warren") warren(b, input);
   else prattOrHowe(b, input);
-  return { input, nodes: b.nodes, bars: b.bars, height: topChordY(input, input.span / 2) };
+  const height = Math.max(...b.nodes.map((n) => n.y));
+  return { input, nodes: b.nodes, bars: b.bars, height };
 }
 
 /**
@@ -92,7 +102,8 @@ function prattOrHowe(b: Builder, input: TrussInput): void {
     b.bar(top[i]!, top[i + 1]!, "top-chord");
   }
   for (let i = 0; i <= n; i++) b.bar(bottom[i]!, top[i]!, "vertical");
-  const half = n / 2;
+  // Mono-pitch: one slope, all diagonals lean the same way (the whole span is the "left half")
+  const half = input.shape.kind === "mono" ? n : n / 2;
   for (let i = 0; i < n; i++) {
     const leftHalf = i < half;
     const outer = leftHalf ? i : i + 1;

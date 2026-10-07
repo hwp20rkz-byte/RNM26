@@ -26,6 +26,7 @@ const SHAPES: TrussShape[] = [
   { kind: "triangular", pitchDeg: 25 },
   { kind: "trapezoidal", pitchDeg: 15, heelHeight: 400 },
   { kind: "parallel", depth: 900 },
+  { kind: "mono", pitchDeg: 10, heelHeight: 300 },
 ];
 
 const combos = SHAPES.flatMap((shape) =>
@@ -135,5 +136,14 @@ describe("fabricateTruss", () => {
         expect(issues, `${m.id}`).toEqual([]);
       }
     }
+  });
+});
+
+describe("mono-pitch truss", () => {
+  it("rises from the low heel to the high end; height is the high end", () => {
+    const model = generateTruss(input({ kind: "mono", pitchDeg: 10, heelHeight: 300 }, "pratt", 6));
+    expect(model.height).toBeCloseTo(300 + Math.tan((10 * Math.PI) / 180) * 9000, 6);
+    const tops = model.nodes.filter((n) => n.y > 0).sort((a, b) => a.x - b.x);
+    for (let i = 1; i < tops.length; i++) expect(tops[i]!.y).toBeGreaterThan(tops[i - 1]!.y);
   });
 });

@@ -82,6 +82,14 @@ describe("generateWall — openings", () => {
     expect(jambs).toEqual([1500 - t / 2, 2700 + t / 2, 3800 - t / 2, 4700 + t / 2].map((x) => expect.closeTo(x, 9)));
   });
 
+  it("bottom plate is cut at the door, continuous under the window", () => {
+    const bottom = byRole(ms, "track").filter((m) => m.start.y < 10).sort((a, b) => a.start.x - b.start.x);
+    expect(bottom.map((m) => [m.start.x, m.end.x])).toEqual([
+      [0, door.x],
+      [door.x + door.width, 6000],
+    ]);
+  });
+
   it("lintel over every opening, sill only under the window", () => {
     const lintels = byRole(ms, "lintel");
     expect(lintels).toHaveLength(2);
