@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — shared palette with lstk-business-plan:
+ * primary = steel blue, accent = construction orange, neutral = cool grey (HSL).
+ * Status colours only for validation states.
+ */
+:root {
+  --bg: 215 20% 97%;
+  --surface: 215 20% 100%;
+  --sunken: 215 16% 93%;
+  --line: 215 14% 85%;
+  --ink: 215 30% 12%;
+  --ink-mute: 215 12% 36%;
+  --primary: 212 62% 34%;
+  --primary-soft: 212 50% 93%;
+  --accent: 24 88% 42%;
+  --danger: 0 68% 42%;
+  --danger-soft: 0 70% 95%;
+  --ok: 150 45% 28%;
+  --ok-soft: 150 40% 93%;
+  /* 3D viewport backdrop — neutral so steel reads as steel */
+  --viewport: 215 18% 90%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: 215 22% 9%;
+    --surface: 215 20% 13%;
+    --sunken: 215 20% 7%;
+    --line: 215 14% 24%;
+    --ink: 215 20% 92%;
+    --ink-mute: 215 12% 68%;
+    --primary: 212 70% 62%;
+    --primary-soft: 212 40% 20%;
+    --accent: 24 85% 58%;
+    --danger: 0 75% 66%;
+    --danger-soft: 0 40% 16%;
+    --ok: 150 45% 60%;
+    --ok-soft: 150 30% 14%;
+    --viewport: 215 18% 16%;
+  }
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --color-bg: hsl(var(--bg));
+  --color-surface: hsl(var(--surface));
+  --color-sunken: hsl(var(--sunken));
+  --color-line: hsl(var(--line));
+  --color-ink: hsl(var(--ink));
+  --color-ink-mute: hsl(var(--ink-mute));
+  --color-primary: hsl(var(--primary));
+  --color-primary-soft: hsl(var(--primary-soft));
+  --color-accent: hsl(var(--accent));
+  --color-danger: hsl(var(--danger));
+  --color-danger-soft: hsl(var(--danger-soft));
+  --color-ok: hsl(var(--ok));
+  --color-ok-soft: hsl(var(--ok-soft));
+  --color-viewport: hsl(var(--viewport));
+  /* 4 sizes: 12 / 14 / 16 / 20 */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: hsl(var(--bg));
+  color: hsl(var(--ink));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+  html,
+  body {
+    background: #fff;
+    height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
