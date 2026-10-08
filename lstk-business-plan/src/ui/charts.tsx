@@ -33,7 +33,7 @@ function niceTicks(min: number, max: number, count = 5): number[] {
 }
 
 const PAD = { top: 16, right: 16, bottom: 32, left: 64 };
-const HEIGHT = 240;
+const HEIGHT = 256;
 
 interface MonthChartProps {
   title: string;
@@ -131,7 +131,7 @@ export function CashChart({ months }: { months: MonthRow[] }) {
   return (
     <MonthChart
       title="Остаток денег на счёте"
-      description="С учётом капитала, кредита и всех платежей. Ниже нуля — кассовый разрыв."
+      description="С учётом капитала, кредита и всех платежей. Ниже нуля означает кассовый разрыв."
       months={months}
       mode="line"
       value={(m) => m.cashEnd}
@@ -251,7 +251,7 @@ export function Tornado({ base, rows }: { base: number; rows: SensitivityRow[] }
       <figcaption>
         <h3 className="chart__title">Что сильнее всего двигает NPV</h3>
         <p className="chart__desc">
-          Базовый NPV {moneyShort(base)}. Каждая строка — изменение одного допущения при прочих равных.
+          Базовый NPV {moneyShort(base)}. Каждая строка показывает изменение одного допущения при прочих равных.
         </p>
         <ul className="legend">
           <li>

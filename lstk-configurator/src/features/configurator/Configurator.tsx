@@ -1,11 +1,15 @@
 "use client";
 
+import { Calculator, ClipboardText, CubeFocus, Drop, FileArrowDown, Gauge, Graph, Layout, PaintRoller, Ruler, SquaresFour, Truck } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { LANGS, useT } from "@/i18n";
 import { PURPOSE_COLOR } from "@/render/skin";
 import { projectOf, useConfigurator, type CameraPreset, type Mode, type PlannerTab } from "@/store/configurator";
+import { Presentation } from "../presentation/Presentation";
+import { CalcPanel, NodesPanel } from "../planner/CalcPanel";
 import { CatalogPanel } from "../planner/CatalogPanel";
+import { DrawingsPanel } from "../planner/DrawingsPanel";
 import { ClimatePanel } from "../planner/ClimatePanel";
 import { DeliveryPanel } from "../planner/DeliveryPanel";
 import { EstimatePanel } from "../planner/EstimatePanel";
@@ -36,12 +40,26 @@ function useHydrated() {
   return ok;
 }
 
-const TABS: PlannerTab[] = ["catalog", "shape", "layout", "climate", "finish", "mep", "estimate", "delivery", "files"];
+const TABS: PlannerTab[] = ["catalog", "shape", "layout", "climate", "finish", "mep", "calc", "nodes", "estimate", "delivery", "drawings", "files"];
 const MM = 0.001;
+const TAB_ICON: Record<PlannerTab, typeof Ruler> = {
+  catalog: SquaresFour,
+  shape: CubeFocus,
+  layout: Layout,
+  climate: Drop,
+  finish: PaintRoller,
+  mep: Gauge,
+  calc: Calculator,
+  nodes: Graph,
+  estimate: ClipboardText,
+  delivery: Truck,
+  drawings: Ruler,
+  files: FileArrowDown,
+};
 
 export default function Configurator() {
   const state = useConfigurator();
-  const { mode, tab, partTab, view, selection, camera, lang, setMode, setTab, setPartTab, setView, select, look, setLang } = state;
+  const { mode, tab, partTab, view, selection, camera, lang, presentation, setMode, setTab, setPartTab, setView, select, look, setLang, setPresentation } = state;
   const t = useT();
   const hydrated = useHydrated();
   const [snapshot, setSnapshot] = useState<string | null>(null);
@@ -74,6 +92,14 @@ export default function Configurator() {
     const c = canvas();
     if (c) c.toBlob((blob) => blob && download(`lstk-${state.building.productId}.png`, blob, "image/png"));
   };
+  useEffect(() => {
+    if (!presentation) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPresentation(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [presentation, setPresentation]);
   useEffect(() => {
     // after React has painted the sheet with the new snapshot
     if (printRequest > 0) requestAnimationFrame(() => window.print());
@@ -149,7 +175,7 @@ export default function Configurator() {
   return (
     <>
       <div className="flex min-h-dvh flex-col lg:h-dvh lg:flex-row print:hidden">
-        <aside className="relative order-2 flex w-full flex-col gap-4 overflow-y-auto border-line p-4 lg:order-1 lg:w-[440px] lg:shrink-0 lg:border-r">
+        <aside className={`relative order-2 flex w-full flex-col gap-4 overflow-y-auto border-line p-4 lg:order-1 lg:w-[440px] lg:shrink-0 lg:border-r ${presentation && a ? "hidden" : ""}`}>
           {header}
           <Segmented<Mode>
             legend={t("app.mode")}
@@ -161,13 +187,22 @@ export default function Configurator() {
             <>
               <nav aria-label={t("app.sections")} className="sticky -top-4 z-10 -mx-4 shrink-0 overflow-x-auto bg-bg px-4 py-2">
                 <ul className="flex gap-1">
-                  {TABS.map((x) => (
-                    <li key={x}>
-                      <button type="button" aria-current={tab === x ? "page" : undefined} onClick={() => setTab(x)} className={`min-h-11 whitespace-nowrap rounded-lg px-3 text-sm ${tab === x ? "bg-primary font-semibold text-surface" : "bg-sunken text-ink-mute hover:text-ink"}`}>
-                        {t.dyn(`tab.${x}`)}
-                      </button>
-                    </li>
-                  ))}
+                  {TABS.map((x) => {
+                    const Icon = TAB_ICON[x];
+                    return (
+                      <li key={x}>
+                        <button
+                          type="button"
+                          aria-current={tab === x ? "page" : undefined}
+                          onClick={() => setTab(x)}
+                          className={`flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm transition-colors ${tab === x ? "bg-primary font-semibold text-surface shadow-sm" : "bg-sunken text-ink-mute hover:text-ink"}`}
+                        >
+                          <Icon size={18} weight={tab === x ? "fill" : "regular"} aria-hidden="true" />
+                          {t.dyn(`tab.${x}`)}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </nav>
               {tab === "catalog" && <CatalogPanel />}
@@ -176,7 +211,10 @@ export default function Configurator() {
               {a && tab === "climate" && <ClimatePanel a={a} />}
               {a && tab === "finish" && <FinishPanel a={a} />}
               {a && tab === "mep" && <MepPanel a={a} />}
+              {a && tab === "calc" && <CalcPanel a={a} />}
+              {a && tab === "nodes" && <NodesPanel a={a} />}
               {a && tab === "estimate" && <EstimatePanel a={a} />}
+              {a && tab === "drawings" && <DrawingsPanel a={a} />}
               {a && tab === "delivery" && <DeliveryPanel a={a} />}
               {r && tab === "files" && <SpecPanel scene={r} onPrint={print} onShot={shot} />}
               {!a && tab !== "catalog" && tab !== "shape" && tab !== "layout" && <p className="text-sm text-danger">{t("app.fixParams")}</p>}
@@ -213,7 +251,7 @@ export default function Configurator() {
           )}
         </aside>
 
-        <main className="relative order-1 h-[58dvh] w-full bg-viewport lg:order-2 lg:h-auto lg:flex-1">
+        <main className={`relative order-1 w-full bg-viewport lg:order-2 lg:flex-1 ${presentation && a ? "h-dvh" : "h-[58dvh] lg:h-auto"}`}>
           {hydrated && r && (
             <Viewport
               object={r.object}
@@ -228,6 +266,7 @@ export default function Configurator() {
               dims={dims}
               labels={labels}
               ground={mode === "building" && view.lighting !== "studio"}
+              autoRotate={presentation && !!a}
               onPick={select}
             />
           )}
@@ -237,7 +276,13 @@ export default function Configurator() {
             </p>
           )}
           {r && <SelectionCard scene={r} />}
-          <div className="absolute left-4 top-4 flex flex-wrap gap-1 rounded-xl border border-line bg-surface/90 p-1 shadow backdrop-blur">
+          {presentation && a && <Presentation a={a} />}
+          <div className={`absolute left-4 top-4 flex flex-wrap gap-1 rounded-xl border border-line bg-surface/90 p-1 shadow backdrop-blur ${presentation && a ? "hidden" : ""}`}>
+            {a && (
+              <button type="button" onClick={() => setPresentation(true)} className="min-h-11 rounded-lg bg-primary px-3 text-sm font-semibold text-surface hover:opacity-90">
+                {t("dm.toggle")}
+              </button>
+            )}
             {(["iso", "front", "side", "top"] as CameraPreset[]).map((p) => (
               <button key={p} type="button" onClick={() => look(p)} className="min-h-11 rounded-lg px-3 text-sm text-ink-mute hover:bg-sunken hover:text-ink">
                 {t.dyn(`cam.${p}`)}
@@ -255,7 +300,7 @@ export default function Configurator() {
               ⤓
             </button>
           </div>
-          {r && r.assemblies.length > 1 && (
+          {r && r.assemblies.length > 1 && !presentation && (
             <div className="absolute bottom-4 left-4 w-[min(360px,calc(100%-2rem))] rounded-xl border border-line bg-surface/95 px-4 py-1 shadow-lg backdrop-blur">
               <Range label={t("view.explode")} value={view.explode} onChange={(explode) => setView({ explode })} />
             </div>

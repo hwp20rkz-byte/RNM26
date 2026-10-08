@@ -1,91 +1,131 @@
 /**
  * Design tokens — LSTK business plan.
- * Три брендовых цвета (HSL): primary — стальной синий (металл каркаса),
- * accent — строительный оранжевый, neutral — холодный серый.
+ * Три брендовых цвета (HSL): primary — стальной синий (металл каркаса, единственный
+ * акцент интерфейса), accent — строительный оранжевый (только «отрицательная»
+ * полярность графиков), neutral — холодный серо-синий (одно семейство, hue 216–220).
  * Статусные (danger/warning/success) — только для статусов, не для декора.
  * Значения хранятся как "H S% L%", использование: hsl(var(--x)).
  */
 :root {
   color-scheme: light;
 
-  /* — type: Inter Variable (self-hosted через @fontsource) + системный mono — */
-  --font-body: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
-  /* 5 размеров, шаг ~1.25 */
-  --text-xs: 0.75rem;   /* 12 — подписи осей, сноски */
-  --text-sm: 0.875rem;  /* 14 — поля, таблицы */
-  --text-body: 1rem;    /* 16 — основной */
-  --text-lg: 1.25rem;   /* 20 — заголовки секций */
-  --text-xl: 2rem;      /* 32 — заголовок страницы, KPI */
+  /* — type: Geist Variable (self-hosted через @fontsource, есть кириллица и ₸).
+       Цифры везде табличные (tabular-nums), отдельный mono не нужен. — */
+  --font-body: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* 5 размеров */
+  --text-xs: 0.75rem; /* 12 — подписи осей, сноски, пометки KPI */
+  --text-sm: 0.875rem; /* 14 — поля, таблицы, подписи */
+  --text-body: 1rem; /* 16 — основной, заголовки панелей */
+  --text-lg: 1.5rem; /* 24 — заголовок страницы, вторичные KPI */
+  --text-xl: clamp(2rem, 1.4rem + 1.6vw, 2.5rem); /* 32–40 — главный KPI (якорь) */
 
-  /* — neutral — */
-  --bg-base: 215 20% 97%;
-  --bg-elevated: 215 20% 100%;
-  --bg-sunken: 215 16% 93%;
-  --line: 215 14% 85%;
-  --text-primary: 215 30% 12%;
-  --text-mute: 215 12% 36%;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --tracking-tight: -0.025em;
+  --tracking-snug: -0.01em;
+
+  /* — neutral (холодный) — */
+  --bg-base: 216 24% 96.5%;
+  --bg-elevated: 216 33% 99.5%;
+  --bg-sunken: 216 20% 93%;
+  --line: 216 16% 86%;
+  --line-soft: 216 18% 91%;
+  --text-primary: 218 32% 13%;
+  --text-mute: 218 12% 37%;
 
   /* — primary (сталь) — */
-  --primary: 212 62% 34%;
-  --primary-hover: 212 64% 27%;
-  --primary-soft: 212 50% 93%;
+  --primary: 213 58% 36%;
+  --primary-hover: 213 62% 29%;
+  --primary-soft: 213 52% 94%;
+  --on-primary: 216 33% 99.5%;
 
-  /* — accent (оранжевый) — */
-  --accent: 24 88% 42%;
-  --accent-soft: 24 80% 93%;
+  /* — accent (оранжевый, только полярность графиков) — */
+  --accent: 24 84% 44%;
 
-  /* — chart: полярность (рост / снижение) — те же primary/accent, шаги проверены
-     dataviz-валидатором (CVD ΔE ≥ 21, контраст ≥ 3:1 к поверхности) — */
+  /* — chart — */
   --chart-pos: var(--primary);
   --chart-neg: var(--accent);
-  --chart-grid: 215 14% 90%;
+  --chart-grid: 216 18% 91%;
 
   /* — status — */
-  --danger: 0 68% 42%;
-  --danger-soft: 0 70% 95%;
-  --warning: 36 90% 28%;
-  --warning-soft: 40 85% 92%;
+  --danger: 0 64% 42%;
+  --danger-soft: 0 70% 96%;
+  --warning: 34 88% 28%;
+  --warning-soft: 40 82% 93%;
+  --success: 152 52% 28%;
+  --success-soft: 150 40% 94%;
 
   /* — space: 8pt — */
   --space-half: 4px;
   --space-1: 8px;
+  --space-1h: 12px; /* полушаг для внутренних отступов контролов */
   --space-2: 16px;
   --space-3: 24px;
   --space-4: 32px;
+  --space-5: 40px;
   --space-6: 48px;
+  --space-8: 64px;
   --space-12: 96px;
 
+  /* — shape: контейнеры 12, контролы 8, вложенные (сегменты, чипы-метки) 6 — */
+  --radius-lg: 12px;
   --radius: 8px;
+  --radius-sm: 6px;
+
   --control-h: 44px;
   --container: 1440px;
-  --shadow: 0 1px 2px hsl(215 30% 12% / 0.06), 0 4px 16px hsl(215 30% 12% / 0.04);
+
+  /* тени тонированы в hue нейтрали, один источник света сверху */
+  --shadow-sm: 0 1px 2px hsl(218 40% 20% / 0.06);
+  --shadow: 0 1px 2px hsl(218 40% 20% / 0.05), 0 8px 24px -8px hsl(218 40% 20% / 0.1);
+  --ring: 0 0 0 3px hsl(var(--primary) / 0.22);
+
+  --z-sticky: 10;
+  --z-skip: 20;
+  --z-toast: 30;
+
   --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur: 160ms;
+  --dur-enter: 360ms;
+}
+
+/* мобильные длительности −20% */
+@media (max-width: 767px) {
+  :root {
+    --dur: 128ms;
+    --dur-enter: 288ms;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg-base: 215 22% 9%;
-    --bg-elevated: 215 20% 13%;
-    --bg-sunken: 215 20% 7%;
-    --line: 215 14% 24%;
-    --text-primary: 215 20% 92%;
-    --text-mute: 215 12% 68%;
-    --primary: 212 70% 62%;
-    --primary-hover: 212 75% 70%;
-    --primary-soft: 212 40% 20%;
-    --accent: 24 85% 58%;
-    --accent-soft: 24 50% 18%;
-    /* в тёмной теме графикам нужны шаги темнее, чем ссылкам/тексту (OKLCH L 0.48–0.67) */
-    --chart-pos: 212 65% 55%;
-    --chart-neg: 24 82% 50%;
-    --chart-grid: 215 14% 20%;
-    --danger: 0 75% 66%;
-    --danger-soft: 0 40% 16%;
-    --warning: 38 85% 62%;
-    --warning-soft: 38 45% 15%;
-    --shadow: none;
+    --bg-base: 220 20% 7.5%;
+    --bg-elevated: 220 17% 10.5%;
+    --bg-sunken: 220 20% 5.5%;
+    --line: 218 13% 21%;
+    --line-soft: 218 14% 16%;
+    --text-primary: 216 24% 92%;
+    --text-mute: 216 12% 66%;
+    --primary: 212 72% 66%;
+    --primary-hover: 212 80% 74%;
+    --primary-soft: 213 38% 18%;
+    --on-primary: 220 30% 9%;
+    --accent: 24 82% 56%;
+    /* графикам нужны шаги темнее, чем ссылкам/тексту */
+    --chart-pos: 212 62% 56%;
+    --chart-neg: 24 80% 52%;
+    --chart-grid: 218 14% 16%;
+    --danger: 0 76% 70%;
+    --danger-soft: 0 36% 15%;
+    --warning: 38 86% 64%;
+    --warning-soft: 36 40% 13%;
+    --success: 150 46% 60%;
+    --success-soft: 152 28% 13%;
+    --shadow-sm: none;
+    --shadow: 0 1px 0 hsl(0 0% 100% / 0.03) inset;
+    --ring: 0 0 0 3px hsl(var(--primary) / 0.3);
   }
 }

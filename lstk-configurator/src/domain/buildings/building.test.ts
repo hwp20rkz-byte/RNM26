@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { upperLevel } from "./levels";
+import { WALL_SIDES } from "./types";
 import { worldMembers } from "../assemblies/types";
 import { PRODUCTS, productInput } from "../catalog/products";
 import { memberOnMachine } from "../machines/check";
 import { GOLDEN_INTEGRITY_C89 } from "../machines/golden-integrity-c89";
 import { validateFeatures } from "../members/member";
-import { FLOOR_TRUSS_DEPTH, evenStations, generateBuilding, levelBases, sideOpenings, wallPlans } from "./generate";
+import { floorTrussDepth, evenStations, generateBuilding, levelBases, sideOpenings, wallPlans } from "./generate";
 
 const bounds = (pts: { x: number; y: number; z: number }[]) => ({
   min: { x: Math.min(...pts.map((p) => p.x)), y: Math.min(...pts.map((p) => p.y)), z: Math.min(...pts.map((p) => p.z)) },
@@ -32,7 +34,7 @@ describe("one-storey house on a strip foundation", () => {
 
   it("level 1 stands on ground-floor trusses laid on the plinth", () => {
     expect(b.groundFloor).toBe(true);
-    expect(b.levels[0]!.base).toBe(input.foundation.plinth + FLOOR_TRUSS_DEPTH);
+    expect(b.levels[0]!.base).toBe(input.foundation.plinth + floorTrussDepth(input.width));
     expect(b.assemblies.filter((a) => a.mark === "FT1")).toHaveLength(b.floorPositions.length);
   });
 
@@ -81,7 +83,8 @@ describe("levels and plinth", () => {
   it("screw piles: plinth + floor trusses under level 1; floor trusses between levels", () => {
     const input = productInput("house2");
     input.foundation = { type: "screw-piles", plinth: 600 };
-    expect(levelBases(input)).toEqual([600 + FLOOR_TRUSS_DEPTH, 600 + FLOOR_TRUSS_DEPTH + input.levels[0]!.height + FLOOR_TRUSS_DEPTH]);
+    const fd = floorTrussDepth(input.width);
+    expect(levelBases(input)).toEqual([600 + fd, 600 + fd + input.levels[0]!.height + fd]);
     const b = generateBuilding(input);
     expect(b.assemblies.some((a) => a.mark === "FT1")).toBe(true);
     expect(b.assemblies.some((a) => a.mark === "FT2")).toBe(true);
@@ -134,5 +137,20 @@ describe("evenStations", () => {
   it("never exceeds the maximum gap and keeps the edges", () => {
     expect(evenStations(6000, 600, 50)).toHaveLength(11);
     expect(evenStations(1000, 3000, 0)).toEqual([0, 1000]);
+  });
+});
+
+describe("adding a second storey", () => {
+  it.each(["house", "dacha", "bath", "barnhouse", "custom"])("%s: level 2 gets windows on the axes below and still builds", (id) => {
+    const input = productInput(id);
+    input.levels = [input.levels[0]!, upperLevel(input.levels[0]!)];
+    const b = generateBuilding(input);
+    const up = input.levels[1]!;
+    const windows = WALL_SIDES.flatMap((s) => up.sides[s].openings);
+    const below = WALL_SIDES.flatMap((s) => input.levels[0]!.sides[s].openings);
+    expect(windows.length).toBe(below.length);
+    expect(windows.every((o) => o.kind === "window")).toBe(true);
+    expect(b.assemblies.some((a) => a.mark === "W5")).toBe(true);
+    expect(up.partitions.length).toBe(input.levels[0]!.partitions.length);
   });
 });

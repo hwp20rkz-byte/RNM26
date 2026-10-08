@@ -3,7 +3,7 @@ import { centrelineLength } from "../members/member";
 import { connectionHoles } from "../members/punching";
 import type { Feature, Member, MemberRole } from "../members/types";
 import type { ProfileSpec } from "../profiles/types";
-import type { Opening, WallInput } from "./types";
+import { DOUBLE_JAMB_WIDTH, HEADER_TRUSS_WIDTH, openingClass, type Opening, type WallInput } from "./types";
 
 /**
  * Wall panel in local coordinates: x along the wall from its start, y up from
@@ -16,6 +16,14 @@ import type { Opening, WallInput } from "./types";
  *   and, for windows, a sill below; cripples carry the stud grid over/under;
  * - the end studs turn their flanges inwards so the panel ends are flat webs
  *   that bolt to the neighbouring panel.
+ *
+ * Reinforcement (LSTK 3.0 practice, sources in docs/lstk-knowledge-base.md):
+ * - openings wider than 1200 mm: a king stud each side, toe-to-toe with the
+ *   jamb (box post) — the jamb carries the lintel, the king stud the wind;
+ * - lintels over 900 mm: two C toe-to-toe (box lintel);
+ * - openings of 1500 mm and more: header truss — the lintel, the top plate
+ *   and the cripples become a Warren truss with diagonal braces;
+ * - corner and T-junction backing studs where other walls meet this one.
  */
 
 export const SWAGE_LENGTH = 45;
@@ -28,6 +36,12 @@ function flangeOf(p: ProfileSpec): number {
 
 export function openingTop(o: Opening): number {
   return o.sill + o.height;
+}
+
+/** Width taken by the posts beside an opening, from the clear edge outwards */
+export function jambZone(o: Opening, p: ProfileSpec): number {
+  const t = p.thickness;
+  return o.width > DOUBLE_JAMB_WIDTH ? 2 * t + flangeOf(p) : t;
 }
 
 export function validateWall(input: WallInput): string[] {
@@ -45,12 +59,14 @@ export function validateWall(input: WallInput): string[] {
     if (!(o.height >= 300)) e.push(`${name}: высота меньше 300 мм`);
     if (o.kind !== "window" && o.sill !== 0) e.push(`${name}: у двери и ворот низ проёма — 0`);
     if (o.kind === "window" && o.sill < 2 * t + MIN_CRIPPLE) e.push(`${name}: подоконник ниже ${Math.ceil(2 * t + MIN_CRIPPLE)} мм — нет места под нижние стойки`);
-    // jamb + end stud + room for the end stud's flange
-    if (o.x < 2 * t + f) e.push(`${name}: слишком близко к началу стены (минимум ${Math.ceil(2 * t + f)} мм)`);
-    if (o.x + o.width > input.length - 2 * t - f) e.push(`${name}: слишком близко к концу стены`);
+    // jamb (or box post) + end stud + room for the end stud's flange
+    const zone = jambZone(o, input.profile) + t + f;
+    if (o.x < zone) e.push(`${name}: слишком близко к началу стены (минимум ${Math.ceil(zone)} мм)`);
+    if (o.x + o.width > input.length - zone) e.push(`${name}: слишком близко к концу стены`);
     if (openingTop(o) > input.height - 3 * t) e.push(`${name}: верх проёма упирается в обвязку`);
     const next = sorted[i + 1];
-    if (next && next.x - (o.x + o.width) < 2 * t + MIN_GAP) e.push(`${name} и ${i + 2}: простенок меньше ${Math.ceil(2 * t + MIN_GAP)} мм`);
+    const pier = jambZone(o, input.profile) + (next ? jambZone(next, input.profile) : 0) + MIN_GAP;
+    if (next && next.x - (o.x + o.width) < pier) e.push(`${name} и ${i + 2}: простенок меньше ${Math.ceil(pier)} мм`);
   });
   return e;
 }
@@ -92,11 +108,21 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
   for (const o of openings) {
     fullStuds.push({ x: o.x - t / 2, flipped: false, role: "jamb" });
     fullStuds.push({ x: o.x + o.width + t / 2, flipped: true, role: "jamb" });
+    if (o.width > DOUBLE_JAMB_WIDTH) {
+      // King studs toe-to-toe with the jambs: a closed box post each side
+      fullStuds.push({ x: o.x - t - f + t / 2, flipped: true, role: "stud" });
+      fullStuds.push({ x: o.x + o.width + t + f - t / 2, flipped: false, role: "stud" });
+    }
   }
+  const backing = (input.backing ?? []).filter((b) => b.x > t + f && b.x < L - t - f && !openings.some((o) => b.x > o.x - jambZone(o, profile) - f && b.x < o.x + o.width + jambZone(o, profile) + f));
+  for (const b of backing) fullStuds.push({ x: b.x, flipped: b.flipped, role: "stud" });
 
-  // Keep-out zones around openings and ends, where grid studs are replaced
+  // Keep-out zones around openings, ends and backing studs, where grid studs are replaced
   const blocked = (x: number) =>
-    x < t + f || x > L - t - f || openings.some((o) => x > o.x - t - f && x < o.x + o.width + t + f);
+    x < t + f ||
+    x > L - t - f ||
+    openings.some((o) => x > o.x - jambZone(o, profile) - f && x < o.x + o.width + jambZone(o, profile) + f) ||
+    backing.some((b) => Math.abs(x - b.x) < t + f);
 
   const grid: number[] = [];
   for (let x = input.studSpacing; x < L; x += input.studSpacing) grid.push(x);
@@ -104,15 +130,34 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
 
   for (const s of fullStuds) pieces.push({ role: s.role, x0: s.x, y0: t, x1: s.x, y1: H - t, flipped: s.flipped });
 
-  // Openings: lintel, sill, cripples on the stud grid
+  // Openings: lintel (single or box), sill, cripples on the stud grid, header truss
   for (const o of openings) {
     const top = openingTop(o);
+    const cls = openingClass(o);
     pieces.push({ role: "lintel", x0: o.x, y0: top + t / 2, x1: o.x + o.width, y1: top + t / 2, flipped: false });
+    let headerBase = top + t;
+    if (cls !== "single" && H - t - (top + t + f) >= MIN_CRIPPLE) {
+      // Second lintel toe-to-toe above the first: a closed box
+      pieces.push({ role: "lintel", x0: o.x, y0: top + f + t / 2, x1: o.x + o.width, y1: top + f + t / 2, flipped: true });
+      headerBase = top + f + t;
+    }
     if (o.kind === "window") pieces.push({ role: "sill", x0: o.x, y0: o.sill - t / 2, x1: o.x + o.width, y1: o.sill - t / 2, flipped: true });
     const inside = grid.filter((x) => x > o.x + f && x < o.x + o.width - f);
+    const headerH = H - t - headerBase;
     for (const x of inside) {
-      if (H - t - (top + t) >= MIN_CRIPPLE) pieces.push({ role: "cripple", x0: x, y0: top + t, x1: x, y1: H - t, flipped: false });
+      if (headerH >= MIN_CRIPPLE) pieces.push({ role: "cripple", x0: x, y0: headerBase, x1: x, y1: H - t, flipped: false });
       if (o.kind === "window" && o.sill - t - t >= MIN_CRIPPLE) pieces.push({ role: "cripple", x0: x, y0: t, x1: x, y1: o.sill - t, flipped: false });
+    }
+    if (o.width >= HEADER_TRUSS_WIDTH && headerH >= 250) {
+      // Warren diagonals between the posts at the opening edges and the cripples
+      const stations = [o.x - t / 2, ...inside, o.x + o.width + t / 2];
+      for (let i = 0; i + 1 < stations.length; i++) {
+        const a = stations[i]! + (i === 0 ? 0 : t / 2 + 1);
+        const b = stations[i + 1]! - (i + 1 === stations.length - 1 ? 0 : t / 2 + 1);
+        if (b - a < MIN_CRIPPLE) continue;
+        const up = i % 2 === 0;
+        pieces.push({ role: "brace", x0: a, y0: up ? headerBase : H - t, x1: b, y1: up ? H - t : headerBase, flipped: false });
+      }
     }
   }
 
@@ -134,6 +179,7 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
 
 function toMembers(pieces: Piece[], profile: ProfileSpec, mark: string): Member[] {
   const vertical = (p: Piece) => p.x0 === p.x1;
+  const diagonal = (p: Piece) => p.x0 !== p.x1 && p.y0 !== p.y1;
   // Connection stations on horizontal pieces: where vertical members land on them
   const verticals = pieces.filter(vertical);
   let n = 0;
@@ -142,9 +188,9 @@ function toMembers(pieces: Piece[], profile: ProfileSpec, mark: string): Member[
     const end = v3(p.x1, p.y1, 0);
     const length = centrelineLength({ start, end });
     const features: Feature[] = [];
-    if (vertical(p)) {
+    if (vertical(p) || diagonal(p)) {
       features.push(...connectionHoles(length, [0, length]));
-      if (p.role !== "nogging") {
+      if (p.role !== "nogging" && !diagonal(p)) {
         features.push({ kind: "swage", position: 0, length: SWAGE_LENGTH }, { kind: "swage", position: length - SWAGE_LENGTH, length: SWAGE_LENGTH });
       }
     } else {

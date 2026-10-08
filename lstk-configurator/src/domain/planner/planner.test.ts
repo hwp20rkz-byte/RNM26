@@ -175,10 +175,15 @@ describe("analyze: every product", () => {
   it.each(PRODUCTS.map((p) => p.id))("%s: positive cost lines, a vehicle, price = cost × (1 + margin)", (id) => {
     const a = analyze(productInput(id), DEFAULT_SETTINGS, prices);
     for (const l of a.lines) expect(l.amount, l.key).toBeGreaterThan(0);
-    expect(a.cost).toBeCloseTo(a.lines.reduce((s, l) => s + l.amount, 0), 4);
-    expect(a.price).toBeCloseTo(a.cost * 1.2, 4);
+    const e = a.estimate;
+    expect(e.direct).toBeCloseTo(e.sections.reduce((s, x) => s + x.lines.reduce((t, l) => t + l.amount, 0), 0), 2);
+    expect(a.cost).toBeCloseTo(e.direct * 1.13, 2); // + 8 % overheads + 5 % contingency
+    expect(a.price).toBeCloseTo(a.cost * 1.2, 2);
+    // the estimate runs from site preparation to design, foundation included unless there is none
+    expect(e.sections[0]!.id).toBe("prep");
+    if (a.foundation.type !== "none") expect(e.sections.some((x) => x.id === "foundation")).toBe(true);
     expect(a.delivery.best).not.toBeNull();
     expect(a.delivery.massKg).toBeGreaterThan(a.bom.totals.massKg);
-    expect(a.lines.some((l) => l.key === "electricity")).toBe(true);
+    expect(e.sections.find((x) => x.id === "frame")!.lines.some((l) => l.id === "electricity")).toBe(true);
   });
 });

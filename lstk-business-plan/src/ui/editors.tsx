@@ -3,7 +3,8 @@ import { houseEconomics } from "../model/calc";
 import type { CapexItem, CostItem, FinanceSettings, FrameSettings, HouseType, OpexItem, PaymentTerms, PlanInputs, SalesPlan } from "../model/types";
 import { money, moneyShort, num } from "../format";
 import { newId } from "../storage";
-import { IconButton, NumberField, Section, Segmented, SelectField, TextField, TrashIcon } from "./fields";
+import { Coins, HouseLine, ListPlus, Plus, Trash, Wrench } from "@phosphor-icons/react";
+import { EmptyState, IconButton, NumberField, Section, Segmented, SelectField, TextField } from "./fields";
 
 type SetInputs = Dispatch<SetStateAction<PlanInputs>>;
 interface EditorProps {
@@ -23,6 +24,9 @@ export function HousesEditor({ inputs, set }: EditorProps) {
   return (
     <Section title="Типы домов" summary={`${inputs.houses.length} шт.`} defaultOpen>
       <p className="note">Что продаёте: площадь, цена за м², срок стройки и доля в продажах.</p>
+      {inputs.houses.length === 0 && (
+        <EmptyState icon={<HouseLine size={28} />} title="Типов домов пока нет" text="Без них план продаж пуст. Добавьте хотя бы один тип: площадь, цену за м² и срок стройки." />
+      )}
       {inputs.houses.map((h) => (
         <div className="card-row" key={h.id}>
           <div className="card-row__head">
@@ -37,7 +41,7 @@ export function HousesEditor({ inputs, set }: EditorProps) {
                 }))
               }
             >
-              <TrashIcon />
+              <Trash size={18} />
             </IconButton>
           </div>
           <div className="grid-fields">
@@ -50,11 +54,11 @@ export function HousesEditor({ inputs, set }: EditorProps) {
         </div>
       ))}
       {shareSum !== 100 && inputs.houses.length > 0 && (
-        <p className="note note--warn">Сумма долей {num(shareSum)}% — доли будут пересчитаны пропорционально до 100%.</p>
+        <p className="note note--warn">Сумма долей {num(shareSum)}%. Доли будут пересчитаны пропорционально до 100%.</p>
       )}
       <button
         type="button"
-        className="btn btn--ghost"
+        className="btn btn--ghost btn--add"
         onClick={() =>
           set((p) => {
             const id = newId();
@@ -67,7 +71,8 @@ export function HousesEditor({ inputs, set }: EditorProps) {
           })
         }
       >
-        + Добавить тип дома
+        <Plus size={18} aria-hidden="true" />
+        Добавить тип дома
       </button>
     </Section>
   );
@@ -88,7 +93,7 @@ export function FrameEditor({ inputs, set }: EditorProps) {
         onChange={(source) => update({ source })}
       />
       <div className="grid-fields">
-        <NumberField label="Металлоёмкость" unit="кг/м²" value={f.kgPerM2} min={0} hint="Ориентир — 25–35 кг на м² дома, точнее — по проекту" onChange={(kgPerM2) => update({ kgPerM2 })} />
+        <NumberField label="Металлоёмкость" unit="кг/м²" value={f.kgPerM2} min={0} hint="Ориентир 25-35 кг на м² дома, точнее по проекту" onChange={(kgPerM2) => update({ kgPerM2 })} />
         <NumberField label="Отходы" unit="%" value={f.wastePct} min={0} max={50} onChange={(wastePct) => update({ wastePct })} />
         {f.source === "own" ? (
           <>
@@ -115,12 +120,15 @@ export function CostItemsEditor({ inputs, set }: EditorProps) {
   return (
     <Section title="Себестоимость" summary={`${inputs.costItems.length} статей`}>
       <p className="note">Материалы и работы на м² или на дом. Отметьте, к каким типам домов относится статья.</p>
+      {inputs.costItems.length === 0 && (
+        <EmptyState icon={<ListPlus size={28} />} title="Статей себестоимости нет" text="Сейчас в доме учитывается только каркас. Добавьте фундамент, утеплитель, кровлю и работы." />
+      )}
       {inputs.costItems.map((c) => (
         <div className="card-row" key={c.id}>
           <div className="card-row__head">
             <TextField label="Статья" value={c.name} onChange={(name) => update(c.id, { name })} compact />
             <IconButton label={`Удалить «${c.name}»`} onClick={() => set((p) => ({ ...p, costItems: p.costItems.filter((x) => x.id !== c.id) }))}>
-              <TrashIcon />
+              <Trash size={18} />
             </IconButton>
           </div>
           <div className="grid-fields">
@@ -156,7 +164,7 @@ export function CostItemsEditor({ inputs, set }: EditorProps) {
       ))}
       <button
         type="button"
-        className="btn btn--ghost"
+        className="btn btn--ghost btn--add"
         onClick={() =>
           set((p) => ({
             ...p,
@@ -164,7 +172,8 @@ export function CostItemsEditor({ inputs, set }: EditorProps) {
           }))
         }
       >
-        + Добавить статью
+        <Plus size={18} aria-hidden="true" />
+        Добавить статью
       </button>
       <CostSummary inputs={inputs} />
     </Section>
@@ -173,17 +182,20 @@ export function CostItemsEditor({ inputs, set }: EditorProps) {
 
 function CostSummary({ inputs }: { inputs: PlanInputs }) {
   return (
-    <ul className="mini-summary">
+    <div className="mini-summary">
+      <p className="mini-summary__title">Себестоимость за м² с резервом</p>
+      <ul>
       {inputs.houses.map((h) => {
         const e = houseEconomics(inputs, h);
         return (
           <li key={h.id}>
             <span>{h.name}</span>
-            <span className="tabular">{h.area > 0 ? `${num(e.directCost / h.area)} ₸/м²` : "—"}</span>
+            <span className="tabular">{h.area > 0 ? `${num(e.directCost / h.area)} ₸/м²` : "нет площади"}</span>
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
   );
 }
 
@@ -195,7 +207,7 @@ export function SalesEditor({ inputs, set }: EditorProps) {
     <Section title="План продаж" summary={`до ${num(s.targetPerMonth)} дог./мес.`} defaultOpen>
       <div className="grid-fields">
         <SelectField
-          label="Старт проекта — месяц"
+          label="Месяц старта проекта"
           value={String(s.startCalendarMonth)}
           options={monthsRu.map((m, i) => ({ value: String(i + 1), label: m }))}
           onChange={(v) => update({ startCalendarMonth: Number(v) })}
@@ -240,7 +252,7 @@ export function PaymentsEditor({ inputs, set }: EditorProps) {
           value={p.materialsUpfrontPct}
           min={0}
           max={100}
-          hint="Остальное — равномерно по ходу стройки"
+          hint="Остальное равномерно по ходу стройки"
           onChange={(materialsUpfrontPct) => update({ materialsUpfrontPct })}
         />
       </div>
@@ -263,6 +275,7 @@ export function CapexEditor({ inputs, set }: EditorProps) {
   const active = inputs.capex.filter((c) => !(c.ownLineOnly && inputs.frame.source === "buy"));
   return (
     <Section title="Капитальные затраты" summary={moneyShort(sum(active.map((c) => c.amount)))}>
+      {inputs.capex.length === 0 && <EmptyState icon={<Wrench size={28} />} title="Капзатрат нет" text="Добавьте оборудование, цех, технику: они попадут в денежный поток и амортизацию." />}
       {inputs.capex.map((c) => {
         const off = c.ownLineOnly && inputs.frame.source === "buy";
         return (
@@ -270,7 +283,7 @@ export function CapexEditor({ inputs, set }: EditorProps) {
             <div className="card-row__head">
               <TextField label="Позиция" value={c.name} onChange={(name) => update(c.id, { name })} compact />
               <IconButton label={`Удалить «${c.name}»`} onClick={() => set((p) => ({ ...p, capex: p.capex.filter((x) => x.id !== c.id) }))}>
-                <TrashIcon />
+                <Trash size={18} />
               </IconButton>
             </div>
             <div className="grid-fields">
@@ -280,17 +293,18 @@ export function CapexEditor({ inputs, set }: EditorProps) {
             </div>
             <label className="check">
               <input type="checkbox" checked={c.ownLineOnly} onChange={(e) => update(c.id, { ownLineOnly: e.target.checked })} />
-              Только при своей линии{off ? " — сейчас не учитывается" : ""}
+              Только при своей линии{off ? " (сейчас не учитывается)" : ""}
             </label>
           </div>
         );
       })}
       <button
         type="button"
-        className="btn btn--ghost"
+        className="btn btn--ghost btn--add"
         onClick={() => set((p) => ({ ...p, capex: [...p.capex, { id: newId(), name: "Новая позиция", amount: 0, month: 0, lifeMonths: 60, ownLineOnly: false }] }))}
       >
-        + Добавить позицию
+        <Plus size={18} aria-hidden="true" />
+        Добавить позицию
       </button>
       <ListTotal label="Учитывается в расчёте" value={sum(active.map((c) => c.amount))} />
     </Section>
@@ -301,17 +315,19 @@ export function OpexEditor({ inputs, set }: EditorProps) {
   const update = (id: string, patch: Partial<OpexItem>) => set((p) => ({ ...p, opex: patchItem(p.opex, id, patch) }));
   return (
     <Section title="Постоянные расходы" summary={`${moneyShort(sum(inputs.opex.map((o) => o.amount)))}/мес.`}>
+      {inputs.opex.length === 0 && <EmptyState icon={<Coins size={28} />} title="Постоянных расходов нет" text="Аренда, зарплата офиса, реклама: всё, что платится каждый месяц независимо от продаж." />}
       {inputs.opex.map((o) => (
         <div className="line-row" key={o.id}>
           <TextField label="Статья" value={o.name} onChange={(name) => update(o.id, { name })} compact />
           <NumberField label={`Сумма в месяц: ${o.name}`} unit="₸" value={o.amount} min={0} onChange={(amount) => update(o.id, { amount })} compact />
           <IconButton label={`Удалить «${o.name}»`} onClick={() => set((p) => ({ ...p, opex: p.opex.filter((x) => x.id !== o.id) }))}>
-            <TrashIcon />
+            <Trash size={18} />
           </IconButton>
         </div>
       ))}
-      <button type="button" className="btn btn--ghost" onClick={() => set((p) => ({ ...p, opex: [...p.opex, { id: newId(), name: "Новая статья", amount: 0 }] }))}>
-        + Добавить статью
+      <button type="button" className="btn btn--ghost btn--add" onClick={() => set((p) => ({ ...p, opex: [...p.opex, { id: newId(), name: "Новая статья", amount: 0 }] }))}>
+        <Plus size={18} aria-hidden="true" />
+        Добавить статью
       </button>
       <ListTotal label="Итого в месяц" value={sum(inputs.opex.map((o) => o.amount))} />
     </Section>

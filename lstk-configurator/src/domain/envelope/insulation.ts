@@ -1,5 +1,5 @@
 import type { Building } from "../buildings/generate";
-import { FLOOR_TRUSS_DEPTH } from "../buildings/generate";
+import { floorTrussDepth } from "../buildings/generate";
 import type { HeatingMode } from "../buildings/types";
 import { degreeDays, INDOOR_T, requiredR, type City, type Element } from "../climate/cities";
 import { doorArea, envelope, wallArea, windowArea, type Envelope } from "./geometry";
@@ -154,7 +154,7 @@ export function thermal(b: Building, o: ThermalOptions): ThermalResult {
 
     if (b.groundFloor) {
       // Floor trusses: open webs bridge little, the chords do — r ≈ 0.75 across 300 mm
-      const cav = FLOOR_TRUSS_DEPTH - 50;
+      const cav = floorTrussDepth(b.input.width) - 50;
       const floorFixed = [layer("board", 22, 0.15), layer("osb18", 18, 0.13), layer("cavityWool", cav, CAVITY.lambda, (0.75 * cav) / 1000 / CAVITY.lambda), layer("windMembrane", 0, null)];
       assemblies.push(solve("floor", env.floorM2[0]!, k * requiredR("floor", gsop), floorFixed, cav, "underWool", CAVITY.lambda, [0, 50, 100], RSI + 1 / 6));
     } else if (b.input.foundation.type === "slab") {
