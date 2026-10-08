@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
+import { CaretDown } from "@phosphor-icons/react";
 
 const groupFmt = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
 
@@ -158,6 +159,7 @@ export function Section({ title, summary, children, defaultOpen }: { title: stri
       <summary>
         <span className="section__title">{title}</span>
         {summary && <span className="section__summary">{summary}</span>}
+        <CaretDown className="chev" size={18} aria-hidden="true" />
       </summary>
       <div className="section__body">{children}</div>
     </details>
@@ -172,8 +174,14 @@ export function IconButton({ label, onClick, children }: { label: string; onClic
   );
 }
 
-export const TrashIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-    <path d="M3 4h10M6.5 4V2.5h3V4M4.5 4l.6 9h5.8l.6-9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+export function EmptyState({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <div className="empty">
+      <span className="empty__icon" aria-hidden="true">
+        {icon}
+      </span>
+      <p className="empty__title">{title}</p>
+      <p className="empty__text">{text}</p>
+    </div>
+  );
+}
