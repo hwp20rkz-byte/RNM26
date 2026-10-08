@@ -89,6 +89,8 @@ export interface ViewportProps {
   dims: Dim[];
   labels: Label[];
   ground: boolean;
+  /** Slow turntable for the presentation mode */
+  autoRotate?: boolean;
   onPick: (memberId: string | null) => void;
 }
 
@@ -125,7 +127,8 @@ function Dimension({ d }: { d: Dim }) {
   );
 }
 
-export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, onPick }: ViewportProps) {
+export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, onPick }: ViewportProps) {
+  const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Free per-build geometry when the scene is replaced
   useEffect(
     () => () => {
@@ -205,7 +208,7 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
           position={[0, 0.001, 0]}
         />
       )}
-      <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI * 0.495} />
+      <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI * 0.495} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.5} />
       <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
         <GizmoViewport labelColor="white" axisHeadScale={0.9} />
       </GizmoHelper>

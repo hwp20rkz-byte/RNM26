@@ -19,6 +19,7 @@ import type { TrussModel } from "@/domain/trusses/types";
 import { generateWall } from "@/domain/walls/generate";
 import { createAssembliesGroup } from "@/render/assemblies";
 import { analyze, type Analysis } from "@/domain/planner/analyze";
+import { createHardware } from "@/render/hardware";
 import { createProps } from "@/render/props";
 import { createSkin } from "@/render/skin";
 import { trussShape, type ProjectState } from "@/store/configurator";
@@ -142,6 +143,7 @@ export function buildScene(s: ProjectState): Scene {
   }
 
   const root = createAssembliesGroup(assemblies, s.view.detail);
+  if (building) root.add(createHardware(building.hardware));
   if (building && s.view.cladding) root.add(createSkin(building, s.planner.finishes));
   if (building && s.view.props) {
     let kinds: ReturnType<typeof findProduct>["props"] = [];

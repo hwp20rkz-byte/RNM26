@@ -3,6 +3,7 @@ import { computeBom, type Bom, type Prices } from "../bom/bom";
 import { generateBuilding, overallSize, type Building } from "../buildings/generate";
 import type { RoomPurpose } from "../buildings/types";
 import { findCity, type City } from "../climate/cities";
+import { hardwareTotals, type HardwareLine } from "../connections/hardware";
 import { doorArea, windowArea } from "../envelope/geometry";
 import { thermal, type EfficiencyLevel, type InsulationMaterial, type ThermalResult } from "../envelope/insulation";
 import { DEFAULT_FINISHES, finish, type FinishChoice } from "../finishes/catalog";
@@ -10,6 +11,9 @@ import { foundation, type FoundationResult } from "../foundation/foundation";
 import { coopPlan, type CoopPlan } from "../livestock/coop";
 import { DEFAULT_MEP_PRICES, mep, type Mep } from "../mep/mep";
 import { planDelivery, type Cargo, type DeliveryResult, type ShippingMode } from "../logistics/delivery";
+import { design, type Design } from "../structure/design";
+import { setCertifiedG550 } from "../structure/section";
+import { buildEstimate, DEFAULT_ESTIMATE_OPTIONS, type Estimate } from "../estimate/estimate";
 import { DEFAULT_ENERGY, productionEnergy, type EnergyResult } from "../production/energy";
 
 /**
@@ -37,6 +41,17 @@ export interface PlannerSettings {
   electricHeating: boolean;
   /** Birds for coops and poultry houses */
   birds: number;
+  /** Overheads and contingency, % of direct cost */
+  overheadPct: number;
+  contingencyPct: number;
+  /** Add Kazakhstan VAT 12 % to the price */
+  vat: boolean;
+  /** Design documentation, ₸ per m² of floor */
+  designPerM2: number;
+  /** Mill certificate confirms G550 (else the design uses 350 MPa) */
+  certifiedG550: boolean;
+  /** Drawing set title block */
+  doc: { code: string; org: string; developer: string; stage: string };
 }
 
 export const DEFAULT_SETTINGS: PlannerSettings = {
@@ -53,6 +68,12 @@ export const DEFAULT_SETTINGS: PlannerSettings = {
   marginPct: 20,
   electricHeating: true,
   birds: 20,
+  overheadPct: 8,
+  contingencyPct: 5,
+  vat: false,
+  designPerM2: 3500,
+  certifiedG550: false,
+  doc: { code: "ЛСТК-01-АР/КМ", org: "", developer: "", stage: "П" },
 };
 
 /** Unit prices the estimate needs beyond the BOM — indicative, ₸ */
@@ -74,9 +95,10 @@ export const UNIT = {
   doorKg: 45,
 } as const;
 
+/** Section totals of the estimate, for the cost-structure chart */
 export interface CostLine {
   key: string;
-  group: "frame" | "production" | "envelope" | "finishes" | "openings" | "mep" | "foundation" | "site" | "delivery" | "overhead";
+  group: string;
   amount: number;
   /** Optional quantity and unit for the table */
   qty?: number;
@@ -104,6 +126,10 @@ export interface Analysis {
   cargo: Cargo[];
   coop: CoopPlan | null;
   lines: CostLine[];
+  hardware: HardwareLine[];
+  design: Design;
+  estimate: Estimate;
+  settings: PlannerSettings;
   cost: number;
   price: number;
   /** Overall finished size, mm */
@@ -205,6 +231,8 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
   const gatesM2 = env.sides.reduce((s, x) => s + (x.gatesM2 ?? 0), 0);
   const innerDoors = input.levels.reduce((s, l) => s + l.partitions.reduce((t, p) => t + p.doors.length, 0), 0);
 
+  const hardware = hardwareTotals(building.hardware);
+
   // ── Cargo ──────────────────────────────────────────────
   const frameT = bom.totals.massWithScrapKg / 1000;
   const walls = building.assemblies.filter((a) => a.kind === "wall");
@@ -223,6 +251,8 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     // Bundles: C89 nests at ≈ 2.5× its solid section
     cargo.push({ key: "bundles", massKg: bom.totals.massKg, volumeM3: bom.totals.metres * 0.089 * 0.041 * 2.5, longest: longestPiece, widest: 400 });
   }
+  const hwKg = hardware.reduce((x, h) => x + h.massKg, 0);
+  if (hwKg > 0) cargo.push({ key: "hardware", massKg: hwKg, volumeM3: hwKg / 1500, longest: 600, widest: 400 });
   const insKg = thermalResult.quantities.massKg;
   if (insKg > 0) cargo.push({ key: "insulation", massKg: insKg, volumeM3: (thermalResult.quantities.cavityM3 + thermalResult.quantities.addedM3 + thermalResult.quantities.xpsM3) * 0.6, longest: 1200, widest: 600 });
   const finKg = takeoff.reduce((s, t) => s + t.massKg, 0);
@@ -233,39 +263,10 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
   const heaviestPanel = Math.max(0, ...bom.assemblies.map((a) => a.massKg));
   const delivery = planDelivery(cargo, settings.distanceKm, settings.shipping === "panels" && heaviestPanel > 120);
 
-  // ── Cost lines ─────────────────────────────────────────
-  const L = (key: string, group: CostLine["group"], amount: number, qty?: number, unit?: string): CostLine => ({ key, group, amount, qty, unit });
-  const wallM2 = facadeM2;
-  const lines: CostLine[] = [
-    L("steel", "frame", bom.totals.steelCost, bom.totals.massWithScrapKg, "kg"),
-    L("fasteners", "frame", bom.totals.fastenerCost, bom.totals.fasteners, "pcs"),
-    L("electricity", "production", energy.cost, energy.kWh, "kWh"),
-    L("lineLabour", "production", energy.lineHours * settings.labourRate * 2, energy.lineHours * 2, "h"),
-    L("shopLabour", "production", energy.assemblyHours * settings.labourRate, energy.assemblyHours, "h"),
-    L("insulation", "envelope", thermalResult.quantities.cost, thermalResult.quantities.cavityM3 + thermalResult.quantities.addedM3 + thermalResult.quantities.xpsM3, "m3"),
-    L("membranes", "envelope", thermalResult.insulated ? (2 * wallM2 + 2 * env.ceilingM2 + env.floorM2[0]!) * UNIT.membranePerM2 : 0),
-    L("sheathing", "envelope", thermalResult.insulated ? wallM2 * UNIT.osb9PerM2 + (building.groundFloor ? env.floorM2.reduce((s, x) => s + x, 0) * UNIT.osb18PerM2 : 0) : building.groundFloor ? env.floorM2[0]! * UNIT.osb18PerM2 : 0),
-    ...takeoff.map((t) => L(`finish.${t.zone}`, "finishes", t.cost, t.areaM2, "m2")),
-    L("windows", "openings", winM2 * UNIT.windowPerM2, winM2, "m2"),
-    L("doors", "openings", outerDoors * UNIT.entranceDoor + innerDoors * UNIT.interiorDoor, outerDoors + innerDoors, "pcs"),
-    L("gates", "openings", gatesM2 * UNIT.gatePerM2, gatesM2, "m2"),
-    L("electrical", "mep", mepResult.cost.electrical),
-    L("plumbing", "mep", mepResult.cost.plumbing),
-    L("ventilation", "mep", mepResult.cost.ventilation),
-    L("heating", "mep", mepResult.cost.heating, heatingKw, "kW"),
-    L("foundation", "foundation", fnd.cost),
-    L("erection", "site", frameT * UNIT.siteHoursPerT[settings.shipping] * settings.labourRate * 1.2, frameT * UNIT.siteHoursPerT[settings.shipping], "h"),
-    L("delivery", "delivery", delivery.best?.cost ?? 0, delivery.best?.trips, "trips"),
-  ].filter((l) => l.amount > 0.5);
-  const direct = lines.reduce((s, l) => s + l.amount, 0);
-  const overhead = (direct * UNIT.overheadPct) / 100;
-  lines.push(L("overhead", "overhead", overhead));
-  const cost = direct + overhead;
-  const price = cost * (1 + settings.marginPct / 100);
-
   const floor = env.floorM2.reduce((s, x) => s + x, 0);
   const living = env.rooms.flat().filter((r) => ["living", "bedroom", "kitchen", "rest"].includes(r.purpose)).reduce((s, r) => s + r.area, 0);
-  return {
+  setCertifiedG550(settings.certifiedG550);
+  const result: Analysis = {
     building,
     bom,
     city,
@@ -277,11 +278,25 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     delivery,
     cargo,
     coop,
-    lines,
-    cost,
-    price,
+    lines: [],
+    hardware,
+    design: design(building, city, settings.finishes),
+    estimate: null as unknown as Estimate,
+    settings,
+    cost: 0,
+    price: 0,
     size: overallSize(building),
     heatingPerYear: thermalResult.seasonKwh * settings.tariff,
     areas: { footprint: env.footprintM2, floor, living },
   };
+  const est = buildEstimate(
+    result,
+    { ...DEFAULT_ESTIMATE_OPTIONS, overheadPct: settings.overheadPct, contingencyPct: settings.contingencyPct, marginPct: settings.marginPct, vat: settings.vat, designPerM2: settings.designPerM2 },
+    settings.labourRate,
+  );
+  result.estimate = est;
+  result.lines = est.sections.map((x) => ({ key: x.id, group: x.id, amount: x.total }));
+  result.cost = est.cost;
+  result.price = est.total;
+  return result;
 }

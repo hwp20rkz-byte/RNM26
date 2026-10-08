@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { Prices } from "@/domain/bom/bom";
 import { type BuildingInput, type FoundationConfig, type Level, type Partition, type RoofConfig, type RoomPurpose, type SideConfig, type WallSide } from "@/domain/buildings/types";
+import { upperLevel } from "@/domain/buildings/levels";
 import { findProduct, productInput } from "@/domain/catalog/products";
 import type { FinishChoice } from "@/domain/finishes/catalog";
 import { DEFAULT_SETTINGS, type PlannerSettings } from "@/domain/planner/analyze";
@@ -13,7 +14,7 @@ import type { Lang } from "@/i18n";
 export type Mode = "building" | "wall" | "truss" | "profile";
 export type LightingPreset = "studio" | "sunny" | "overcast" | "dusk";
 export type Detail = "instanced" | "detailed";
-export type PlannerTab = "catalog" | "shape" | "layout" | "climate" | "finish" | "mep" | "estimate" | "delivery" | "files";
+export type PlannerTab = "catalog" | "shape" | "layout" | "climate" | "finish" | "mep" | "calc" | "nodes" | "estimate" | "delivery" | "drawings" | "files";
 export type PartTab = "params" | "files";
 export type CameraPreset = "iso" | "front" | "side" | "top";
 
@@ -85,6 +86,8 @@ interface UiState {
   partTab: PartTab;
   selection: string | null;
   camera: { preset: CameraPreset; n: number };
+  /** Design Mode: full-screen presentation of the project */
+  presentation: boolean;
 }
 
 interface Actions {
@@ -111,6 +114,7 @@ interface Actions {
   setPartTab: (tab: PartTab) => void;
   select: (id: string | null) => void;
   look: (preset: CameraPreset) => void;
+  setPresentation: (on: boolean) => void;
   loadProject: (p: ProjectState) => void;
   reset: () => void;
 }
@@ -167,7 +171,7 @@ export function parseProject(raw: unknown): ProjectState | null {
   return {
     mode: r.mode ?? d.mode,
     building: { ...d.building, ...b, roof: { ...d.building.roof, ...b.roof }, foundation: { ...d.building.foundation, ...b.foundation } },
-    planner: { ...d.planner, ...r.planner, finishes: { ...d.planner.finishes, ...r.planner?.finishes } },
+    planner: { ...d.planner, ...r.planner, finishes: { ...d.planner.finishes, ...r.planner?.finishes }, doc: { ...d.planner.doc, ...r.planner?.doc } },
     wall: { ...d.wall, ...r.wall },
     truss: { ...d.truss, ...r.truss },
     profile: { ...d.profile, ...r.profile },
@@ -182,11 +186,6 @@ export function projectOf(s: ProjectState): ProjectState {
   return { mode, building, planner, wall, truss, profile, prices, roofLoadKpa, view };
 }
 
-function newLevel(from: Level): Level {
-  const wall = (): SideConfig => ({ type: "wall", openings: [] });
-  const sides: Record<WallSide, SideConfig> = { front: wall(), back: wall(), left: wall(), right: wall() };
-  return { height: Math.min(from.height, 2700), sides, partitions: [], rooms: {} };
-}
 
 export const useConfigurator = create<ProjectState & UiState & Actions>()(
   persist(
@@ -200,6 +199,7 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
         partTab: "params",
         selection: null,
         camera: { preset: "iso", n: 0 },
+        presentation: false,
         setLang: (lang) => set({ lang }),
         setMode: (mode) => set({ mode, selection: null }),
         applyProduct: (id) =>
@@ -211,7 +211,7 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
         setBuilding: (patch) => editB((b) => ({ ...b, ...patch })),
         setRoof: (patch) => editB((b) => ({ ...b, roof: { ...b.roof, ...patch } })),
         setFoundation: (patch) => editB((b) => ({ ...b, foundation: { ...b.foundation, ...patch } })),
-        setLevelCount: (n) => editB((b) => ({ ...b, levels: n <= 1 ? b.levels.slice(0, 1) : [b.levels[0]!, b.levels[1] ?? newLevel(b.levels[0]!)] })),
+        setLevelCount: (n) => editB((b) => ({ ...b, levels: n <= 1 ? b.levels.slice(0, 1) : [b.levels[0]!, b.levels[1] ?? upperLevel(b.levels[0]!)] })),
         setLevel: (i, patch) => editLevel(i, (l) => ({ ...l, ...patch })),
         setSide: (level, side, patch) => editLevel(level, (l) => ({ ...l, sides: { ...l.sides, [side]: { ...l.sides[side], ...patch } } })),
         setPartitions: (level, partitions) => editLevel(level, (l) => ({ ...l, partitions })),
@@ -234,6 +234,7 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
         setPartTab: (partTab) => set({ partTab }),
         select: (selection) => set({ selection }),
         look: (preset) => set((s) => ({ camera: { preset, n: s.camera.n + 1 } })),
+        setPresentation: (presentation) => set((s) => ({ presentation, mode: "building", selection: null, camera: { preset: "iso", n: s.camera.n + 1 } })),
         loadProject: (p) => set({ ...p, selection: null }),
         reset: () => set({ ...fresh(), selection: null }),
       };

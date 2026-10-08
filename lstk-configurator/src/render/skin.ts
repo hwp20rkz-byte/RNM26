@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { FLOOR_TRUSS_DEPTH, sideOpenings, wallPlans, type Building } from "@/domain/buildings/generate";
+import { floorTrussDepth, sideOpenings, wallPlans, type Building } from "@/domain/buildings/generate";
 import type { RoomPurpose } from "@/domain/buildings/types";
 import { finish, type FinishChoice } from "@/domain/finishes/catalog";
 import { rooms } from "@/domain/layout/rooms";
@@ -242,7 +242,7 @@ export function createSkin(b: Building, finishes: FinishChoice): THREE.Group {
   // ── Walls ────────────────────────────────────────────────
   input.levels.forEach((level, li) => {
     const info = b.levels[li]!;
-    const y0 = li === 0 ? plinth : info.base - FLOOR_TRUSS_DEPTH;
+    const y0 = li === 0 ? plinth : info.base - floorTrussDepth(W);
     const shift = info.base - y0;
     for (const plan of wallPlans(input, li, info.base)) {
       const cfg = level.sides[plan.side];

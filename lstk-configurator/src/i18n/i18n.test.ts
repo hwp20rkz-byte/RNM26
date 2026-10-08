@@ -4,6 +4,7 @@ import { FINISHES } from "@/domain/finishes/catalog";
 import { VEHICLES } from "@/domain/logistics/delivery";
 import { ROOM_RULES } from "@/domain/mep/mep";
 import { analyze, DEFAULT_SETTINGS } from "@/domain/planner/analyze";
+import { estLabel } from "@/features/documents/estimateLabels";
 import { dictionaries, translate } from "./index";
 import { ru } from "./ru";
 
@@ -23,7 +24,8 @@ describe("dictionaries", () => {
     const same = (Object.keys(ru) as (keyof typeof ru)[]).filter((k) => dictionaries.zh[k] === ru[k] && /[а-яё]/i.test(ru[k]));
     expect(same).toEqual([]);
     const kkSame = (Object.keys(ru) as (keyof typeof ru)[]).filter((k) => dictionaries.kk[k] === ru[k] && ru[k].length > 12);
-    expect(kkSame.length).toBeLessThan(10);
+    // Construction terms (ферма, профиль, монтаж…) are shared by Russian and Kazakh
+    expect(kkSame.length).toBeLessThan(20);
   });
   it("interpolates", () => {
     expect(translate("ru", "shape.levelN", { n: 2 })).toBe("2 этаж");
@@ -40,10 +42,14 @@ describe("dictionaries", () => {
     ];
     for (const id of PRODUCTS.map((p) => p.id)) {
       const a = analyze(productInput(id), DEFAULT_SETTINGS, prices);
-      need.push(...a.lines.map((l) => `cost.${l.key}`), ...a.lines.map((l) => `group.${l.group}`));
+      need.push(...a.estimate.sections.map((s) => `estsec.${s.id}`), ...a.estimate.sections.flatMap((s) => s.lines.map((l) => `eu.${l.unit}`)));
+      for (const l of a.estimate.sections.flatMap((s) => s.lines)) {
+        const label = estLabel(l.id, (k) => (keys.has(k) ? "ok" : `MISSING:${k}`));
+        if (label.includes("MISSING:")) need.push(label.replace(/.*MISSING:/, ""));
+      }
+      need.push(...a.building.nodes.flatMap((n) => [`node.${n.type}`, `nodeHint.${n.type}`]), ...a.design.checks.map((c) => c.element), ...a.hardware.map((h) => `cost.hw.${h.kind}`));
       need.push(...a.cargo.map((c) => `cargo.${c.key}`), ...a.finishes.map((f) => `takeoff.${f.zone}`));
       need.push(...a.thermal.assemblies.flatMap((x) => [`element.${x.element}`, ...x.layers.map((l) => `layer.${l.key}`)]));
-      need.push(...a.lines.filter((l) => l.unit).map((l) => `unit.${l.unit}`));
       need.push(...a.bom.cutList.map((c) => `role.${c.role}`));
     }
     expect([...new Set(need)].filter((k) => !keys.has(k))).toEqual([]);

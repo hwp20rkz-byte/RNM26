@@ -90,10 +90,13 @@ describe("generateWall — openings", () => {
     ]);
   });
 
-  it("lintel over every opening, sill only under the window", () => {
-    const lintels = byRole(ms, "lintel");
+  it("lintel over every opening (box lintel over 600 mm), sill only under the window", () => {
+    // lower lintel of each opening sits on the opening top
+    const lintels = byRole(ms, "lintel").filter((l) => !l.flipped);
     expect(lintels).toHaveLength(2);
     expect(lintels.map((l) => l.start.y - t / 2).sort((a, b) => a - b)).toEqual([openingTop(door), openingTop(window1)].sort((a, b) => a - b).map((y) => expect.closeTo(y, 9)));
+    const boxes = byRole(ms, "lintel").filter((l) => l.flipped);
+    expect(boxes).toHaveLength([door, window1].filter((o) => o.width > 600).length);
     const sills = byRole(ms, "sill");
     expect(sills).toHaveLength(1);
     expect(sills[0]!.start.y + t / 2).toBeCloseTo(900, 9);
@@ -130,5 +133,25 @@ describe("validateWall", () => {
 
   it("throws on invalid input", () => {
     expect(() => generateWall(wall([], { height: 500 }))).toThrow(/Высота/);
+  });
+});
+
+describe("reinforcement", () => {
+  const p = findProfile("C89x41x11x0.95");
+  const wide = { id: "g", kind: "gate" as const, x: 600, width: 3000, height: 2200, sill: 0 };
+  const ms = generateWall({ length: 5000, height: 2700, studSpacing: 600, profile: p, openings: [wide], noggings: false }, "G");
+  it("an opening over 1200 mm gets box posts each side", () => {
+    const left = ms.filter((m) => m.start.x === m.end.x && m.start.x < wide.x);
+    // end stud + king stud + jamb
+    expect(left.length).toBe(3);
+  });
+  it("from 1500 mm the header becomes a truss with diagonals", () => {
+    expect(ms.filter((m) => m.role === "brace").length).toBeGreaterThanOrEqual(2);
+  });
+  it("backing studs replace grid studs that would clash", () => {
+    const w = generateWall({ length: 4000, height: 2700, studSpacing: 600, profile: p, openings: [], noggings: false, backing: [{ x: 1180, flipped: true, reason: "tee" }, { x: 1268, flipped: false, reason: "tee" }] });
+    const xs = w.filter((m) => m.start.x === m.end.x).map((m) => m.start.x).sort((a, b) => a - b);
+    for (let i = 1; i < xs.length; i++) expect(xs[i]! - xs[i - 1]!).toBeGreaterThan(41);
+    expect(xs).toContain(1180);
   });
 });

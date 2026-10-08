@@ -23,8 +23,24 @@ export interface City {
   frost: number;
   /** Ground snow load, kPa (zone value) — indicative */
   snowKpa: number;
+  /** Basic wind pressure, kPa (zone value) — indicative, check against НТП РК 01-01-3.1(4.1) */
+  windKpa: number;
+  /** Seismic intensity, points (СП РК 2.03-30-2017); ≥ 7 needs a seismic design — not done here */
+  seismic: number;
   verified: boolean;
 }
+
+// Wind zone pressures by region, kPa: steppe north and Caspian coast are windy, south-east foothills calm
+const WIND: Record<string, number> = {
+  astana: 0.48, almaty: 0.3, shymkent: 0.38, karaganda: 0.48, aktobe: 0.48, atyrau: 0.48, aktau: 0.6, kostanay: 0.48, pavlodar: 0.48,
+  petropavlovsk: 0.38, kokshetau: 0.48, oskemen: 0.38, semey: 0.48, oral: 0.38, kyzylorda: 0.48, taraz: 0.38, taldykorgan: 0.38,
+  turkistan: 0.38, zhezkazgan: 0.6, ekibastuz: 0.6, temirtau: 0.48, balkhash: 0.6, rudny: 0.48, konaev: 0.38, zhanaozen: 0.6,
+  kulsary: 0.48, ridder: 0.3, arkalyk: 0.6, baikonur: 0.48, zaysan: 0.6, saryagash: 0.38, zharkent: 0.48, stepnogorsk: 0.48,
+  shchuchinsk: 0.38, aksu: 0.48,
+};
+
+// Almaty 9 is confirmed (docs/lstk-knowledge-base.md); the others are indicative [не проверено]
+const SEISMIC: Record<string, number> = { almaty: 9, konaev: 8, taldykorgan: 8, zharkent: 9, taraz: 8, shymkent: 7, turkistan: 7, saryagash: 7, oskemen: 7, ridder: 7, zaysan: 8 };
 
 const c = (id: string, ru: string, kk: string, zh: string, region: string, t5: number, z: number, tHt: number, frost: number, snowKpa: number, verified = false): City => ({
   id,
@@ -35,6 +51,8 @@ const c = (id: string, ru: string, kk: string, zh: string, region: string, t5: n
   tHt,
   frost,
   snowKpa,
+  windKpa: WIND[id] ?? 0.48,
+  seismic: SEISMIC[id] ?? 6,
   verified,
 });
 

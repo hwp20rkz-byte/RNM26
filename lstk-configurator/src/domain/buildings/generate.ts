@@ -1,4 +1,5 @@
 import type { Assembly } from "../assemblies/types";
+import { anchorStations, STUD_SCREW_PITCH, type HardwareItem } from "../connections/hardware";
 import { frame, type Frame3 } from "../geometry/frame";
 import { v3, type Vec3 } from "../geometry/vec";
 import { interior, partitionSegments, strandedDoors, validatePartitions, type Interior } from "../layout/rooms";
@@ -9,7 +10,8 @@ import { fabricateTruss } from "../trusses/fabricate";
 import { generateTruss } from "../trusses/generate";
 import type { TrussModel } from "../trusses/types";
 import { generateWall } from "../walls/generate";
-import type { Opening } from "../walls/types";
+import { openingClass, type BackingStud, type Opening } from "../walls/types";
+import { jambZone } from "../walls/generate";
 import { WALL_SIDES, type BuildingInput, type Level, type SideConfig, type WallSide } from "./types";
 
 /**
@@ -23,8 +25,19 @@ import { WALL_SIDES, type BuildingInput, type Level, type SideConfig, type WallS
  */
 
 export const TRUSS_EDGE = 50;
-/** Clear depth of a floor truss, out-to-out of the chords, mm */
+/** Minimum depth of a floor truss, out-to-out of the chords, mm */
 export const FLOOR_TRUSS_DEPTH = 300;
+
+/**
+ * Floor truss depth for a span: parallel-chord trusses need about L/16 to
+ * carry 1.5 kPa living load with C89 chords (checked in domain/structure).
+ */
+export function floorTrussDepth(span: number): number {
+  return Math.min(600, Math.max(FLOOR_TRUSS_DEPTH, Math.ceil(span / 16 / 50) * 50));
+}
+
+/** Header (truss girder) depth above the bays of half and open sides, mm */
+export const GIRDER_DEPTH = 300;
 const FLOOR_SPACING = 600;
 
 export interface LevelInfo {
@@ -52,6 +65,29 @@ export interface Building {
   ridgeHeight: number;
   /** Ground-floor frame present (trusses on piles/strip) */
   groundFloor: boolean;
+  /** Bought-in connection hardware with positions */
+  hardware: HardwareItem[];
+  /** Node (connection detail) counts by type */
+  nodes: NodeCount[];
+}
+
+export type NodeType =
+  | "corner"
+  | "tee"
+  | "cross"
+  | "opening-single"
+  | "opening-double"
+  | "opening-truss"
+  | "base-anchor"
+  | "hold-down"
+  | "truss-heel"
+  | "truss-ridge"
+  | "floor-bearing"
+  | "strap-brace";
+
+export interface NodeCount {
+  type: NodeType;
+  count: number;
 }
 
 export interface WallPlan {
@@ -79,10 +115,11 @@ export function hasGroundFloorFrame(input: Pick<BuildingInput, "foundation">): b
 
 /** Base height of every level (underside of its bottom plate), mm */
 export function levelBases(input: BuildingInput): number[] {
-  let y = input.foundation.plinth + (hasGroundFloorFrame(input) ? FLOOR_TRUSS_DEPTH : 0);
+  const fd = floorTrussDepth(input.width);
+  let y = input.foundation.plinth + (hasGroundFloorFrame(input) ? fd : 0);
   return input.levels.map((l) => {
     const base = y;
-    y += l.height + FLOOR_TRUSS_DEPTH;
+    y += l.height + fd;
     return base;
   });
 }
@@ -113,7 +150,8 @@ export function sideOpenings(side: SideConfig, length: number, height: number, i
   const edge = 2 * f + 2 * t + 20;
   const mid = 2 * f + 120;
   const stations = evenStations(length, input.postSpacing, 0);
-  const top = height - 4 * t;
+  // Bays stop under a truss girder: lintel + top plate + diagonals, GIRDER_DEPTH deep
+  const top = height - GIRDER_DEPTH;
   const out: Opening[] = [];
   for (let i = 0; i + 1 < stations.length; i++) {
     const x0 = stations[i]! + (i === 0 ? edge : mid / 2);
@@ -126,6 +164,36 @@ export function sideOpenings(side: SideConfig, length: number, height: number, i
     } else {
       out.push({ id: `bay${i}`, kind: "window", x: x0, width: x1 - x0, height: top - input.parapet, sill: input.parapet });
     }
+  }
+  return out;
+}
+
+/** A pair of backing studs centred on `x` for a wall of thickness `d` meeting this one */
+function teePair(x: number, d: number, t: number): BackingStud[] {
+  return [
+    { x: x - d / 2 + t / 2, flipped: true, reason: "tee" },
+    { x: x + d / 2 - t / 2, flipped: false, reason: "tee" },
+  ];
+}
+
+/**
+ * Backing studs of an outer wall: a corner stud where the end wall butts in
+ * (3-stud corner) and a pair where every partition meets the wall (T-junction).
+ */
+export function outerBacking(input: BuildingInput, level: Level, side: WallSide, length: number, d: number, t: number): BackingStud[] {
+  const out: BackingStud[] = [];
+  const { length: L, width: W } = input;
+  const closed = (s: WallSide) => level.sides[s].type === "wall";
+  if (!closed(side)) return out;
+  if (side === "front" || side === "back") {
+    // local x from the wall start: front runs +x from x=0, back runs −x from x=L
+    const startEnd: WallSide = side === "front" ? "left" : "right";
+    const endEnd: WallSide = side === "front" ? "right" : "left";
+    if (closed(startEnd)) out.push({ x: d + t / 2, flipped: false, reason: "corner" });
+    if (closed(endEnd)) out.push({ x: length - d - t / 2, flipped: true, reason: "corner" });
+    for (const p of level.partitions.filter((q) => q.axis === "x")) out.push(...teePair(side === "front" ? p.at : L - p.at, d, t));
+  } else {
+    for (const p of level.partitions.filter((q) => q.axis === "z")) out.push(...teePair(side === "left" ? W - d - p.at : p.at - d, d, t));
   }
   return out;
 }
@@ -157,7 +225,7 @@ export function generateBuilding(input: BuildingInput): Building {
   // Floor trusses: parallel-chord C89 trusses at ≤ 600 mm, spanning the width
   const floorTruss = generateTruss({
     span: W,
-    shape: { kind: "parallel", depth: FLOOR_TRUSS_DEPTH - d },
+    shape: { kind: "parallel", depth: floorTrussDepth(W) - d },
     pattern: "pratt",
     panels: Math.max(2, 2 * Math.ceil(W / 1200)),
     overhang: 0,
@@ -177,7 +245,7 @@ export function generateBuilding(input: BuildingInput): Building {
         name: `Ферма перекрытия ${mark} (${i + 1} из ${floorPositions.length})`,
         members: floorPieces.map((m) => ({ ...m, id: `${mark}-${m.id}#${i + 1}` })),
         placement: frame(v3(x, bottom + d / 2, 0), v3(0, 0, 1), v3(0, 1, 0)),
-        size: { width: W, height: FLOOR_TRUSS_DEPTH },
+        size: { width: W, height: floorTrussDepth(W) },
         explode: v3(0, -1, 0),
         layer,
       });
@@ -193,8 +261,9 @@ export function generateBuilding(input: BuildingInput): Building {
       const side = level.sides[plan.side];
       const openings = sideOpenings(side, plan.length, level.height, input, profile);
       let members: Member[];
+      const backing = outerBacking(input, level, plan.side, plan.length, d, profile.thickness);
       try {
-        members = generateWall({ length: plan.length, height: level.height, studSpacing: input.studSpacing, profile, openings, noggings: side.type === "wall" }, plan.mark);
+        members = generateWall({ length: plan.length, height: level.height, studSpacing: input.studSpacing, profile, openings, noggings: side.type === "wall", backing }, plan.mark);
       } catch (err) {
         throw new Error(`Этаж ${li + 1}, стена ${plan.mark}: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -219,8 +288,10 @@ export function generateBuilding(input: BuildingInput): Building {
       const mark = `P${li + 1}.${k + 1}`;
       const length = seg.to - seg.from;
       let members: Member[];
+      // Long partitions meeting this cross partition get a backing pair in it
+      const backing = seg.axis === "x" ? level.partitions.filter((q) => q.axis === "z").flatMap((q) => teePair(q.at - seg.from, d, profile.thickness)) : [];
       try {
-        members = generateWall({ length, height: level.height, studSpacing: input.studSpacing, profile, openings: seg.doors, noggings: false }, mark);
+        members = generateWall({ length, height: level.height, studSpacing: input.studSpacing, profile, openings: seg.doors, noggings: false, backing }, mark);
       } catch (err) {
         throw new Error(`Этаж ${li + 1}, перегородка ${mark}: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -272,10 +343,14 @@ export function generateBuilding(input: BuildingInput): Building {
     });
   });
 
+  const { hardware, nodes } = connections(input, assemblies, levels, bases, trussPositions, floorPositions, groundFloor, d, profile);
+
   return {
     input,
     profile,
     depth: d,
+    hardware,
+    nodes,
     assemblies,
     levels,
     roofTruss,
@@ -293,4 +368,132 @@ export function overallSize(b: Building): { length: number; width: number; heigh
   const a = (b.input.roof.pitchDeg * Math.PI) / 180;
   const eaves = b.input.roof.overhang * Math.cos(a);
   return { length: b.input.length, width: b.input.width + 2 * eaves, height: b.ridgeHeight + 60 };
+}
+
+/**
+ * Connection hardware and node counts. Positions are model coordinates, so the
+ * 3D view and the drawings place the same items the estimate counts.
+ */
+function connections(
+  input: BuildingInput,
+  assemblies: Assembly[],
+  levels: LevelInfo[],
+  bases: number[],
+  trussPositions: number[],
+  floorPositions: number[],
+  groundFloor: boolean,
+  d: number,
+  profile: ProfileSpec,
+): { hardware: HardwareItem[]; nodes: NodeCount[] } {
+  const hw: HardwareItem[] = [];
+  const nodes = new Map<NodeType, number>();
+  const add = (type: NodeType, n = 1) => nodes.set(type, (nodes.get(type) ?? 0) + n);
+  const t = profile.thickness;
+  const { length: L, width: W } = input;
+
+  input.levels.forEach((level, li) => {
+    const base = bases[li]!;
+    const H = level.height;
+    const screws = Math.ceil(H / STUD_SCREW_PITCH) + 1;
+    const closed = (s: WallSide) => level.sides[s].type === "wall";
+    // Corners: where two closed sides meet
+    const corners: [WallSide, WallSide, number, number][] = [
+      ["front", "left", 0, 0],
+      ["front", "right", L, 0],
+      ["back", "left", 0, W],
+      ["back", "right", L, W],
+    ];
+    for (const [a, b, x, z] of corners) {
+      if (!closed(a) || !closed(b)) continue;
+      add("corner");
+      hw.push({ kind: "corner-screws", at: v3(x, base + H / 2, z), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+    }
+    // T-junctions and crossings of partitions
+    const xs = level.partitions.filter((p) => p.axis === "x");
+    const zs = level.partitions.filter((p) => p.axis === "z");
+    add("tee", 2 * xs.length + 2 * zs.length);
+    add("cross", 0);
+    for (const p of xs) for (const z of [0, W]) hw.push({ kind: "tee-screws", at: v3(p.at, base + H / 2, z), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+    for (const p of zs) {
+      for (const x of [0, L]) hw.push({ kind: "tee-screws", at: v3(x, base + H / 2, p.at), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+      for (const q of xs) {
+        add("tee");
+        hw.push({ kind: "tee-screws", at: v3(q.at, base + H / 2, p.at), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+      }
+    }
+
+    for (const plan of wallPlans(input, li, base)) {
+      const side = level.sides[plan.side];
+      const ops = sideOpenings(side, plan.length, H, input, profile);
+      const world = (x: number, y: number) => {
+        const f = plan.placement;
+        return v3(f.origin.x + f.ex.x * x, f.origin.y + y, f.origin.z + f.ex.z * x);
+      };
+      if (side.type === "wall") for (const o of ops) add(`opening-${openingClass(o)}` as NodeType);
+      // Anchors along the bottom plate (cut at doors and gates) — ground level only
+      if (li === 0) {
+        let from = 0;
+        const runs: [number, number][] = [];
+        for (const o of [...ops].filter((x) => x.kind !== "window").sort((a, b) => a.x - b.x)) {
+          runs.push([from, o.x]);
+          from = o.x + o.width;
+        }
+        runs.push([from, plan.length]);
+        for (const [a, b] of runs)
+          for (const x of anchorStations(a, b)) {
+            hw.push({ kind: "anchor", at: world(x, 0), level: 0, mark: plan.mark, qty: 1 });
+            add("base-anchor");
+          }
+      }
+      if (side.type !== "wall") continue;
+      // Hold-downs at the panel ends and beside openings ≥ 1200 mm (shear wall chords)
+      const chords = [t + 20, plan.length - t - 20];
+      for (const o of ops) if (o.width > 1200) chords.push(o.x - jambZone(o, profile) - 20, o.x + o.width + jambZone(o, profile) + 20);
+      for (const x of chords) {
+        hw.push({ kind: "hold-down", at: world(x, 0), normal: plan.outward, level: li, mark: plan.mark, qty: 1 });
+        add("hold-down");
+      }
+      // Strap X-bracing in the first solid bay ≥ 600 mm from each end
+      const solid = (a: number, b: number) => !ops.some((o) => o.x < b && o.x + o.width > a);
+      const bay = Math.min(input.studSpacing * 2, 1800);
+      for (const [a, b] of [
+        [d, d + bay],
+        [plan.length - d - bay, plan.length - d],
+      ] as [number, number][]) {
+        if (b - a < 600 || !solid(a - jambZoneMax(ops, profile), b + jambZoneMax(ops, profile))) continue;
+        const diag = Math.hypot(b - a, H) / 1000;
+        hw.push({ kind: "strap", at: world(a, 0), to: world(b, H), normal: plan.outward, level: li, mark: plan.mark, qty: diag });
+        hw.push({ kind: "strap", at: world(a, H), to: world(b, 0), normal: plan.outward, level: li, mark: plan.mark, qty: diag });
+        add("strap-brace");
+      }
+    }
+  });
+
+  // Partition anchors on the ground level
+  for (const a of assemblies.filter((x) => x.mark.startsWith("P1."))) {
+    for (const x of anchorStations(0, a.size.width)) {
+      const f = a.placement;
+      hw.push({ kind: "anchor", at: v3(f.origin.x + f.ex.x * x, f.origin.y, f.origin.z + f.ex.z * x), level: 0, mark: a.mark, qty: 1 });
+      add("base-anchor");
+    }
+  }
+
+  // Trusses: a clip at each bearing; heels and ridges
+  const roofBase = levels.length ? levels[levels.length - 1]!.base + levels[levels.length - 1]!.height : 0;
+  for (const x of trussPositions)
+    for (const z of [d / 2, W - d / 2]) hw.push({ kind: "truss-clip", at: v3(x, roofBase, z), level: input.levels.length, mark: "T1", qty: 1 });
+  add("truss-heel", 2 * trussPositions.length);
+  if (input.roof.type === "gable") add("truss-ridge", trussPositions.length);
+  const floors = (groundFloor ? 1 : 0) + Math.max(0, input.levels.length - 1);
+  for (let k = 0; k < floors; k++) {
+    const fd = floorTrussDepth(W);
+    const y = groundFloor ? (k === 0 ? input.foundation.plinth : bases[k]! - fd) : bases[k + 1]! - fd;
+    for (const x of floorPositions) for (const z of [d / 2, W - d / 2]) hw.push({ kind: "floor-clip", at: v3(x, y, z), level: Math.max(0, k - (groundFloor ? 0 : -1)), mark: "FT", qty: 1 });
+    add("floor-bearing", 2 * floorPositions.length);
+  }
+  return { hardware: hw, nodes: [...nodes].filter(([, n]) => n > 0).map(([type, count]) => ({ type, count })) };
+}
+
+function jambZoneMax(ops: Opening[], p: ProfileSpec): number {
+  return Math.max(0, ...ops.map((o) => jambZone(o, p))) + 41;
 }

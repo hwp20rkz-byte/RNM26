@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/geist/wght.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ЛСТК 3D-конфигуратор",
+  title: "ЛСТК Планировщик",
   description: "Параметрическая генерация профилей ЛСТК и ферм: геометрия, раскрой, отверстия под крепёж.",
 };
 
