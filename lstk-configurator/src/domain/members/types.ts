@@ -32,13 +32,19 @@ export type Feature =
   | { kind: "lip-cut"; position: number; length: number }
   /** End swage: flanges pressed in so the member end nests inside a track/chord */
   | { kind: "swage"; position: number; length: number }
-  | { kind: "flange-cut"; position: number; length: number };
+  | { kind: "flange-cut"; position: number; length: number }
+  /** Chamfer: the flange-tip corners cut off at an end so the member fits an inclined joint; `length` = leg along the member */
+  | { kind: "chamfer"; position: number; length: number };
 
 export interface Member {
   id: string;
   role: MemberRole;
   profile: ProfileSpec;
-  /** Centreline end points in the model, mm */
+  /**
+   * Web-centreline end points in the model, mm. After detailing
+   * (domain/detailing) these are the real cut ends: their distance is the
+   * fabrication length.
+   */
   start: Vec3;
   end: Vec3;
   /**

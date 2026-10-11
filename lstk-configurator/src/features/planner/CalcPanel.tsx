@@ -76,6 +76,18 @@ export function NodesPanel({ a }: { a: Analysis }) {
           ))}
         </ul>
       </Panel>
+      <Panel title={t("det.title")}>
+        <Stats>
+          <Stat label={t("det.nested")} value={`${int(a.detailing.nested)} ${t("unit.pcs")}`} />
+          <Stat label={t("det.butt")} value={`${int(a.detailing.butt)} ${t("unit.pcs")}`} />
+          <Stat label={t("det.apex")} value={`${int(a.detailing.apex)} ${t("unit.pcs")}`} />
+          <Stat label={t("det.swages")} value={`${int(a.detailing.swages)} ${t("unit.pcs")}`} />
+          <Stat label={t("det.lipCuts")} value={`${int(a.detailing.lipCuts)} ${t("unit.pcs")}`} />
+          <Stat label={t("det.chamfers")} value={`${int(a.detailing.chamfers)} ${t("unit.pcs")}`} />
+          <Stat label={t("det.clashes")} value={a.detailing.clashes + a.detailing.issues === 0 ? t("det.clean") : `${int(a.detailing.clashes + a.detailing.issues)}`} />
+        </Stats>
+        <Note>{t("det.note").replace("{nest}", one(a.detailing.nestGap)).replace("{butt}", one(a.detailing.buttGap))}</Note>
+      </Panel>
       <Panel title={t("nodes.hardware")}>
         <Stats>
           {a.hardware.map((h) => (

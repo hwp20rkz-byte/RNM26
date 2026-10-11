@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DETAILING } from "../detailing/planar";
 import { dist3 } from "../geometry/vec";
 import { centrelineLength, validateFeatures } from "../members/member";
 import { findProfile } from "../profiles/catalog";
@@ -109,13 +110,17 @@ describe("fabricateTruss", () => {
     expect(splices).toEqual([]);
   });
 
-  it("chord length is conserved; overhang extends top chords past the heel", () => {
+  it("top chords run heel to ridge, cut back at the ridge; overhang adds exactly its length", () => {
     const base = input({ kind: "triangular", pitchDeg: 30 }, "fink", 4);
     const plain = fabricateTruss(generateTruss(base)).members.filter((m) => m.role === "top-chord");
     const withEaves = fabricateTruss(generateTruss({ ...base, overhang: 500 })).members.filter((m) => m.role === "top-chord");
     const rafter = 4500 / Math.cos(Math.PI / 6);
-    for (const m of plain) expect(dist3(m.start, m.end)).toBeCloseTo(rafter, 6);
-    for (const m of withEaves) expect(dist3(m.start, m.end)).toBeCloseTo(rafter + 500, 6);
+    for (const m of plain) {
+      // Shorter than the analytical rafter only by the ridge cut-back
+      expect(dist3(m.start, m.end)).toBeLessThan(rafter);
+      expect(dist3(m.start, m.end)).toBeGreaterThan(rafter - 120);
+    }
+    plain.forEach((m, i) => expect(dist3(withEaves[i]!.start, withEaves[i]!.end) - dist3(m.start, m.end)).toBeCloseTo(500, 0));
   });
 
   it("splices a chord longer than the max piece length at a node", () => {
@@ -125,7 +130,10 @@ describe("fabricateTruss", () => {
     expect(bottom).toHaveLength(2);
     expect(splices.length).toBeGreaterThanOrEqual(2);
     for (const m of members) expect(centrelineLength(m)).toBeLessThanOrEqual(9000);
-    expect(bottom.reduce((a, m) => a + dist3(m.start, m.end), 0)).toBeCloseTo(15000, 6);
+    // Span + the free ends running on half a web strip + gap, less the splice gap
+    const F = model.input.webProfile.family === "Hat" ? 0 : model.input.webProfile.flange;
+    const total = bottom.reduce((a, m) => a + dist3(m.start, m.end), 0);
+    expect(Math.abs(total - (15000 + F + 2 * DETAILING.buttGap - DETAILING.buttGap))).toBeLessThanOrEqual(1);
   });
 
   it("all connection holes land on their members", () => {

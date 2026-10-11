@@ -5,7 +5,20 @@ import type { Vec3 } from "../geometry/vec";
  * LSTK frame: anchors, hold-downs, strap bracing, truss clips, corner fixings.
  * Rules and sources: docs/lstk-knowledge-base.md («Правила для генератора»).
  */
-export type HardwareKind = "anchor" | "hold-down" | "strap" | "truss-clip" | "floor-clip" | "corner-screws" | "tee-screws";
+export type HardwareKind =
+  | "anchor"
+  | "hold-down"
+  | "strap"
+  | "truss-clip"
+  | "floor-clip"
+  | "corner-screws"
+  | "tee-screws"
+  /** Angle clip at a butt joint (end against the back of a web), domain/detailing */
+  | "joint-clip"
+  /** Gusset tying the top chords (and webs) at the ridge */
+  | "ridge-plate"
+  /** C insert ≥ 150 mm across a chord splice */
+  | "splice-insert";
 
 export interface HardwareItem {
   kind: HardwareKind;
@@ -39,6 +52,9 @@ export const HARDWARE: Record<HardwareKind, HardwareSpec> = {
   "floor-clip": { kind: "floor-clip", unit: "pcs", price: 380, kg: 0.12 },
   "corner-screws": { kind: "corner-screws", unit: "pcs", price: 15, kg: 0.004 },
   "tee-screws": { kind: "tee-screws", unit: "pcs", price: 15, kg: 0.004 },
+  "joint-clip": { kind: "joint-clip", unit: "pcs", price: 120, kg: 0.05 },
+  "ridge-plate": { kind: "ridge-plate", unit: "pcs", price: 650, kg: 0.35 },
+  "splice-insert": { kind: "splice-insert", unit: "pcs", price: 300, kg: 0.25 },
 };
 
 /** Anchor spacing along the bottom plate and distance from ends, mm */

@@ -274,7 +274,10 @@ export function createSkin(b: Building, finishes: FinishChoice): THREE.Group {
   const H = topInfo.height;
   const topSides = input.levels[topLevel]!.sides;
   const heel = roof.type === "mono" ? roof.heelHeight : 0;
-  const lift = d / 2 + d / Math.cos(a) / 2;
+  // Trusses lie flat: the top chord strip is one flange wide, centred on the
+  // analytical line half a flange above the wall top
+  const fl = profile.family === "Hat" ? profile.crown : profile.flange;
+  const lift = fl / 2 + fl / Math.cos(a) / 2;
   /** Roof underside above the wall top at plan z (mm from the front face) */
   const under = (z: number) => (roof.type === "mono" ? heel + Math.tan(a) * z : Math.tan(a) * Math.min(z, W - z)) + lift;
   for (const plan of wallPlans(input, topLevel, topInfo.base)) {

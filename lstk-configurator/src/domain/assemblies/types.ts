@@ -1,4 +1,5 @@
 import { dirToWorld, toWorld, type Frame3 } from "../geometry/frame";
+import type { DetailingIssue, Joint } from "../detailing/planar";
 import type { Vec3 } from "../geometry/vec";
 import type { Member } from "../members/types";
 
@@ -24,6 +25,10 @@ export interface Assembly {
   explode: Vec3;
   /** Explode order: 0 = moves least (walls), higher = later layers (roof) */
   layer: number;
+  /** Production joints from the detailing step (assembly-local) */
+  joints?: Joint[];
+  /** What the detailer could not resolve — must be empty to fabricate */
+  detailIssues?: DetailingIssue[];
 }
 
 /** Member transformed from assembly-local to model coordinates */

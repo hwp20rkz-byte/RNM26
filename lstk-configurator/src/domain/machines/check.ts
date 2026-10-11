@@ -20,6 +20,7 @@ const FEATURE_LABEL: Record<Member["features"][number]["kind"], string> = {
   "lip-cut": "подрезка отгиба",
   "flange-cut": "подрезка полки",
   swage: "обжатие торца",
+  chamfer: "фаска торца",
 };
 
 /** Can this line roll this profile at all (section family, dimensions, thickness)? */

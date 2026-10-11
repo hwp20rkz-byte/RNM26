@@ -75,22 +75,20 @@ const OP_CODE: Record<Feature["kind"], string> = {
   "lip-cut": "LIPCUT",
   "flange-cut": "FLANGECUT",
   swage: "SWAGE",
+  chamfer: "CHAMFER",
 };
 
 const r1 = (v: number) => Math.round(v * 2) / 2;
 
 /** Stable, machine-neutral description of the operations on a piece */
 export function operationsString(features: readonly Feature[]): string {
-  return [...features]
+  return features
     .map((f) => {
       const pos = r1(f.position);
-      return "offset" in f ? `${OP_CODE[f.kind]}@${pos}/${r1(f.offset)}` : `${OP_CODE[f.kind]}@${pos}+${r1(f.length)}`;
+      return { pos, s: "offset" in f ? `${OP_CODE[f.kind]}@${pos}/${r1(f.offset)}` : `${OP_CODE[f.kind]}@${pos}+${r1(f.length)}` };
     })
-    .sort((a, b) => {
-      const pa = Number(a.split("@")[1]!.split(/[/+]/)[0]);
-      const pb = Number(b.split("@")[1]!.split(/[/+]/)[0]);
-      return pa - pb || a.localeCompare(b);
-    })
+    .sort((a, b) => a.pos - b.pos || (a.s < b.s ? -1 : a.s > b.s ? 1 : 0))
+    .map((x) => x.s)
     .join(" ");
 }
 

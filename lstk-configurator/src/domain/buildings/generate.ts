@@ -1,16 +1,16 @@
 import type { Assembly } from "../assemblies/types";
 import { anchorStations, STUD_SCREW_PITCH, type HardwareItem } from "../connections/hardware";
-import { frame, type Frame3 } from "../geometry/frame";
+import { frame, toWorld, type Frame3 } from "../geometry/frame";
 import { v3, type Vec3 } from "../geometry/vec";
 import { interior, partitionSegments, strandedDoors, validatePartitions, type Interior } from "../layout/rooms";
-import type { Member } from "../members/types";
+import type { DetailedAssembly } from "../detailing/planar";
 import { findProfile } from "../profiles/catalog";
 import type { ProfileSpec } from "../profiles/types";
 import { fabricateTruss } from "../trusses/fabricate";
 import { generateTruss } from "../trusses/generate";
 import type { TrussModel } from "../trusses/types";
-import { generateWall } from "../walls/generate";
-import { openingClass, type BackingStud, type Opening } from "../walls/types";
+import { generateWallDetailed } from "../walls/generate";
+import { DOUBLE_JAMB_WIDTH, openingClass, type BackingStud, type Opening } from "../walls/types";
 import { jambZone } from "../walls/generate";
 import { WALL_SIDES, type BuildingInput, type Level, type SideConfig, type WallSide } from "./types";
 
@@ -146,9 +146,11 @@ export function sideOpenings(side: SideConfig, length: number, height: number, i
   if (side.type === "wall") return side.openings;
   const t = p.thickness;
   const f = flangeOf(p);
-  // A station is a post made of two jambs back to back (or end stud + jamb at the corners)
-  const edge = 2 * f + 2 * t + 20;
-  const mid = 2 * f + 120;
+  // A station is a post: the box posts of the two bays beside it (or the end
+  // stud + a box post at the corners); wide bays get box posts, see jambZone
+  const zone = jambZone({ id: "", kind: "gate", x: 0, width: DOUBLE_JAMB_WIDTH + 1, height: 0, sill: 0 }, p);
+  const edge = zone + t + f + 20;
+  const mid = 2 * zone + 120;
   const stations = evenStations(length, input.postSpacing, 0);
   // Bays stop under a truss girder: lintel + top plate + diagonals, GIRDER_DEPTH deep
   const top = height - GIRDER_DEPTH;
@@ -217,6 +219,8 @@ export function generateBuilding(input: BuildingInput): Building {
   if (errors.length) throw new Error(errors.join("; "));
   const profile = findProfile(input.profileId);
   const d = depthOf(profile);
+  // Trusses lie flat: the chord strip is one flange wide, the analytical line in its middle
+  const f = flangeOf(profile);
   const { length: L, width: W } = input;
   const bases = levelBases(input);
   const assemblies: Assembly[] = [];
@@ -225,7 +229,7 @@ export function generateBuilding(input: BuildingInput): Building {
   // Floor trusses: parallel-chord C89 trusses at ≤ 600 mm, spanning the width
   const floorTruss = generateTruss({
     span: W,
-    shape: { kind: "parallel", depth: floorTrussDepth(W) - d },
+    shape: { kind: "parallel", depth: floorTrussDepth(W) - f },
     pattern: "pratt",
     panels: Math.max(2, 2 * Math.ceil(W / 1200)),
     overhang: 0,
@@ -233,7 +237,8 @@ export function generateBuilding(input: BuildingInput): Building {
     webProfile: profile,
     maxPieceLength: 12000,
   });
-  const floorPieces = fabricateTruss(floorTruss, { idPrefix: "FT" }).members;
+  const floorFab = fabricateTruss(floorTruss, { idPrefix: "FT" });
+  const floorPieces = floorFab.members;
   const floorPositions = evenStations(L, FLOOR_SPACING, TRUSS_EDGE);
   const groundFloor = hasGroundFloorFrame(input);
   const addFloor = (mark: string, bottom: number, layer: number) => {
@@ -244,7 +249,9 @@ export function generateBuilding(input: BuildingInput): Building {
         kind: "truss",
         name: `Ферма перекрытия ${mark} (${i + 1} из ${floorPositions.length})`,
         members: floorPieces.map((m) => ({ ...m, id: `${mark}-${m.id}#${i + 1}` })),
-        placement: frame(v3(x, bottom + d / 2, 0), v3(0, 0, 1), v3(0, 1, 0)),
+        placement: frame(v3(x, bottom + f / 2, 0), v3(0, 0, 1), v3(0, 1, 0)),
+        joints: floorFab.joints,
+        detailIssues: floorFab.issues,
         size: { width: W, height: floorTrussDepth(W) },
         explode: v3(0, -1, 0),
         layer,
@@ -260,10 +267,10 @@ export function generateBuilding(input: BuildingInput): Building {
     for (const plan of wallPlans(input, li, base)) {
       const side = level.sides[plan.side];
       const openings = sideOpenings(side, plan.length, level.height, input, profile);
-      let members: Member[];
+      let wall: DetailedAssembly;
       const backing = outerBacking(input, level, plan.side, plan.length, d, profile.thickness);
       try {
-        members = generateWall({ length: plan.length, height: level.height, studSpacing: input.studSpacing, profile, openings, noggings: side.type === "wall", backing }, plan.mark);
+        wall = generateWallDetailed({ length: plan.length, height: level.height, studSpacing: input.studSpacing, profile, openings, noggings: side.type === "wall", backing }, plan.mark);
       } catch (err) {
         throw new Error(`Этаж ${li + 1}, стена ${plan.mark}: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -272,7 +279,9 @@ export function generateBuilding(input: BuildingInput): Building {
         mark: plan.mark,
         kind: "wall",
         name: `Стена ${plan.mark}`,
-        members,
+        members: wall.members,
+        joints: wall.joints,
+        detailIssues: wall.issues,
         placement: plan.placement,
         size: { width: plan.length, height: level.height },
         explode: plan.outward,
@@ -287,11 +296,11 @@ export function generateBuilding(input: BuildingInput): Building {
     partitionSegments(level, inner, d).forEach((seg, k) => {
       const mark = `P${li + 1}.${k + 1}`;
       const length = seg.to - seg.from;
-      let members: Member[];
+      let wall: DetailedAssembly;
       // Long partitions meeting this cross partition get a backing pair in it
       const backing = seg.axis === "x" ? level.partitions.filter((q) => q.axis === "z").flatMap((q) => teePair(q.at - seg.from, d, profile.thickness)) : [];
       try {
-        members = generateWall({ length, height: level.height, studSpacing: input.studSpacing, profile, openings: seg.doors, noggings: false, backing }, mark);
+        wall = generateWallDetailed({ length, height: level.height, studSpacing: input.studSpacing, profile, openings: seg.doors, noggings: false, backing }, mark);
       } catch (err) {
         throw new Error(`Этаж ${li + 1}, перегородка ${mark}: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -302,7 +311,9 @@ export function generateBuilding(input: BuildingInput): Building {
         mark,
         kind: "wall",
         name: `Перегородка ${mark}`,
-        members,
+        members: wall.members,
+        joints: wall.joints,
+        detailIssues: wall.issues,
         placement,
         size: { width: length, height: level.height },
         explode: v3(0, 1, 0),
@@ -315,7 +326,7 @@ export function generateBuilding(input: BuildingInput): Building {
 
   // Roof
   const top = input.levels.length - 1;
-  const roofBase = bases[top]! + input.levels[top]!.height + d / 2;
+  const roofBase = bases[top]! + input.levels[top]!.height + f / 2;
   const roof = input.roof;
   const roofTruss = generateTruss({
     span: W,
@@ -327,7 +338,8 @@ export function generateBuilding(input: BuildingInput): Building {
     webProfile: profile,
     maxPieceLength: 12000,
   });
-  const roofPieces = fabricateTruss(roofTruss, { idPrefix: "T1" }).members;
+  const roofFab = fabricateTruss(roofTruss, { idPrefix: "T1" });
+  const roofPieces = roofFab.members;
   const trussPositions = evenStations(L, input.trussSpacing, TRUSS_EDGE);
   trussPositions.forEach((x, i) => {
     assemblies.push({
@@ -337,6 +349,8 @@ export function generateBuilding(input: BuildingInput): Building {
       name: `Ферма T1 (${i + 1} из ${trussPositions.length})`,
       members: roofPieces.map((m) => ({ ...m, id: `${m.id}#${i + 1}` })),
       placement: frame(v3(x, roofBase, 0), v3(0, 0, 1), v3(0, 1, 0)),
+      joints: roofFab.joints,
+      detailIssues: roofFab.issues,
       size: { width: W, height: roofTruss.height },
       explode: v3(0, 1, 0),
       layer: input.levels.length * 2,
@@ -344,6 +358,14 @@ export function generateBuilding(input: BuildingInput): Building {
   });
 
   const { hardware, nodes } = connections(input, assemblies, levels, bases, trussPositions, floorPositions, groundFloor, d, profile);
+  hardware.push(...jointHardware(assemblies, input.levels.length));
+  // Chord splices: one insert per splice per truss
+  for (const [fab, marks] of [
+    [roofFab, assemblies.filter((a) => a.mark === "T1")],
+    [floorFab, assemblies.filter((a) => a.mark.startsWith("FT"))],
+  ] as const) {
+    for (const a of marks) for (const _ of fab.splices) hardware.push({ kind: "splice-insert", at: a.placement.origin, level: a.layer, mark: a.mark, qty: 1 });
+  }
 
   return {
     input,
@@ -358,7 +380,7 @@ export function generateBuilding(input: BuildingInput): Building {
     trussPositions,
     floorPositions,
     roofBase,
-    ridgeHeight: roofBase + roofTruss.height + d / 2,
+    ridgeHeight: roofBase + roofTruss.height + f / 2,
     groundFloor,
   };
 }
@@ -492,6 +514,26 @@ function connections(
     add("floor-bearing", 2 * floorPositions.length);
   }
   return { hardware: hw, nodes: [...nodes].filter(([, n]) => n > 0).map(([type, count]) => ({ type, count })) };
+}
+
+/**
+ * Bought-in parts the detailing calls for: an angle clip at every butt joint,
+ * a ridge plate where the top chords are cut back from each other.
+ */
+function jointHardware(assemblies: readonly Assembly[], storeys: number): HardwareItem[] {
+  const out: HardwareItem[] = [];
+  for (const a of assemblies) {
+    const level = a.kind === "truss" ? Math.min(storeys, Math.floor(a.layer / 2)) : Math.floor(a.layer / 2);
+    for (const j of a.joints ?? []) {
+      if (j.kind === "butt") out.push({ kind: "joint-clip", at: toWorld(a.placement, j.at), level, mark: a.mark, qty: 1 });
+    }
+    const apex = (a.joints ?? []).filter((j) => j.kind === "apex");
+    if (apex.length) {
+      const c = apex.reduce((p, j) => v3(p.x + j.at.x / apex.length, p.y + j.at.y / apex.length, p.z + j.at.z / apex.length), v3(0, 0, 0));
+      out.push({ kind: "ridge-plate", at: toWorld(a.placement, c), level, mark: a.mark, qty: Math.ceil(apex.length / 2) });
+    }
+  }
+  return out;
 }
 
 function jambZoneMax(ops: Opening[], p: ProfileSpec): number {

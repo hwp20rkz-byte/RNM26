@@ -111,10 +111,12 @@ function trussChecks(model: TrussModel, qKpa: number, spacing: number, label: st
       if (f > worstT) worstT = f;
     });
     if (worstC > 1) {
-      // Chords are held out of plane by battens / ceiling lining; webs only at their ends
-      const weak = role === "top-chord" || role === "bottom-chord" ? Math.min(lenC, battens) : lenC;
-      const u = (q: ProfileSpec) => worstC / nbRd(resistance(q), lenC, weak);
-      out.push(check(`bar.${role}`, label, "compression", worstC, nbRd(resistance(p), lenC, weak), u, p));
+      // Members lie flat (domain/trusses/fabricate): in the truss plane they buckle
+      // about the weak axis between nodes; out of plane — about the strong axis,
+      // chords held by battens / ceiling lining, webs only at their ends
+      const outOfPlane = role === "top-chord" || role === "bottom-chord" ? Math.min(lenC, battens) : lenC;
+      const u = (q: ProfileSpec) => worstC / nbRd(resistance(q), outOfPlane, lenC);
+      out.push(check(`bar.${role}`, label, "compression", worstC, nbRd(resistance(p), outOfPlane, lenC), u, p));
     }
     if (worstT > 1) out.push(check(`bar.${role}`, label, "tension", worstT, ntRd(resistance(p)), (q) => worstT / ntRd(resistance(q)), p));
   }
