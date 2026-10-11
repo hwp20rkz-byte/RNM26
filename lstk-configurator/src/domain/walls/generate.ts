@@ -1,4 +1,5 @@
 import { v3 } from "../geometry/vec";
+import { DETAILING, detailPlanar, planarClashes, type DetailedAssembly } from "../detailing/planar";
 import { centrelineLength } from "../members/member";
 import { connectionHoles } from "../members/punching";
 import type { Feature, Member, MemberRole } from "../members/types";
@@ -18,15 +19,20 @@ import { DOUBLE_JAMB_WIDTH, HEADER_TRUSS_WIDTH, openingClass, type Opening, type
  *   that bolt to the neighbouring panel.
  *
  * Reinforcement (LSTK 3.0 practice, sources in docs/lstk-knowledge-base.md):
- * - openings wider than 1200 mm: a king stud each side, toe-to-toe with the
- *   jamb (box post) — the jamb carries the lintel, the king stud the wind;
- * - lintels over 900 mm: two C toe-to-toe (box lintel);
+ * - openings wider than 1200 mm: a king stud each side, lip to lip with the
+ *   jamb (box post, `buttGap` between the lips) — the jamb carries the
+ *   lintel, the king stud the wind; two C of the same size cannot nest;
+ * - lintels over 600 mm: two C lip to lip (box lintel);
  * - openings of 1500 mm and more: header truss — the lintel, the top plate
  *   and the cripples become a Warren truss with diagonal braces;
  * - corner and T-junction backing studs where other walls meet this one.
+ *
+ * The layout is drawn member face to member face; `detailPlanar` then sets the
+ * real cut ends (clearances, swages, lip cuts, chamfers), see domain/detailing.
  */
 
-export const SWAGE_LENGTH = 45;
+/** Gap between the lips of a box post or box lintel, mm */
+const BOX_GAP = DETAILING.buttGap;
 const MIN_GAP = 100;
 const MIN_CRIPPLE = 120;
 
@@ -41,7 +47,7 @@ export function openingTop(o: Opening): number {
 /** Width taken by the posts beside an opening, from the clear edge outwards */
 export function jambZone(o: Opening, p: ProfileSpec): number {
   const t = p.thickness;
-  return o.width > DOUBLE_JAMB_WIDTH ? 2 * t + flangeOf(p) : t;
+  return o.width > DOUBLE_JAMB_WIDTH ? 2 * flangeOf(p) + BOX_GAP : t;
 }
 
 export function validateWall(input: WallInput): string[] {
@@ -79,9 +85,16 @@ interface Piece {
   y1: number;
   /** For horizontal pieces: flanges up (false) or down (true). For vertical: flanges to −x (false) or +x (true). */
   flipped: boolean;
+  /** Braces: clear bay between the posts, fitted after detailing */
+  bay?: [number, number];
 }
 
 export function generateWall(input: WallInput, mark = "W"): Member[] {
+  return generateWallDetailed(input, mark).members;
+}
+
+/** Wall members with the production detailing (joints, issues) */
+export function generateWallDetailed(input: WallInput, mark = "W"): DetailedAssembly {
   const errors = validateWall(input);
   if (errors.length) throw new Error(errors.join("; "));
   const { length: L, height: H, profile } = input;
@@ -109,9 +122,9 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
     fullStuds.push({ x: o.x - t / 2, flipped: false, role: "jamb" });
     fullStuds.push({ x: o.x + o.width + t / 2, flipped: true, role: "jamb" });
     if (o.width > DOUBLE_JAMB_WIDTH) {
-      // King studs toe-to-toe with the jambs: a closed box post each side
-      fullStuds.push({ x: o.x - t - f + t / 2, flipped: true, role: "stud" });
-      fullStuds.push({ x: o.x + o.width + t + f - t / 2, flipped: false, role: "stud" });
+      // King studs lip to lip with the jambs: a box post each side
+      fullStuds.push({ x: o.x - 2 * f - BOX_GAP + t / 2, flipped: true, role: "stud" });
+      fullStuds.push({ x: o.x + o.width + 2 * f + BOX_GAP - t / 2, flipped: false, role: "stud" });
     }
   }
   const backing = (input.backing ?? []).filter((b) => b.x > t + f && b.x < L - t - f && !openings.some((o) => b.x > o.x - jambZone(o, profile) - f && b.x < o.x + o.width + jambZone(o, profile) + f));
@@ -136,10 +149,11 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
     const cls = openingClass(o);
     pieces.push({ role: "lintel", x0: o.x, y0: top + t / 2, x1: o.x + o.width, y1: top + t / 2, flipped: false });
     let headerBase = top + t;
-    if (cls !== "single" && H - t - (top + t + f) >= MIN_CRIPPLE) {
-      // Second lintel toe-to-toe above the first: a closed box
-      pieces.push({ role: "lintel", x0: o.x, y0: top + f + t / 2, x1: o.x + o.width, y1: top + f + t / 2, flipped: true });
-      headerBase = top + f + t;
+    if (cls !== "single" && H - t - (top + 2 * f + BOX_GAP) >= MIN_CRIPPLE) {
+      // Second lintel lip to lip above the first, flanges down: a box
+      const y = top + 2 * f + BOX_GAP - t / 2;
+      pieces.push({ role: "lintel", x0: o.x, y0: y, x1: o.x + o.width, y1: y, flipped: true });
+      headerBase = top + 2 * f + BOX_GAP;
     }
     if (o.kind === "window") pieces.push({ role: "sill", x0: o.x, y0: o.sill - t / 2, x1: o.x + o.width, y1: o.sill - t / 2, flipped: true });
     const inside = grid.filter((x) => x > o.x + f && x < o.x + o.width - f);
@@ -149,15 +163,16 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
       if (o.kind === "window" && o.sill - t - t >= MIN_CRIPPLE) pieces.push({ role: "cripple", x0: x, y0: t, x1: x, y1: o.sill - t, flipped: false });
     }
     if (o.width >= HEADER_TRUSS_WIDTH && headerH >= 250) {
-      // Warren diagonals between the posts at the opening edges and the cripples
-      const stations = [o.x - t / 2, ...inside, o.x + o.width + t / 2];
-      for (let i = 0; i + 1 < stations.length; i++) {
-        const a = stations[i]! + (i === 0 ? 0 : t / 2 + 1);
-        const b = stations[i + 1]! - (i + 1 === stations.length - 1 ? 0 : t / 2 + 1);
-        if (b - a < MIN_CRIPPLE) continue;
+      // Warren diagonals in the bays between the jambs and the cripples.
+      // Bay edges are member faces: a jamb's web face, a cripple's flange tips.
+      const edges: [number, number][] = [];
+      const posts = [{ lo: o.x - f, hi: o.x }, ...inside.map((x) => ({ lo: x - f, hi: x })), { lo: o.x + o.width, hi: o.x + o.width + f }];
+      for (let i = 0; i + 1 < posts.length; i++) edges.push([posts[i]!.hi + BOX_GAP, posts[i + 1]!.lo - BOX_GAP]);
+      edges.forEach(([a, b], i) => {
+        if (b - a < MIN_CRIPPLE) return;
         const up = i % 2 === 0;
-        pieces.push({ role: "brace", x0: a, y0: up ? headerBase : H - t, x1: b, y1: up ? H - t : headerBase, flipped: false });
-      }
+        pieces.push({ role: "brace", x0: up ? a : b, y0: headerBase, x1: up ? b : a, y1: H - t, flipped: !up, bay: [a, b] });
+      });
     }
   }
 
@@ -169,12 +184,42 @@ export function generateWall(input: WallInput, mark = "W"): Member[] {
       const a = xs[i]! + t / 2;
       const b = xs[i + 1]! - t / 2;
       const mid = (a + b) / 2;
-      const inOpening = openings.some((o) => mid > o.x && mid < o.x + o.width && y > o.sill && y < openingTop(o));
+      // The opening's sill, lintels and cripples already brace that bay; a
+      // nogging there would run into them
+      const inOpening = openings.some((o) => mid > o.x && mid < o.x + o.width);
       if (!inOpening && b - a >= MIN_CRIPPLE) pieces.push({ role: "nogging", x0: a, y0: y, x1: b, y1: y, flipped: false });
     }
   }
 
-  return toMembers(pieces, profile, mark);
+  return fitBraces(pieces, profile, mark);
+}
+
+/**
+ * Detail the panel; a header-truss brace that still rubs a post is pulled
+ * into its bay a little more until it clears (its end cuts follow the
+ * horizontals it lands on, so the fit is found by trial).
+ */
+function fitBraces(pieces: Piece[], profile: ProfileSpec, mark: string): DetailedAssembly {
+  const inset = new Map<Piece, number>();
+  for (let round = 0; ; round++) {
+    const placed = pieces.map((p) => {
+      const e = inset.get(p) ?? 0;
+      if (!p.bay || e === 0) return p;
+      const dir = p.x1 > p.x0 ? 1 : -1;
+      return { ...p, x0: p.x0 + dir * e, x1: p.x1 - dir * e };
+    });
+    const detailed = detailPlanar(toMembers(placed, profile, mark));
+    const braces = new Set(detailed.members.filter((m) => m.role === "brace").map((m) => m.id));
+    if (!braces.size) return detailed;
+    const rubbing = new Set(planarClashes(detailed.members).flatMap((c) => [c.a, c.b]).filter((id) => braces.has(id)));
+    if (!rubbing.size || round > 40) return detailed;
+    detailed.members.forEach((m, i) => {
+      if (!rubbing.has(m.id)) return;
+      const p = pieces[i]!;
+      const next = (inset.get(p) ?? 0) + 4;
+      if (p.bay && p.bay[1] - p.bay[0] - 2 * next >= MIN_CRIPPLE / 2) inset.set(p, next);
+    });
+  }
 }
 
 function toMembers(pieces: Piece[], profile: ProfileSpec, mark: string): Member[] {
@@ -190,9 +235,6 @@ function toMembers(pieces: Piece[], profile: ProfileSpec, mark: string): Member[
     const features: Feature[] = [];
     if (vertical(p) || diagonal(p)) {
       features.push(...connectionHoles(length, [0, length]));
-      if (p.role !== "nogging" && !diagonal(p)) {
-        features.push({ kind: "swage", position: 0, length: SWAGE_LENGTH }, { kind: "swage", position: length - SWAGE_LENGTH, length: SWAGE_LENGTH });
-      }
     } else {
       const lo = Math.min(p.x0, p.x1);
       const hi = Math.max(p.x0, p.x1);

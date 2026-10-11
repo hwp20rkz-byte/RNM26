@@ -3,6 +3,7 @@ import { memberOnMachine } from "../machines/check";
 import { GOLDEN_INTEGRITY_C89 } from "../machines/golden-integrity-c89";
 import { centrelineLength, memberFrame, validateFeatures } from "../members/member";
 import type { Member } from "../members/types";
+import { DETAILING } from "../detailing/planar";
 import { findProfile } from "../profiles/catalog";
 import { generateWall, openingTop, validateWall } from "./generate";
 import type { Opening, WallInput } from "./types";
@@ -42,9 +43,11 @@ describe("generateWall — plain wall", () => {
     const studs = byRole(ms, "stud");
     // 600…5400 (9) + two end studs
     expect(studs).toHaveLength(11);
+    // Cut ends: the nesting gap short of each plate web, length on the 0.5 mm grid
     for (const s of studs) {
-      expect(s.start.y).toBeCloseTo(t, 9);
-      expect(s.end.y).toBeCloseTo(2700 - t, 9);
+      expect(s.start.y).toBeCloseTo(t + DETAILING.nestGap, 9);
+      expect(s.end.y).toBeLessThanOrEqual(2700 - t - DETAILING.nestGap + 1e-9);
+      expect(s.end.y).toBeGreaterThan(2700 - t - DETAILING.nestGap - 0.5);
     }
   });
 

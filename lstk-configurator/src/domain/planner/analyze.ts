@@ -4,6 +4,7 @@ import { generateBuilding, overallSize, type Building } from "../buildings/gener
 import type { RoomPurpose } from "../buildings/types";
 import { findCity, type City } from "../climate/cities";
 import { hardwareTotals, type HardwareLine } from "../connections/hardware";
+import { detailingSummary, type DetailingSummary } from "../detailing/planar";
 import { doorArea, windowArea } from "../envelope/geometry";
 import { thermal, type EfficiencyLevel, type InsulationMaterial, type ThermalResult } from "../envelope/insulation";
 import { DEFAULT_FINISHES, finish, type FinishChoice } from "../finishes/catalog";
@@ -127,6 +128,8 @@ export interface Analysis {
   coop: CoopPlan | null;
   lines: CostLine[];
   hardware: HardwareLine[];
+  /** Production detailing of the frame: joints, end operations, clash check */
+  detailing: DetailingSummary;
   design: Design;
   estimate: Estimate;
   settings: PlannerSettings;
@@ -280,6 +283,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     coop,
     lines: [],
     hardware,
+    detailing: detailingSummary(building.assemblies),
     design: design(building, city, settings.finishes),
     estimate: null as unknown as Estimate,
     settings,

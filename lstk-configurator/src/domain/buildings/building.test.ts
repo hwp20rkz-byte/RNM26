@@ -59,7 +59,9 @@ describe("one-storey house on a strip foundation", () => {
     const gaps = b.trussPositions.slice(1).map((x, i) => x - b.trussPositions[i]!);
     for (const g of gaps) expect(g).toBeLessThanOrEqual(input.trussSpacing + 1e-9);
     const chords = worldMembers(b.assemblies.filter((a) => a.mark === "T1")).filter((m) => m.role === "bottom-chord");
-    for (const m of chords) expect(m.start.y).toBeCloseTo(b.roofBase, 6);
+    // Flat chord, web down: its underside sits on the top plates
+    const wallTop = b.levels.at(-1)!.base + b.levels.at(-1)!.height;
+    for (const m of chords) expect(m.start.y - b.profile.thickness / 2).toBeCloseTo(wallTop, 6);
   });
 
   it("partitions become panels P1.k between the outer walls", () => {
@@ -129,7 +131,8 @@ describe("mono-pitch roof", () => {
     const b = generateBuilding(productInput("shed"));
     expect(b.roofTruss.input.shape.kind).toBe("mono");
     const top = Math.max(...b.roofTruss.nodes.map((n) => n.y));
-    expect(b.ridgeHeight).toBeCloseTo(b.roofBase + top + b.depth / 2, 6);
+    const f = b.profile.family === "Hat" ? b.profile.crown : b.profile.flange;
+    expect(b.ridgeHeight).toBeCloseTo(b.roofBase + top + f / 2, 6);
   });
 });
 

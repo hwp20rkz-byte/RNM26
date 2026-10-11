@@ -110,7 +110,20 @@ export function validateProfile(spec: ProfileSpec): string[] {
   return errors;
 }
 
+/** Specs are immutable catalogue objects: geometry and properties are computed once per spec */
+const geometryCache = new WeakMap<ProfileSpec, SectionGeometry>();
+const propertiesCache = new WeakMap<ProfileSpec, SectionProperties>();
+
 export function sectionGeometry(spec: ProfileSpec): SectionGeometry {
+  let g = geometryCache.get(spec);
+  if (!g) {
+    g = computeSectionGeometry(spec);
+    geometryCache.set(spec, g);
+  }
+  return g;
+}
+
+function computeSectionGeometry(spec: ProfileSpec): SectionGeometry {
   const errors = validateProfile(spec);
   if (errors.length > 0) throw new Error(`Некорректный профиль ${spec.id}: ${errors.join("; ")}`);
   const bendRadius = spec.innerRadius + spec.thickness / 2;
@@ -134,6 +147,15 @@ const STEEL_DENSITY_KG_PER_MM3 = 7.85e-6;
  * Mass per metre: area (mm²) × 1000 mm × ρ.
  */
 export function sectionProperties(spec: ProfileSpec): SectionProperties {
+  let p = propertiesCache.get(spec);
+  if (!p) {
+    p = computeSectionProperties(spec);
+    propertiesCache.set(spec, p);
+  }
+  return p;
+}
+
+function computeSectionProperties(spec: ProfileSpec): SectionProperties {
   const { outline, centreline } = sectionGeometry(spec);
   const area = signedArea(outline);
   let cx = 0;

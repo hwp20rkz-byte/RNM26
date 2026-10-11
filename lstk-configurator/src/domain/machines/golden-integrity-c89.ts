@@ -40,7 +40,7 @@ export const GOLDEN_INTEGRITY_C89: RollFormingMachine = {
     { kind: "dimple", vendorName: "Dimple (Model 6)", feature: "dimple", size: { value: null, note: "диаметр не указан" }, source: `${KP}, с. 3, 4, 9` },
     { kind: "swage", vendorName: "Swage (Model 7)", feature: "swage", size: { value: null, note: "длина и глубина обжатия не указаны" }, source: `${KP}, с. 3, 4, 9, 11` },
     { kind: "bolt-hole", vendorName: "Bolt hole / anchor hole", feature: "bolt-hole", size: { value: null, note: "диаметр не указан" }, source: `${KP}, с. 3, 4` },
-    { kind: "chamfer", vendorName: "Chamfer cut", feature: null, size: { value: null, note: "угол и размер не указаны" }, source: `${KP}, с. 4, 9` },
+    { kind: "chamfer", vendorName: "Chamfer cut", feature: "chamfer", size: { value: null, note: "угол и размер не указаны" }, source: `${KP}, с. 4, 9` },
     { kind: "shear", vendorName: "Shear (гидравлическая отрезка)", feature: null, size: { value: null, note: "—" }, source: `${KP}, с. 4, 11` },
   ],
   control: {

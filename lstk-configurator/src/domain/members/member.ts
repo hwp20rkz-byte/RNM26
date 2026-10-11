@@ -6,9 +6,9 @@ import type { Feature, Member } from "./types";
 export const CUT_RESOLUTION_MM = 0.5;
 
 /**
- * Centreline length rounded to the cut grid. This is NOT yet a fabrication
- * length: end clearances, nesting offsets and end-cut angles depend on how the
- * member joins its neighbours and belong to the detailing step.
+ * Length between the member ends rounded to the cut grid. Generators run the
+ * detailing step (domain/detailing) before returning members, so for walls and
+ * trusses this is the cut length: nesting and butt clearances are already in.
  */
 export function centrelineLength(m: Pick<Member, "start" | "end">): number {
   return Math.round(dist3(m.start, m.end) / CUT_RESOLUTION_MM) * CUT_RESOLUTION_MM;
@@ -57,13 +57,13 @@ export function featureSpan(f: Feature): { from: number; to: number } {
     case "lip-cut":
     case "flange-cut":
     case "swage":
+    case "chamfer":
       return { from: f.position, to: f.position + f.length };
   }
 }
 
-/** Half-extent of a web feature across the web, mm */
 /** Operations that act on flanges/lips over a length, not holes in the web */
-export const END_OPERATIONS = ["lip-cut", "flange-cut", "swage"] as const;
+export const END_OPERATIONS = ["lip-cut", "flange-cut", "swage", "chamfer"] as const;
 type EndOperation = (typeof END_OPERATIONS)[number];
 type WebFeature = Exclude<Feature, { kind: EndOperation }>;
 const isWebFeature = (f: Feature): f is WebFeature => !(END_OPERATIONS as readonly string[]).includes(f.kind);

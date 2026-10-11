@@ -1,3 +1,4 @@
+import { DETAILING, detailPlanar, stripWidth, type DetailingIssue, type Joint } from "../detailing/planar";
 import { v3, type Vec3 } from "../geometry/vec";
 import { centrelineLength } from "../members/member";
 import { connectionHoles } from "../members/punching";
@@ -12,18 +13,23 @@ import type { TrussBar, TrussModel, TrussNode } from "./types";
  * - the top chord extends past the heel by the overhang;
  * - every piece gets dimple pairs where other members connect to it.
  *
- * Placement (mm): truss plane is x (span) / y (up) at z = `planeZ`. Members are
- * "web-in-plane": the C webs lie in the truss plane, chord flanges face +z and
- * web members are flipped to face −z, offset so the webs sit back to back.
+ * Placement (mm): truss plane is x (span) / y (up) at z = `planeZ`. Members lie
+ * flat, the way a Howick-type line builds trusses: every C has its web across
+ * the truss plane (webAxis = z), so the whole truss is one profile deep.
+ * Chord flanges face into the truss, web members nest into the chord channels
+ * with swaged ends; at the heel the bottom chord nests into the top chord.
+ * The analytical line runs through the middle of each strip (flange width).
  *
- * Lengths are centreline lengths. Real cut lengths need end-detailing
- * (nesting clearances, mitre cuts) for the specific machine — see README.
+ * `detailPlanar` sets the cut ends: clearances, swages, chamfers, lip cuts,
+ * ridge cut-backs. Lengths are fabrication lengths.
  */
 
 export interface FabricatedTruss {
   members: Member[];
   /** Chord splices that had to be introduced, as node ids */
   splices: number[];
+  joints: Joint[];
+  issues: DetailingIssue[];
 }
 
 interface Chain {
@@ -44,50 +50,89 @@ export function fabricateTruss(model: TrussModel, opts: { planeZ?: number; idPre
   let seq = 0;
   const nextId = (role: MemberRole) => `${prefix}-${role}-${++seq}`;
 
+  const chordWidth = stripWidth(input.chordProfile);
+  const webWidth = stripWidth(input.webProfile);
+  // Nodes where a top and a bottom chord meet (heels): the detailer cuts those
+  const topNodes = new Set(chains.filter((c) => c.role === "top-chord").flatMap((c) => c.nodes));
+  const heel = (id: number) => topNodes.has(id) && chains.some((c) => c.role === "bottom-chord" && (c.nodes[0] === id || c.nodes[c.nodes.length - 1] === id));
+
   for (const chain of chains) {
     const pieces = splitChain(model, chain, input.maxPieceLength);
     if (pieces.length > 1) splices.push(...pieces.slice(1).map((p) => p[0]!));
-    for (const pieceNodes of pieces) {
-      let start = toVec(node(pieceNodes[0]!), planeZ);
-      let end = toVec(node(pieceNodes[pieceNodes.length - 1]!), planeZ);
+    pieces.forEach((pieceNodes, k) => {
+      const first = pieceNodes[0]!;
+      const last = pieceNodes[pieceNodes.length - 1]!;
+      let start = toVec(node(first), planeZ);
+      let end = toVec(node(last), planeZ);
       // Extend the top chord past a heel (support node) by the overhang
       if (chain.role === "top-chord" && input.overhang > 0) {
-        if (node(pieceNodes[0]!).support) start = extend(end, start, input.overhang);
-        if (node(pieceNodes[pieceNodes.length - 1]!).support) end = extend(start, end, input.overhang);
+        if (node(first).support) start = extend(end, start, input.overhang);
+        if (node(last).support) end = extend(start, end, input.overhang);
       }
-      const length = centrelineLength({ start, end });
-      const stations = pieceNodes.map((id) => distanceAlong(start, end, toVec(node(id), planeZ)));
+      // Free chord ends run on by half a strip so the end web sits fully in the channel
+      const half = webWidth / 2 + DETAILING.buttGap;
+      if (k === 0 && !heel(first) && !(chain.role === "top-chord" && input.overhang > 0 && node(first).support)) start = extend(end, start, half);
+      if (k === pieces.length - 1 && !heel(last) && !(chain.role === "top-chord" && input.overhang > 0 && node(last).support)) end = extend(start, end, half);
+      // Splices: the two pieces stop short of each other by the butt gap
+      if (k > 0) start = extend(end, start, -DETAILING.buttGap / 2);
+      if (k < pieces.length - 1) end = extend(start, end, -DETAILING.buttGap / 2);
+      const inward = chain.role === "top-chord" ? v3(0, -1, 0) : v3(0, 1, 0);
+      const placed = flat(start, end, inward, chordWidth, input.chordProfile.thickness);
+      const length = centrelineLength(placed);
+      const stations = pieceNodes.map((id) => distanceAlong(placed.start, placed.end, toVec(node(id), planeZ)));
       members.push({
         id: nextId(chain.role),
         role: chain.role,
         profile: input.chordProfile,
-        start,
-        end,
-        webAxis: inPlaneNormal(start, end),
+        ...placed,
         features: connectionHoles(length, stations),
       });
-    }
+    });
   }
 
-  const webOffset = -(input.chordProfile.thickness + input.webProfile.thickness) / 2;
   for (const bar of model.bars) {
     if (bar.role === "top-chord" || bar.role === "bottom-chord") continue;
-    const start = toVec(node(bar.a), planeZ + webOffset);
-    const end = toVec(node(bar.b), planeZ + webOffset);
-    const length = centrelineLength({ start, end });
+    const a = toVec(node(bar.a), planeZ);
+    const b = toVec(node(bar.b), planeZ);
+    const placed = flat(a, b, v3(1, 0, 0), webWidth, input.webProfile.thickness);
+    const length = centrelineLength(placed);
     members.push({
       id: nextId("truss-web"),
       role: "truss-web",
       profile: input.webProfile,
-      start,
-      end,
-      webAxis: inPlaneNormal(start, end),
-      flipped: true,
+      ...placed,
       features: connectionHoles(length, [0, length]),
     });
   }
 
-  return { members, splices };
+  const detailed = detailPlanar(members);
+  return { members: detailed.members, splices, joints: detailed.joints, issues: detailed.issues };
+}
+
+/**
+ * Lay a member flat (web across the plane) with its flanges towards `toward`
+ * where possible, the strip centred on the analytical line a → b.
+ */
+function flat(a: Vec3, b: Vec3, toward: Vec3, width: number, t: number): Pick<Member, "start" | "end" | "webAxis" | "flipped"> {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l = Math.hypot(dx, dy);
+  // Unflipped flange direction for webAxis +z: (−dy, dx)
+  let nx = -dy / l;
+  let ny = dx / l;
+  let flipped = nx * toward.x + ny * toward.y < 0;
+  if (Math.abs(nx * toward.x + ny * toward.y) < 1e-9) flipped = ny < 0 || (ny === 0 && nx < 0);
+  if (flipped) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const off = width / 2 - t / 2;
+  return {
+    start: v3(a.x - nx * off, a.y - ny * off, a.z),
+    end: v3(b.x - nx * off, b.y - ny * off, b.z),
+    webAxis: v3(0, 0, 1),
+    flipped,
+  };
 }
 
 const toVec = (n: TrussNode, z: number): Vec3 => v3(n.x, n.y, z);
@@ -104,14 +149,6 @@ function distanceAlong(start: Vec3, end: Vec3, p: Vec3): number {
   const dy = end.y - start.y;
   const l = Math.hypot(dx, dy);
   return ((p.x - start.x) * dx + (p.y - start.y) * dy) / l;
-}
-
-/** In-plane perpendicular, oriented "up" so the section reads consistently */
-function inPlaneNormal(start: Vec3, end: Vec3): Vec3 {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const n = v3(-dy, dx, 0);
-  return n.y < 0 || (n.y === 0 && n.x < 0) ? v3(dy, -dx, 0) : n;
 }
 
 /** Group chord bars into maximal straight runs (ordered node lists) */
