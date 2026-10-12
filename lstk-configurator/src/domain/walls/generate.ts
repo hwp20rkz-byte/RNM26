@@ -1,10 +1,10 @@
 import { v3 } from "../geometry/vec";
-import { DETAILING, detailPlanar, planarClashes, type DetailedAssembly } from "../detailing/planar";
+import { DETAILING, detailPlanar, type DetailedAssembly } from "../detailing/planar";
 import { centrelineLength } from "../members/member";
 import { connectionHoles } from "../members/punching";
 import type { Feature, Member, MemberRole } from "../members/types";
 import type { ProfileSpec } from "../profiles/types";
-import { DOUBLE_JAMB_WIDTH, HEADER_TRUSS_WIDTH, openingClass, type Opening, type WallInput } from "./types";
+import { DOUBLE_JACK_WIDTH, DOUBLE_JAMB_WIDTH, HEADER_MIN_CLEAR, openingClass, type Opening, type WallInput } from "./types";
 
 /**
  * Wall panel in local coordinates: x along the wall from its start, y up from
@@ -18,13 +18,13 @@ import { DOUBLE_JAMB_WIDTH, HEADER_TRUSS_WIDTH, openingClass, type Opening, type
  * - the end studs turn their flanges inwards so the panel ends are flat webs
  *   that bolt to the neighbouring panel.
  *
- * Reinforcement (LSTK 3.0 practice, sources in docs/lstk-knowledge-base.md):
- * - openings wider than 1200 mm: a king stud each side, lip to lip with the
- *   jamb (box post, `buttGap` between the lips) — the jamb carries the
- *   lintel, the king stud the wind; two C of the same size cannot nest;
- * - lintels over 600 mm: two C lip to lip (box lintel);
- * - openings of 1500 mm and more: header truss — the lintel, the top plate
- *   and the cripples become a Warren truss with diagonal braces;
+ * Openings (LSTK 3.0 practice, rules 8–11 in docs/lstk-knowledge-base.md):
+ * - each side a jack stud carries the lintel and a king stud runs full
+ *   height beside it, web to web (an I-post screwed through the webs); from
+ *   1200 mm a second king, from 2400 mm a second jack, lip to lip;
+ * - the lintel lies flanges up on the jacks; up to 600 mm cripples tie it to
+ *   the top plate, wider openings get a header truss (lintel and top plate
+ *   as chords, verticals and Pratt diagonals nested into both);
  * - corner and T-junction backing studs where other walls meet this one.
  *
  * The layout is drawn member face to member face; `detailPlanar` then sets the
@@ -46,8 +46,11 @@ export function openingTop(o: Opening): number {
 
 /** Width taken by the posts beside an opening, from the clear edge outwards */
 export function jambZone(o: Opening, p: ProfileSpec): number {
-  const t = p.thickness;
-  return o.width > DOUBLE_JAMB_WIDTH ? 2 * flangeOf(p) + BOX_GAP : t;
+  const f = flangeOf(p);
+  const jacks = o.width > DOUBLE_JACK_WIDTH ? 2 : 1;
+  const kings = o.width > DOUBLE_JAMB_WIDTH ? 2 : 1;
+  // Members of one strip each, a lip-to-lip gap between every box pair
+  return (jacks + kings) * f + (jacks - 1 + kings - 1) * BOX_GAP;
 }
 
 export function validateWall(input: WallInput): string[] {
@@ -85,8 +88,6 @@ interface Piece {
   y1: number;
   /** For horizontal pieces: flanges up (false) or down (true). For vertical: flanges to −x (false) or +x (true). */
   flipped: boolean;
-  /** Braces: clear bay between the posts, fitted after detailing */
-  bay?: [number, number];
 }
 
 export function generateWall(input: WallInput, mark = "W"): Member[] {
@@ -118,15 +119,12 @@ export function generateWallDetailed(input: WallInput, mark = "W"): DetailedAsse
     { x: t / 2, flipped: true, role: "stud" },
     { x: L - t / 2, flipped: false, role: "stud" },
   ];
-  for (const o of openings) {
-    fullStuds.push({ x: o.x - t / 2, flipped: false, role: "jamb" });
-    fullStuds.push({ x: o.x + o.width + t / 2, flipped: true, role: "jamb" });
-    if (o.width > DOUBLE_JAMB_WIDTH) {
-      // King studs lip to lip with the jambs: a box post each side
-      fullStuds.push({ x: o.x - 2 * f - BOX_GAP + t / 2, flipped: true, role: "stud" });
-      fullStuds.push({ x: o.x + o.width + 2 * f + BOX_GAP - t / 2, flipped: false, role: "stud" });
+  // Opening posts: jack studs carry the lintel, king studs run full height
+  const frames = openings.map((o) => ({ o, left: openingPosts(o, "left", profile), right: openingPosts(o, "right", profile) }));
+  for (const { left, right } of frames)
+    for (const post of [...left.posts, ...right.posts]) {
+      if (post.role === "jamb") fullStuds.push({ x: post.x, flipped: post.flipped, role: "jamb" });
     }
-  }
   const backing = (input.backing ?? []).filter((b) => b.x > t + f && b.x < L - t - f && !openings.some((o) => b.x > o.x - jambZone(o, profile) - f && b.x < o.x + o.width + jambZone(o, profile) + f));
   for (const b of backing) fullStuds.push({ x: b.x, flipped: b.flipped, role: "stud" });
 
@@ -143,37 +141,28 @@ export function generateWallDetailed(input: WallInput, mark = "W"): DetailedAsse
 
   for (const s of fullStuds) pieces.push({ role: s.role, x0: s.x, y0: t, x1: s.x, y1: H - t, flipped: s.flipped });
 
-  // Openings: lintel (single or box), sill, cripples on the stud grid, header truss
-  for (const o of openings) {
+  // Openings (ЛСТК: king + jack each side, lintel on the jacks):
+  // - the lintel lies flanges up on the jack studs and butts the king studs;
+  // - up to 600 mm: cripples on the stud grid tie it to the top plate;
+  // - wider: the lintel and the top plate are the chords of a header truss
+  //   with verticals and Pratt diagonals nested into both;
+  // - windows: a sill flanges down between the jacks, cripples below it.
+  for (const { o, left, right } of frames) {
     const top = openingTop(o);
-    const cls = openingClass(o);
-    pieces.push({ role: "lintel", x0: o.x, y0: top + t / 2, x1: o.x + o.width, y1: top + t / 2, flipped: false });
-    let headerBase = top + t;
-    if (cls !== "single" && H - t - (top + 2 * f + BOX_GAP) >= MIN_CRIPPLE) {
-      // Second lintel lip to lip above the first, flanges down: a box
-      const y = top + 2 * f + BOX_GAP - t / 2;
-      pieces.push({ role: "lintel", x0: o.x, y0: y, x1: o.x + o.width, y1: y, flipped: true });
-      headerBase = top + 2 * f + BOX_GAP;
+    for (const post of [...left.posts, ...right.posts]) {
+      if (post.role === "jack") pieces.push({ role: "jack", x0: post.x, y0: t, x1: post.x, y1: top, flipped: post.flipped });
     }
+    const x0 = left.lintelEnd;
+    const x1 = right.lintelEnd;
+    pieces.push({ role: "lintel", x0, y0: top + t / 2, x1, y1: top + t / 2, flipped: false });
     if (o.kind === "window") pieces.push({ role: "sill", x0: o.x, y0: o.sill - t / 2, x1: o.x + o.width, y1: o.sill - t / 2, flipped: true });
-    const inside = grid.filter((x) => x > o.x + f && x < o.x + o.width - f);
-    const headerH = H - t - headerBase;
-    for (const x of inside) {
-      if (headerH >= MIN_CRIPPLE) pieces.push({ role: "cripple", x0: x, y0: headerBase, x1: x, y1: H - t, flipped: false });
-      if (o.kind === "window" && o.sill - t - t >= MIN_CRIPPLE) pieces.push({ role: "cripple", x0: x, y0: t, x1: x, y1: o.sill - t, flipped: false });
-    }
-    if (o.width >= HEADER_TRUSS_WIDTH && headerH >= 250) {
-      // Warren diagonals in the bays between the jambs and the cripples.
-      // Bay edges are member faces: a jamb's web face, a cripple's flange tips.
-      const edges: [number, number][] = [];
-      const posts = [{ lo: o.x - f, hi: o.x }, ...inside.map((x) => ({ lo: x - f, hi: x })), { lo: o.x + o.width, hi: o.x + o.width + f }];
-      for (let i = 0; i + 1 < posts.length; i++) edges.push([posts[i]!.hi + BOX_GAP, posts[i + 1]!.lo - BOX_GAP]);
-      edges.forEach(([a, b], i) => {
-        if (b - a < MIN_CRIPPLE) return;
-        const up = i % 2 === 0;
-        pieces.push({ role: "brace", x0: up ? a : b, y0: headerBase, x1: up ? b : a, y1: H - t, flipped: !up, bay: [a, b] });
-      });
-    }
+    const inside = grid.filter((x) => x > o.x + f && x < o.x + o.width - 2);
+    if (o.kind === "window" && o.sill - t - t >= MIN_CRIPPLE) for (const x of inside) pieces.push({ role: "cripple", x0: x, y0: t, x1: x, y1: o.sill - t, flipped: false });
+
+    // Header: room between the lintel strip and the top plate strip
+    const clear = H - f - (top + f);
+    if (openingClass(o) !== "single" && clear >= HEADER_MIN_CLEAR) pieces.push(...headerTruss(left.bearing, right.bearing, top, H, profile));
+    else if (H - t - (top + t) >= MIN_CRIPPLE) for (const x of inside) pieces.push({ role: "cripple", x0: x, y0: top + t, x1: x, y1: H - t, flipped: false });
   }
 
   // Noggings at mid-height between neighbouring full-height members, skipping openings
@@ -191,35 +180,100 @@ export function generateWallDetailed(input: WallInput, mark = "W"): DetailedAsse
     }
   }
 
-  return fitBraces(pieces, profile, mark);
+  return detailPlanar(toMembers(pieces, profile, mark));
+}
+
+
+interface Post {
+  role: "jack" | "jamb";
+  /** Web centreline x */
+  x: number;
+  /** Flanges to +x */
+  flipped: boolean;
+  lo: number;
+  hi: number;
 }
 
 /**
- * Detail the panel; a header-truss brace that still rubs a post is pulled
- * into its bay a little more until it clears (its end cuts follow the
- * horizontals it lands on, so the fit is found by trial).
+ * Posts on one side of an opening, from the clear edge outwards. Neighbours
+ * alternate their flanges, so every pair either sits web to web (screwed
+ * through the webs, an I-post) or lip to lip with `BOX_GAP` (a box):
+ *
+ *   ≤ 1200 mm      jack ⟩⟨ king
+ *   1200–2400 mm   jack ⟩⟨ king ⟩ ⟨ king
+ *   > 2400 mm      jack ⟩ ⟨ jack ⟩⟨ king ⟩ ⟨ king
+ *
+ * (⟩ = flanges towards the opening). The lintel runs over the jacks to the
+ * web of the first king.
  */
-function fitBraces(pieces: Piece[], profile: ProfileSpec, mark: string): DetailedAssembly {
-  const inset = new Map<Piece, number>();
-  for (let round = 0; ; round++) {
-    const placed = pieces.map((p) => {
-      const e = inset.get(p) ?? 0;
-      if (!p.bay || e === 0) return p;
-      const dir = p.x1 > p.x0 ? 1 : -1;
-      return { ...p, x0: p.x0 + dir * e, x1: p.x1 - dir * e };
-    });
-    const detailed = detailPlanar(toMembers(placed, profile, mark));
-    const braces = new Set(detailed.members.filter((m) => m.role === "brace").map((m) => m.id));
-    if (!braces.size) return detailed;
-    const rubbing = new Set(planarClashes(detailed.members).flatMap((c) => [c.a, c.b]).filter((id) => braces.has(id)));
-    if (!rubbing.size || round > 40) return detailed;
-    detailed.members.forEach((m, i) => {
-      if (!rubbing.has(m.id)) return;
-      const p = pieces[i]!;
-      const next = (inset.get(p) ?? 0) + 4;
-      if (p.bay && p.bay[1] - p.bay[0] - 2 * next >= MIN_CRIPPLE / 2) inset.set(p, next);
-    });
+function openingPosts(o: Opening, side: "left" | "right", p: ProfileSpec): { posts: Post[]; lintelEnd: number; bearing: { lo: number; hi: number } } {
+  const t = p.thickness;
+  const f = flangeOf(p);
+  const jacks = o.width > DOUBLE_JACK_WIDTH ? 2 : 1;
+  const kings = o.width > DOUBLE_JAMB_WIDTH ? 2 : 1;
+  // From the opening outwards: true = flanges towards the opening
+  const seq: { role: Post["role"]; toward: boolean }[] =
+    jacks === 2
+      ? [{ role: "jack", toward: false }, { role: "jack", toward: true }, { role: "jamb", toward: false }, { role: "jamb", toward: true }]
+      : [{ role: "jack", toward: true }, { role: "jamb", toward: false }, { role: "jamb", toward: true }];
+  if (kings === 1) seq.pop();
+  const dir = side === "left" ? -1 : 1;
+  const edge = side === "left" ? o.x : o.x + o.width;
+  let d = 0;
+  const posts: Post[] = [];
+  seq.forEach((s, i) => {
+    // Lips meet (box) when the previous member's flanges point outwards and this one's inwards
+    if (i > 0 && !seq[i - 1]!.toward && s.toward) d += BOX_GAP;
+    const near = edge + dir * d;
+    const far = edge + dir * (d + f);
+    const lo = Math.min(near, far);
+    const hi = Math.max(near, far);
+    // Flanges towards the opening = towards −dir
+    const plusX = s.toward ? dir < 0 : dir > 0;
+    posts.push({ role: s.role, x: plusX ? lo + t / 2 : hi - t / 2, flipped: plusX, lo, hi });
+    d += f;
+  });
+  const lastJack = posts.filter((q) => q.role === "jack").at(-1)!;
+  return { posts, lintelEnd: side === "left" ? lastJack.lo : lastJack.hi, bearing: { lo: lastJack.lo, hi: lastJack.hi } };
+}
+
+/**
+ * Header truss over an opening: lintel (bottom chord, flanges up) and top
+ * plate (top chord, flanges down), verticals over the jacks and at even
+ * panel points, Pratt diagonals sloping down towards mid-span (in tension
+ * under gravity). Pieces are laid on the analytical lines through the middle
+ * of the chord strips; the detailer nests every end into the chords.
+ */
+function headerTruss(left: { lo: number; hi: number }, right: { lo: number; hi: number }, top: number, H: number, p: ProfileSpec): Piece[] {
+  const t = p.thickness;
+  const f = flangeOf(p);
+  const yb = top + f / 2;
+  const yt = H - f / 2;
+  const depth = yt - yb;
+  const a = (left.lo + left.hi) / 2;
+  const b = (right.lo + right.hi) / 2;
+  // Panels about 1.2 × depth wide (webs near 40°), an even count for symmetry
+  let n = Math.max(2, Math.ceil((b - a) / (1.2 * depth)));
+  if (n % 2) n += 1;
+  const xs = Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
+  const out: Piece[] = [];
+  const off = f / 2 - t / 2;
+  xs.forEach((x, i) => {
+    // Verticals: flanges towards mid-span, so the end ones sit web to web with the kings
+    const plusX = i <= n / 2;
+    const xc = plusX ? x - off : x + off;
+    out.push({ role: "cripple", x0: xc, y0: yb, x1: xc, y1: yt, flipped: plusX });
+  });
+  for (let i = 0; i < n; i++) {
+    const leftHalf = i < n / 2;
+    const [ax, ay, bx, by] = leftHalf ? [xs[i]!, yt, xs[i + 1]!, yb] : [xs[i]!, yb, xs[i + 1]!, yt];
+    const l = Math.hypot(bx - ax, by - ay);
+    // Unflipped flange direction (−dy, dx); shift so the strip is centred on the line
+    const nx = -(by - ay) / l;
+    const ny = (bx - ax) / l;
+    out.push({ role: "brace", x0: ax - nx * off, y0: ay - ny * off, x1: bx - nx * off, y1: by - ny * off, flipped: false });
   }
+  return out;
 }
 
 function toMembers(pieces: Piece[], profile: ProfileSpec, mark: string): Member[] {

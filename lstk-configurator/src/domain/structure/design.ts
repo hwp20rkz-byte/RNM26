@@ -7,7 +7,7 @@ import type { ProfileSpec } from "../profiles/types";
 import { solveTruss } from "../trusses/analysis";
 import { roofNodeLoads } from "../trusses/loads";
 import type { BarRole, TrussModel } from "../trusses/types";
-import { openingClass } from "../walls/types";
+import { HEADER_MIN_CLEAR, openingClass } from "../walls/types";
 import { mcRdX, mcRdY, nbRd, ntRd, resistance } from "./section";
 
 /**
@@ -167,20 +167,24 @@ export function design(b: Building, city: City, finishes: FinishChoice): Design 
     for (const plan of wallPlans(input, li, b.levels[li]!.base)) {
       if (plan.side !== "front" && plan.side !== "back") continue;
       const cfg = level.sides[plan.side];
+      const fl = p.family === "C" ? p.flange : 41;
       for (const o of sideOpenings(cfg, plan.length, H, input, p)) {
-        const L = o.width + 100;
+        // Span between the jack centres
+        const L = o.width + fl;
         const Md = (above * L * L) / 8;
         const cls = openingClass(o);
-        const headerH = H - (o.sill + o.height) - 2 * p.thickness;
+        // Same rule as the wall generator: a header truss when there is room for its webs
+        const clear = H - (o.sill + o.height) - 2 * fl;
         const res = (q: ProfileSpec) => {
           const r = resistance(q);
-          if (cls === "truss" && headerH > 250) {
-            // Chord force = M / lever arm; the top plate is restrained by the cripples at stud spacing
-            const lever = headerH - (q.family === "C" ? q.flange : 41);
-            return (Md / lever) / nbRd(r, s, s);
+          if (cls !== "single" && clear >= HEADER_MIN_CLEAR) {
+            // Chord force = M / lever arm (chord strip centres); the top plate buckles between panel points
+            const lever = H - (o.sill + o.height) - fl;
+            const panel = 1.2 * lever;
+            return (Md / lever) / nbRd(r, Math.min(panel, s), panel);
           }
-          const box = cls === "double" ? 2 * (r.iy + r.area * (0.35 * (q.family === "C" ? q.flange : 41)) ** 2) / r.iy : 1;
-          return Md / (mcRdY(r) * box);
+          // Flat lintel on the jacks: weak-axis bending over the clear span
+          return Md / mcRdY(r);
         };
         const u = res(p);
         checks.push({ ...check(`chk.lintel.${cls}`, `${plan.mark} · ${Math.round(o.width)}`, "bending", u, 1, res, p) });

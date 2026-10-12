@@ -10,7 +10,7 @@ import { fabricateTruss } from "../trusses/fabricate";
 import { generateTruss } from "../trusses/generate";
 import type { TrussModel } from "../trusses/types";
 import { generateWallDetailed } from "../walls/generate";
-import { DOUBLE_JAMB_WIDTH, openingClass, type BackingStud, type Opening } from "../walls/types";
+import { DOUBLE_JACK_WIDTH, openingClass, type BackingStud, type Opening } from "../walls/types";
 import { jambZone } from "../walls/generate";
 import { WALL_SIDES, type BuildingInput, type Level, type SideConfig, type WallSide } from "./types";
 
@@ -148,7 +148,7 @@ export function sideOpenings(side: SideConfig, length: number, height: number, i
   const f = flangeOf(p);
   // A station is a post: the box posts of the two bays beside it (or the end
   // stud + a box post at the corners); wide bays get box posts, see jambZone
-  const zone = jambZone({ id: "", kind: "gate", x: 0, width: DOUBLE_JAMB_WIDTH + 1, height: 0, sill: 0 }, p);
+  const zone = jambZone({ id: "", kind: "gate", x: 0, width: DOUBLE_JACK_WIDTH + 1, height: 0, sill: 0 }, p);
   const edge = zone + t + f + 20;
   const mid = 2 * zone + 120;
   const stations = evenStations(length, input.postSpacing, 0);

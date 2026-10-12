@@ -32,6 +32,57 @@ function CH({ x, y, dir = 1, w = 89, f = 41, l = 11 }: { x: number; y: number; d
   );
 }
 
+/**
+ * Opening in elevation (schematic, not to scale along the opening): king
+ * studs full height, jack studs under the lintel, cripples or a header truss
+ * between the lintel and the top plate. Strips are one flange (41) wide.
+ */
+function OpeningElevation({ kings, jacks, truss, text }: { kings: 1 | 2; jacks: 1 | 2; truss: boolean; text: string }) {
+  const W = 300; // clear opening as drawn
+  const H = 280;
+  const top = 90; // underside of the lintel
+  const f = 20;
+  const strip = (x: number, y: number, w: number, h: number, color: string, key: string) => <rect key={key} x={x} y={y} width={w} height={h} fill="none" stroke={color} strokeWidth={T} />;
+  const posts = (side: -1 | 1) => {
+    const out: ReactElement[] = [];
+    const edge = side < 0 ? 0 : W;
+    let d = 0;
+    const put = (full: boolean, key: string) => {
+      const x = side < 0 ? edge - d - f : edge + d;
+      out.push(strip(x, full ? 0 : top + f, f, full ? H : H - top - f, full ? STEEL : ACC, key));
+      d += f + 2;
+    };
+    for (let j = 0; j < jacks; j++) put(false, `j${side}${j}`);
+    for (let k = 0; k < kings; k++) put(true, `k${side}${k}`);
+    return { out, reach: d - 2 };
+  };
+  const l = posts(-1);
+  const r = posts(1);
+  const jw = jacks * (f + 2) - 2;
+  const webs: ReactElement[] = [];
+  if (truss) {
+    const xs = [-jw / 2, W / 4, W / 2, (3 * W) / 4, W + jw / 2];
+    xs.forEach((x, i) => webs.push(strip(x - f / 2, f, f, top - f, STEEL, `v${i}`)));
+    for (let i = 0; i < 4; i++) {
+      const [x1, y1, x2, y2] = i < 2 ? [xs[i]!, f, xs[i + 1]!, top] : [xs[i]!, top, xs[i + 1]!, f];
+      webs.push(<line key={`d${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={ACC} strokeWidth={6} strokeLinecap="round" />);
+    }
+  } else {
+    webs.push(strip(W / 2 - f / 2, f, f, top - f, STEEL, "c"));
+  }
+  return (
+    <>
+      {strip(-l.reach, 0, W + l.reach + r.reach, f, STEEL, "plate")}
+      {strip(-jw, top, W + 2 * jw, f, STEEL, "lintel")}
+      {webs}
+      {l.out}
+      {r.out}
+      {strip(-l.reach, H, W + l.reach + r.reach, f, STEEL, "bottom")}
+      <Dim x1={0} y1={H - 30} x2={W} y2={H - 30} text={text} />
+    </>
+  );
+}
+
 function Layer({ x, y, w, h, fill }: { x: number; y: number; w: number; h: number; fill: string }) {
   return <rect x={x} y={y} width={w} height={h} fill={fill} opacity={0.7} />;
 }
@@ -83,47 +134,10 @@ const views: Record<NodeType, { vb: string; body: ReactElement }> = {
     ),
   },
   cross: { vb: "0 0 10 10", body: <></> },
-  "opening-single": {
-    vb: "-60 -60 420 300",
-    body: (
-      <>
-        <rect x={0} y={0} width={300} height={8} fill="none" stroke={STEEL} strokeWidth={T} />
-        <rect x={-10} y={0} width={10} height={200} fill="none" stroke={STEEL} strokeWidth={T} />
-        <rect x={300} y={0} width={10} height={200} fill="none" stroke={STEEL} strokeWidth={T} />
-        <Dim x1={0} y1={-20} x2={300} y2={-20} text="≤ 600" />
-      </>
-    ),
-  },
-  "opening-double": {
-    vb: "-80 -80 460 320",
-    body: (
-      <>
-        <rect x={0} y={-41} width={300} height={41} fill="none" stroke={STEEL} strokeWidth={T} />
-        <line x1={0} y1={-20} x2={300} y2={-20} stroke={STEEL} strokeDasharray="6 4" />
-        <rect x={-41} y={-41} width={41} height={240} fill="none" stroke={STEEL} strokeWidth={T} />
-        <rect x={300} y={-41} width={41} height={240} fill="none" stroke={STEEL} strokeWidth={T} />
-        <Dim x1={0} y1={-60} x2={300} y2={-60} text="600–900 / > 1200" />
-      </>
-    ),
-  },
-  "opening-truss": {
-    vb: "-80 -120 520 360",
-    body: (
-      <>
-        <rect x={-10} y={-100} width={380} height={8} fill="none" stroke={STEEL} strokeWidth={T} />
-        <rect x={0} y={0} width={360} height={8} fill="none" stroke={STEEL} strokeWidth={T} />
-        {[0, 90, 180, 270].map((x, i) => (
-          <line key={x} x1={x} y1={i % 2 ? -92 : 0} x2={x + 90} y2={i % 2 ? 0 : -92} stroke={ACC} strokeWidth={4} />
-        ))}
-        {[90, 180, 270].map((x) => (
-          <line key={x} x1={x} y1={-92} x2={x} y2={0} stroke={STEEL} strokeWidth={T} />
-        ))}
-        <rect x={-41} y={-100} width={41} height={300} fill="none" stroke={STEEL} strokeWidth={T} />
-        <rect x={360} y={-100} width={41} height={300} fill="none" stroke={STEEL} strokeWidth={T} />
-        <Dim x1={0} y1={30} x2={360} y2={30} text="≥ 900" />
-      </>
-    ),
-  },
+  "opening-single": { vb: "-140 -40 580 340", body: <OpeningElevation kings={1} jacks={1} truss={false} text="≤ 600" /> },
+  "opening-double": { vb: "-140 -40 580 340", body: <OpeningElevation kings={2} jacks={1} truss text="600–2400" /> },
+  "opening-truss": { vb: "-180 -40 660 340", body: <OpeningElevation kings={2} jacks={2} truss text="> 2400" /> },
+
   "base-anchor": {
     vb: "-80 -160 320 260",
     body: (

@@ -40,23 +40,26 @@ export interface BackingStud {
   reason: "corner" | "tee";
 }
 
-/** Opening reinforcement class, by clear width (see docs/lstk-knowledge-base.md) */
+/**
+ * Opening class, by clear width (docs/lstk-knowledge-base.md, rules 8–10):
+ * - single: ≤ 600 mm — jack + king each side, flat lintel with cripples;
+ * - double: 600–2400 mm — header truss; a second king from 1200 mm;
+ * - truss: > 2400 mm — header truss, two jacks and two kings each side.
+ */
 export type OpeningClass = "single" | "double" | "truss";
 
-/** Openings wider than this get a second (king) stud each side, mm */
+/** Flat lintel with cripples up to this width; a header truss above, mm */
+export const LINTEL_TRUSS_WIDTH = 600;
+/** Clear height between the lintel and the top plate strips needed for a header truss, mm */
+export const HEADER_MIN_CLEAR = 150;
+/** Openings wider than this get a second king stud each side, mm */
 export const DOUBLE_JAMB_WIDTH = 1200;
-/**
- * Lintel: single C up to this width, box (two C toe-to-toe) above, mm.
- * A C89 laid flat bends about its weak axis: the design check
- * (domain/structure) fails a single lintel over ~650 mm under a snow roof.
- */
-export const BOX_LINTEL_WIDTH = 600;
-/** Header truss (lintel + top plate + diagonals) from this width, mm */
-export const HEADER_TRUSS_WIDTH = 900;
+/** Openings wider than this get a second jack stud each side, mm */
+export const DOUBLE_JACK_WIDTH = 2400;
 
 export function openingClass(o: Opening): OpeningClass {
-  if (o.width >= HEADER_TRUSS_WIDTH) return "truss";
-  if (o.width > BOX_LINTEL_WIDTH) return "double";
+  if (o.width > DOUBLE_JACK_WIDTH) return "truss";
+  if (o.width > LINTEL_TRUSS_WIDTH) return "double";
   return "single";
 }
 

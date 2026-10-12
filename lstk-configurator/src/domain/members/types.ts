@@ -5,6 +5,8 @@ export type MemberRole =
   | "stud"
   | "track"
   | "jamb"
+  /** Jack (trimmer) stud: carries the lintel beside an opening */
+  | "jack"
   | "sill"
   | "cripple"
   | "post"
