@@ -80,9 +80,21 @@ describe("generateWall — plain wall", () => {
 describe("generateWall — openings", () => {
   const ms = generateWall(wall([window1, door]));
 
-  it("jambs frame each opening exactly at its clear edges", () => {
-    const jambs = byRole(ms, "jamb").map(xOf).sort((a, b) => a - b);
-    expect(jambs).toEqual([1500 - t / 2, 2700 + t / 2, 3800 - t / 2, 4700 + t / 2].map((x) => expect.closeTo(x, 9)));
+  it("a jack stud each side carries the lintel; its flange tips sit on the clear edge", () => {
+    const F = C89.flange;
+    const jacks = byRole(ms, "jack").sort((a, b) => a.start.x - b.start.x);
+    expect(jacks).toHaveLength(4);
+    // Strip of each jack: [web, web ± F] towards the opening
+    const edges = jacks.map((j) => (memberFrame(j).flange.x > 0 ? j.start.x - t / 2 + F : j.start.x + t / 2 - F));
+    expect(edges).toEqual([1500, 2700, 3800, 4700].map((x) => expect.closeTo(x, 9)));
+    for (const [j, o] of [[jacks[0]!, window1], [jacks[2]!, door]] as const) expect(j.end.y).toBeLessThanOrEqual(openingTop(o));
+  });
+
+  it("king studs run full height web to web with the jacks", () => {
+    const jacks = byRole(ms, "jack");
+    const kings = byRole(ms, "jamb");
+    expect(kings).toHaveLength(4);
+    for (const j of jacks) expect(kings.some((k) => Math.abs(Math.abs(k.start.x - j.start.x) - t) < 1e-6)).toBe(true);
   });
 
   it("bottom plate is cut at the door, continuous under the window", () => {
@@ -93,25 +105,29 @@ describe("generateWall — openings", () => {
     ]);
   });
 
-  it("lintel over every opening (box lintel over 600 mm), sill only under the window", () => {
-    // lower lintel of each opening sits on the opening top
-    const lintels = byRole(ms, "lintel").filter((l) => !l.flipped);
+  it("a lintel flanges up on the jacks over every opening, sill only under the window", () => {
+    const lintels = byRole(ms, "lintel");
     expect(lintels).toHaveLength(2);
+    for (const l of lintels) expect(memberFrame(l).flange.y).toBeCloseTo(1, 12);
     expect(lintels.map((l) => l.start.y - t / 2).sort((a, b) => a - b)).toEqual([openingTop(door), openingTop(window1)].sort((a, b) => a - b).map((y) => expect.closeTo(y, 9)));
-    const boxes = byRole(ms, "lintel").filter((l) => l.flipped);
-    expect(boxes).toHaveLength([door, window1].filter((o) => o.width > 600).length);
     const sills = byRole(ms, "sill");
     expect(sills).toHaveLength(1);
     expect(sills[0]!.start.y + t / 2).toBeCloseTo(900, 9);
   });
 
-  it("no full-height stud runs through an opening; cripples carry the grid", () => {
+  it("openings over 600 mm get a header truss: verticals and Pratt diagonals nested into lintel and top plate", () => {
+    const braces = byRole(ms, "brace");
+    expect(braces.length).toBeGreaterThanOrEqual(4);
+    for (const b of braces) expect(b.features.filter((f) => f.kind === "swage")).toHaveLength(2);
+  });
+
+  it("no full-height stud runs through an opening; cripples on the grid under the sill", () => {
     for (const s of byRole(ms, "stud")) {
       for (const o of [window1, door]) expect(xOf(s) < o.x || xOf(s) > o.x + o.width).toBe(true);
     }
-    const cripples = byRole(ms, "cripple");
-    // window 1500–2700: grid 1800, 2400 → above and below; door 3800–4700: 4200 above only
-    expect(cripples).toHaveLength(2 * 2 + 1);
+    // window 1500–2700: grid 1800, 2400 below the sill
+    const below = byRole(ms, "cripple").filter((c) => c.end.y < window1.sill);
+    expect(below.map(xOf).sort((a, b) => a - b)).toEqual([1800, 2400]);
   });
 
   it("no nogging crosses an opening", () => {
@@ -143,12 +159,11 @@ describe("reinforcement", () => {
   const p = findProfile("C89x41x11x0.95");
   const wide = { id: "g", kind: "gate" as const, x: 600, width: 3000, height: 2200, sill: 0 };
   const ms = generateWall({ length: 5000, height: 2700, studSpacing: 600, profile: p, openings: [wide], noggings: false }, "G");
-  it("an opening over 1200 mm gets box posts each side", () => {
-    const left = ms.filter((m) => m.start.x === m.end.x && m.start.x < wide.x);
-    // end stud + king stud + jamb
-    expect(left.length).toBe(3);
+  it("an opening over 2400 mm gets two jacks and two kings each side", () => {
+    expect(ms.filter((m) => m.role === "jack" && m.start.x < wide.x)).toHaveLength(2);
+    expect(ms.filter((m) => m.role === "jamb" && m.start.x < wide.x)).toHaveLength(2);
   });
-  it("from 1500 mm the header becomes a truss with diagonals", () => {
+  it("the wide header is a truss with diagonals", () => {
     expect(ms.filter((m) => m.role === "brace").length).toBeGreaterThanOrEqual(2);
   });
   it("backing studs replace grid studs that would clash", () => {

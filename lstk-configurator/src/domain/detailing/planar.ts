@@ -131,6 +131,7 @@ const RANK: Record<MemberRole, number> = {
   "bottom-chord": 3.5,
   stud: 3,
   jamb: 3,
+  jack: 3,
   post: 3,
   beam: 2.5,
   purlin: 2.5,
@@ -386,6 +387,10 @@ export function detailPlanar(input: readonly Member[], rules: DetailingRules = D
         if (Math.abs(crs(g.d, h.d)) < 0.05) continue;
         const q = local(h, P);
         if (q.u < -1 || q.u > h.L + 1) continue;
+        // The end face must land along the host, not just touch its end
+        // (a lintel resting on top of a jack stud is not inside the jack)
+        const us = endCorners(g, e, false, leg).map((c) => local(h, c).u);
+        if (Math.min(h.L, Math.max(...us)) - Math.max(0, Math.min(...us)) < 1) continue;
         if (q.v < -h.t / 2 - 1.5 || q.v > h.F - h.t / 2 + 0.5) continue;
         const k = dot(out, h.n);
         // The end must be heading into the host, not running along its back
@@ -681,7 +686,12 @@ export function detailPlanar(input: readonly Member[], rules: DetailingRules = D
       if (last && a <= last[1] + 1) last[1] = Math.max(last[1], b);
       else merged.push([a, b]);
     }
-    for (const [a, b] of merged) features[h.i]!.push({ kind: "lip-cut", position: round(a), length: round(b - a) });
+    for (const [a, b] of merged) {
+      // Rounded inwards to 0.1 mm so the cut never runs past the member end
+      const from = Math.ceil(a * 10 - 1e-6) / 10;
+      const to = Math.floor(b * 10 + 1e-6) / 10;
+      if (to > from) features[h.i]!.push({ kind: "lip-cut", position: from, length: round(to - from) });
+    }
   }
 
   const members = input.map((m, i) => {
