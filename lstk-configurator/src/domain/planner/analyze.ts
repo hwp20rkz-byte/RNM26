@@ -4,6 +4,7 @@ import { generateBuilding, overallSize, type Building } from "../buildings/gener
 import type { RoomPurpose } from "../buildings/types";
 import { findCity, type City } from "../climate/cities";
 import { hardwareTotals, type HardwareLine } from "../connections/hardware";
+import { FASTENERS, type FastenerKind } from "../connections/fasteners";
 import { detailingSummary, type DetailingSummary } from "../detailing/planar";
 import { doorArea, windowArea } from "../envelope/geometry";
 import { thermal, type EfficiencyLevel, type InsulationMaterial, type ThermalResult } from "../envelope/insulation";
@@ -51,6 +52,8 @@ export interface PlannerSettings {
   designPerM2: number;
   /** Mill certificate confirms G550 (else the design uses 350 MPa) */
   certifiedG550: boolean;
+  /** Frame fasteners in the dimples */
+  fastener: FastenerKind;
   /** Drawing set title block */
   doc: { code: string; org: string; developer: string; stage: string };
 }
@@ -74,6 +77,7 @@ export const DEFAULT_SETTINGS: PlannerSettings = {
   vat: false,
   designPerM2: 3500,
   certifiedG550: false,
+  fastener: "screw",
   doc: { code: "ЛСТК-01-АР/КМ", org: "", developer: "", stage: "П" },
 };
 
@@ -167,7 +171,8 @@ function operations(assemblies: readonly Assembly[]): number {
 
 export function analyze(input: Building["input"], settings: PlannerSettings, prices: Prices): Analysis {
   const building = generateBuilding(input);
-  const bom = computeBom(building.assemblies, prices);
+  // Rivets: the catalogue price; screws: the price the user keeps in the spec
+  const bom = computeBom(building.assemblies, settings.fastener === "rivet" ? { ...prices, fastenerEach: FASTENERS.rivet.price } : prices);
   const city = findCity(settings.cityId);
   const thermalResult = thermal(building, {
     city,
@@ -284,7 +289,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     lines: [],
     hardware,
     detailing: detailingSummary(building.assemblies),
-    design: design(building, city, settings.finishes),
+    design: design(building, city, settings.finishes, settings.fastener),
     estimate: null as unknown as Estimate,
     settings,
     cost: 0,

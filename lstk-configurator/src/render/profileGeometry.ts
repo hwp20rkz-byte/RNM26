@@ -72,6 +72,10 @@ function holePath(f: Feature): THREE.Path | null {
       obround(p, u, -f.offset * MM, f.length * MM, f.width * MM);
       return p;
     case "dimple":
+      // Flange dimples are not drawn on the web plate
+      if (f.flange) return null;
+      p.absarc(u, -f.offset * MM, (f.diameter / 2) * MM, 0, 2 * Math.PI, false);
+      return p;
     case "bolt-hole":
       p.absarc(u, -f.offset * MM, (f.diameter / 2) * MM, 0, 2 * Math.PI, false);
       return p;

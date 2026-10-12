@@ -10,6 +10,10 @@ import { fabricateTruss } from "../trusses/fabricate";
 import { generateTruss } from "../trusses/generate";
 import { generateWallDetailed } from "../walls/generate";
 import { DETAILING, detailPlanar, planarClashes } from "./planar";
+import { spatialClashes } from "./spatial";
+import { fastenerResistance } from "../connections/fasteners";
+import { analyze, DEFAULT_SETTINGS } from "../planner/analyze";
+import { MEP_SYSTEMS, mepLayout } from "../mep/routing";
 
 const C89 = findProfile("C89x41x11x0.95");
 const t = C89.thickness;
@@ -115,5 +119,69 @@ describe("truss joints (flat, Howick-type)", () => {
     expect(kinds.has("ridge-plate")).toBe(true);
     const plates = b.hardware.filter((h) => h.kind === "ridge-plate").reduce((s, h) => s + h.qty, 0);
     expect(plates).toBe(b.trussPositions.length);
+  });
+});
+
+describe("between assemblies (corners, T-junctions, trusses on walls)", () => {
+  for (const p of PRODUCTS) {
+    it(`${p.id}: no two pieces of steel in one place`, () => {
+      const b = generateBuilding(productInput(p.id));
+      expect(spatialClashes(b.assemblies).map((c) => `${c.a}×${c.b} ${c.depth.toFixed(1)}`)).toEqual([]);
+    });
+  }
+  it("the check sees a wall pushed into its neighbour", () => {
+    const b = generateBuilding(productInput("house"));
+    const moved = b.assemblies.map((a) => (a.mark === "W3" ? { ...a, placement: { ...a.placement, origin: { ...a.placement.origin, x: a.placement.origin.x + 30 } } } : a));
+    expect(spatialClashes(moved).length).toBeGreaterThan(0);
+  });
+});
+
+describe("fasteners", () => {
+  const prices = { steelPerKg: 850, scrapPct: 3, fastenerEach: 15, boltEach: 400 };
+  it("rivets bear more than screws in the same lap (EN 1993-1-3 tables 8.1/8.2)", () => {
+    expect(fastenerResistance("rivet", C89)).toBeGreaterThan(fastenerResistance("screw", C89));
+    // 0.95 mm S350GD (fu = 420): α = 3.2·√(0.95/4.2) ≈ 1.52 → 1.52·420·4.2·0.95/1.25 ≈ 2.04 kN per screw
+    expect(fastenerResistance("screw", C89) / 1000).toBeCloseTo(2.04, 2);
+  });
+  it("every truss joint carries its bar force with the fasteners the detailing placed", () => {
+    for (const p of PRODUCTS) {
+      const a = analyze(productInput(p.id), DEFAULT_SETTINGS, prices);
+      for (const c of a.design.checks.filter((x) => x.element.startsWith("chk.joint"))) expect(c.utilisation, `${p.id} ${c.element} ${c.where}`).toBeLessThanOrEqual(1);
+    }
+  });
+  it("switching to rivets changes the fastener cost, not the count", () => {
+    const s = analyze(productInput("house"), DEFAULT_SETTINGS, prices);
+    const r = analyze(productInput("house"), { ...DEFAULT_SETTINGS, fastener: "rivet" }, prices);
+    expect(r.bom.totals.fasteners).toBe(s.bom.totals.fasteners);
+    expect(r.bom.totals.fastenerCost).toBeGreaterThan(s.bom.totals.fastenerCost);
+  });
+});
+
+describe("services routing", () => {
+  const prices = { steelPerKg: 850, scrapPct: 3, fastenerEach: 15, boltEach: 400 };
+  const a = analyze(productInput("house"), DEFAULT_SETTINGS, prices);
+  const layout = mepLayout(a.building, a.thermal.envelope.rooms, a.mep, { electricHeating: false, recovery: false });
+  it("draws every system of a heated house: power, lighting, water, drainage, ventilation, heating", () => {
+    for (const s of MEP_SYSTEMS) expect(layout.runs.some((r) => r.system === s) || layout.points.some((p) => p.system === s), s).toBe(true);
+    expect(layout.points.filter((p) => p.kind === "panel")).toHaveLength(1);
+    expect(layout.points.filter((p) => p.kind === "socket")).toHaveLength(a.mep.sockets);
+    expect(layout.points.filter((p) => p.kind === "light")).toHaveLength(a.mep.lights);
+    expect(layout.points.some((p) => p.kind === "radiator")).toBe(true);
+  });
+  it("the drainage stack goes up through the roof; drains fall towards it", () => {
+    const stack = layout.runs.find((r) => r.system === "sewer" && r.diameter === 110 && r.points.length === 2 && r.points[1]!.y > r.points[0]!.y)!;
+    expect(stack.points[1]!.y).toBeGreaterThan(a.building.ridgeHeight - 2000);
+    for (const r of layout.runs.filter((x) => x.system === "sewer" && x !== stack)) {
+      for (let i = 2; i < r.points.length; i++) expect(r.points[i]!.y).toBeLessThanOrEqual(r.points[i - 1]!.y + 1e-6);
+    }
+  });
+  it("electric heating draws convectors and no heating pipes", () => {
+    const e = mepLayout(a.building, a.thermal.envelope.rooms, a.mep, { electricHeating: true, recovery: false });
+    expect(e.points.some((p) => p.kind === "convector")).toBe(true);
+    expect(e.runs.some((r) => r.system === "heating")).toBe(false);
+  });
+  it("open buildings get no services", () => {
+    const c = analyze(productInput("carport1"), DEFAULT_SETTINGS, prices);
+    expect(mepLayout(c.building, c.thermal.envelope.rooms, c.mep, { electricHeating: false, recovery: false }).runs).toHaveLength(0);
   });
 });

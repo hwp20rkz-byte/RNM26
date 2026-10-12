@@ -9,6 +9,9 @@ import { roofNodeLoads } from "../trusses/loads";
 import type { BarRole, TrussModel } from "../trusses/types";
 import { HEADER_MIN_CLEAR, openingClass } from "../walls/types";
 import { mcRdX, mcRdY, nbRd, ntRd, resistance } from "./section";
+import type { Assembly } from "../assemblies/types";
+import { fastenerResistance, type FastenerKind } from "../connections/fasteners";
+import { centrelineLength } from "../members/member";
 
 /**
  * Preliminary structural design of the frame (limit states, EN 1990 / 1991 /
@@ -42,7 +45,7 @@ export interface Loads {
   windDesign: number;
 }
 
-export type CheckKind = "compression" | "tension" | "combined" | "bending";
+export type CheckKind = "compression" | "tension" | "combined" | "bending" | "shear";
 
 export interface Check {
   /** i18n key under `chk.*` */
@@ -92,9 +95,26 @@ const barLength = (m: TrussModel, i: number) => {
 };
 
 /** Bar forces by role under a uniform design load on plan */
-function trussChecks(model: TrussModel, qKpa: number, spacing: number, label: string, p: ProfileSpec, battens: number): Check[] {
+function trussChecks(model: TrussModel, qKpa: number, spacing: number, label: string, p: ProfileSpec, battens: number, joints?: JointFasteners): Check[] {
   const sol = solveTruss(model, roofNodeLoads(model, qKpa, spacing));
   const out: Check[] = [];
+  if (joints) {
+    // Connections: the heel carries the bottom-chord force at the support; a web end its bar force
+    const supports = new Set(model.nodes.filter((n) => n.support).map((n) => n.id));
+    let heel = 0;
+    let web = { u: (_q: ProfileSpec) => 0, demand: 0, n: 0 };
+    const fr = (q: ProfileSpec) => fastenerResistance(joints.kind, q);
+    model.bars.forEach((b, i) => {
+      const f = Math.abs(sol.barForces[i]!);
+      if (b.role === "bottom-chord" && (supports.has(b.a) || supports.has(b.b))) heel = Math.max(heel, f);
+      const n = joints.perBar.get(b.id);
+      if (n === undefined || f <= 1) return;
+      const u = (q: ProfileSpec) => (n > 0 ? f / (n * fr(q)) : Infinity);
+      if (u(p) > web.u(p)) web = { u, demand: f, n };
+    });
+    if (joints.heel > 0 && heel > 1) out.push(check(`chk.joint.heel`, `${label} · ${joints.heel}`, "shear", heel, joints.heel * fr(p), (q) => heel / (joints.heel * fr(q)), p));
+    if (web.demand > 0) out.push(check(`chk.joint.web`, `${label} · ${web.n}`, "shear", web.demand, web.n * fr(p), web.u, p));
+  }
   const roles: BarRole[] = ["top-chord", "bottom-chord", "diagonal", "vertical"];
   for (const role of roles) {
     let worstC = 0;
@@ -123,7 +143,67 @@ function trussChecks(model: TrussModel, qKpa: number, spacing: number, label: st
   return out;
 }
 
-export function design(b: Building, city: City, finishes: FinishChoice): Design {
+/**
+ * Fasteners the detailing put at each end of a truss member (both flanges
+ * counted), keyed by the analytical bar the member was made from. Members are
+ * matched to bars by midpoint: the fabricated pieces lie on the bar lines,
+ * offset at most half a flange.
+ */
+export interface JointFasteners {
+  kind: FastenerKind;
+  /** bar id → fewest fasteners at either end of its piece */
+  perBar: Map<number, number>;
+  /** Fewest fasteners in a heel joint (bottom chord in top chord) */
+  heel: number;
+}
+
+export function trussJointFasteners(a: Assembly | undefined, model: TrussModel, kind: FastenerKind): JointFasteners | undefined {
+  if (!a?.joints) return undefined;
+  // Joints keep the fabricated ids; placed copies carry "#n" (and "FTn-" for floors)
+  const base = (id: string) => id.replace(/#\d+$/, "").replace(/^FT\d+-/, "");
+  const byId = new Map(a.members.map((m) => [base(m.id), m]));
+  const count = (id: string, end: "start" | "end") => {
+    const m = byId.get(id);
+    if (!m) return 0;
+    const L = centrelineLength(m);
+    const zone = m.features
+      .filter((f) => f.kind === "swage")
+      .map((f) => (f.position <= 0.01 ? { from: 0, to: f.length } : { from: f.position, to: L }))
+      .find((z) => (end === "start" ? z.from <= 0.01 : z.to >= L - 0.6));
+    if (!zone) return 0;
+    return m.features.filter((f) => f.kind === "dimple" && f.flange && f.position >= zone.from - 0.1 && f.position <= zone.to + 0.1).length;
+  };
+  const role = (id: string) => byId.get(id)?.role;
+  const perMember = new Map<string, number>();
+  let heel = Infinity;
+  for (const j of a.joints) {
+    if (j.kind !== "nested") continue;
+    const n = count(j.member, j.end);
+    perMember.set(j.member, Math.min(perMember.get(j.member) ?? Infinity, n));
+    if (role(j.member) === "bottom-chord" && j.hosts.some((h) => role(h) === "top-chord")) heel = Math.min(heel, n);
+  }
+  const perBar = new Map<number, number>();
+  for (const bar of model.bars) {
+    if (bar.role === "top-chord" || bar.role === "bottom-chord") continue;
+    const p = model.nodes[bar.a]!;
+    const q = model.nodes[bar.b]!;
+    const mid = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    let best: string | null = null;
+    let bestD = Infinity;
+    for (const [id, m] of byId) {
+      if (m.role !== "truss-web") continue;
+      const d = Math.hypot((m.start.x + m.end.x) / 2 - mid.x, (m.start.y + m.end.y) / 2 - mid.y);
+      if (d < bestD) {
+        bestD = d;
+        best = id;
+      }
+    }
+    if (best && bestD < 150) perBar.set(bar.id, perMember.get(best) ?? 0);
+  }
+  return { kind, perBar, heel: Number.isFinite(heel) ? heel : 0 };
+}
+
+export function design(b: Building, city: City, finishes: FinishChoice, fastener: FastenerKind = "screw"): Design {
   const { input, profile: p } = b;
   const W = input.width;
   const a = (input.roof.pitchDeg * Math.PI) / 180;
@@ -142,8 +222,8 @@ export function design(b: Building, city: City, finishes: FinishChoice): Design 
   const checks: Check[] = [];
   const gaps = b.trussPositions.slice(1).map((x, i) => x - b.trussPositions[i]!);
   const spacing = Math.max(...gaps, input.trussSpacing);
-  checks.push(...trussChecks(b.roofTruss, roofDesign, spacing, "T1", p, 600));
-  if (b.floorTruss) checks.push(...trussChecks(b.floorTruss, floorDesign, 600, "FT", p, 600));
+  checks.push(...trussChecks(b.roofTruss, roofDesign, spacing, "T1", p, 600, trussJointFasteners(b.assemblies.find((x) => x.mark === "T1"), b.roofTruss, fastener)));
+  if (b.floorTruss) checks.push(...trussChecks(b.floorTruss, floorDesign, 600, "FT", p, 600, trussJointFasteners(b.assemblies.find((x) => x.mark.startsWith("FT")), b.floorTruss, fastener)));
 
   // Line loads on the long walls, N/mm, from the top down
   const roofLine = (roofDesign * (W / 2 + input.roof.overhang)) / 1000; // kPa × m → kN/m = N/mm

@@ -1,7 +1,5 @@
 import { DETAILING, detailPlanar, stripWidth, type DetailingIssue, type Joint } from "../detailing/planar";
 import { v3, type Vec3 } from "../geometry/vec";
-import { centrelineLength } from "../members/member";
-import { connectionHoles } from "../members/punching";
 import type { Member, MemberRole } from "../members/types";
 import type { TrussBar, TrussModel, TrussNode } from "./types";
 
@@ -11,7 +9,7 @@ import type { TrussBar, TrussModel, TrussNode } from "./types";
  *   one length, not cut at every panel point), split only where a piece would
  *   exceed `maxPieceLength` — at the node closest to an even division;
  * - the top chord extends past the heel by the overhang;
- * - every piece gets dimple pairs where other members connect to it.
+ * - connection dimples come from the detailed joints (domain/detailing).
  *
  * Placement (mm): truss plane is x (span) / y (up) at z = `planeZ`. Members lie
  * flat, the way a Howick-type line builds trusses: every C has its web across
@@ -78,15 +76,7 @@ export function fabricateTruss(model: TrussModel, opts: { planeZ?: number; idPre
       if (k < pieces.length - 1) end = extend(start, end, -DETAILING.buttGap / 2);
       const inward = chain.role === "top-chord" ? v3(0, -1, 0) : v3(0, 1, 0);
       const placed = flat(start, end, inward, chordWidth, input.chordProfile.thickness);
-      const length = centrelineLength(placed);
-      const stations = pieceNodes.map((id) => distanceAlong(placed.start, placed.end, toVec(node(id), planeZ)));
-      members.push({
-        id: nextId(chain.role),
-        role: chain.role,
-        profile: input.chordProfile,
-        ...placed,
-        features: connectionHoles(length, stations),
-      });
+      members.push({ id: nextId(chain.role), role: chain.role, profile: input.chordProfile, ...placed, features: [] });
     });
   }
 
@@ -95,14 +85,7 @@ export function fabricateTruss(model: TrussModel, opts: { planeZ?: number; idPre
     const a = toVec(node(bar.a), planeZ);
     const b = toVec(node(bar.b), planeZ);
     const placed = flat(a, b, v3(1, 0, 0), webWidth, input.webProfile.thickness);
-    const length = centrelineLength(placed);
-    members.push({
-      id: nextId("truss-web"),
-      role: "truss-web",
-      profile: input.webProfile,
-      ...placed,
-      features: connectionHoles(length, [0, length]),
-    });
+    members.push({ id: nextId("truss-web"), role: "truss-web", profile: input.webProfile, ...placed, features: [] });
   }
 
   const detailed = detailPlanar(members);
@@ -144,12 +127,6 @@ function extend(from: Vec3, to: Vec3, by: number): Vec3 {
   return v3(to.x + (dx / l) * by, to.y + (dy / l) * by, to.z);
 }
 
-function distanceAlong(start: Vec3, end: Vec3, p: Vec3): number {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const l = Math.hypot(dx, dy);
-  return ((p.x - start.x) * dx + (p.y - start.y) * dy) / l;
-}
 
 /** Group chord bars into maximal straight runs (ordered node lists) */
 function chordChains(model: TrussModel, role: Chain["role"]): Chain[] {
