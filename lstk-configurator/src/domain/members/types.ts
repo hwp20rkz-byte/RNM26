@@ -28,7 +28,13 @@ export type MemberRole =
  */
 export type Feature =
   | { kind: "service-hole"; position: number; offset: number; width: number; height: number }
-  | { kind: "dimple"; position: number; offset: number; diameter: number }
+  /**
+   * Dimpled fastener hole. In the web (default): `offset` across the web from
+   * its centre. In a flange (`flange: 1 | -1`, the flange on the +y / −y side
+   * of the web): `offset` is the distance from the web centreline along the
+   * flange — where a nested joint is screwed or riveted flange to flange.
+   */
+  | { kind: "dimple"; position: number; offset: number; diameter: number; flange?: 1 | -1 }
   | { kind: "bolt-hole"; position: number; offset: number; diameter: number }
   | { kind: "web-slot"; position: number; offset: number; length: number; width: number }
   | { kind: "lip-cut"; position: number; length: number }

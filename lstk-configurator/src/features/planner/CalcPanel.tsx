@@ -3,7 +3,8 @@
 import type { Analysis } from "@/domain/planner/analyze";
 import { useT } from "@/i18n";
 import { useConfigurator } from "@/store/configurator";
-import { Note, Panel, Stat, Stats, Toggle } from "../configurator/controls";
+import { FASTENERS, fastenerResistance } from "@/domain/connections/fasteners";
+import { Note, Panel, Segmented, Stat, Stats, Toggle } from "../configurator/controls";
 import { int, one, two } from "../configurator/format";
 import { NodeDetail } from "./NodeDetails";
 
@@ -60,8 +61,31 @@ export function CalcPanel({ a }: { a: Analysis }) {
 
 export function NodesPanel({ a }: { a: Analysis }) {
   const t = useT();
+  const { planner, setPlanner } = useConfigurator();
+  const kind = planner.fastener;
+  const joints = a.design.checks.filter((c) => c.element.startsWith("chk.joint."));
   return (
     <>
+      <Panel title={t("fast.title")}>
+        <Segmented
+          legend={t("fast.title")}
+          value={kind}
+          options={[
+            { value: "screw", label: t("fast.screw") },
+            { value: "rivet", label: t("fast.rivet") },
+          ]}
+          onChange={(fastener) => setPlanner({ fastener })}
+        />
+        <Stats>
+          <Stat label={t("fast.capacity")} value={`${two(fastenerResistance(kind, a.building.profile) / 1000)} ${t("unit.kn")}`} />
+          <Stat label={t("fast.count")} value={`${int(a.bom.totals.fasteners)} ${t("unit.pcs")}`} />
+          <Stat label={t("fast.time")} value={`${one((a.bom.totals.fasteners * FASTENERS[kind].seconds) / 3600)} ${t("unit.h")}`} />
+          {joints.map((c) => (
+            <Stat key={c.element + c.where} label={`${t.dyn(c.element)} (${c.where})`} value={`${Math.round(c.utilisation * 100)} %`} strong={!c.ok} />
+          ))}
+        </Stats>
+        <Note>{t("fast.note")}</Note>
+      </Panel>
       <Panel title={t("nodes.title")}>
         <ul className="grid grid-cols-2 gap-3">
           {a.building.nodes.map((n) => (

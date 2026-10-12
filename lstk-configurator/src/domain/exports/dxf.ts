@@ -144,10 +144,18 @@ export function assembliesDxf(assemblies: readonly Assembly[]): string {
         const q = corners[(i + 1) % 4]!;
         w.line(m.role, p[0] + dx, p[1], q[0] + dx, q[1]);
       }
+      const fr = memberFrame(m);
+      for (const ft of m.features) {
+        // Flange dimples face the viewer in the panel elevation
+        if (ft.kind !== "dimple" || !ft.flange || ft.flange !== 1) continue;
+        const x = m.start.x + fr.axis.x * ft.position + fr.flange.x * ft.offset;
+        const y = m.start.y + fr.axis.y * ft.position + fr.flange.y * ft.offset;
+        w.circle(m.role, x + dx, y, ft.diameter / 2);
+      }
       if (webVisible) {
         const f = memberFrame(m);
         for (const ft of m.features) {
-          if (ft.kind !== "dimple" && ft.kind !== "bolt-hole") continue;
+          if ((ft.kind !== "dimple" || ft.flange) && ft.kind !== "bolt-hole") continue;
           const x = m.start.x + f.axis.x * ft.position + f.web.x * ft.offset;
           const y = m.start.y + f.axis.y * ft.position + f.web.y * ft.offset;
           w.circle(m.role, x + dx, y, ft.diameter / 2);

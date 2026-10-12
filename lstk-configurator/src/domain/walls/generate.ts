@@ -1,7 +1,5 @@
 import { v3 } from "../geometry/vec";
 import { DETAILING, detailPlanar, type DetailedAssembly } from "../detailing/planar";
-import { centrelineLength } from "../members/member";
-import { connectionHoles } from "../members/punching";
 import type { Feature, Member, MemberRole } from "../members/types";
 import type { ProfileSpec } from "../profiles/types";
 import { DOUBLE_JACK_WIDTH, DOUBLE_JAMB_WIDTH, HEADER_MIN_CLEAR, openingClass, type Opening, type WallInput } from "./types";
@@ -276,54 +274,16 @@ function headerTruss(left: { lo: number; hi: number }, right: { lo: number; hi: 
   return out;
 }
 
+/** Pieces as members; connection dimples, swages and cuts come from the detailing */
 function toMembers(pieces: Piece[], profile: ProfileSpec, mark: string): Member[] {
-  const vertical = (p: Piece) => p.x0 === p.x1;
-  const diagonal = (p: Piece) => p.x0 !== p.x1 && p.y0 !== p.y1;
-  // Connection stations on horizontal pieces: where vertical members land on them
-  const verticals = pieces.filter(vertical);
-  let n = 0;
-  return pieces.map((p) => {
-    const start = v3(p.x0, p.y0, 0);
-    const end = v3(p.x1, p.y1, 0);
-    const length = centrelineLength({ start, end });
-    const features: Feature[] = [];
-    if (vertical(p) || diagonal(p)) {
-      features.push(...connectionHoles(length, [0, length]));
-    } else {
-      const lo = Math.min(p.x0, p.x1);
-      const hi = Math.max(p.x0, p.x1);
-      const stations = verticals
-        .filter((v) => v.x0 >= lo - 1e-6 && v.x0 <= hi + 1e-6 && (Math.abs(v.y0 - p.y0) < 2 * profile.thickness + 1e-6 || Math.abs(v.y1 - p.y0) < 2 * profile.thickness + 1e-6))
-        .map((v) => v.x0 - lo);
-      if (p.role === "nogging" || p.role === "lintel" || p.role === "sill") stations.push(0, length);
-      features.push(...connectionHoles(length, dedupe(stations)));
-    }
-    return {
-      id: `${mark}-${++n}`,
-      role: p.role,
-      profile,
-      start,
-      end,
-      webAxis: v3(0, 0, 1),
-      flipped: p.flipped,
-      features: dedupeHoles(features),
-    };
-  });
-}
-
-function dedupe(xs: number[]): number[] {
-  const out: number[] = [];
-  for (const x of [...xs].sort((a, b) => a - b)) if (!out.length || x - out[out.length - 1]! > 1) out.push(x);
-  return out;
-}
-
-/** Stations closer than the dimple pitch collapse into one connection */
-function dedupeHoles(features: Feature[]): Feature[] {
-  const seen = new Set<string>();
-  return features.filter((f) => {
-    const key = `${f.kind}:${Math.round(f.position)}:${"offset" in f ? Math.round(f.offset) : ""}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return pieces.map((p, i) => ({
+    id: `${mark}-${i + 1}`,
+    role: p.role,
+    profile,
+    start: v3(p.x0, p.y0, 0),
+    end: v3(p.x1, p.y1, 0),
+    webAxis: v3(0, 0, 1),
+    flipped: p.flipped,
+    features: [] as Feature[],
+  }));
 }

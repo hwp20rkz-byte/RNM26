@@ -231,10 +231,12 @@ function Section({ c, box }: { c: Ctx; box: { x: number; y: number; w: number; h
   });
   // Roof truss drawn from the analytical model
   const m = b.roofTruss;
+  // The truss is placed with its heel just outside the wall face (see generateBuilding)
+  const z0 = (W - m.input.span) / 2;
   for (const bar of m.bars) {
     const p = m.nodes[bar.a]!;
     const q = m.nodes[bar.b]!;
-    it.push(<line key={`t${bar.id}`} x1={X(p.x)} y1={Y(b.roofBase + p.y)} x2={X(q.x)} y2={Y(b.roofBase + q.y)} stroke="black" strokeWidth={bar.role === "top-chord" || bar.role === "bottom-chord" ? LINE.thick : LINE.main} />);
+    it.push(<line key={`t${bar.id}`} x1={X(z0 + p.x)} y1={Y(b.roofBase + p.y)} x2={X(z0 + q.x)} y2={Y(b.roofBase + q.y)} stroke="black" strokeWidth={bar.role === "top-chord" || bar.role === "bottom-chord" ? LINE.thick : LINE.main} />);
   }
   const zero = b.levels[0]!.base;
   const marks = [-zero, 0, ...b.levels.slice(1).map((l) => l.base - zero), b.levels.at(-1)!.base + b.levels.at(-1)!.height - zero, b.ridgeHeight - zero];

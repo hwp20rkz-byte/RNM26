@@ -85,7 +85,8 @@ export function operationsString(features: readonly Feature[]): string {
   return features
     .map((f) => {
       const pos = r1(f.position);
-      return { pos, s: "offset" in f ? `${OP_CODE[f.kind]}@${pos}/${r1(f.offset)}` : `${OP_CODE[f.kind]}@${pos}+${r1(f.length)}` };
+      const code = f.kind === "dimple" && f.flange ? `${OP_CODE[f.kind]}F${f.flange > 0 ? "+" : "-"}` : OP_CODE[f.kind];
+      return { pos, s: "offset" in f ? `${code}@${pos}/${r1(f.offset)}` : `${code}@${pos}+${r1(f.length)}` };
     })
     .sort((a, b) => a.pos - b.pos || (a.s < b.s ? -1 : a.s > b.s ? 1 : 0))
     .map((x) => x.s)

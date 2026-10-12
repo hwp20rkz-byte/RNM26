@@ -66,7 +66,17 @@ export function featureSpan(f: Feature): { from: number; to: number } {
 export const END_OPERATIONS = ["lip-cut", "flange-cut", "swage", "chamfer"] as const;
 type EndOperation = (typeof END_OPERATIONS)[number];
 type WebFeature = Exclude<Feature, { kind: EndOperation }>;
-const isWebFeature = (f: Feature): f is WebFeature => !(END_OPERATIONS as readonly string[]).includes(f.kind);
+const isWebFeature = (f: Feature): f is WebFeature => !(END_OPERATIONS as readonly string[]).includes(f.kind) && !(f.kind === "dimple" && f.flange);
+type FlangeDimple = Extract<Feature, { kind: "dimple" }> & { flange: 1 | -1 };
+export const isFlangeDimple = (f: Feature): f is FlangeDimple => f.kind === "dimple" && f.flange !== undefined;
+
+/** Flat part of a flange, as distances from the web centreline (between the two bends) */
+export function flangeFlat(p: Member["profile"]): { from: number; to: number } | null {
+  if (p.family === "Hat") return null;
+  const bend = p.innerRadius + p.thickness;
+  const lip = p.family === "U" ? 0 : bend;
+  return { from: p.thickness / 2 + bend, to: p.flange - p.thickness / 2 - lip };
+}
 
 function halfAcross(f: WebFeature): number {
   switch (f.kind) {
@@ -91,6 +101,11 @@ export function validateFeatures(m: Member): FeatureIssue[] {
       issues.push({ feature: f, reason: `за пределами элемента длиной ${length} мм` });
       continue;
     }
+    if (isFlangeDimple(f)) {
+      const flat = flangeFlat(m.profile);
+      if (!flat || f.offset - f.diameter / 2 < flat.from - 1e-6 || f.offset + f.diameter / 2 > flat.to + 1e-6) issues.push({ feature: f, reason: "димпл полки заходит на гиб" });
+      continue;
+    }
     if (!isWebFeature(f)) continue;
     if (!span) {
       issues.push({ feature: f, reason: "у профиля нет плоской стенки для пробивки" });
@@ -102,6 +117,16 @@ export function validateFeatures(m: Member): FeatureIssue[] {
     }
   }
   issues.push(...overlappingWebFeatures(m.features));
+  // Flange dimples on one flange need a bridge between them, like web holes
+  for (const side of [1, -1] as const) {
+    const ds = m.features.filter((f): f is FlangeDimple => isFlangeDimple(f) && f.flange === side).sort((a, b) => a.position - b.position);
+    for (let i = 0; i < ds.length; i++)
+      for (let j = i + 1; j < ds.length; j++) {
+        const a = ds[i]!;
+        const b = ds[j]!;
+        if (Math.hypot(a.position - b.position, a.offset - b.offset) < (a.diameter + b.diameter) / 2 + 1) issues.push({ feature: b, reason: `пересекается с димплом на ${a.position.toFixed(1)} мм` });
+      }
+  }
   return issues;
 }
 

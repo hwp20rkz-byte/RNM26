@@ -1,6 +1,7 @@
 "use client";
 
 import { PROFILE_CATALOG, findProfile } from "@/domain/profiles/catalog";
+import { MEP_SYSTEMS } from "@/domain/mep/routing";
 import { designation } from "@/domain/profiles/section";
 import { PATTERNS_FOR_SHAPE, type TrussShape } from "@/domain/trusses/types";
 import { useT } from "@/i18n";
@@ -121,6 +122,7 @@ export function ViewPanel() {
           <Toggle label={t("view.skin")} checked={view.cladding} onChange={(cladding) => setView({ cladding })} />
           <Toggle label={t("view.props")} checked={view.props} onChange={(props) => setView({ props })} />
           <Toggle label={t("view.dims")} checked={view.dims} onChange={(dims) => setView({ dims })} />
+          <Toggle label={t("view.mep")} checked={view.mep.length > 0} onChange={(on) => setView({ mep: on ? [...MEP_SYSTEMS] : [] })} />
         </>
       )}
       <Toggle label={t("view.grid")} checked={view.grid} onChange={(grid) => setView({ grid })} />

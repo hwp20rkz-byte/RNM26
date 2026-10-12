@@ -1,6 +1,6 @@
 import { v3, type Vec3 } from "../geometry/vec";
 import { DEFAULT_DIMPLES } from "../members/punching";
-import { CUT_RESOLUTION_MM } from "../members/member";
+import { CUT_RESOLUTION_MM, flangeFlat } from "../members/member";
 import type { Feature, Member, MemberRole } from "../members/types";
 import type { ProfileSpec } from "../profiles/types";
 
@@ -180,26 +180,13 @@ function endCorners(s: Strip, e: End, chamfer: boolean, leg: number): P2[] {
 function polygon(s: Strip, leg: number): P2[] {
   const a = endCorners(s, "start", s.chamfer.start, leg);
   const b = endCorners(s, "end", s.chamfer.end, leg);
-  const pts = [...a, ...b];
-  return convexHull(pts);
+  // Round the outline: start web → end web → end face to the tips → back along the tips
+  const pts = [a[0]!, ...b, ...a.slice(1).reverse()];
+  let area2 = 0;
+  for (let i = 0; i < pts.length; i++) area2 += crs(pts[i]!, pts[(i + 1) % pts.length]!);
+  return area2 < 0 ? pts.reverse() : pts;
 }
 
-function convexHull(pts: P2[]): P2[] {
-  const p = [...pts].sort((u, v) => u.x - v.x || u.y - v.y);
-  if (p.length < 3) return p;
-  const lower: P2[] = [];
-  for (const q of p) {
-    while (lower.length >= 2 && crs(sub(lower[lower.length - 1]!, lower[lower.length - 2]!), sub(q, lower[lower.length - 2]!)) <= 1e-12) lower.pop();
-    lower.push(q);
-  }
-  const upper: P2[] = [];
-  for (let i = p.length - 1; i >= 0; i--) {
-    const q = p[i]!;
-    while (upper.length >= 2 && crs(sub(upper[upper.length - 1]!, upper[upper.length - 2]!), sub(q, upper[upper.length - 2]!)) <= 1e-12) upper.pop();
-    upper.push(q);
-  }
-  return [...lower.slice(0, -1), ...upper.slice(0, -1)];
-}
 
 /** Sutherland–Hodgman: intersection of two convex CCW polygons */
 function clip(subject: P2[], clipper: P2[]): P2[] {
@@ -232,12 +219,19 @@ interface Box {
   x1: number;
   y1: number;
 }
-const boxOf = (poly: P2[]): Box => ({
-  x0: Math.min(...poly.map((p) => p.x)),
-  y0: Math.min(...poly.map((p) => p.y)),
-  x1: Math.max(...poly.map((p) => p.x)),
-  y1: Math.max(...poly.map((p) => p.y)),
-});
+const boxOf = (poly: P2[]): Box => {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const p of poly) {
+    if (p.x < x0) x0 = p.x;
+    if (p.x > x1) x1 = p.x;
+    if (p.y < y0) y0 = p.y;
+    if (p.y > y1) y1 = p.y;
+  }
+  return { x0, y0, x1, y1 };
+};
 const apart = (a: Box, b: Box) => a.x1 < b.x0 || b.x1 < a.x0 || a.y1 < b.y0 || b.y1 < a.y0;
 
 function area(poly: P2[]): number {
@@ -635,7 +629,8 @@ export function detailPlanar(input: readonly Member[], rules: DetailingRules = D
   flat.forEach((s, k) => {
     const shift = dot(sub(s.a, original[k]!.a), s.d);
     const kept = s.m.features
-      .filter((f) => f.kind !== "swage" && f.kind !== "chamfer" && f.kind !== "lip-cut")
+      // Connection dimples are derived from the joints below
+      .filter((f) => f.kind !== "swage" && f.kind !== "chamfer" && f.kind !== "lip-cut" && f.kind !== "dimple")
       .map((f) => ({ ...f, position: f.position - shift }) as Feature)
       .map((f) => (f.kind === "dimple" || f.kind === "bolt-hole" ? { ...f, position: Math.min(s.L - DEFAULT_DIMPLES.endDistance, Math.max(DEFAULT_DIMPLES.endDistance, f.position)) } : f))
       .filter((f) => {
@@ -665,6 +660,96 @@ export function detailPlanar(input: readonly Member[], rules: DetailingRules = D
     const engagement = h.F - h.t / 2 - Math.min(...ov.map((p) => local(h, p).v));
     if (engagement > (grip.get(key)?.depth ?? -Infinity)) grip.set(key, { depth: engagement, host: h.m.id });
   }
+  // Fasteners. A nested end is screwed or riveted flange to flange: one
+  // fastener through each flange at the same point of both members, placed
+  // in the overlap with 1.5d to its edges and on the flat of both flanges.
+  // Heels (bottom chord in top chord) take as many as fit, 3d apart, up to 6
+  // per flange, truss web ends up to 4, wall joints one. Members standing web to web are fastened through the webs.
+  const dia = DEFAULT_DIMPLES.diameter;
+  const flatOf = (st: Strip) => flangeFlat(st.m.profile);
+  const addDimples = (st: Strip, P: P2) => {
+    const q = local(st, P);
+    for (const side of [1, -1] as const) features[st.i]!.push({ kind: "dimple", position: round(q.u), offset: round(q.v), diameter: dia, flange: side });
+  };
+  const fastened = new Set<string>();
+  const noRoom = new Map<string, string[]>();
+  for (const { g, e, h } of nested) {
+    const ov = clip(polys.get(g)!, polys.get(h)!);
+    if (ov.length < 3) continue;
+    const fg = flatOf(g);
+    const fh = flatOf(h);
+    if (!fg || !fh) continue;
+    const box = boxOf(ov);
+    const heel = g.m.role === "bottom-chord" && h.m.role === "top-chord";
+    const cands: { P: P2; margin: number }[] = [];
+    const centroid = ov.reduce((p, q) => add(p, mul(q, 1 / ov.length)), { x: 0, y: 0 });
+    // Most joints are square: the middle of the overlap is the place; search only if it is not
+    const grid: P2[] = [centroid];
+    if (heel || g.m.role === "truss-web" || !fits(centroid)) for (let x = box.x0; x <= box.x1; x += 3) for (let y = box.y0; y <= box.y1; y += 3) grid.push({ x, y });
+    function fits(P: P2): boolean {
+      return score(P) !== null;
+    }
+    function score(P: P2): number | null {
+        let margin = Infinity;
+        for (let i = 0; i < ov.length; i++) {
+          const A = ov[i]!;
+          const B = ov[(i + 1) % ov.length]!;
+          const ed = sub(B, A);
+          const l = Math.hypot(ed.x, ed.y);
+          if (l < 1e-9) continue;
+          margin = Math.min(margin, crs(ed, sub(P, A)) / l);
+        }
+        if (margin < FASTENER_EDGE) return null;
+        const vg = local(g, P).v;
+        const vh = local(h, P).v;
+        if (vg - dia / 2 < fg!.from || vg + dia / 2 > fg!.to || vh - dia / 2 < fh!.from || vh + dia / 2 > fh!.to) return null;
+        return margin;
+    }
+    for (const P of grid) {
+      const m = score(P);
+      if (m !== null) cands.push({ P, margin: m });
+    }
+    if (!cands.length) {
+      noRoom.set(`${g.i}:${e}`, [...(noRoom.get(`${g.i}:${e}`) ?? []), h.m.id]);
+      continue;
+    }
+    fastened.add(`${g.i}:${e}`);
+    cands.sort((a, b) => b.margin - a.margin);
+    const picked: P2[] = [];
+    for (const c of cands) {
+      if (picked.length >= (heel ? HEEL_FASTENERS : g.m.role === "truss-web" ? WEB_FASTENERS : 1)) break;
+      if (picked.every((p) => Math.hypot(p.x - c.P.x, p.y - c.P.y) >= FASTENER_PITCH)) picked.push(c.P);
+    }
+    for (const P of picked) {
+      addDimples(g, P);
+      addDimples(h, P);
+    }
+  }
+  // An end in two hosts (under the ridge) needs fasteners in one of them
+  for (const [k, hosts] of noRoom) if (!fastened.has(k)) issues.push({ member: strips[Number(k.split(":")[0])]!.m.id, text: `нет места под крепёж в узле с ${hosts.join(", ")}` });
+  for (let i = 0; i < flat.length; i++)
+    for (let j = 0; j < flat.length; j++) {
+      const A = flat[i]!;
+      const B = flat[j]!;
+      if (i === j || Math.abs(crs(A.d, B.d)) > 1e-6 || dot(A.n, B.n) > -0.99) continue;
+      // B's web right behind A's web: an I-post or a stud pair, web to web
+      if (Math.abs(local(A, B.a).v + A.t / 2 + B.t / 2) > 0.3 || i > j) continue;
+      const u0 = local(A, B.a).u;
+      const u1 = local(A, add(B.a, mul(B.d, B.L))).u;
+      const lo = Math.max(0, Math.min(u0, u1)) + 60;
+      const hi = Math.min(A.L, Math.max(u0, u1)) - 60;
+      if (hi - lo < 50) continue;
+      const n = Math.max(2, Math.ceil((hi - lo) / WEB_SCREW_PITCH) + 1);
+      for (let k = 0; k < n; k++) {
+        const u = lo + ((hi - lo) * k) / (n - 1);
+        const P = add(A.a, mul(A.d, u));
+        for (const off of [-WEB_FASTENER_OFFSET, WEB_FASTENER_OFFSET]) {
+          features[A.i]!.push({ kind: "dimple", position: round(u), offset: off, diameter: dia });
+          features[B.i]!.push({ kind: "dimple", position: round(local(B, P).u), offset: off, diameter: dia });
+        }
+      }
+    }
+
   // An end under the ridge sits in both top chords and the ridge plate ties
   // them: one chord with full screw grip is enough
   for (const [k, { depth, host }] of grip) {
@@ -705,6 +790,18 @@ export function detailPlanar(input: readonly Member[], rules: DetailingRules = D
 }
 
 const round = (v: number) => Math.round(v * 10) / 10;
+
+/** Fastener centre to any edge of the joint overlap, mm (1.5d for d = 4.8, rounded up) */
+const FASTENER_EDGE = 8;
+/** Between fasteners, mm (3d for d = 4.8, rounded up) */
+const FASTENER_PITCH = 16;
+/** Fasteners per flange at a truss heel, at most */
+export const HEEL_FASTENERS = 6;
+/** Fasteners per flange at a truss web end, at most (as many as fit) */
+export const WEB_FASTENERS = 4;
+/** Web-to-web pairs: a fastener pair across the web this often, mm */
+const WEB_SCREW_PITCH = 300;
+const WEB_FASTENER_OFFSET = 25;
 
 export interface DetailingSummary {
   /** Physical joints over all assemblies (repeated trusses counted each time) */

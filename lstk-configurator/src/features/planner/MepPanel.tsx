@@ -3,14 +3,24 @@
 import { coopPlan } from "@/domain/livestock/coop";
 import type { Analysis } from "@/domain/planner/analyze";
 import { useT } from "@/i18n";
+import { MEP_SYSTEMS, mepLayout, mepLengths, type MepSystem } from "@/domain/mep/routing";
+import { MEP_COLOR } from "@/render/mep";
 import { useConfigurator } from "@/store/configurator";
+import { useMemo } from "react";
 import { Note, NumberInput, Panel, Stat, Stats, Toggle } from "../configurator/controls";
 import { int, money, one } from "../configurator/format";
 
 export function MepPanel({ a }: { a: Analysis }) {
   const t = useT();
-  const { planner, setPlanner } = useConfigurator();
+  const { planner, setPlanner, view, setView } = useConfigurator();
   const m = a.mep;
+  const layout = useMemo(
+    () => mepLayout(a.building, a.thermal.envelope.rooms, a.mep, { electricHeating: planner.electricHeating, recovery: planner.ventilation === "recovery" }),
+    [a, planner.electricHeating, planner.ventilation],
+  );
+  const lengths = mepLengths(layout);
+  const count = (k: string) => layout.points.filter((p) => p.kind === k).length;
+  const toggle = (sys: MepSystem, on: boolean) => setView({ mep: on ? MEP_SYSTEMS.filter((x) => x === sys || view.mep.includes(x)) : view.mep.filter((x) => x !== sys) });
   const coop = a.coop ? coopPlan(planner.birds) : null;
   return (
     <>
@@ -27,6 +37,31 @@ export function MepPanel({ a }: { a: Analysis }) {
             <Stat label={t("mep.run")} value={`${int(coop.runM2)} ${t("unit.m2")}`} />
           </Stats>
           <Note>{t("mep.coopNote")}</Note>
+        </Panel>
+      )}
+      {layout.runs.length > 0 && (
+        <Panel title={t("mep.layers")}>
+          <ul className="flex flex-col">
+            {MEP_SYSTEMS.filter((sys) => layout.runs.some((r) => r.system === sys) || layout.points.some((p) => p.system === sys)).map((sys) => (
+              <li key={sys} className="flex items-center justify-between gap-2">
+                <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+                  <input type="checkbox" checked={view.mep.includes(sys)} onChange={(e) => toggle(sys, e.target.checked)} className="size-5 accent-[hsl(var(--primary))]" />
+                  <span aria-hidden className="inline-block h-1.5 w-6 rounded-full" style={{ background: MEP_COLOR[sys] }} />
+                  {t.dyn(`mep.sys.${sys}`)}
+                </label>
+                <span className="text-xs tabular-nums text-ink-mute">
+                  {int(lengths[sys])} {t("unit.m")}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Stats>
+            {count("radiator") > 0 && <Stat label={t("mep.radiators")} value={int(count("radiator"))} />}
+            {count("convector") > 0 && <Stat label={t("mep.convectors")} value={int(count("convector"))} />}
+            {count("fan") > 0 && <Stat label={t("mep.fans")} value={int(count("fan"))} />}
+            {count("valve") > 0 && <Stat label={t("mep.valves")} value={int(count("valve"))} />}
+          </Stats>
+          <Note>{t("mep.layersNote")}</Note>
         </Panel>
       )}
       <Panel title={t("mep.electrical")}>

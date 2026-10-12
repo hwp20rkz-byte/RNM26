@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { MEP_SYSTEMS, type MepSystem } from "@/domain/mep/routing";
 import type { Prices } from "@/domain/bom/bom";
 import { type BuildingInput, type FoundationConfig, type Level, type Partition, type RoofConfig, type RoomPurpose, type SideConfig, type WallSide } from "@/domain/buildings/types";
 import { upperLevel } from "@/domain/buildings/levels";
@@ -65,6 +66,8 @@ export interface ViewState {
   dims: boolean;
   /** Show levels up to this index; the roof only when it is the top level. -1 = everything */
   cut: number;
+  /** Service systems drawn in the 3D view */
+  mep: MepSystem[];
 }
 
 export interface ProjectState {
@@ -154,7 +157,7 @@ export const DEFAULT_PROJECT: ProjectState = {
   // Placeholders, same as the business-plan model: replace with supplier quotes
   prices: { steelPerKg: 850, scrapPct: 3, fastenerEach: 15, boltEach: 400 },
   roofLoadKpa: 1.5,
-  view: { lighting: "sunny", grid: false, detail: "instanced", explode: 0, cladding: true, props: true, dims: true, cut: -1 },
+  view: { lighting: "sunny", grid: false, detail: "instanced", explode: 0, cladding: true, props: true, dims: true, cut: -1, mep: [...MEP_SYSTEMS] },
 };
 
 const fresh = (): ProjectState => structuredClone(DEFAULT_PROJECT);
@@ -177,7 +180,7 @@ export function parseProject(raw: unknown): ProjectState | null {
     profile: { ...d.profile, ...r.profile },
     prices: { ...d.prices, ...r.prices },
     roofLoadKpa: r.roofLoadKpa ?? d.roofLoadKpa,
-    view: { ...d.view, ...r.view, explode: 0 },
+    view: { ...d.view, ...r.view, explode: 0, mep: Array.isArray(r.view?.mep) ? (r.view.mep as unknown[]).filter((x): x is MepSystem => MEP_SYSTEMS.includes(x as MepSystem)) : d.view.mep },
   };
 }
 

@@ -57,12 +57,17 @@ describe("generateWall — plain wall", () => {
     expect(memberFrame(studs[studs.length - 1]!).flange.x).toBeCloseTo(-1, 12);
   });
 
-  it("studs carry dimples and swaged ends; plates a dimple pair per stud", () => {
+  it("studs nest into the plates: swaged ends, one fastener through each flange at each end, matched on the plate", () => {
     const stud = byRole(ms, "stud")[3]!;
     expect(stud.features.filter((f) => f.kind === "swage")).toHaveLength(2);
-    expect(stud.features.filter((f) => f.kind === "dimple")).toHaveLength(4);
+    const flangeDimples = (m: Member) => m.features.filter((f) => f.kind === "dimple" && f.flange);
+    // Two plate joints × two flanges (+ the nogging landing in this stud, if any)
+    expect(flangeDimples(stud).filter((f) => f.position < 60 || f.position > centrelineLength(stud) - 60)).toHaveLength(4);
+    for (const f of flangeDimples(stud)) expect(f.kind === "dimple" && f.offset > 0 && f.offset < C89.flange).toBe(true);
     const plate = byRole(ms, "track")[0]!;
-    expect(plate.features.filter((f) => f.kind === "dimple")).toHaveLength(2 * 11);
+    expect(flangeDimples(plate)).toHaveLength(2 * 11);
+    // No connection dimples left in the webs of nested members
+    expect(stud.features.filter((f) => f.kind === "dimple" && !f.flange)).toHaveLength(0);
   });
 
   it("noggings fill every bay at mid-height", () => {

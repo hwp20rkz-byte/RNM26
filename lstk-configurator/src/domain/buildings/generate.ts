@@ -3,7 +3,7 @@ import { anchorStations, STUD_SCREW_PITCH, type HardwareItem } from "../connecti
 import { frame, toWorld, type Frame3 } from "../geometry/frame";
 import { v3, type Vec3 } from "../geometry/vec";
 import { interior, partitionSegments, strandedDoors, validatePartitions, type Interior } from "../layout/rooms";
-import type { DetailedAssembly } from "../detailing/planar";
+import { DETAILING, type DetailedAssembly } from "../detailing/planar";
 import { findProfile } from "../profiles/catalog";
 import type { ProfileSpec } from "../profiles/types";
 import { fabricateTruss } from "../trusses/fabricate";
@@ -328,8 +328,13 @@ export function generateBuilding(input: BuildingInput): Building {
   const top = input.levels.length - 1;
   const roofBase = bases[top]! + input.levels[top]!.height + f / 2;
   const roof = input.roof;
+  // Heel: a flat top chord dips (f/2)(1/cos α − 1) below the bearing plane at
+  // the analytical heel. The heel point moves out by `heelOut` so the chord's
+  // underside clears the outer top edge of the wall by the butt gap.
+  const alpha = (roof.pitchDeg * Math.PI) / 180;
+  const heelOut = roof.type === "mono" ? 0 : ((f / 2) * (1 / Math.cos(alpha) - 1) + DETAILING.buttGap) / Math.tan(alpha);
   const roofTruss = generateTruss({
-    span: W,
+    span: W + 2 * heelOut,
     shape: roof.type === "mono" ? { kind: "mono", pitchDeg: roof.pitchDeg, heelHeight: roof.heelHeight } : { kind: "triangular", pitchDeg: roof.pitchDeg },
     pattern: roof.type === "mono" && roof.pattern === "fink" ? "pratt" : roof.pattern,
     panels: roof.panels,
@@ -348,7 +353,7 @@ export function generateBuilding(input: BuildingInput): Building {
       kind: "truss",
       name: `Ферма T1 (${i + 1} из ${trussPositions.length})`,
       members: roofPieces.map((m) => ({ ...m, id: `${m.id}#${i + 1}` })),
-      placement: frame(v3(x, roofBase, 0), v3(0, 0, 1), v3(0, 1, 0)),
+      placement: frame(v3(x, roofBase, -heelOut), v3(0, 0, 1), v3(0, 1, 0)),
       joints: roofFab.joints,
       detailIssues: roofFab.issues,
       size: { width: W, height: roofTruss.height },
