@@ -64,6 +64,7 @@ export default function Configurator() {
   const hydrated = useHydrated();
   const [snapshot, setSnapshot] = useState<string | null>(null);
   const [printRequest, setPrintRequest] = useState(0);
+  const [renderShot, setRenderShot] = useState(0);
   const locale = LANGS.find((l) => l.id === lang)!;
   setNumberLocale(locale.locale);
   useEffect(() => {
@@ -267,6 +268,8 @@ export default function Configurator() {
               labels={labels}
               ground={mode === "building" && view.lighting !== "studio"}
               autoRotate={presentation && !!a}
+              photo={view.photo}
+              shot={renderShot}
               onPick={select}
             />
           )}
@@ -294,6 +297,14 @@ export default function Configurator() {
                   look(view.cut >= 0 ? "iso" : "top");
                 }} className={`min-h-11 rounded-lg px-3 text-sm ${view.cut >= 0 ? "bg-primary text-surface" : "text-ink-mute hover:bg-sunken"}`}>
                 {t("view.plan")}
+              </button>
+            )}
+            <button type="button" aria-pressed={view.photo} onClick={() => setView({ photo: !view.photo })} className={`min-h-11 rounded-lg px-3 text-sm ${view.photo ? "bg-primary text-surface" : "text-ink-mute hover:bg-sunken hover:text-ink"}`}>
+              {t("view.photo")}
+            </button>
+            {view.photo && (
+              <button type="button" onClick={() => setRenderShot((n) => n + 1)} className="min-h-11 rounded-lg px-3 text-sm text-ink-mute hover:bg-sunken hover:text-ink">
+                {t("view.render")}
               </button>
             )}
             <button type="button" onClick={shot} className="min-h-11 rounded-lg px-3 text-sm text-ink-mute hover:bg-sunken hover:text-ink" aria-label={t("files.shot")}>

@@ -123,6 +123,8 @@ export function ViewPanel() {
           <Toggle label={t("view.props")} checked={view.props} onChange={(props) => setView({ props })} />
           <Toggle label={t("view.dims")} checked={view.dims} onChange={(dims) => setView({ dims })} />
           <Toggle label={t("view.mep")} checked={view.mep.length > 0} onChange={(on) => setView({ mep: on ? [...MEP_SYSTEMS] : [] })} />
+          <Toggle label={t("view.photo")} checked={view.photo} onChange={(photo) => setView({ photo })} />
+          {view.photo && <p className="text-xs text-ink-mute">{t("view.photoHint")}</p>}
         </>
       )}
       <Toggle label={t("view.grid")} checked={view.grid} onChange={(grid) => setView({ grid })} />

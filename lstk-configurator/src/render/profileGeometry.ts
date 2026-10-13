@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Vec2 } from "@/domain/geometry/vec";
 import type { Feature } from "@/domain/members/types";
-import { sectionGeometry, sectionParts } from "@/domain/profiles/section";
+import { sectionGeometry, sectionParts, type SectionVariant } from "@/domain/profiles/section";
 import type { ProfileSpec } from "@/domain/profiles/types";
 
 /** Domain works in millimetres, the scene in metres */
@@ -83,24 +83,48 @@ function holePath(f: Feature): THREE.Path | null {
     case "flange-cut":
     case "swage":
     case "chamfer":
-      // Not modelled in 3D yet: they only remove material at the member ends
+      // Modelled in the section (see createDetailedProfileGeometry), not as holes
       return null;
   }
 }
 
 /**
- * Profile with real punched web holes: the flat web is a plate with holes,
- * bends/flanges/lips are extruded strips. Falls back to the plain extrusion
- * for sections without a flat web (Hat) or without web features.
+ * Profile with what the line does to it: punched web holes, swaged ends
+ * (flanges pressed in by one thickness), lip cuts and chamfers (lips and the
+ * flange tips cut away over their length). The length is split at every
+ * operation boundary; each stretch is extruded with its own section, the
+ * flat web is a plate with the holes. Falls back to the plain extrusion when
+ * there is nothing to show.
  */
 export function createDetailedProfileGeometry(spec: ProfileSpec, lengthMm: number, features: readonly Feature[]): THREE.BufferGeometry {
   const parts = sectionParts(spec);
   const holes = features.map(holePath).filter((p): p is THREE.Path => p !== null);
-  if (!parts || holes.length === 0) return createProfileGeometry(spec, lengthMm);
+  const ops = features.filter((f) => f.kind === "swage" || f.kind === "lip-cut" || f.kind === "chamfer") as { kind: string; position: number; length: number }[];
+  if (!parts || (holes.length === 0 && ops.length === 0)) return createProfileGeometry(spec, lengthMm);
 
   const L = lengthMm * MM;
   const t = spec.thickness * MM;
-  const pieces = parts.rest.map((o) => extrude(toShape(o), L));
+  const F = spec.family === "Hat" ? 0 : spec.flange;
+  const stops = [...new Set([0, lengthMm, ...ops.flatMap((o) => [o.position, o.position + o.length]).map((v) => Math.min(lengthMm, Math.max(0, v)))])].sort((a, b) => a - b);
+  const pieces: THREE.BufferGeometry[] = [];
+  for (let k = 0; k + 1 < stops.length; k++) {
+    const a = stops[k]!;
+    const b = stops[k + 1]!;
+    if (b - a < 0.05) continue;
+    const m = (a + b) / 2;
+    const on = (kind: string) => ops.some((o) => o.kind === kind && m >= o.position && m <= o.position + o.length);
+    const variant: SectionVariant = {};
+    if (on("swage")) variant.squeeze = spec.thickness;
+    // Lip cut: lip and its bend go; chamfer: half the flange as well (a stepped stand-in for the angle)
+    if (on("chamfer")) variant.maxX = F * 0.5;
+    else if (on("lip-cut")) variant.maxX = F - spec.thickness - spec.innerRadius;
+    const vp = Object.keys(variant).length ? sectionParts(spec, variant) : parts;
+    for (const o of (vp ?? parts).rest) {
+      const g = extrude(toShape(o), (b - a) * MM);
+      g.translate(0, 0, a * MM);
+      pieces.push(g);
+    }
+  }
 
   // Plate in (u = along member, v = −y across web), extruded by t
   const plate = new THREE.Shape();

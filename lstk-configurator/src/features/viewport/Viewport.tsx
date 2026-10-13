@@ -1,23 +1,104 @@
 "use client";
 
 import { Bounds, GizmoHelper, GizmoViewport, Grid, Html, Line, OrbitControls, Sky, useBounds } from "@react-three/drei";
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
-import { useEffect } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { applyCut, applyExplode, highlightMember, memberIdFromHit } from "@/render/assemblies";
 import { disposeOwned } from "@/render/meshes";
 import type { CameraPreset, LightingPreset } from "@/store/configurator";
 
 /**
- * Lighting presets use analytic lights only — no HDR environment maps, which
- * would be fetched from a CDN at runtime (blocked offline / on strict networks).
+ * Lighting presets are analytic lights plus a procedural studio environment
+ * (three's RoomEnvironment, prefiltered once) for reflections on steel,
+ * chrome and ceramics — no HDR files fetched from a CDN at runtime.
  * Overlay text uses drei <Html> (DOM), not <Text> — troika would fetch fonts.
  */
-function Lights({ preset, reach }: { preset: LightingPreset; reach: number }) {
+function Environment({ intensity }: { intensity: number }) {
+  const { gl, scene } = useThree();
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const room = new RoomEnvironment();
+    const tex = pmrem.fromScene(room, 0.04).texture;
+    scene.environment = tex;
+    return () => {
+      scene.environment = null;
+      tex.dispose();
+      room.dispose();
+      pmrem.dispose();
+    };
+  }, [gl, scene]);
+  useEffect(() => {
+    scene.environmentIntensity = intensity;
+    // The environment adds light on top of the sun and the sky: pull the exposure back
+    gl.toneMappingExposure = intensity > 0.4 ? 0.82 : 0.92;
+  }, [gl, scene, intensity]);
+  return null;
+}
+
+/**
+ * Photo mode: the frame goes through a composer — multisampled render,
+ * ground-truth ambient occlusion (contact shadows in every node, under the
+ * profiles and the fittings), then tone mapping. Taking over the render loop
+ * (useFrame priority 1) stops R3F's own render.
+ */
+function PhotoComposer({ shot }: { shot: number }) {
+  const { gl, scene, camera, size } = useThree();
+  const composer = useMemo(() => {
+    const target = new THREE.WebGLRenderTarget(size.width, size.height, { samples: 4, type: THREE.HalfFloatType });
+    const c = new EffectComposer(gl, target);
+    c.addPass(new RenderPass(scene, camera));
+    const ao = new GTAOPass(scene, camera, size.width, size.height);
+    ao.updateGtaoMaterial({ radius: 0.35, distanceExponent: 1, thickness: 1, scale: 1.2, samples: 16 });
+    ao.blendIntensity = 1;
+    c.addPass(ao);
+    c.addPass(new OutputPass());
+    return c;
+    // the composer is rebuilt on a new camera/scene; size changes go through setSize
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gl, scene, camera]);
+  useEffect(() => {
+    composer.setPixelRatio(gl.getPixelRatio());
+    composer.setSize(size.width, size.height);
+  }, [composer, gl, size]);
+  useEffect(() => () => composer.dispose(), [composer]);
+  // Render to PNG at twice the screen resolution
+  useEffect(() => {
+    if (shot === 0) return;
+    const ratio = gl.getPixelRatio();
+    composer.setPixelRatio(Math.min(4, ratio * 2));
+    gl.setPixelRatio(Math.min(4, ratio * 2));
+    composer.setSize(size.width, size.height);
+    composer.render();
+    gl.domElement.toBlob((blob) => {
+      if (blob) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `render-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
+      gl.setPixelRatio(ratio);
+      composer.setPixelRatio(ratio);
+      composer.setSize(size.width, size.height);
+    }, "image/png");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shot]);
+  useFrame((_, delta) => composer.render(delta), 1);
+  return null;
+}
+function Lights({ preset, reach, photo }: { preset: LightingPreset; reach: number; photo: boolean }) {
   const r = Math.max(12, reach);
+  const map = photo ? 4096 : 2048;
   const sun = {
     castShadow: true,
-    "shadow-mapSize": [2048, 2048] as [number, number],
+    "shadow-mapSize": [map, map] as [number, number],
+    "shadow-radius": photo ? 4 : 1,
     "shadow-bias": -0.0004,
     "shadow-normalBias": 0.02,
     "shadow-camera-left": -r,
@@ -91,6 +172,10 @@ export interface ViewportProps {
   ground: boolean;
   /** Slow turntable for the presentation mode */
   autoRotate?: boolean;
+  /** Photo mode: environment reflections at full strength, ambient occlusion, PNG renders */
+  photo?: boolean;
+  /** Increment to save a PNG render (photo mode) */
+  shot?: number;
   onPick: (memberId: string | null) => void;
 }
 
@@ -127,7 +212,7 @@ function Dimension({ d }: { d: Dim }) {
   );
 }
 
-export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, onPick }: ViewportProps) {
+export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, photo = false, shot = 0, onPick }: ViewportProps) {
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Free per-build geometry when the scene is replaced
   useEffect(
@@ -162,7 +247,9 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
       aria-label="3D"
       onPointerMissed={() => onPick(null)}
     >
-      <Lights preset={lighting} reach={reach} />
+      <Lights preset={lighting} reach={reach} photo={photo} />
+      <Environment intensity={photo ? 0.5 : 0.3} />
+      {photo && <PhotoComposer shot={shot} />}
       {/* key: re-frame the camera whenever a new model is built, not on every edit of the view */}
       {object && (
         <Bounds key={object.uuid} fit clip margin={1.2}>
@@ -209,9 +296,11 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
         />
       )}
       <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI * 0.495} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.5} />
-      <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
-        <GizmoViewport labelColor="white" axisHeadScale={0.9} />
-      </GizmoHelper>
+      {!photo && (
+        <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
+          <GizmoViewport labelColor="white" axisHeadScale={0.9} />
+        </GizmoHelper>
+      )}
     </Canvas>
   );
 }

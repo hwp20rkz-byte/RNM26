@@ -47,6 +47,8 @@ export interface MepPoint {
   /** Box size, mm (x, y, z) */
   size: [number, number, number];
   fixture?: WaterFixture;
+  /** Wall-mounted items: the direction the front faces (into the room), horizontal unit vector */
+  normal?: Vec3;
 }
 
 export interface MepLayout {
@@ -70,19 +72,23 @@ function dedupe(pts: Vec3[]): Vec3[] {
   return pts.filter((p, i) => i === 0 || Math.hypot(p.x - pts[i - 1]!.x, p.y - pts[i - 1]!.y, p.z - pts[i - 1]!.z) > 1);
 }
 
-/** Point on the room's perimeter (inset) at distance s from its x0/z0 corner, going round */
-function perimeterPoint(r: Room, s: number, y: number): Vec3 {
-  const x0 = r.x0 + INSET;
-  const x1 = r.x1 - INSET;
-  const z0 = r.z0 + INSET;
-  const z1 = r.z1 - INSET;
+/**
+ * Point on the room's perimeter at distance s from its x0/z0 corner, going
+ * round, `inset` mm into the room (negative: inside the wall), with the
+ * normal of that wall pointing into the room.
+ */
+function perimeterAt(r: Room, s: number, y: number, inset: number): { p: Vec3; n: Vec3 } {
+  const x0 = r.x0 + inset;
+  const x1 = r.x1 - inset;
+  const z0 = r.z0 + inset;
+  const z1 = r.z1 - inset;
   const w = x1 - x0;
   const h = z1 - z0;
-  const p = ((s % (2 * (w + h))) + 2 * (w + h)) % (2 * (w + h));
-  if (p < w) return v3(x0 + p, y, z0);
-  if (p < w + h) return v3(x1, y, z0 + (p - w));
-  if (p < 2 * w + h) return v3(x1 - (p - w - h), y, z1);
-  return v3(x0, y, z1 - (p - 2 * w - h));
+  const q = ((s % (2 * (w + h))) + 2 * (w + h)) % (2 * (w + h));
+  if (q < w) return { p: v3(x0 + q, y, z0), n: v3(0, 0, 1) };
+  if (q < w + h) return { p: v3(x1, y, z0 + (q - w)), n: v3(-1, 0, 0) };
+  if (q < 2 * w + h) return { p: v3(x1 - (q - w - h), y, z1), n: v3(0, 0, -1) };
+  return { p: v3(x0, y, z1 - (q - 2 * w - h)), n: v3(1, 0, 0) };
 }
 
 const inside = (r: Room, p: Vec3) => p.x >= r.x0 - 1 && p.x <= r.x1 + 1 && p.z >= r.z0 - 1 && p.z <= r.z1 + 1;
@@ -107,14 +113,16 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
   const hub = all.find((r) => r.room.purpose === "technical") ?? all.find((r) => r.room.purpose === "hall") ?? all[0]!;
 
   // ── Electrical ───────────────────────────────────────────
-  const panel = v3(hub.room.x0 + INSET, levelBase(hub.li) + 1600, (hub.room.z0 + hub.room.z1) / 2);
-  points.push({ system: "power", kind: "panel", level: hub.li, at: panel, size: [120, 450, 300] });
+  // Cables run inside the walls (through the stud service holes) and above the ceiling lining
+  const inWall = -b.depth / 2;
+  const panel = v3(hub.room.x0 + 60, levelBase(hub.li) + 1600, (hub.room.z0 + hub.room.z1) / 2);
+  points.push({ system: "power", kind: "panel", level: hub.li, at: panel, size: [120, 450, 300], normal: v3(1, 0, 0) });
   m.rooms.forEach((rm, k) => {
     const r = rm.room;
     const li = rm.level;
-    const ceil = levelTop(li) - 150 - (k % 4) * 15;
-    const per = 2 * (r.x1 - r.x0 + r.z1 - r.z0 - 4 * INSET);
-    const corner = v3(r.x0 + INSET, ceil, r.z0 + INSET);
+    const ceil = levelTop(li) + 40 + (k % 4) * 15;
+    const per = 2 * (r.x1 - r.x0 + r.z1 - r.z0 - 4 * inWall);
+    const corner = v3(r.x0 + inWall, ceil, r.z0 + inWall);
     // Feed: up from the panel into the ceiling void (through the floor to upper levels), across to the room
     const rise = v3(panel.x, ceil, panel.z);
     if (rm.sockets > 0) {
@@ -122,15 +130,20 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
       const feed = dedupe([panel, v3(panel.x, levelTop(hub.li) - 150, panel.z), rise, ...lPath(rise, corner, ceil), v3(corner.x, y, corner.z)]);
       runs.push({ system: "power", level: li, points: feed, diameter: 10 });
       const ring: Vec3[] = [];
-      for (let i = 0; i <= 40; i++) ring.push(perimeterPoint(r, (per * i) / 40, y));
-      runs.push({ system: "power", level: li, points: ring, diameter: 10 });
-      for (let i = 0; i < rm.sockets; i++) points.push({ system: "power", kind: "socket", level: li, at: perimeterPoint(r, (per * (i + 0.5)) / rm.sockets, y), size: [80, 80, 80] });
+      for (let i = 0; i <= 40; i++) ring.push(perimeterAt(r, (per * i) / 40, y, inWall).p);
+      runs.push({ system: "power", level: li, points: ring, diameter: 16 });
+      // Sockets on the lining, fed from the ring behind them
+      const perFace = 2 * (r.x1 - r.x0 + r.z1 - r.z0);
+      for (let i = 0; i < rm.sockets; i++) {
+        const { p, n } = perimeterAt(r, (perFace * (i + 0.5)) / rm.sockets, y, 0);
+        points.push({ system: "power", kind: "socket", level: li, at: p, size: [80, 80, 10], normal: n });
+      }
     }
     // Lights: a grid on the ceiling, chained from the room corner
     const n = Math.max(1, rm.lights);
     const cols = Math.ceil(Math.sqrt(n * ((r.x1 - r.x0) / Math.max(1, r.z1 - r.z0))));
     const rowsN = Math.ceil(n / cols);
-    const lightY = levelTop(li) - 40;
+    const lightY = levelTop(li) - 15;
     let prev = v3(r.x0 + INSET, ceil, r.z0 + INSET);
     const chain: Vec3[] = [v3(panel.x, ceil, panel.z), ...lPath(v3(panel.x, ceil, panel.z), prev, ceil)];
     for (let i = 0; i < n; i++) {
@@ -141,7 +154,7 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
       prev = p;
       points.push({ system: "lighting", kind: "light", level: li, at: v3(cx, lightY, cz), size: [220, 40, 220] });
     }
-    runs.push({ system: "lighting", level: li, points: dedupe(chain), diameter: 10 });
+    runs.push({ system: "lighting", level: li, points: dedupe(chain), diameter: 16 });
   });
 
   // ── Water and drainage ───────────────────────────────────
@@ -160,10 +173,10 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
     const entry = v3(entryXZ.x, floorVoid(tech.level), entryXZ.z);
     points.push({ system: "cold", kind: "entry", level: tech.level, at: entry, size: [150, 150, 150] });
     const heaterAt = v3(t.x0 + INSET + 300, levelBase(tech.level) + 900, t.z1 - INSET - 300);
-    points.push({ system: "hot", kind: "heater", level: tech.level, at: heaterAt, size: [450, 800, 450] });
+    points.push({ system: "hot", kind: "heater", level: tech.level, at: heaterAt, size: [450, 800, 450], normal: v3(0, 0, -1) });
 
     // Stack: beside the first WC, else beside the first drained fixture
-    const fixturesAt: { rm: (typeof wet)[number]; f: WaterFixture; at: Vec3 }[] = [];
+    const fixturesAt: { rm: (typeof wet)[number]; f: WaterFixture; at: Vec3; n: Vec3 }[] = [];
     for (const rm of wet) {
       const r = rm.room;
       const list = rm.fixtures.filter((f) => f !== "heater");
@@ -172,12 +185,12 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
         const alongX = Math.abs(entry.z - r.z0) < Math.abs(entry.z - r.z1);
         const z = alongX ? r.z0 + INSET + 200 : r.z1 - INSET - 200;
         const x = Math.min(r.x1 - INSET - 300, r.x0 + INSET + 400 + i * 800);
-        fixturesAt.push({ rm, f, at: v3(x, levelBase(rm.level) + 450, z) });
+        fixturesAt.push({ rm, f, at: v3(x, levelBase(rm.level) + 450, z), n: alongX ? v3(0, 0, 1) : v3(0, 0, -1) });
       });
     }
     const stackOn = fixturesAt.find((x) => x.f === "wc") ?? fixturesAt.find((x) => x.f !== "drinker");
     for (const fx of fixturesAt) {
-      points.push({ system: "cold", kind: "fixture", level: fx.rm.level, at: fx.at, size: fx.f === "wc" ? [400, 450, 650] : fx.f === "shower" ? [800, 60, 800] : [500, 200, 400], fixture: fx.f });
+      points.push({ system: "cold", kind: "fixture", level: fx.rm.level, at: fx.at, size: fx.f === "wc" ? [400, 450, 650] : fx.f === "shower" ? [800, 60, 800] : [500, 200, 400], fixture: fx.f, normal: fx.n });
       const fv = floorVoid(fx.rm.level);
       runs.push({ system: "cold", level: fx.rm.level, points: dedupe([entry, ...lPath(entry, v3(fx.at.x, fv, fx.at.z), fv), v3(fx.at.x, fx.at.y + 100, fx.at.z)]), diameter: 20 });
       if (["sink", "basin", "shower"].includes(fx.f)) {
@@ -235,8 +248,8 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
         runs.push({ system: "vent", level: rm.level, points: dedupe([unit, ...lPath(unit, at, levelTop(hub.li) - 250), at]), diameter: 100 });
       } else {
         // Wall inlet valve on the outer wall the room touches
-        const outer = r.z0 <= b.depth + 1 ? v3((r.x0 + r.x1) / 2, levelBase(rm.level) + 2000, r.z0 + 20) : r.z1 >= W - b.depth - 1 ? v3((r.x0 + r.x1) / 2, levelBase(rm.level) + 2000, r.z1 - 20) : null;
-        if (outer) points.push({ system: "vent", kind: "valve", level: rm.level, at: outer, size: [160, 160, 60] });
+        const outer = r.z0 <= b.depth + 1 ? { at: v3((r.x0 + r.x1) / 2, levelBase(rm.level) + 2000, r.z0 + 5), n: v3(0, 0, 1) } : r.z1 >= W - b.depth - 1 ? { at: v3((r.x0 + r.x1) / 2, levelBase(rm.level) + 2000, r.z1 - 5), n: v3(0, 0, -1) } : null;
+        if (outer) points.push({ system: "vent", kind: "valve", level: rm.level, at: outer.at, size: [160, 160, 60], normal: outer.n });
       }
     }
   }
@@ -245,7 +258,7 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
   const heated = input.heating === "permanent" || input.heating === "seasonal";
   if (heated) {
     const boiler = opts.electricHeating ? null : v3(hub.room.x0 + INSET + 300, levelBase(hub.li) + 1200, hub.room.z0 + INSET + 250);
-    if (boiler) points.push({ system: "heating", kind: "boiler", level: hub.li, at: boiler, size: [400, 700, 350] });
+    if (boiler) points.push({ system: "heating", kind: "boiler", level: hub.li, at: boiler, size: [400, 700, 350], normal: v3(1, 0, 0) });
     input.levels.forEach((level, li) => {
       for (const plan of wallPlans(input, li, levelBase(li))) {
         const side = level.sides[plan.side];
@@ -256,11 +269,12 @@ export function mepLayout(b: Building, rooms: Room[][], m: Mep, opts: MepRouting
           const base = toWorld(plan.placement, v3(o.x + o.width / 2, 0, 0));
           const off = b.depth / 2 + 120;
           const at = v3(base.x + inward.x * off, levelBase(li) + 350, base.z + inward.z * off);
+          const facing = v3(inward.x, 0, inward.z);
           const room = all.find((x) => x.li === li && inside(x.room, at));
           if (!room || ["steam", "storage", "garage", "open", "poultry"].includes(room.room.purpose)) continue;
           const w = Math.min(1200, Math.max(400, o.width * 0.7));
           const size: [number, number, number] = plan.side === "front" || plan.side === "back" ? [w, 500, 90] : [90, 500, w];
-          points.push({ system: "heating", kind: boiler ? "radiator" : "convector", level: li, at, size });
+          points.push({ system: "heating", kind: boiler ? "radiator" : "convector", level: li, at, size, normal: facing });
           if (boiler) {
             const y = floorVoid(li) + (li > 0 || b.groundFloor ? 0 : -60);
             for (const [dx, dy] of [[0, 0], [60, -40]] as const) {

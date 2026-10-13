@@ -144,7 +144,9 @@ export function buildScene(s: ProjectState): Scene {
     }
   }
 
-  const root = createAssembliesGroup(assemblies, s.view.detail);
+  // Photo mode shows what the line makes: swaged ends, lip cuts, chamfers and the fastener heads
+  const detail = s.view.photo ? "detailed" : s.view.detail;
+  const root = createAssembliesGroup(assemblies, detail, { fasteners: s.view.photo || s.view.detail === "detailed" ? s.planner.fastener : null });
   if (building) root.add(createHardware(building.hardware));
   if (building && s.view.cladding) root.add(createSkin(building, s.planner.finishes));
   if (building && analysis && s.view.mep.length) {

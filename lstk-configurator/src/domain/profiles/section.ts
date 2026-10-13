@@ -219,7 +219,14 @@ export interface SectionParts {
  * ignored here (the punched web is flat) — the detailed view is for checking
  * hole layouts, the instanced view keeps the swage.
  */
-export function sectionParts(spec: ProfileSpec): SectionParts | null {
+export interface SectionVariant {
+  /** Flanges pressed in by this much each side (end swage), mm */
+  squeeze?: number;
+  /** Cut away everything farther than this from the web line (lip cut, chamfer), mm */
+  maxX?: number;
+}
+
+export function sectionParts(spec: ProfileSpec, variant: SectionVariant = {}): SectionParts | null {
   if (spec.family === "Hat") return null;
   const flatSpec = spec.family === "C" && spec.swage ? { ...spec, swage: undefined } : spec;
   const { centreline } = sectionGeometry(flatSpec);
@@ -229,8 +236,19 @@ export function sectionParts(spec: ProfileSpec): SectionParts | null {
   if (i < 0) return null;
   const top = centreline[i]!;
   const bottom = centreline[i + 1]!;
+  const sq = variant.squeeze ?? 0;
+  const shape = (c: Vec2[]) => {
+    // Swage: the flanges move towards each other, the bends follow
+    let pts = sq ? c.map((p) => ({ x: p.x, y: p.y > 0 ? p.y - sq : p.y + sq })) : c;
+    if (variant.maxX !== undefined) {
+      const lim = variant.maxX;
+      const kept = pts.filter((p) => p.x <= lim);
+      pts = kept.length >= 2 ? kept : pts;
+    }
+    return stripOutline(pts, spec.thickness);
+  };
   return {
-    rest: [centreline.slice(0, i + 1), centreline.slice(i + 1)].map((c) => stripOutline(c, spec.thickness)),
-    web: { yMin: bottom.y, yMax: top.y },
+    rest: [centreline.slice(0, i + 1), centreline.slice(i + 1)].map(shape),
+    web: { yMin: bottom.y + sq, yMax: top.y - sq },
   };
 }

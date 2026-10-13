@@ -55,8 +55,15 @@ export function memberMatrix(member: Member, lengthScale = 1): THREE.Matrix4 {
 export function createMembersGroup(members: readonly Member[], detail: DetailLevel = "instanced"): THREE.Group {
   const group = new THREE.Group();
   if (detail === "detailed") {
+    // Identical pieces (repeated trusses, studs of one length) share one geometry
+    const cache = new Map<string, THREE.BufferGeometry>();
     for (const m of members) {
-      const geometry = createDetailedProfileGeometry(m.profile, centrelineLength(m), m.features);
+      const key = `${m.profile.id}|${centrelineLength(m)}|${JSON.stringify(m.features)}`;
+      let geometry = cache.get(key);
+      if (!geometry) {
+        geometry = createDetailedProfileGeometry(m.profile, centrelineLength(m), m.features);
+        cache.set(key, geometry);
+      }
       const mesh = new THREE.Mesh(geometry, steelMaterial(m.role));
       mesh.applyMatrix4(memberMatrix(m));
       // cast onto the ground only: self-shadowing thin steel reads as noise

@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import type { Assembly } from "@/domain/assemblies/types";
+import type { FastenerKind } from "@/domain/connections/fasteners";
+import { createFasteners } from "./fasteners";
 import { createMembersGroup, type DetailLevel } from "./meshes";
 import { MM } from "./profileGeometry";
 
@@ -18,14 +20,32 @@ function placementMatrix(a: Assembly): THREE.Matrix4 {
  * its home position and explode direction in userData so the exploded view is
  * a cheap position update (applyExplode), not a rebuild.
  */
-export function createAssembliesGroup(assemblies: readonly Assembly[], detail: DetailLevel): THREE.Group {
+export function createAssembliesGroup(assemblies: readonly Assembly[], detail: DetailLevel, opts: { fasteners?: FastenerKind | null } = {}): THREE.Group {
   const root = new THREE.Group();
   root.name = "assemblies";
+  // Repeated assemblies (17 trusses of one mark) are built once and cloned:
+  // the clone shares geometry and materials, only the placement differs
+  const built = new Map<string, THREE.Group>();
   for (const a of assemblies) {
     const g = new THREE.Group();
     g.name = a.id;
     g.applyMatrix4(placementMatrix(a));
-    g.add(createMembersGroup(a.members, detail));
+    const sig = detail === "detailed" ? `${a.mark}|${a.members.length}` : null;
+    const proto = sig ? built.get(sig) : undefined;
+    let body: THREE.Group;
+    if (proto) {
+      body = proto.clone();
+      // Picking reads member ids: point them at this copy's ids
+      relabel(body, a.members.map((m) => m.id));
+    } else {
+      body = createMembersGroup(a.members, detail);
+      if (sig) built.set(sig, body);
+    }
+    g.add(body);
+    if (opts.fasteners) {
+      const f = createFasteners(a.members, opts.fasteners);
+      if (f) g.add(f);
+    }
     tagExplode(g, new THREE.Vector3(a.explode.x, a.explode.y, a.explode.z), a.layer);
     g.userData.assemblyId = a.id;
     // Storey for the floor-plan cut: walls on layer 2i, the floor above level i on 2i+1, roof last
@@ -33,6 +53,18 @@ export function createAssembliesGroup(assemblies: readonly Assembly[], detail: D
     root.add(g);
   }
   return root;
+}
+
+/** Give a cloned members group the ids of another copy of the same assembly (same order) */
+function relabel(group: THREE.Object3D, ids: string[]): void {
+  let i = 0;
+  group.traverse((o) => {
+    if (o.userData.memberId !== undefined) {
+      o.userData = { ...o.userData, memberId: ids[i] ?? o.userData.memberId };
+      o.name = ids[i] ?? o.name;
+      i += 1;
+    }
+  });
 }
 
 export function tagExplode(o: THREE.Object3D, dir: THREE.Vector3, layer: number): void {

@@ -530,12 +530,12 @@ function jointHardware(assemblies: readonly Assembly[], storeys: number): Hardwa
   for (const a of assemblies) {
     const level = a.kind === "truss" ? Math.min(storeys, Math.floor(a.layer / 2)) : Math.floor(a.layer / 2);
     for (const j of a.joints ?? []) {
-      if (j.kind === "butt") out.push({ kind: "joint-clip", at: toWorld(a.placement, j.at), level, mark: a.mark, qty: 1 });
+      if (j.kind === "butt") out.push({ kind: "joint-clip", at: toWorld(a.placement, j.at), normal: a.placement.ez, level, mark: a.mark, qty: 1 });
     }
     const apex = (a.joints ?? []).filter((j) => j.kind === "apex");
     if (apex.length) {
       const c = apex.reduce((p, j) => v3(p.x + j.at.x / apex.length, p.y + j.at.y / apex.length, p.z + j.at.z / apex.length), v3(0, 0, 0));
-      out.push({ kind: "ridge-plate", at: toWorld(a.placement, c), level, mark: a.mark, qty: Math.ceil(apex.length / 2) });
+      out.push({ kind: "ridge-plate", at: toWorld(a.placement, c), normal: a.placement.ez, level, mark: a.mark, qty: Math.ceil(apex.length / 2) });
     }
   }
   return out;
