@@ -13,11 +13,11 @@ export function steelMaterial(role: MemberRole | "default" = "default"): THREE.M
   let m = cache.get(key);
   if (!m) {
     m = new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(210 / 360, 0.06, tone),
-      // Low metalness on purpose: a metallic surface only shows what it reflects, and
-      // the scene has no environment map (HDRs would come from a CDN at runtime)
-      metalness: 0.25,
-      roughness: 0.5,
+      // Hot-dip galvanised Z275: a bright, fairly smooth metal. The viewport
+      // provides a procedural studio environment to reflect (no CDN HDRs)
+      color: new THREE.Color().setHSL(210 / 360, 0.05, tone),
+      metalness: 0.7,
+      roughness: 0.38,
       side: THREE.DoubleSide,
       // Closed extrusions: cast shadows from back faces only, otherwise a
       // double-sided 1 mm sheet shadows itself (dark flecks on studs/posts)

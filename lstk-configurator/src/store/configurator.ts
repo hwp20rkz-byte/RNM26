@@ -68,6 +68,8 @@ export interface ViewState {
   cut: number;
   /** Service systems drawn in the 3D view */
   mep: MepSystem[];
+  /** Photo mode: ambient occlusion, soft shadows, fasteners, detailed profiles */
+  photo: boolean;
 }
 
 export interface ProjectState {
@@ -157,7 +159,7 @@ export const DEFAULT_PROJECT: ProjectState = {
   // Placeholders, same as the business-plan model: replace with supplier quotes
   prices: { steelPerKg: 850, scrapPct: 3, fastenerEach: 15, boltEach: 400 },
   roofLoadKpa: 1.5,
-  view: { lighting: "sunny", grid: false, detail: "instanced", explode: 0, cladding: true, props: true, dims: true, cut: -1, mep: [...MEP_SYSTEMS] },
+  view: { lighting: "sunny", grid: false, detail: "instanced", explode: 0, cladding: true, props: true, dims: true, cut: -1, mep: [...MEP_SYSTEMS], photo: false },
 };
 
 const fresh = (): ProjectState => structuredClone(DEFAULT_PROJECT);
