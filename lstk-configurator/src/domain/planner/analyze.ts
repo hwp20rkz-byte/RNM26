@@ -1,6 +1,6 @@
 import type { Assembly } from "../assemblies/types";
 import { computeBom, type Bom, type Prices } from "../bom/bom";
-import { generateBuilding, overallSize, type Building } from "../buildings/generate";
+import { generateBuilding, overallSize, sideOpenings, type Building } from "../buildings/generate";
 import type { RoomPurpose } from "../buildings/types";
 import { findCity, type City } from "../climate/cities";
 import { hardwareTotals, type HardwareLine } from "../connections/hardware";
@@ -8,6 +8,7 @@ import { FASTENERS, type FastenerKind } from "../connections/fasteners";
 import { detailingSummary, type DetailingSummary } from "../detailing/planar";
 import { doorArea, windowArea } from "../envelope/geometry";
 import { AUTONOMY_OFF, autonomy, type AutonomyResult, type AutonomySettings } from "../energy/autonomy";
+import { SIGN_OFF, signLayout, type SignLayout, type SignSettings } from "../signage/sign";
 import { SITE_OFF, sitePlan, type SitePlan, type SiteSettings } from "../site/site";
 import { WOOL_FILL, wallLineLoad, type WallFill } from "../envelope/foamConcrete";
 import { thermal, type EfficiencyLevel, type InsulationMaterial, type ThermalResult } from "../envelope/insulation";
@@ -63,6 +64,8 @@ export interface PlannerSettings {
   autonomy: AutonomySettings;
   /** Plot: parking, walks, lamps, planting and the landscape editor's items */
   site: SiteSettings;
+  /** Facade sign and the brand graphic inside */
+  sign: SignSettings;
   /** Drawing set title block */
   doc: { code: string; org: string; developer: string; stage: string };
 }
@@ -90,6 +93,7 @@ export const DEFAULT_SETTINGS: PlannerSettings = {
   wallFill: WOOL_FILL,
   autonomy: AUTONOMY_OFF,
   site: SITE_OFF,
+  sign: SIGN_OFF,
   doc: { code: "ЛСТК-01-АР/КМ", org: "", developer: "", stage: "П" },
 };
 
@@ -143,6 +147,8 @@ export interface Analysis {
   autonomy: AutonomyResult;
   /** Plot layout and landscaping, when the site is on */
   site: SitePlan | null;
+  /** Facade sign, when on */
+  sign: SignLayout | null;
   delivery: DeliveryResult;
   cargo: Cargo[];
   coop: CoopPlan | null;
@@ -309,6 +315,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     hardware,
     detailing: detailingSummary(building.assemblies),
     autonomy: plant,
+    sign: signLayout(building, { ...SIGN_OFF, ...settings.sign }, sideOpenings(input.levels[0]!.sides.front, input.length, input.levels[0]!.height, input, building.profile)),
     site: settings.site?.enabled ? sitePlan(building, { ...SITE_OFF, ...settings.site }, plant.ev ? plant.ev.ac + plant.ev.dc : 0) : null,
     // PV modules and rails add ≈ 0.15 kPa to the roof dead load
     design: design(building, city, settings.finishes, settings.fastener, plant.pv?.loadKpa ?? 0),

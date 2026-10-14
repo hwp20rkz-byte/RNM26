@@ -237,6 +237,7 @@ export function buildEstimate(a: Analysis, o: EstimateOptions = DEFAULT_ESTIMATE
     const fin = finish(f.finishId);
     line(`finish.${fin.id}`, "m2", f.areaM2 * (1 + fin.waste), fin.price, fin.labour);
   }
+  if (a.sign) line("sign", "set", 1, a.sign.cost * 0.8, a.sign.cost * 0.2);
   const winPerim = env.sides.reduce((s, x) => s + x.windows, 0) * 4.4;
   ln("sill", "m", winPerim, "sill");
 

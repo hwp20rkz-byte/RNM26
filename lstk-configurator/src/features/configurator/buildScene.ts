@@ -24,7 +24,9 @@ import { createMep } from "@/render/mep";
 import { mepLayout } from "@/domain/mep/routing";
 import { createPlant } from "@/render/energy";
 import { createProps } from "@/render/props";
+import { createSign } from "@/render/sign";
 import { createSite } from "@/render/site";
+import { SIGN_OFF } from "@/domain/signage/sign";
 import { createSkin } from "@/render/skin";
 import { trussShape, type ProjectState } from "@/store/configurator";
 
@@ -165,6 +167,7 @@ export function buildScene(s: ProjectState): Scene {
     root.add(createProps(building, kinds, s.planner.birds));
     if (analysis?.autonomy.enabled) root.add(createPlant(building, analysis.autonomy, analysis.thermal.envelope.rooms, analysis.site?.bays.filter((x) => x.kind === "ev")));
     if (analysis?.site) root.add(createSite(analysis.site));
+    if (analysis?.sign) root.add(createSign(building, { ...SIGN_OFF, ...s.planner.sign }, analysis.sign, analysis.thermal.envelope.rooms[0] ?? []));
   }
   const { object, offset, size } = settle(root, !!building);
 

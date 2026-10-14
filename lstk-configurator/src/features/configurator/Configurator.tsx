@@ -8,10 +8,12 @@ import { SITE_OFF } from "@/domain/site/site";
 import { PURPOSE_COLOR } from "@/render/skin";
 import { projectOf, useConfigurator, type CameraPreset, type Mode, type PlannerTab } from "@/store/configurator";
 import { Presentation } from "../presentation/Presentation";
+import { CameraBar, tourPoints, type CameraState } from "../viewport/CameraBar";
 import { CalcPanel, NodesPanel } from "../planner/CalcPanel";
 import { CatalogPanel } from "../planner/CatalogPanel";
 import { DrawingsPanel } from "../planner/DrawingsPanel";
 import { EnergyPanel } from "../planner/EnergyPanel";
+import { SignPanel } from "../planner/SignPanel";
 import { SitePanel } from "../planner/SitePanel";
 import { ClimatePanel } from "../planner/ClimatePanel";
 import { DeliveryPanel } from "../planner/DeliveryPanel";
@@ -88,6 +90,7 @@ export default function Configurator() {
   const [snapshot, setSnapshot] = useState<string | null>(null);
   const [printRequest, setPrintRequest] = useState(0);
   const [renderShot, setRenderShot] = useState(0);
+  const [cam, setCam] = useState<CameraState>({ tour: null, walk: false });
   const locale = LANGS.find((l) => l.id === lang)!;
   setNumberLocale(locale.locale);
   useEffect(() => {
@@ -106,6 +109,7 @@ export default function Configurator() {
     }
   }, [key]);
 
+  const points = useMemo(() => (scene.result?.analysis ? tourPoints(scene.result.analysis) : null), [scene.result]);
   const canvas = () => document.querySelector("main canvas") as HTMLCanvasElement | null;
   const print = () => {
     const c = canvas();
@@ -234,6 +238,7 @@ export default function Configurator() {
               {tab === "layout" && <LayoutPanel />}
               {a && tab === "climate" && <ClimatePanel a={a} />}
               {a && tab === "finish" && <FinishPanel a={a} />}
+              {a && tab === "finish" && <SignPanel a={a} />}
               {a && tab === "mep" && <MepPanel a={a} />}
               {a && tab === "energy" && <EnergyPanel a={a} />}
               {a && tab === "site" && <SitePanel a={a} />}
@@ -297,6 +302,8 @@ export default function Configurator() {
               shot={renderShot}
               onPick={select}
               onTool={siteTool && tab === "site" ? editSite : undefined}
+              tour={cam.tour && points ? { kind: cam.tour, points, onDone: () => setCam({ tour: null, walk: false }) } : null}
+              walk={cam.walk && points ? [points.entrance?.x ?? points.length / 2, points.floor + 1600, -6000] : null}
             />
           )}
           {scene.error && (
@@ -306,7 +313,8 @@ export default function Configurator() {
           )}
           {r && <SelectionCard scene={r} />}
           {presentation && a && <Presentation a={a} />}
-          <div className={`absolute left-4 top-4 flex flex-wrap gap-1 rounded-xl border border-line bg-surface/90 p-1 shadow backdrop-blur ${presentation && a ? "hidden" : ""}`}>
+          <div className={`absolute left-4 right-4 top-4 flex flex-col items-start gap-2 lg:right-auto ${presentation && a ? "hidden" : ""}`}>
+          <div className="flex flex-wrap gap-1 rounded-xl border border-line bg-surface/90 p-1 shadow backdrop-blur">
             {a && (
               <button type="button" onClick={() => setPresentation(true)} className="min-h-11 rounded-lg bg-primary px-3 text-sm font-semibold text-surface hover:opacity-90">
                 {t("dm.toggle")}
@@ -336,6 +344,8 @@ export default function Configurator() {
             <button type="button" onClick={shot} className="min-h-11 rounded-lg px-3 text-sm text-ink-mute hover:bg-sunken hover:text-ink" aria-label={t("files.shot")}>
               ⤓
             </button>
+          </div>
+          {a && mode === "building" && <CameraBar a={a} cam={cam} setCam={setCam} productId={state.building.productId} />}
           </div>
           {r && r.assemblies.length > 1 && !presentation && (
             <div className="absolute bottom-4 left-4 w-[min(360px,calc(100%-2rem))] rounded-xl border border-line bg-surface/95 px-4 py-1 shadow-lg backdrop-blur">

@@ -12,6 +12,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { applyCut, applyExplode, highlightMember, memberIdFromHit } from "@/render/assemblies";
 import { disposeOwned } from "@/render/meshes";
 import { siteIdFromHit } from "@/render/site";
+import { TourRig, WalkRig, type TourKind, type TourPoints } from "./Tour";
 import type { CameraPreset, LightingPreset } from "@/store/configurator";
 
 /**
@@ -180,6 +181,10 @@ export interface ViewportProps {
   onPick: (memberId: string | null) => void;
   /** Landscape editor: when set, every click goes here with the plan point (mm) and the site item hit */
   onTool?: (hit: { x: number; z: number; siteId: string | null }) => void;
+  /** Camera tour in progress (orbit, flyover, interior) and the key points it follows */
+  tour?: { kind: TourKind; points: TourPoints; onDone: () => void } | null;
+  /** First-person walk from this point (model mm) */
+  walk?: [number, number, number] | null;
 }
 
 /** Camera presets: fly to a view of the current model */
@@ -191,8 +196,9 @@ function CameraRig({ camera, size }: { camera: ViewportProps["camera"]; size: [n
     const r = Math.max(sx, sy, sz) * 1.6 + 2;
     const target = new THREE.Vector3(0, sy / 2, 0);
     const pos = {
-      iso: [r * 0.75, r * 0.55, r * 0.9],
-      front: [0, sy * 0.45, r * 1.05],
+      iso: [r * 0.75, r * 0.55, -r * 0.9],
+      // The front wall is at z = 0 of the model, the street on −z
+      front: [0, sy * 0.45, -r * 1.05],
       side: [r * 1.05, sy * 0.45, 0],
       top: [0.001, r * 1.2, 0.001],
     }[camera.preset] as [number, number, number];
@@ -215,7 +221,7 @@ function Dimension({ d }: { d: Dim }) {
   );
 }
 
-export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, photo = false, shot = 0, onPick, onTool }: ViewportProps) {
+export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, photo = false, shot = 0, onPick, onTool, tour = null, walk = null }: ViewportProps) {
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Free per-build geometry when the scene is replaced
   useEffect(
@@ -252,7 +258,7 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
     <Canvas
       shadows
       dpr={[1, 2]}
-      camera={{ position: [8, 6, 10], fov: 40, near: 0.01, far: 800 }}
+      camera={{ position: [8, 6, -10], fov: 40, near: 0.01, far: 800 }}
       gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping }}
       aria-label="3D"
       onPointerMissed={() => onPick(null)}
@@ -305,7 +311,9 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
           position={[0, 0.001, 0]}
         />
       )}
-      <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI * 0.495} autoRotate={autoRotate && !reduce} autoRotateSpeed={0.5} />
+      {tour && <TourRig key={tour.kind} kind={tour.kind} points={tour.points} offset={offset} onDone={tour.onDone} />}
+      {walk && !tour && <WalkRig start={walk} offset={offset} />}
+      {!walk && <OrbitControls makeDefault enabled={!tour} enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI * 0.495} autoRotate={autoRotate && !reduce && !tour} autoRotateSpeed={0.5} />}
       {!photo && (
         <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
           <GizmoViewport labelColor="white" axisHeadScale={0.9} />

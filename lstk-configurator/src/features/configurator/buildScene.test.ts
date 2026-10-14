@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { PRODUCTS, productInput } from "@/domain/catalog/products";
 import { applyCut, applyExplode, highlightMember } from "@/render/assemblies";
 import { DEFAULT_PROJECT, parseProject, type Mode, type ProjectState } from "@/store/configurator";
+import { AUTONOMY_MAX } from "@/domain/energy/autonomy";
+import { signPreset } from "@/domain/signage/sign";
+import { SITE_OFF } from "@/domain/site/site";
 import { buildScene } from "./buildScene";
 
 const project = (patch: Partial<ProjectState>): ProjectState => ({ ...structuredClone(DEFAULT_PROJECT), ...patch });
@@ -25,6 +28,29 @@ describe("buildScene", () => {
     expect(s.object.getObjectByName("skin")).toBeDefined();
     expect(s.object.getObjectByName("props")).toBeDefined();
     expect(s.analysis!.price).toBeGreaterThan(s.analysis!.cost);
+  });
+
+  it("a sports club with the full plant, the site and a sign builds every layer", () => {
+    const base = structuredClone(DEFAULT_PROJECT);
+    const s = buildScene(
+      project({
+        mode: "building",
+        building: { ...productInput("bjj"), trussSpacing: 500 },
+        planner: {
+          ...base.planner,
+          autonomy: { ...AUTONOMY_MAX },
+          site: { ...SITE_OFF, enabled: true, items: [{ id: "t1", kind: "tree", x: -5000, z: -20000, rot: 0 }] },
+          sign: signPreset("bjj"),
+        },
+      }),
+    );
+    for (const name of ["plant", "site", "sign", "sport"]) expect(s.object.getObjectByName(name), name).toBeDefined();
+    expect(s.analysis!.design.worst).toBeLessThanOrEqual(1);
+    let tagged = 0;
+    s.object.traverse((o) => {
+      if (o.userData.siteId === "t1") tagged++;
+    });
+    expect(tagged).toBe(1);
   });
 
   it("explode moves assemblies away from home and back", () => {
