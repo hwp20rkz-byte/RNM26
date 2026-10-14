@@ -9,7 +9,8 @@ import type { FinishChoice } from "@/domain/finishes/catalog";
 import { DEFAULT_SETTINGS, type PlannerSettings } from "@/domain/planner/analyze";
 import type { TrussShape, WebPattern } from "@/domain/trusses/types";
 import { PATTERNS_FOR_SHAPE } from "@/domain/trusses/types";
-import type { SiteKind } from "@/domain/site/site";
+import { SITE_OFF, type SiteKind } from "@/domain/site/site";
+import { signPreset } from "@/domain/signage/sign";
 import type { Opening } from "@/domain/walls/types";
 import type { Lang } from "@/i18n";
 
@@ -216,7 +217,10 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
           set((s) => {
             const p = findProduct(id);
             const birds = p.capacity?.kind === "birds" ? p.capacity.default : s.planner.birds;
-            return { building: productInput(id), planner: { ...s.planner, birds }, selection: null, view: { ...s.view, cut: -1, explode: 0 } };
+            // A sports club starts dressed: its sign on the facade and the plot with parking around it
+            const sport = p.category === "sport";
+            const planner = sport ? { ...s.planner, birds, sign: signPreset(id), site: { ...SITE_OFF, ...s.planner.site, enabled: true, items: [] } } : { ...s.planner, birds };
+            return { building: productInput(id), planner, selection: null, view: { ...s.view, cut: -1, explode: 0 } };
           }),
         setBuilding: (patch) => editB((b) => ({ ...b, ...patch })),
         setRoof: (patch) => editB((b) => ({ ...b, roof: { ...b.roof, ...patch } })),

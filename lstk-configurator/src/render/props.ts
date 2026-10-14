@@ -60,7 +60,7 @@ function chimney(g: THREE.Group, x: number, y: number, z: number, top: number) {
 
 const findRoom = (rs: Room[], purposes: RoomPurpose[], level: Record<string, RoomPurpose>) => rs.find((r) => purposes.includes(level[r.key] ?? "living"));
 
-export function createProps(b: Building, kinds: readonly PropKind[], birds: number): THREE.Group {
+export function createProps(b: Building, kinds: readonly PropKind[], birds: number, brand?: { text: string; color: string; background: string }): THREE.Group {
   const g = new THREE.Group();
   g.name = "props";
   const { input, depth: d } = b;
@@ -173,7 +173,7 @@ export function createProps(b: Building, kinds: readonly PropKind[], birds: numb
         break;
       }
       case "sport":
-        g.add(sportInterior(b));
+        g.add(sportInterior(b, brand));
         break;
       case "stair": {
         if (input.levels.length < 2) break;

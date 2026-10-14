@@ -24,6 +24,7 @@ import { createMep } from "@/render/mep";
 import { mepLayout } from "@/domain/mep/routing";
 import { createPlant } from "@/render/energy";
 import { createProps } from "@/render/props";
+import { createInterior } from "@/render/interior";
 import { createSign } from "@/render/sign";
 import { createSite } from "@/render/site";
 import { SIGN_OFF } from "@/domain/signage/sign";
@@ -152,7 +153,12 @@ export function buildScene(s: ProjectState): Scene {
   const detail = s.view.photo ? "detailed" : s.view.detail;
   const root = createAssembliesGroup(assemblies, detail, { fasteners: s.view.photo || s.view.detail === "detailed" ? s.planner.fastener : null });
   if (building) root.add(createHardware(building.hardware));
-  if (building && s.view.cladding) root.add(createSkin(building, s.planner.finishes));
+  if (building && s.view.cladding) {
+    root.add(createSkin(building, s.planner.finishes));
+    // Attic insulation over the ceiling: the wool between and over the bottom chords
+    const attic = analysis?.thermal.assemblies.find((x) => x.element === "attic");
+    root.add(createInterior(building, s.planner.finishes, attic ? attic.cavity + attic.added : 0));
+  }
   if (building && analysis && s.view.mep.length) {
     const layout = mepLayout(building, analysis.thermal.envelope.rooms, analysis.mep, { electricHeating: s.planner.electricHeating, recovery: s.planner.ventilation === "recovery" });
     root.add(createMep(layout, new Set(s.view.mep)));
@@ -164,7 +170,8 @@ export function buildScene(s: ProjectState): Scene {
     } catch {
       /* unknown product id from an old file: no props */
     }
-    root.add(createProps(building, kinds, s.planner.birds));
+    const sign = { ...SIGN_OFF, ...s.planner.sign };
+    root.add(createProps(building, kinds, s.planner.birds, sign.enabled && sign.text.trim() ? sign : undefined));
     if (analysis?.autonomy.enabled) root.add(createPlant(building, analysis.autonomy, analysis.thermal.envelope.rooms, analysis.site?.bays.filter((x) => x.kind === "ev")));
     if (analysis?.site) root.add(createSite(analysis.site));
     if (analysis?.sign) root.add(createSign(building, { ...SIGN_OFF, ...s.planner.sign }, analysis.sign, analysis.thermal.envelope.rooms[0] ?? []));

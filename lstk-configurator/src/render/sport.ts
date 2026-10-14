@@ -1,7 +1,10 @@
 import * as THREE from "three";
 import { sideOpenings, wallPlans, type Building } from "@/domain/buildings/generate";
+import { openingTop } from "@/domain/walls/generate";
 import { partitionSegments, rooms, type Room } from "@/domain/layout/rooms";
 import { box, cyl, mat } from "./kit";
+import { MM } from "./profileGeometry";
+import { lockersPerRoom } from "@/domain/interior/fitout";
 
 /**
  * Sports interiors and equipment, from the room purposes: the mat hall of a
@@ -13,32 +16,36 @@ import { box, cyl, mat } from "./kit";
  */
 
 /** A blocked stretch of wall: the fixed coordinate of the wall line and the range along it */
-interface Gap {
+export interface Gap {
   /** "x" — the wall runs along z at x = at; "z" — along x at z = at */
   axis: "x" | "z";
   at: number;
   lo: number;
   hi: number;
-  /** Bottom of the opening, mm (a window above the furniture does not block it) */
+  /** Bottom and top of the opening above the floor, mm (a window above the furniture does not block it) */
   sill: number;
+  top: number;
 }
 
-function gaps(b: Building): Gap[] {
+/** Openings of a level as stretches of wall lines: outer windows/doors/gates and partition doors */
+export function openingGaps(b: Building, li = 0): Gap[] {
   const { length: L, width: W } = b.input;
   const d = b.depth;
-  const lv = b.input.levels[0]!;
+  const lv = b.input.levels[li]!;
   const out: Gap[] = [];
-  for (const plan of wallPlans(b.input, 0, b.levels[0]!.base)) {
+  for (const plan of wallPlans(b.input, li, b.levels[li]!.base)) {
+    if (lv.sides[plan.side].type !== "wall") continue;
     for (const o of sideOpenings(lv.sides[plan.side], plan.length, lv.height, b.input, b.profile)) {
       const a0 = o.x;
       const a1 = o.x + o.width;
-      if (plan.side === "front") out.push({ axis: "z", at: d / 2, lo: a0, hi: a1, sill: o.sill });
-      else if (plan.side === "back") out.push({ axis: "z", at: W - d / 2, lo: L - a1, hi: L - a0, sill: o.sill });
-      else if (plan.side === "left") out.push({ axis: "x", at: d / 2, lo: W - d - a1, hi: W - d - a0, sill: o.sill });
-      else out.push({ axis: "x", at: L - d / 2, lo: d + a0, hi: d + a1, sill: o.sill });
+      const v = { sill: o.sill, top: openingTop(o) };
+      if (plan.side === "front") out.push({ axis: "z", at: d / 2, lo: a0, hi: a1, ...v });
+      else if (plan.side === "back") out.push({ axis: "z", at: W - d / 2, lo: L - a1, hi: L - a0, ...v });
+      else if (plan.side === "left") out.push({ axis: "x", at: d / 2, lo: W - d - a1, hi: W - d - a0, ...v });
+      else out.push({ axis: "x", at: L - d / 2, lo: d + a0, hi: d + a1, ...v });
     }
   }
-  for (const s of partitionSegments(lv, b.levels[0]!.inner, d)) for (const o of s.doors) out.push({ axis: s.axis, at: s.at, lo: s.from + o.x, hi: s.from + o.x + o.width, sill: 0 });
+  for (const s of partitionSegments(lv, b.levels[li]!.inner, d)) for (const o of s.doors) out.push({ axis: s.axis, at: s.at, lo: s.from + o.x, hi: s.from + o.x + o.width, sill: 0, top: o.height });
   return out;
 }
 
@@ -291,13 +298,74 @@ function hall(g: THREE.Group, b: Building, r: Room, gs: Gap[], floor: number) {
   for (let i = 0; i < Math.floor(w / 4000); i++) bench(g, r.x0 + 2000 + i * 4000, f, cz, 1200, true);
 }
 
-export function sportInterior(b: Building): THREE.Group {
+
+/** Vanity: counter with two basins' worth of mirror, a shelf and a wall hair dryer */
+function vanity(u: THREE.Group) {
+  box(u, -600, 800, 0, 1200, 40, 500, mat(OAK, 0.5));
+  box(u, -600, 0, 20, 40, 800, 460, mat(STEEL, 0.4, 0.7));
+  box(u, 560, 0, 20, 40, 800, 460, mat(STEEL, 0.4, 0.7));
+  box(u, -580, 1100, 0, 1160, 900, 10, mat("hsl(210 20% 88%)", 0.03, 1));
+  box(u, 380, 1300, 10, 120, 220, 90, mat(WHITE, 0.4));
+}
+
+function armchair(g: THREE.Group, x: number, y: number, z: number) {
+  const m = mat("hsl(200 18% 38%)", 0.9);
+  box(g, x, y + 100, z, 700, 330, 700, m);
+  box(g, x, y + 100, z, 700, 750, 140, m);
+  for (const s of [0, 1]) box(g, x + s * 580, y + 100, z, 120, 560, 700, m);
+}
+
+/** A 65-inch screen on a wall, facing into the room from the given side */
+function screen(g: THREE.Group, x: number, y: number, z: number, side: Side) {
+  const s = new THREE.Group();
+  box(s, -730, 0, 0, 1460, 830, 40, mat("hsl(220 10% 8%)", 0.2, 0.4));
+  const lit = new THREE.MeshStandardMaterial({ color: "#1d3557", emissive: new THREE.Color("#2a6fdb"), emissiveIntensity: 0.6 });
+  lit.userData.ownsMaterial = true;
+  box(s, -700, 30, 41, 1400, 770, 2, lit);
+  s.position.set(x * MM, y * MM, z * MM);
+  s.rotation.y = side === "x1" ? -Math.PI / 2 : side === "x0" ? Math.PI / 2 : side === "z1" ? Math.PI : 0;
+  g.add(s);
+}
+
+/** Brand name on a panel (canvas text in the browser, a plain panel in tests) */
+function brandPanel(brand: { text: string; color: string; background: string }, w: number, h: number): THREE.Mesh {
+  let map: THREE.Texture | null = null;
+  if (typeof document !== "undefined") {
+    const c = document.createElement("canvas");
+    c.width = 1024;
+    c.height = Math.max(64, Math.round((1024 * h) / w));
+    const x = c.getContext("2d");
+    if (x) {
+      x.fillStyle = brand.background;
+      x.fillRect(0, 0, c.width, c.height);
+      x.fillStyle = brand.color;
+      x.textAlign = "center";
+      x.textBaseline = "middle";
+      let px = c.height * 0.62;
+      x.font = `800 ${px}px 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif`;
+      const tw = x.measureText(brand.text).width;
+      if (tw > c.width * 0.9) px *= (c.width * 0.9) / tw;
+      x.font = `800 ${px}px 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif`;
+      x.fillText(brand.text, c.width / 2, c.height / 2);
+      map = new THREE.CanvasTexture(c);
+      map.colorSpace = THREE.SRGBColorSpace;
+    }
+  }
+  const m = new THREE.MeshStandardMaterial({ color: map ? 0xffffff : new THREE.Color(brand.background), map, roughness: 0.4 });
+  m.userData.ownsMaterial = true;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w * MM, h * MM), m);
+  mesh.userData.ownsGeometry = true;
+  return mesh;
+}
+
+/** `brand` — the club name for the reception front (the facade sign's text and colours) */
+export function sportInterior(b: Building, brand?: { text: string; color: string; background: string }): THREE.Group {
   const g = new THREE.Group();
   g.name = "sport";
   const lv = b.input.levels[0]!;
   const floor = b.levels[0]!.base;
   const d = b.depth;
-  const gs = gaps(b);
+  const gs = openingGaps(b);
   for (const r of rooms(lv, b.levels[0]!.inner, d)) {
     const cx = (r.x0 + r.x1) / 2;
     const cz = (r.z0 + r.z1) / 2;
@@ -308,20 +376,50 @@ export function sportInterior(b: Building): THREE.Group {
         hall(g, b, r, gs, floor);
         break;
       case "changing": {
-        // Lockers along the longer free walls, a bench down the middle
-        const sides: ("x0" | "x1" | "z0" | "z1")[] = w >= h ? ["z0", "z1"] : ["x0", "x1"];
-        for (const s of sides) row(g, r, s, gs, d, floor, 400, locker);
-        bench(g, cx, floor, cz, Math.max(800, (w >= h ? w : h) - 2400), w >= h);
+        // Two-tier lockers for every member of a session, long walls first; a vanity with mirrors on a short wall
+        const columns = Math.ceil(lockersPerRoom(b.input.productId) / 2);
+        const longFirst: Side[] = w >= h ? ["z0", "z1", "x0", "x1"] : ["x0", "x1", "z0", "z1"];
+        let left = columns;
+        const used: Side[] = [];
+        for (const sd of longFirst) {
+          if (left <= 0) break;
+          const placed = row(g, r, sd, gs, d, floor, 400, locker, left);
+          if (placed) used.push(sd);
+          left -= placed;
+        }
+        const free = longFirst.find((sd) => !used.includes(sd));
+        if (free) row(g, r, free, gs, d, floor, 1300, vanity, 2);
+        const n = Math.max(1, Math.round(((w >= h ? w : h) - 2400) / 2400));
+        for (let i = 0; i < n; i++) {
+          const t = (i + 0.5) / n;
+          bench(g, w >= h ? r.x0 + 1200 + t * (w - 2400) : cx, floor, w >= h ? cz : r.z0 + 1200 + t * (h - 2400), 1800, w >= h);
+        }
         break;
       }
       case "lobby": {
-        desk(g, r.x0 + 300, floor, r.z1 - 1300, Math.min(2400, w - 1200), 700, 1100);
-        sofa(g, r.x1 - Math.min(2200, w - 600) - 300, floor, r.z0 + 400, Math.min(2200, w - 600));
-        plant(g, r.x1 - 500, floor, r.z1 - 500);
+        // Reception with the brand on its front, a slatted oak wall behind, a lounge corner and a screen
+        const dw = Math.min(2600, w - 1400);
+        desk(g, r.x0 + 600, floor, r.z1 - 1500, dw, 700, 1100);
+        if (brand) {
+          const face = brandPanel(brand, dw - 200, 380);
+          face.position.set((r.x0 + 600 + dw / 2) * MM, (floor + 650) * MM, (r.z1 - 1500 - 4) * MM);
+          face.rotation.y = Math.PI;
+          g.add(face);
+        }
+        for (let x = r.x0 + 200; x < r.x0 + 200 + Math.min(w - 400, 4000); x += 120) box(g, x, floor, r.z1 - 60, 60, Math.min(lv.height - 100, 3000), 40, mat(OAK, 0.6));
+        const sw = Math.min(2200, w - 1400);
+        sofa(g, r.x1 - sw - 400, floor, r.z0 + 300, sw);
+        box(g, r.x1 - sw / 2 - 400 - 500, floor, r.z0 + 1400, 1000, 420, 600, mat(OAK, 0.5));
+        for (const k of [0, 1]) armchair(g, r.x1 - sw - 900, floor, r.z0 + 900 + k * 900);
+        plant(g, r.x1 - 450, floor, r.z1 - 450);
+        plant(g, r.x0 + 450, floor, r.z0 + 450);
+        screen(g, r.x1 - 30, floor + 1500, (r.z0 + r.z1) / 2, "x1");
         break;
       }
       case "office":
         desk(g, r.x0 + 300, floor, r.z1 - 1100, Math.min(1600, w - 600), 800);
+        armchair(g, r.x0 + 300 + Math.min(1600, w - 600) / 2 - 300, floor, r.z1 - 1900);
+        armchair(g, r.x0 + 300 + Math.min(1600, w - 600) / 2 - 300, floor, r.z1 - 400);
         row(g, r, "x1", gs, d, floor, 900, shelving, 2);
         break;
       case "storage":
