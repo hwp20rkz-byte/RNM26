@@ -61,7 +61,7 @@ export const zh: Record<Key, string> = {
   "tour.withVideo": "录制视频",
   "tour.rec": "录制",
   "tour.stop": "停止并保存",
-  "tour.walkHint": "第一人称漫游：W/S 或 ↑/↓ 前进/后退，A/D 侧移，←/→ 转向，Shift 加速。“环顾”锁定鼠标，Esc 释放。墙体不会阻挡。",
+  "tour.walkHint": "第一人称漫游：W/S 或 ↑/↓ 前进/后退，A/D 侧移，←/→ 转向，Shift 加速。“环顾”锁定鼠标，Esc 释放。墙体会阻挡，只能从门通过。",
   "tour.look": "环顾",
   "unit.w": "W",
   "est.sign": "立面招牌（含安装）",

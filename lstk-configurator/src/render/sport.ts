@@ -5,6 +5,7 @@ import { partitionSegments, rooms, type Room } from "@/domain/layout/rooms";
 import { box, cyl, mat } from "./kit";
 import { MM } from "./profileGeometry";
 import { lockersPerRoom } from "@/domain/interior/fitout";
+import { themeOf } from "@/domain/interior/theme";
 
 /**
  * Sports interiors and equipment, from the room purposes: the mat hall of a
@@ -141,16 +142,42 @@ function tatami(g: THREE.Group, r: Room, floor: number) {
   }
 }
 
-/** Wall padding 50 mm × 1.8 m around the hall, off the doors */
-function padding(g: THREE.Group, r: Room, gs: Gap[], d: number, floor: number) {
-  const m = mat("hsl(214 40% 24%)", 0.8);
+/** A band on the hall walls, off the doors: 50 mm padding (mat hall) or a painted dado */
+function band(g: THREE.Group, r: Room, gs: Gap[], d: number, floor: number, height: number, thick: number, color: string) {
+  const m = mat(color, thick > 10 ? 0.8 : 0.5);
   for (const side of ["x0", "x1", "z0", "z1"] as const)
     for (const [a, b] of runs(r, side, gs, d)) {
-      if (side === "z0") box(g, a, floor, r.z0, b - a, 1800, 50, m);
-      else if (side === "z1") box(g, a, floor, r.z1 - 50, b - a, 1800, 50, m);
-      else if (side === "x0") box(g, r.x0, floor, a, 50, 1800, b - a, m);
-      else box(g, r.x1 - 50, floor, a, 50, 1800, b - a, m);
+      if (side === "z0") box(g, a, floor, r.z0 + 13, b - a, height, thick, m);
+      else if (side === "z1") box(g, a, floor, r.z1 - 13 - thick, b - a, height, thick, m);
+      else if (side === "x0") box(g, r.x0 + 13, floor, a, thick, height, b - a, m);
+      else box(g, r.x1 - 13 - thick, floor, a, thick, height, b - a, m);
     }
+}
+
+/** Entrance of a club: oak slat panels either side of the main door and a canopy over it */
+function portal(g: THREE.Group, b: Building, gs: Gap[]) {
+  const d = b.depth;
+  const floor = b.levels[0]!.base;
+  const front = gs.filter((x) => x.axis === "z" && x.at < d);
+  const door = front.filter((x) => x.sill < 300).sort((p, q) => q.hi - q.lo - (p.hi - p.lo))[0];
+  if (!door) return;
+  const H = b.input.levels[0]!.height;
+  const oak = mat("hsl(30 45% 46%)", 0.6);
+  const left = Math.max(...front.filter((x) => x.hi <= door.lo).map((x) => x.hi), 0);
+  const right = Math.min(...front.filter((x) => x.lo >= door.hi).map((x) => x.lo), b.input.length);
+  const panels: [number, number][] = [
+    [Math.max(left + 150, door.lo - 1200), door.lo - 50],
+    [door.hi + 50, Math.min(right - 150, door.hi + 1200)],
+  ];
+  for (const [a, c] of panels) {
+    if (c - a < 300) continue;
+    box(g, a, floor, -120, c - a, H - 150, 20, mat("hsl(210 6% 18%)", 0.7));
+    for (let x = a + 20; x < c - 40; x += 110) box(g, x, floor, -180, 50, H - 150, 60, oak);
+  }
+  // Canopy: graphite slab with an oak soffit, 1.5 m deep, wider than the door by 1.2 m each side
+  const y = floor + door.top + 180;
+  box(g, door.lo - 1200, y, -1560, door.hi - door.lo + 2400, 160, 1500, mat("hsl(210 6% 22%)", 0.5, 0.3));
+  box(g, door.lo - 1150, y - 12, -1510, door.hi - door.lo + 2300, 12, 1400, oak);
 }
 
 function treadmill(u: THREE.Group) {
@@ -252,11 +279,14 @@ function hall(g: THREE.Group, b: Building, r: Room, gs: Gap[], floor: number) {
   const cx = (r.x0 + r.x1) / 2;
   const cz = (r.z0 + r.z1) / 2;
   const f = floor + 15;
+  const theme = themeOf(id);
   if (id === "bjj") {
     tatami(g, r, floor);
-    padding(g, r, gs, d, floor + 40);
+    band(g, r, gs, d, floor + 40, 1800, 50, theme?.accent ?? "hsl(214 40% 24%)");
     return;
   }
+  // Painted dado in the brand colour, the light theme colour above it
+  if (theme) band(g, r, gs, d, floor + 15, 1200, 6, theme.accent);
   if (id === "yoga") {
     gymFloor(g, r, floor, OAK);
     const cols = Math.max(1, Math.floor((w - 1200) / 1100));
@@ -427,6 +457,7 @@ export function sportInterior(b: Building, brand?: { text: string; color: string
         break;
     }
   }
+  portal(g, b, gs);
   g.userData.level = 0;
   return g;
 }

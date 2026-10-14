@@ -1,5 +1,6 @@
 import type { Building } from "../buildings/generate";
 import type { Opening } from "../walls/types";
+import { themeOf } from "../interior/theme";
 
 /**
  * Facade signage: volumetric letters, a lightbox or a flat panel above the
@@ -57,7 +58,8 @@ export function signPreset(productId: string): SignSettings {
     crossfit: ["IRON BOX", "Functional training"],
   };
   const [text, sub] = name[productId] ?? ["LSTK", ""];
-  return { ...SIGN_OFF, enabled: true, text, sub };
+  const t = themeOf(productId);
+  return { ...SIGN_OFF, enabled: true, text, sub, ...(t ? { color: t.letters, background: t.accent } : {}) };
 }
 
 export interface SignLayout {
