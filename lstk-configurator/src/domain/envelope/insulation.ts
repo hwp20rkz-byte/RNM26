@@ -2,6 +2,7 @@ import type { Building } from "../buildings/generate";
 import { floorTrussDepth } from "../buildings/generate";
 import type { HeatingMode } from "../buildings/types";
 import { degreeDays, INDOOR_T, requiredR, type City, type Element } from "../climate/cities";
+import { CSP_LAMBDA, CSP_PRICE, FOAM, FOAM_LABOUR, foamR, operatingDensity, type WallFill } from "./foamConcrete";
 import { doorArea, envelope, wallArea, windowArea, type Envelope } from "./geometry";
 
 /**
@@ -82,6 +83,8 @@ export interface ThermalOptions {
   airChanges: number;
   /** Heat-recovery efficiency of a mechanical system, 0 for natural ventilation */
   recovery: number;
+  /** Wall frame fill: stone wool or poured foam concrete */
+  fill?: WallFill;
 }
 
 export interface ThermalResult {
@@ -100,6 +103,8 @@ export interface ThermalResult {
   occupancy: number;
   condensationRisk: boolean;
   quantities: { cavityM3: number; addedM3: number; xpsM3: number; massKg: number; cost: number };
+  /** Poured foam concrete in the walls (none for wool): volume, operating mass, cost incl. the ЦСП formwork */
+  foam: { grade: number; thickness: number; m3: number; massKg: number; cspM2: number; cost: number } | null;
   envelope: Envelope;
 }
 
@@ -145,8 +150,13 @@ export function thermal(b: Building, o: ThermalOptions): ThermalResult {
   const assemblies: Assembly[] = [];
 
   if (insulated) {
-    const wallFixed = [layer("osb9", 9, 0.13), layer("cavityWool", d, CAVITY.lambda, (r * d) / 1000 / CAVITY.lambda), layer("vapour", 0, null), layer("gkl", 12.5, 0.21)];
-    assemblies.push(solve("wall", wallArea(env), k * requiredR("wall", gsop), wallFixed, d, `ext.${mat.id}`, mat.lambda));
+    // An unknown grade (an old saved project) falls back to wool
+    const foam = (o.fill?.grade && FOAM[o.fill.grade]) || null;
+    const wallFixed = foam
+      ? // ЦСП both sides as permanent formwork; no vapour barrier — the fill is vapour-open
+        [layer("csp12", 12, CSP_LAMBDA), layer(`foam.D${foam.grade}`, Math.max(d, o.fill!.thickness), foam.lambda, foamR(foam, Math.max(d, o.fill!.thickness), d, r)), layer("csp12", 12, CSP_LAMBDA)]
+      : [layer("osb9", 9, 0.13), layer("cavityWool", d, CAVITY.lambda, (r * d) / 1000 / CAVITY.lambda), layer("vapour", 0, null), layer("gkl", 12.5, 0.21)];
+    assemblies.push(solve("wall", wallArea(env), k * requiredR("wall", gsop), wallFixed, foam ? 0 : d, `ext.${mat.id}`, mat.lambda));
 
     // Cold attic: wool between the bottom chords, the rest laid across them
     const atticFixed = [layer("cavityWool", d, CAVITY.lambda, (bridging(b.input.trussSpacing) * d) / 1000 / CAVITY.lambda), layer("vapour", 0, null), layer("gkl", 12.5, 0.21)];
@@ -183,7 +193,21 @@ export function thermal(b: Building, o: ThermalOptions): ThermalResult {
   const massKg = (cavityM3 + overM3) * CAVITY.densityKg + addedM3 * mat.densityKg + xpsM3 * XPS.densityKg;
   const cost = (cavityM3 + overM3) * CAVITY.pricePerM3 + addedM3 * mat.pricePerM3 + xpsM3 * XPS.pricePerM3;
 
+  const wallA = assemblies.find((a) => a.element === "wall");
+  const grade = o.fill?.grade && FOAM[o.fill.grade] ? o.fill.grade : 0;
+  const foamQ =
+    grade && wallA
+      ? (() => {
+          const t = Math.max(d, o.fill!.thickness);
+          // Studs take ~1.5 % of the poured volume
+          const m3 = (wallA.areaM2 * t) / 1000 * 0.985;
+          const cspM2 = wallA.areaM2 * 2 * 1.08;
+          return { grade, thickness: t, m3, massKg: m3 * operatingDensity(grade), cspM2, cost: m3 * (FOAM[grade].price + FOAM_LABOUR) + cspM2 * CSP_PRICE };
+        })()
+      : null;
+
   return {
+    foam: foamQ,
     insulated,
     tIn,
     gsop,

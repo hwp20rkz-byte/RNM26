@@ -1,6 +1,7 @@
 "use client";
 
 import { CITIES } from "@/domain/climate/cities";
+import { FOAM, FOAM_GRADES, WOOL_FILL, wallLineLoad } from "@/domain/envelope/foamConcrete";
 import type { Assembly, EfficiencyLevel, InsulationMaterial } from "@/domain/envelope/insulation";
 import type { Analysis } from "@/domain/planner/analyze";
 import { useT } from "@/i18n";
@@ -22,6 +23,8 @@ const LAYER_COLOR: Record<string, string> = {
   vapour: "hsl(205 70% 50%)",
   windMembrane: "hsl(205 30% 70%)",
   xps: "hsl(180 50% 60%)",
+  csp12: "hsl(30 8% 72%)",
+  ...Object.fromEntries(FOAM_GRADES.map((g) => [`foam.D${g}`, `hsl(38 ${18 + g / 30}% ${88 - g / 25}%)`])),
   screed: "hsl(0 0% 70%)",
   slab: "hsl(0 0% 60%)",
   ground: "hsl(30 30% 40%)",
@@ -44,7 +47,7 @@ function BuildUp({ a }: { a: Assembly }) {
           return (
             <g key={i}>
               <rect x={x0} y={0} width={w} height={H} fill={LAYER_COLOR[l.key] ?? "hsl(0 0% 80%)"} />
-              {l.key === "cavityWool" && <rect x={x0 + w / 2 - 6} y={0} width={12} height={H} fill="hsl(210 8% 55%)" />}
+              {(l.key === "cavityWool" || l.key.startsWith("foam.")) && <rect x={x0 + w / 2 - 6} y={0} width={12} height={H} fill="hsl(210 8% 55%)" />}
             </g>
           );
         })}
@@ -135,6 +138,8 @@ export function ClimatePanel({ a }: { a: Analysis }) {
         )}
       </Panel>
 
+      {th.insulated && <FoamPanel a={a} />}
+
       {th.assemblies.map((x) => (
         <Panel key={x.element} title={`${t.dyn(`element.${x.element}`)} · ${one(x.areaM2)} ${t("unit.m2")}`}>
           <BuildUp a={x} />
@@ -162,5 +167,52 @@ export function ClimatePanel({ a }: { a: Analysis }) {
         </Panel>
       )}
     </>
+  );
+}
+
+/** Walls poured with foam concrete: grade, thickness, what it costs and weighs */
+function FoamPanel({ a }: { a: Analysis }) {
+  const t = useT();
+  const { planner: p, setPlanner, building } = useConfigurator();
+  const fill = p.wallFill ?? WOOL_FILL;
+  const depth = a.building.depth;
+  const fq = a.thermal.foam;
+  const spec = fill.grade ? FOAM[fill.grade] : null;
+  const thicknesses = [depth, 150, 200, 250, 300].filter((v, i, xs) => xs.indexOf(v) === i && v >= depth);
+  return (
+    <Panel title={t("foam.title")}>
+      <div className="grid grid-cols-2 gap-3">
+        <Select
+          label={t("foam.fill")}
+          value={String(fill.grade)}
+          options={[{ value: "0", label: t("foam.wool") }, ...FOAM_GRADES.map((g) => ({ value: String(g), label: `D${g} · λ ${FOAM[g].lambda.toFixed(3).replace(".", ",")}` }))]}
+          onChange={(v) => setPlanner({ wallFill: { grade: Number(v) as typeof fill.grade, thickness: Math.max(depth, fill.thickness || 150) } })}
+        />
+        {spec && (
+          <Select
+            label={t("foam.thickness")}
+            value={String(Math.max(depth, fill.thickness))}
+            options={thicknesses.map((v) => ({ value: String(v), label: v === depth ? t("foam.inFrame", { mm: v }) : `${v} ${t("unit.mm")}` }))}
+            onChange={(v) => setPlanner({ wallFill: { ...fill, thickness: Number(v) } })}
+          />
+        )}
+      </div>
+      {spec && fq ? (
+        <>
+          <Stats>
+            <Stat label={t("foam.strength")} value={`${two(spec.strength)} ${t("unit.mpa")}`} />
+            <Stat label={t("foam.volume")} value={`${one(fq.m3)} ${t("unit.m3")}`} />
+            <Stat label={t("foam.mass")} value={`${one(fq.massKg / 1000)} ${t("unit.t")}`} />
+            <Stat label={t("foam.load")} value={`${two(wallLineLoad(fill, building.levels[0]!.height))} ${t("unit.knm")}`} />
+            <Stat label={t("foam.csp")} value={`${int(fq.cspM2)} ${t("unit.m2")}`} />
+            <Stat label={t("foam.cost")} value={money(fq.cost)} strong />
+          </Stats>
+          <Note>{t("foam.pour", { lift: spec.lift, wet: spec.wet })}</Note>
+          {fill.grade >= 400 && <Note>{t("foam.heavy")}</Note>}
+        </>
+      ) : (
+        <p className="text-xs text-ink-mute">{t("foam.hint")}</p>
+      )}
+    </Panel>
   );
 }
