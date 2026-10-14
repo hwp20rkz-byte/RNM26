@@ -4,6 +4,7 @@ import { HARDWARE } from "../connections/hardware";
 import { finish } from "../finishes/catalog";
 import { DEFAULT_FOUNDATION_PRICES } from "../foundation/foundation";
 import { DEFAULT_MEP_PRICES } from "../mep/mep";
+import { CSP_PRICE, FOAM, FOAM_LABOUR, type FoamGrade } from "../envelope/foamConcrete";
 import { MATERIALS } from "../envelope/insulation";
 
 /**
@@ -222,8 +223,9 @@ export function buildEstimate(a: Analysis, o: EstimateOptions = DEFAULT_ESTIMATE
   section("07", "facade");
   const facadeM2 = env.sides.reduce((s, x) => s + x.wallM2, 0) + env.gablesM2;
   const wallIns = a.thermal.assemblies.find((x) => x.element === "wall");
+  const foam = a.thermal.foam;
   if (a.thermal.insulated) {
-    ln("sheathing9", "m2", facadeM2 * 1.08, "sheathing9");
+    if (!foam) ln("sheathing9", "m2", facadeM2 * 1.08, "sheathing9");
     ln("wind", "m2", facadeM2 * 1.1, "wind");
     if (wallIns && wallIns.added > 0) {
       const m = MATERIALS[a.settings.insulation];
@@ -243,8 +245,13 @@ export function buildEstimate(a: Analysis, o: EstimateOptions = DEFAULT_ESTIMATE
   const q = a.thermal.quantities;
   if (a.thermal.insulated) {
     line("cavityWool", "m3", q.cavityM3, 22000, 7000);
+    if (foam) {
+      // Poured on site: mix + crew per m³, ЦСП formwork both sides
+      line(`foam.D${foam.grade}`, "m3", foam.m3, FOAM[foam.grade as FoamGrade].price, FOAM_LABOUR);
+      line("csp", "m2", foam.cspM2, CSP_PRICE * 0.65, CSP_PRICE * 0.35);
+    }
     if (q.xpsM3 > 0) line("xps", "m3", q.xpsM3, 48000, 6000);
-    ln("vapour", "m2", (facadeM2 + env.ceilingM2) * 1.15, "vapour");
+    ln("vapour", "m2", ((foam ? 0 : facadeM2) + env.ceilingM2) * 1.15, "vapour");
   }
 
   // 09 Windows, doors, gates

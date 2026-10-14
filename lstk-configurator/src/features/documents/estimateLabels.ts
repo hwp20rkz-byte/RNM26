@@ -9,7 +9,7 @@ export function estLabel(id: string, dyn: Dyn): string {
   if (head!.startsWith("finish.")) return dyn(head!);
   if (head!.startsWith("hw.")) return dyn(`cost.${head}`);
   if (head!.startsWith("vehicle.")) return `${dyn("est.transport")}: ${dyn(head!)}`;
-  if (head!.startsWith("ext.")) return dyn(`layer.${head}`);
+  if (head!.startsWith("ext.") || head!.startsWith("foam.")) return dyn(`layer.${head}`);
   return dyn(`est.${head}`);
 }
 

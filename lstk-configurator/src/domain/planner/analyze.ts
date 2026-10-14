@@ -7,6 +7,7 @@ import { hardwareTotals, type HardwareLine } from "../connections/hardware";
 import { FASTENERS, type FastenerKind } from "../connections/fasteners";
 import { detailingSummary, type DetailingSummary } from "../detailing/planar";
 import { doorArea, windowArea } from "../envelope/geometry";
+import { WOOL_FILL, wallLineLoad, type WallFill } from "../envelope/foamConcrete";
 import { thermal, type EfficiencyLevel, type InsulationMaterial, type ThermalResult } from "../envelope/insulation";
 import { DEFAULT_FINISHES, finish, type FinishChoice } from "../finishes/catalog";
 import { foundation, type FoundationResult } from "../foundation/foundation";
@@ -54,6 +55,8 @@ export interface PlannerSettings {
   certifiedG550: boolean;
   /** Frame fasteners in the dimples */
   fastener: FastenerKind;
+  /** Wall fill: stone wool, or foam concrete poured into ЦСП formwork */
+  wallFill: WallFill;
   /** Drawing set title block */
   doc: { code: string; org: string; developer: string; stage: string };
 }
@@ -78,6 +81,7 @@ export const DEFAULT_SETTINGS: PlannerSettings = {
   designPerM2: 3500,
   certifiedG550: false,
   fastener: "screw",
+  wallFill: WOOL_FILL,
   doc: { code: "ЛСТК-01-АР/КМ", org: "", developer: "", stage: "П" },
 };
 
@@ -182,6 +186,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     windowR: settings.windowR,
     airChanges: input.heating === "bath" ? 1 : 0.5,
     recovery: settings.ventilation === "recovery" ? 0.75 : 0,
+    fill: settings.wallFill,
   });
   const env = thermalResult.envelope;
   const f = settings.finishes;
@@ -230,7 +235,8 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
   const mepResult = env.enclosed || coop ? mep(building, env.rooms, heatingKw, DEFAULT_MEP_PRICES, coop?.birds ?? 0) : mep(building, [], 0);
 
   // ── Foundation, production ─────────────────────────────
-  const fnd = foundation(building, city);
+  // Foam concrete stands on the plinth: its weight goes straight to the foundation
+  const fnd = foundation(building, city, undefined, thermalResult.foam ? wallLineLoad(settings.wallFill, input.levels[0]!.height) : 0);
   const energy = productionEnergy(bom, operations(building.assemblies), { ...DEFAULT_ENERGY, tariff: settings.tariff, assemblyHoursPerT: settings.shipping === "panels" ? UNIT.shopHoursPerT : 6 });
 
   // ── Openings ───────────────────────────────────────────

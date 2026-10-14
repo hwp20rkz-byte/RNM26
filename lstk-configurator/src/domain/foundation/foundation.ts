@@ -61,11 +61,18 @@ export interface FoundationResult {
 
 const round = (v: number, step: number) => Math.ceil(v / step - 1e-9) * step;
 
-export function foundation(b: Building, city: City, prices: FoundationPrices = DEFAULT_FOUNDATION_PRICES): FoundationResult {
+/**
+ * `wallLoad` — extra dead load on the outer walls, kN/m (poured foam
+ * concrete): screw piles move closer and go up to Ø108, a strip gets wider,
+ * a slab gets thicker under the walls.
+ */
+export function foundation(b: Building, city: City, prices: FoundationPrices = DEFAULT_FOUNDATION_PRICES, wallLoad = 0): FoundationResult {
   const { length: L, width: W, foundation: f } = b.input;
   const frost = city.frost * 10; // mm
   const plinth = f.plinth;
-  const heavy = b.input.levels.length > 1 || L * W > 40e6;
+  const heavy = b.input.levels.length > 1 || L * W > 40e6 || wallLoad > 1;
+  // Pile pitch under the outer walls: 2.5 m for a bare frame, closer under a poured wall (≈ 12 kN a pile)
+  const pitch = wallLoad > 0 ? Math.max(1200, Math.min(2500, Math.floor(12 / wallLoad / 0.1) * 100)) : 2500;
   const out: FoundationResult = { type: f.type, piles: 0, pileDiameter: 0, pileLength: 0, stripDepth: 0, stripWidth: 0, concreteM3: 0, rebarKg: 0, massKg: 0, cost: 0, notes: [] };
   const lines: { length: number }[] = [{ length: L }, { length: L }, { length: W }, { length: W }];
   const partitions: Partition[] = b.input.levels[0]!.partitions;
@@ -74,8 +81,8 @@ export function foundation(b: Building, city: City, prices: FoundationPrices = D
   switch (f.type) {
     case "screw-piles": {
       // Grid under the outer walls and the first-floor partitions, corners shared
-      const along = evenStations(L, 2500, 0).length;
-      const across = evenStations(W, 2500, 0).length;
+      const along = evenStations(L, pitch, 0).length;
+      const across = evenStations(W, pitch, 0).length;
       let piles = 2 * along + 2 * (across - 2);
       for (const p of partitions) piles += Math.max(0, evenStations(p.axis === "x" ? W : L, 2500, 0).length - 2);
       // Floor trusses span the width: intermediate rows under wide floors
@@ -91,12 +98,13 @@ export function foundation(b: Building, city: City, prices: FoundationPrices = D
       break;
     }
     case "strip": {
-      out.stripWidth = 300;
+      // 300 mm is plenty for a frame; a poured wall asks ≈ 100 kPa of the soil at most
+      out.stripWidth = Math.max(300, Math.ceil(wallLoad / 100 / 0.05) * 50);
       const shallow = frost > 1000;
       out.stripDepth = shallow ? 600 : Math.max(600, round(frost, 100));
       const run = lines.reduce((s, l) => s + l.length, 0) / 1000;
       const height = (out.stripDepth + plinth) / 1000;
-      out.concreteM3 = run * 0.3 * height;
+      out.concreteM3 = run * (out.stripWidth / 1000) * height;
       out.rebarKg = out.concreteM3 * 80;
       out.massKg = out.concreteM3 * 2400 + out.rebarKg;
       const skirt = shallow ? ((2 * (L + W)) / 1000 + 4 * 1.2) * 1.2 : 0;
@@ -107,7 +115,9 @@ export function foundation(b: Building, city: City, prices: FoundationPrices = D
     case "slab": {
       const area = ((L + 400) * (W + 400)) / 1e6;
       const t = 0.15 + (heavy ? 0.05 : 0);
-      const ribs = (2 * (L + W)) / 1000 * 0.3 * 0.3; // edge thickening
+      // Edge thickening under the outer walls, deeper under a poured wall
+      const rib = wallLoad > 3 ? 0.4 : 0.3;
+      const ribs = (2 * (L + W)) / 1000 * rib * rib;
       out.concreteM3 = area * t + ribs;
       out.rebarKg = out.concreteM3 * 90;
       out.massKg = out.concreteM3 * 2400 + out.rebarKg;
@@ -120,5 +130,6 @@ export function foundation(b: Building, city: City, prices: FoundationPrices = D
       out.notes.push("anchors");
       break;
   }
+  if (wallLoad > 0) out.notes.push("foamLoad");
   return out;
 }
