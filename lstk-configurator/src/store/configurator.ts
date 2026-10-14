@@ -15,7 +15,7 @@ import type { Lang } from "@/i18n";
 export type Mode = "building" | "wall" | "truss" | "profile";
 export type LightingPreset = "studio" | "sunny" | "overcast" | "dusk";
 export type Detail = "instanced" | "detailed";
-export type PlannerTab = "catalog" | "shape" | "layout" | "climate" | "finish" | "mep" | "calc" | "nodes" | "estimate" | "delivery" | "drawings" | "files";
+export type PlannerTab = "catalog" | "shape" | "layout" | "climate" | "finish" | "mep" | "energy" | "calc" | "nodes" | "estimate" | "delivery" | "drawings" | "files";
 export type PartTab = "params" | "files";
 export type CameraPreset = "iso" | "front" | "side" | "top";
 
