@@ -11,6 +11,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { applyCut, applyExplode, highlightMember, memberIdFromHit } from "@/render/assemblies";
 import { disposeOwned } from "@/render/meshes";
+import { siteIdFromHit } from "@/render/site";
 import type { CameraPreset, LightingPreset } from "@/store/configurator";
 
 /**
@@ -177,6 +178,8 @@ export interface ViewportProps {
   /** Increment to save a PNG render (photo mode) */
   shot?: number;
   onPick: (memberId: string | null) => void;
+  /** Landscape editor: when set, every click goes here with the plan point (mm) and the site item hit */
+  onTool?: (hit: { x: number; z: number; siteId: string | null }) => void;
 }
 
 /** Camera presets: fly to a view of the current model */
@@ -212,7 +215,7 @@ function Dimension({ d }: { d: Dim }) {
   );
 }
 
-export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, photo = false, shot = 0, onPick }: ViewportProps) {
+export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, photo = false, shot = 0, onPick, onTool }: ViewportProps) {
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Free per-build geometry when the scene is replaced
   useEffect(
@@ -231,7 +234,14 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
     if (object) highlightMember(object, selection);
   }, [object, selection]);
 
+  // Plan point under the cursor, mm in the model's frame
+  const toPlan = (p: THREE.Vector3) => ({ x: (p.x - offset[0]) / 0.001, z: (p.z - offset[2]) / 0.001 });
+  const tool = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    onTool!({ ...toPlan(e.point), siteId: siteIdFromHit(e.object) });
+  };
   const pick = (e: ThreeEvent<MouseEvent>) => {
+    if (onTool) return tool(e);
     e.stopPropagation();
     // A click on cladding selects nothing; on steel — the member under the cursor
     onPick(memberIdFromHit(e.object, e.instanceId));
@@ -278,7 +288,7 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
           <meshStandardMaterial color={lighting === "dusk" ? "#4d5a3a" : "#8fae6a"} roughness={1} />
         </mesh>
       )}
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.001, 0]} receiveShadow>
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.001, 0]} receiveShadow onClick={onTool ? tool : undefined}>
         <planeGeometry args={[400, 400]} />
         <shadowMaterial opacity={0.2} />
       </mesh>

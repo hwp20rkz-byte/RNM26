@@ -9,13 +9,14 @@ import type { FinishChoice } from "@/domain/finishes/catalog";
 import { DEFAULT_SETTINGS, type PlannerSettings } from "@/domain/planner/analyze";
 import type { TrussShape, WebPattern } from "@/domain/trusses/types";
 import { PATTERNS_FOR_SHAPE } from "@/domain/trusses/types";
+import type { SiteKind } from "@/domain/site/site";
 import type { Opening } from "@/domain/walls/types";
 import type { Lang } from "@/i18n";
 
 export type Mode = "building" | "wall" | "truss" | "profile";
 export type LightingPreset = "studio" | "sunny" | "overcast" | "dusk";
 export type Detail = "instanced" | "detailed";
-export type PlannerTab = "catalog" | "shape" | "layout" | "climate" | "finish" | "mep" | "energy" | "calc" | "nodes" | "estimate" | "delivery" | "drawings" | "files";
+export type PlannerTab = "catalog" | "shape" | "layout" | "climate" | "finish" | "mep" | "energy" | "site" | "calc" | "nodes" | "estimate" | "delivery" | "drawings" | "files";
 export type PartTab = "params" | "files";
 export type CameraPreset = "iso" | "front" | "side" | "top";
 
@@ -93,6 +94,8 @@ interface UiState {
   camera: { preset: CameraPreset; n: number };
   /** Design Mode: full-screen presentation of the project */
   presentation: boolean;
+  /** Landscape editor tool: place an item kind, erase, or off */
+  siteTool: SiteKind | "erase" | null;
 }
 
 interface Actions {
@@ -120,6 +123,7 @@ interface Actions {
   select: (id: string | null) => void;
   look: (preset: CameraPreset) => void;
   setPresentation: (on: boolean) => void;
+  setSiteTool: (tool: SiteKind | "erase" | null) => void;
   loadProject: (p: ProjectState) => void;
   reset: () => void;
 }
@@ -205,6 +209,7 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
         selection: null,
         camera: { preset: "iso", n: 0 },
         presentation: false,
+        siteTool: null,
         setLang: (lang) => set({ lang }),
         setMode: (mode) => set({ mode, selection: null }),
         applyProduct: (id) =>
@@ -239,6 +244,7 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
         setPartTab: (partTab) => set({ partTab }),
         select: (selection) => set({ selection }),
         look: (preset) => set((s) => ({ camera: { preset, n: s.camera.n + 1 } })),
+        setSiteTool: (siteTool) => set({ siteTool, selection: null }),
         setPresentation: (presentation) => set((s) => ({ presentation, mode: "building", selection: null, camera: { preset: "iso", n: s.camera.n + 1 } })),
         loadProject: (p) => set({ ...p, selection: null }),
         reset: () => set({ ...fresh(), selection: null }),

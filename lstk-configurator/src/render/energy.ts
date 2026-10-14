@@ -111,16 +111,17 @@ function turbine(g: THREE.Group, x: number, z: number) {
   g.add(t);
 }
 
-function charger(g: THREE.Group, x: number, z: number, dc: boolean) {
+function charger(g: THREE.Group, x: number, z: number, dc: boolean, marking: boolean) {
   const body = mat(dc ? "hsl(150 30% 30%)" : "hsl(0 0% 94%)", 0.4, 0.2);
   if (dc) box(g, x - 400, 0, z - 300, 800, 1900, 600, body);
   else box(g, x - 150, 0, z - 120, 300, 1400, 240, body);
   box(g, x - 120, dc ? 1300 : 1000, z - (dc ? 305 : 125), 240, 160, 5, mat("hsl(200 70% 45%)", 0.2, 0.3));
-  // Parking bay marking
-  box(g, x - 1250, 2, z - 5600, 2500, 4, 5000, mat(dc ? "hsl(150 50% 40%)" : "hsl(205 60% 45%)", 0.9));
+  // Parking bay marking (the site plan draws its own)
+  if (marking) box(g, x - 1250, 2, z - 5600, 2500, 4, 5000, mat(dc ? "hsl(150 50% 40%)" : "hsl(205 60% 45%)", 0.9));
 }
 
-export function createPlant(b: Building, x: AutonomyResult, rooms: Room[][]): THREE.Group {
+/** `evBays` — the EV bays of the site plan: the chargers stand at their noses */
+export function createPlant(b: Building, x: AutonomyResult, rooms: Room[][], evBays: { x0: number; x1: number; z1: number }[] = []): THREE.Group {
   const g = new THREE.Group();
   g.name = "plant";
   const { length: L, width: W } = b.input;
@@ -151,11 +152,15 @@ export function createPlant(b: Building, x: AutonomyResult, rooms: Room[][]): TH
     cyl(g, -6000, 150, W + 8000, 600, 300, mat("hsl(205 30% 40%)", 0.5));
     cyl(g, -6000, 400, W + 8000, 250, 200, grey);
   }
-  if (x.septic) for (let i = 0; i < 2; i++) cyl(g, L + 6000 + i * 1600, 60, -8000, 400, 120, mat("hsl(110 15% 35%)", 0.7));
+  if (x.septic) for (let i = 0; i < 2; i++) cyl(g, L + 7000 + i * 1600, 60, -1500, 400, 120, mat("hsl(110 15% 35%)", 0.7));
   if (x.wind) for (let i = 0; i < x.wind.turbines; i++) turbine(g, -14000 - i * 12000, W + 14000);
   if (x.ev) {
     const n = x.ev.ac + x.ev.dc;
-    for (let i = 0; i < n; i++) charger(g, L - 2000 - i * 2800, -7000, i >= x.ev.ac);
+    for (let i = 0; i < n; i++) {
+      const bay = evBays[i];
+      if (bay) charger(g, (bay.x0 + bay.x1) / 2, bay.z1 + 350, i >= x.ev.ac, false);
+      else charger(g, L - 2000 - i * 2800, -7000, i >= x.ev.ac, true);
+    }
   }
   // Battery and inverter cabinets in the technical room
   if (x.battery) {
