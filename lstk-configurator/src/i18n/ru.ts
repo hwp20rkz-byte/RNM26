@@ -331,7 +331,7 @@ export const ru = {
   "shape.parapet": "Высота парапета",
   "shape.roofLoad": "Расчётная нагрузка на кровлю (в плане)",
 
-  "heating.permanent": "Жилой, постоянное отопление",
+  "heating.permanent": "Постоянное отопление (жильё, клуб, офис)",
   "heating.seasonal": "Сезонный, периодическое отопление",
   "heating.bath": "Баня",
   "heating.none": "Без отопления",

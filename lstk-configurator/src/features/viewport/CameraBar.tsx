@@ -104,7 +104,7 @@ export function CameraBar({ a, cam, setCam, productId }: { a: Analysis; cam: Cam
         )}
       </div>
       {cam.walk && (
-        <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-end justify-between gap-4">
+        <div className="pointer-events-none fixed bottom-4 right-4 z-20 flex max-w-[min(420px,calc(100vw-2rem))] flex-col items-end gap-2">
           <p className="pointer-events-auto max-w-sm rounded-lg bg-surface/90 p-2 text-xs text-ink-mute shadow">
             {t("tour.walkHint")}{" "}
             <button id="walk-capture" type="button" className="min-h-11 rounded-lg bg-primary px-3 text-sm font-semibold text-surface">

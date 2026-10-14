@@ -329,7 +329,7 @@ export const zh: Record<Key, string> = {
   "shape.parapet": "矮墙高度",
   "shape.roofLoad": "屋面设计荷载（水平投影）",
 
-  "heating.permanent": "居住，常年采暖",
+  "heating.permanent": "常年采暖（住宅、俱乐部、办公）",
   "heating.seasonal": "季节性，间歇采暖",
   "heating.bath": "桑拿",
   "heating.none": "不采暖",

@@ -329,7 +329,7 @@ export const kk: Record<Key, string> = {
   "shape.parapet": "Парапет биіктігі",
   "shape.roofLoad": "Шатырға есептік жүктеме (жоспарда)",
 
-  "heating.permanent": "Тұрғын, тұрақты жылыту",
+  "heating.permanent": "Тұрақты жылыту (тұрғын үй, клуб, кеңсе)",
   "heating.seasonal": "Маусымдық, мерзімді жылыту",
   "heating.bath": "Монша",
   "heating.none": "Жылытусыз",
