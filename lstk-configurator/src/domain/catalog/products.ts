@@ -219,7 +219,7 @@ const fitness = () => club({ id: "fitness", length: 24000, width: 12000, height:
 /** Yoga / stretching studio: 11 × 9 m hall, 3.3 m */
 const yoga = () => club({ id: "yoga", length: 16000, width: 9000, height: 3300, service: 5000, lobby: 3000, men: 6000, panels: 6, studSpacing: 600 });
 /** Table tennis: 20 × 12 m hall, four training courts 10 × 6 m (ITTF training), 4 m clear */
-const tabletennis = () => club({ id: "tabletennis", length: 26000, width: 12000, height: 4000, service: 6000, lobby: 4000, men: 8000, panels: 8, studSpacing: 400 });
+const tabletennis = () => club({ id: "tabletennis", length: 26150, width: 12200, height: 4000, service: 6000, lobby: 4000, men: 8000, panels: 8, studSpacing: 400 });
 /**
  * Functional training box: 18 × 12 m hall, 4.2 m for rope climbs, wall balls
  * (3 m target) and a rig. Squash (5.64 m clear) is not offered: a 5.8 m wall

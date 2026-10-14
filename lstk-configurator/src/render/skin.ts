@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { floorTrussDepth, sideOpenings, wallPlans, type Building } from "@/domain/buildings/generate";
 import type { RoomPurpose } from "@/domain/buildings/types";
 import { finish, type FinishChoice } from "@/domain/finishes/catalog";
-import { rooms } from "@/domain/layout/rooms";
 import type { Frame3 } from "@/domain/geometry/frame";
 import { openingTop } from "@/domain/walls/generate";
 import type { Opening } from "@/domain/walls/types";
@@ -364,14 +363,8 @@ export function createSkin(b: Building, finishes: FinishChoice): THREE.Group {
     const open = !(["front", "back", "left", "right"] as const).every((s) => level.sides[s].type === "wall");
     if (open) {
       if (input.foundation.type !== "slab" && input.foundation.type !== "none") g.add(box(0, info.base - 30, 0, L, 30, W, finishMaterial("deck", finish("deck").color, [L / 1000, W / 1000])));
-    } else
-      for (const r of rooms(level, info.inner, d)) {
-        const purpose = level.rooms[r.key] ?? "living";
-        const m = box(r.x0, info.base + 2, r.z0, r.x1 - r.x0, 18, r.z1 - r.z0, plain(PURPOSE_COLOR[purpose], { roughness: 0.8 }));
-        m.castShadow = false;
-        m.userData.roomKey = `${li}:${r.key}`;
-        g.add(m);
-      }
+    }
+    // Enclosed rooms get their finished floors from the interior (render/interior.ts)
     g.userData.level = li;
     root.add(g);
   });

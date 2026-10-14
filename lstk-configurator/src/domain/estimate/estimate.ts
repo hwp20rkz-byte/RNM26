@@ -304,6 +304,10 @@ export function buildEstimate(a: Analysis, o: EstimateOptions = DEFAULT_ESTIMATE
   section("15", "heating");
   line("heaters", "kW", m.heatingKw, mp.heaterPerKw * 0.8, mp.heaterPerKw * 0.2);
 
+  // 15a Sports equipment and furniture (supply 85 / assembly 15)
+  section("15a", "fitout");
+  for (const it of a.fitout) line(`fit.${it.key}`, it.unit, it.qty, it.price * 0.85, it.price * 0.15);
+
   // 16 Energy plant and autonomous systems (supply + installation, 85 / 15)
   section("16", "energy");
   for (const it of a.autonomy.items) line(`auto.${it.key}`, it.unit, it.qty, (it.cost / it.qty) * 0.85, (it.cost / it.qty) * 0.15);

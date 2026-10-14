@@ -8,6 +8,7 @@ import { FASTENERS, type FastenerKind } from "../connections/fasteners";
 import { detailingSummary, type DetailingSummary } from "../detailing/planar";
 import { doorArea, windowArea } from "../envelope/geometry";
 import { AUTONOMY_OFF, autonomy, type AutonomyResult, type AutonomySettings } from "../energy/autonomy";
+import { fitOut, type FitItem } from "../interior/fitout";
 import { SIGN_OFF, signLayout, type SignLayout, type SignSettings } from "../signage/sign";
 import { SITE_OFF, sitePlan, type SitePlan, type SiteSettings } from "../site/site";
 import { WOOL_FILL, wallLineLoad, type WallFill } from "../envelope/foamConcrete";
@@ -149,6 +150,8 @@ export interface Analysis {
   site: SitePlan | null;
   /** Facade sign, when on */
   sign: SignLayout | null;
+  /** Sports club furniture and equipment */
+  fitout: FitItem[];
   delivery: DeliveryResult;
   cargo: Cargo[];
   coop: CoopPlan | null;
@@ -185,7 +188,17 @@ const INTERIOR_ZONE: Partial<Record<RoomPurpose, "interior" | "wet" | "steam" | 
   garage: "utility",
   workshop: "utility",
   poultry: "utility",
+  // Sports club: halls, offices and the lobby are finished rooms, changing rooms are wet
+  gym: "interior",
+  office: "interior",
+  lobby: "interior",
+  changing: "wet",
 };
+
+/** Floor of a sports hall by the sport; a BJJ hall gets tatami (fit-out) on a screed */
+export function hallFloor(productId: string): string {
+  return productId === "fitness" || productId === "crossfit" ? "sportRubber" : productId === "tabletennis" ? "sportPvc" : productId === "yoga" ? "sportParquet" : "concrete";
+}
 
 function operations(assemblies: readonly Assembly[]): number {
   return assemblies.reduce((s, a) => s + a.members.reduce((t, m) => t + m.features.length, 0), 0);
@@ -222,14 +235,15 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
   add("roofing", f.roofing, env.roofM2);
   if (input.foundation.plinth > 0 && input.foundation.type !== "none") add("plinth", f.plinth, env.plinthM2);
   const zones = { interior: 0, wet: 0, steam: 0, utility: 0 };
-  const floors = { main: 0, wet: 0, steam: 0, utility: 0 };
+  const floors = { main: 0, hall: 0, wet: 0, steam: 0, utility: 0 };
   env.rooms.forEach((level, li) =>
     level.forEach((r) => {
       const z = INTERIOR_ZONE[r.purpose];
       if (!z || !env.enclosed) return;
       const h = input.levels[li]!.height / 1000;
       zones[z] += r.perimeter * h + r.area; // walls + ceiling
-      if (z === "interior") floors.main += r.area;
+      if (r.purpose === "gym") floors.hall += r.area;
+      else if (z === "interior") floors.main += r.area;
       else if (z === "wet") floors.wet += r.area;
       else if (z === "steam") floors.steam += r.area;
       else floors.utility += r.area;
@@ -242,6 +256,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
   add("steam", f.steam, zones.steam);
   add("utility", "osbOpen", zones.utility);
   add("floor", f.floor, floors.main);
+  add("floorHall", hallFloor(input.productId), floors.hall);
   add("floorWet", "tile", floors.wet);
   add("floorSteam", "deck", floors.steam);
   add("floorUtility", input.foundation.type === "slab" ? "concrete" : "deck", floors.utility);
@@ -315,6 +330,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     hardware,
     detailing: detailingSummary(building.assemblies),
     autonomy: plant,
+    fitout: fitOut(building, env.rooms[0] ?? []),
     sign: signLayout(building, { ...SIGN_OFF, ...settings.sign }, sideOpenings(input.levels[0]!.sides.front, input.length, input.levels[0]!.height, input, building.profile)),
     site: settings.site?.enabled ? sitePlan(building, { ...SITE_OFF, ...settings.site }, plant.ev ? plant.ev.ac + plant.ev.dc : 0) : null,
     // PV modules and rails add ≈ 0.15 kPa to the roof dead load

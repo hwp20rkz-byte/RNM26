@@ -49,6 +49,10 @@ export const FINISHES: Finish[] = [
   { id: "linoleum", zone: "floor", color: "hsl(30 15% 60%)", price: 3200, labour: 1200, kgPerM2: 3, waste: 0.1, look: "smooth" },
   { id: "tile", zone: "floor", color: "hsl(30 8% 70%)", price: 6500, labour: 6500, kgPerM2: 22, waste: 0.1, look: "tiles" },
   { id: "deck", zone: "floor", color: "hsl(26 40% 44%)", price: 9000, labour: 3500, kgPerM2: 20, waste: 0.12, look: "boards" },
+  // Sports floors: rubber for weights, PVC sports vinyl for ball games, oak strip for yoga
+  { id: "sportRubber", zone: "floor", color: "hsl(210 6% 20%)", price: 11000, labour: 2500, kgPerM2: 12, waste: 0.05, look: "smooth" },
+  { id: "sportPvc", zone: "floor", color: "hsl(8 50% 36%)", price: 9500, labour: 3000, kgPerM2: 5, waste: 0.08, look: "smooth" },
+  { id: "sportParquet", zone: "floor", color: "hsl(34 42% 58%)", price: 16000, labour: 5000, kgPerM2: 14, waste: 0.1, look: "boards" },
   { id: "concrete", zone: "floor", color: "hsl(0 0% 66%)", price: 1500, labour: 1500, kgPerM2: 2, waste: 0.05, look: "smooth" },
   // Plinth
   { id: "plinthProfsheet", zone: "plinth", color: "hsl(210 8% 30%)", price: 3200, labour: 1500, kgPerM2: 4.4, waste: 0.1, look: "ribbed" },
