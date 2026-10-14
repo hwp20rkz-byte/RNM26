@@ -395,7 +395,7 @@ export const zh: Record<Key, string> = {
   "room.kitchen": "厨房",
   "room.bathroom": "卫生间",
   "room.steam": "蒸房",
-  "room.washing": "淋浴间",
+  "room.washing": "淋浴间 / 洗衣房",
   "room.rest": "休息室",
   "room.hall": "门厅",
   "room.storage": "储藏室",
@@ -406,7 +406,7 @@ export const zh: Record<Key, string> = {
   "room.open": "开敞区",
   "room.gym": "运动馆",
   "room.changing": "更衣室",
-  "room.office": "教练室",
+  "room.office": "书房 / 教练室",
   "room.lobby": "等候区、前台",
 
   "climate.city": "建设城市",

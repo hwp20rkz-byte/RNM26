@@ -397,7 +397,7 @@ export const ru = {
   "room.kitchen": "Кухня",
   "room.bathroom": "Санузел",
   "room.steam": "Парилка",
-  "room.washing": "Мойка",
+  "room.washing": "Мойка / прачечная",
   "room.rest": "Комната отдыха",
   "room.hall": "Прихожая",
   "room.storage": "Кладовая",
@@ -408,7 +408,7 @@ export const ru = {
   "room.open": "Открытая площадка",
   "room.gym": "Спортивный зал",
   "room.changing": "Раздевалка",
-  "room.office": "Тренерская",
+  "room.office": "Кабинет / тренерская",
   "room.lobby": "Зона ожидания, ресепшн",
 
   "climate.city": "Город строительства",

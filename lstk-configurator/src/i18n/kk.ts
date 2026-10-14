@@ -395,7 +395,7 @@ export const kk: Record<Key, string> = {
   "room.kitchen": "Ас үй",
   "room.bathroom": "Санторап",
   "room.steam": "Бу бөлмесі",
-  "room.washing": "Жуыну бөлмесі",
+  "room.washing": "Жуыну / кір жуу бөлмесі",
   "room.rest": "Демалыс бөлмесі",
   "room.hall": "Кіреберіс",
   "room.storage": "Қойма",
@@ -406,7 +406,7 @@ export const kk: Record<Key, string> = {
   "room.open": "Ашық алаң",
   "room.gym": "Спорт залы",
   "room.changing": "Киім ауыстыратын бөлме",
-  "room.office": "Жаттықтырушы бөлмесі",
+  "room.office": "Кабинет / жаттықтырушы бөлмесі",
   "room.lobby": "Күту аймағы, ресепшн",
 
   "climate.city": "Құрылыс қаласы",

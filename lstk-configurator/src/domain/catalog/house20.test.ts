@@ -25,3 +25,20 @@ describe("house 20×16 after the Rg6346 layout", () => {
     expect(a.building.input.levels[0]!.sides.back.openings.some((o) => o.kind === "door" && o.width >= 2400)).toBe(true);
   });
 });
+
+import { buildScene } from "@/features/configurator/buildScene";
+import { DEFAULT_PROJECT } from "@/store/configurator";
+
+describe("house 20×16 furniture", () => {
+  it("furnishes the bedrooms, living room, kitchen, study and laundry", () => {
+    const s = buildScene({ ...structuredClone(DEFAULT_PROJECT), mode: "building", building: productInput("house20") });
+    const home = s.object.getObjectByName("home")!;
+    expect(home).toBeDefined();
+    let meshes = 0;
+    home.traverse((o) => {
+      if ((o as { isMesh?: boolean }).isMesh) meshes++;
+    });
+    // 3 beds with tables and wardrobes, sofa, TV, dining set, desk, bookcases, laundry…
+    expect(meshes).toBeGreaterThan(120);
+  });
+});

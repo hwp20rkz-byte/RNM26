@@ -50,10 +50,10 @@ export function openingGaps(b: Building, li = 0): Gap[] {
   return out;
 }
 
-type Side = "x0" | "x1" | "z0" | "z1";
+export type Side = "x0" | "x1" | "z0" | "z1";
 
 /** Free runs along one side of a room, clear of doors (and low windows) by 150 mm */
-function runs(r: Room, side: Side, gs: Gap[], d: number, under = 1900): [number, number][] {
+export function runs(r: Room, side: Side, gs: Gap[], d: number, under = 1900): [number, number][] {
   const axis = side[0] as "x" | "z";
   const at = r[side];
   const [lo, hi] = axis === "x" ? [r.z0, r.z1] : [r.x0, r.x1];
@@ -76,7 +76,7 @@ function runs(r: Room, side: Side, gs: Gap[], d: number, under = 1900): [number,
  * free runs; `make` builds one unit at the origin facing +z (back to the wall
  * at z = 0) and the row turns it to face into the room.
  */
-function row(g: THREE.Group, r: Room, side: Side, gs: Gap[], d: number, floor: number, w: number, make: (u: THREE.Group, i: number) => void, max = Infinity, under?: number) {
+export function row(g: THREE.Group, r: Room, side: Side, gs: Gap[], d: number, floor: number, w: number, make: (u: THREE.Group, i: number) => void, max = Infinity, under?: number) {
   let n = 0;
   for (const [a, b] of runs(r, side, gs, d, under)) {
     const k = Math.floor((b - a) / w);

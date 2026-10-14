@@ -11,7 +11,7 @@ import { cellAt, interior } from "../layout/rooms";
 
 export type Category = "leisure" | "living" | "bath" | "auto" | "farm" | "sport" | "custom";
 
-export type PropKind = "table" | "benches" | "grill" | "bbq" | "stove" | "car" | "nests" | "perches" | "run" | "workbench" | "stair" | "kitchen" | "sport";
+export type PropKind = "table" | "benches" | "grill" | "bbq" | "stove" | "car" | "nests" | "perches" | "run" | "workbench" | "stair" | "kitchen" | "sport" | "home";
 
 export interface Product {
   id: string;
@@ -388,7 +388,7 @@ export const PRODUCTS: Product[] = [
   {
     id: "dacha",
     category: "living",
-    props: ["kitchen"],
+    props: ["kitchen", "home"],
     input: () =>
       building(
         {
@@ -409,7 +409,7 @@ export const PRODUCTS: Product[] = [
   {
     id: "house",
     category: "living",
-    props: ["kitchen"],
+    props: ["kitchen", "home"],
     input: () =>
       building(
         {
@@ -438,14 +438,14 @@ export const PRODUCTS: Product[] = [
   {
     id: "house20",
     category: "living",
-    props: ["kitchen", "table"],
+    props: ["kitchen", "home"],
     input: house20,
     finishes: { facade: "plaster", facadeColor: "hsl(40 20% 94%)", roofing: "shingles", roofColor: "hsl(210 8% 24%)", trimColor: "hsl(0 0% 12%)" },
   },
   {
     id: "house2",
     category: "living",
-    props: ["kitchen", "stair"],
+    props: ["kitchen", "stair", "home"],
     input: () =>
       building(
         {
@@ -475,7 +475,7 @@ export const PRODUCTS: Product[] = [
   {
     id: "barnhouse",
     category: "living",
-    props: ["kitchen"],
+    props: ["kitchen", "home"],
     input: () =>
       building(
         {
@@ -497,7 +497,7 @@ export const PRODUCTS: Product[] = [
   {
     id: "aframe",
     category: "living",
-    props: [],
+    props: ["home"],
     input: () =>
       building(
         {
