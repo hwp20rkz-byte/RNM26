@@ -1,9 +1,10 @@
 "use client";
 
-import { Calculator, ClipboardText, CubeFocus, Drop, FileArrowDown, Gauge, Graph, Layout, Lightning, PaintRoller, Ruler, SquaresFour, Truck } from "@phosphor-icons/react";
+import { Calculator, ClipboardText, CubeFocus, Drop, FileArrowDown, Gauge, Graph, Layout, Lightning, Tree, PaintRoller, Ruler, SquaresFour, Truck } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { LANGS, useT } from "@/i18n";
+import { SITE_OFF } from "@/domain/site/site";
 import { PURPOSE_COLOR } from "@/render/skin";
 import { projectOf, useConfigurator, type CameraPreset, type Mode, type PlannerTab } from "@/store/configurator";
 import { Presentation } from "../presentation/Presentation";
@@ -11,6 +12,7 @@ import { CalcPanel, NodesPanel } from "../planner/CalcPanel";
 import { CatalogPanel } from "../planner/CatalogPanel";
 import { DrawingsPanel } from "../planner/DrawingsPanel";
 import { EnergyPanel } from "../planner/EnergyPanel";
+import { SitePanel } from "../planner/SitePanel";
 import { ClimatePanel } from "../planner/ClimatePanel";
 import { DeliveryPanel } from "../planner/DeliveryPanel";
 import { EstimatePanel } from "../planner/EstimatePanel";
@@ -41,7 +43,7 @@ function useHydrated() {
   return ok;
 }
 
-const TABS: PlannerTab[] = ["catalog", "shape", "layout", "climate", "finish", "mep", "energy", "calc", "nodes", "estimate", "delivery", "drawings", "files"];
+const TABS: PlannerTab[] = ["catalog", "shape", "layout", "climate", "finish", "mep", "energy", "site", "calc", "nodes", "estimate", "delivery", "drawings", "files"];
 const MM = 0.001;
 const TAB_ICON: Record<PlannerTab, typeof Ruler> = {
   catalog: SquaresFour,
@@ -51,6 +53,7 @@ const TAB_ICON: Record<PlannerTab, typeof Ruler> = {
   finish: PaintRoller,
   mep: Gauge,
   energy: Lightning,
+  site: Tree,
   calc: Calculator,
   nodes: Graph,
   estimate: ClipboardText,
@@ -61,7 +64,25 @@ const TAB_ICON: Record<PlannerTab, typeof Ruler> = {
 
 export default function Configurator() {
   const state = useConfigurator();
-  const { mode, tab, partTab, view, selection, camera, lang, presentation, setMode, setTab, setPartTab, setView, select, look, setLang, setPresentation } = state;
+  const { mode, tab, partTab, view, selection, camera, lang, presentation, setMode, setTab, setPartTab, setView, select, look, setLang, setPresentation, siteTool, setPlanner } = state;
+  // Landscape editor: place the tool's item on the plan point, erase what was hit, or turn a hit item by 45°
+  const editSite = ({ x, z, siteId }: { x: number; z: number; siteId: string | null }) => {
+    const site = { ...SITE_OFF, ...state.planner.site };
+    if (siteTool === "erase") {
+      if (siteId) setPlanner({ site: { ...site, items: site.items.filter((i) => i.id !== siteId) } });
+      return;
+    }
+    if (!siteTool) return;
+    if (siteId) {
+      setPlanner({ site: { ...site, items: site.items.map((i) => (i.id === siteId ? { ...i, rot: (i.rot + 45) % 360 } : i)) } });
+      return;
+    }
+    // Nothing grows inside the building: a click on the roof or a wall places nothing
+    const { length: L, width: W } = state.building;
+    if (x > -300 && x < L + 300 && z > -300 && z < W + 300) return;
+    const snap = (v: number) => Math.round(v / 100) * 100;
+    setPlanner({ site: { ...site, items: [...site.items, { id: `s${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`, kind: siteTool, x: snap(x), z: snap(z), rot: 0 }] } });
+  };
   const t = useT();
   const hydrated = useHydrated();
   const [snapshot, setSnapshot] = useState<string | null>(null);
@@ -215,6 +236,7 @@ export default function Configurator() {
               {a && tab === "finish" && <FinishPanel a={a} />}
               {a && tab === "mep" && <MepPanel a={a} />}
               {a && tab === "energy" && <EnergyPanel a={a} />}
+              {a && tab === "site" && <SitePanel a={a} />}
               {a && tab === "calc" && <CalcPanel a={a} />}
               {a && tab === "nodes" && <NodesPanel a={a} />}
               {a && tab === "estimate" && <EstimatePanel a={a} />}
@@ -274,6 +296,7 @@ export default function Configurator() {
               photo={view.photo}
               shot={renderShot}
               onPick={select}
+              onTool={siteTool && tab === "site" ? editSite : undefined}
             />
           )}
           {scene.error && (

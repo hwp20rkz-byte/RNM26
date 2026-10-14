@@ -8,6 +8,7 @@ import { FASTENERS, type FastenerKind } from "../connections/fasteners";
 import { detailingSummary, type DetailingSummary } from "../detailing/planar";
 import { doorArea, windowArea } from "../envelope/geometry";
 import { AUTONOMY_OFF, autonomy, type AutonomyResult, type AutonomySettings } from "../energy/autonomy";
+import { SITE_OFF, sitePlan, type SitePlan, type SiteSettings } from "../site/site";
 import { WOOL_FILL, wallLineLoad, type WallFill } from "../envelope/foamConcrete";
 import { thermal, type EfficiencyLevel, type InsulationMaterial, type ThermalResult } from "../envelope/insulation";
 import { DEFAULT_FINISHES, finish, type FinishChoice } from "../finishes/catalog";
@@ -60,6 +61,8 @@ export interface PlannerSettings {
   wallFill: WallFill;
   /** On-site energy, heat, water and EV plant */
   autonomy: AutonomySettings;
+  /** Plot: parking, walks, lamps, planting and the landscape editor's items */
+  site: SiteSettings;
   /** Drawing set title block */
   doc: { code: string; org: string; developer: string; stage: string };
 }
@@ -86,6 +89,7 @@ export const DEFAULT_SETTINGS: PlannerSettings = {
   fastener: "screw",
   wallFill: WOOL_FILL,
   autonomy: AUTONOMY_OFF,
+  site: SITE_OFF,
   doc: { code: "ЛСТК-01-АР/КМ", org: "", developer: "", stage: "П" },
 };
 
@@ -137,6 +141,8 @@ export interface Analysis {
   energy: EnergyResult;
   /** On-site plant: PV, heat pump, UFH, water, genset, EV */
   autonomy: AutonomyResult;
+  /** Plot layout and landscaping, when the site is on */
+  site: SitePlan | null;
   delivery: DeliveryResult;
   cargo: Cargo[];
   coop: CoopPlan | null;
@@ -303,6 +309,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     hardware,
     detailing: detailingSummary(building.assemblies),
     autonomy: plant,
+    site: settings.site?.enabled ? sitePlan(building, { ...SITE_OFF, ...settings.site }, plant.ev ? plant.ev.ac + plant.ev.dc : 0) : null,
     // PV modules and rails add ≈ 0.15 kPa to the roof dead load
     design: design(building, city, settings.finishes, settings.fastener, plant.pv?.loadKpa ?? 0),
     estimate: null as unknown as Estimate,

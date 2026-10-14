@@ -307,12 +307,16 @@ export function buildEstimate(a: Analysis, o: EstimateOptions = DEFAULT_ESTIMATE
   section("16", "energy");
   for (const it of a.autonomy.items) line(`auto.${it.key}`, it.unit, it.qty, (it.cost / it.qty) * 0.85, (it.cost / it.qty) * 0.15);
 
-  // 17 Delivery and machinery
-  section("17", "delivery");
+  // 17 Site works and landscaping (materials 70 / labour 30)
+  section("17", "site");
+  for (const l of a.site?.lines ?? []) line(`site.${l.key}`, l.unit, l.qty, l.price * 0.7, l.price * 0.3);
+
+  // 18 Delivery and machinery
+  section("18", "delivery");
   if (a.delivery.best) line(`vehicle.${a.delivery.best.vehicle.id}`, "trip", a.delivery.best.trips, 0, a.delivery.best.cost / a.delivery.best.trips);
 
-  // 18 Design and supervision
-  section("18", "design");
+  // 19 Design and supervision
+  section("19", "design");
   line("designDocs", "m2", Math.max(a.areas.floor, footprint), 0, o.designPerM2);
   ln("supervision", "set", 1, "supervision");
 
