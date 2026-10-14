@@ -222,7 +222,7 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
             const sport = p.category === "sport";
             const planner = sport
               ? { ...s.planner, birds, sign: signPreset(id), site: { ...SITE_OFF, ...s.planner.site, enabled: true, items: [] }, finishes: { ...s.planner.finishes, ...CLUB_FINISHES } }
-              : { ...s.planner, birds };
+              : { ...s.planner, birds, ...(p.finishes ? { finishes: { ...s.planner.finishes, ...p.finishes } } : {}) };
             return { building: productInput(id), planner, selection: null, view: { ...s.view, cut: -1, explode: 0 } };
           }),
         setBuilding: (patch) => editB((b) => ({ ...b, ...patch })),

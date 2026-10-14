@@ -271,7 +271,7 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
       {photo && <PhotoComposer shot={shot} />}
       {/* key: re-frame the camera whenever a new model is built, not on every edit of the view */}
       {object && (
-        <Bounds key={object.uuid} fit clip margin={1.2}>
+        <Bounds key={object.uuid} fit={!walk && !tour} clip margin={1.2}>
           <primitive object={object} onClick={pick} />
           <CameraRig camera={camera} size={size} />
         </Bounds>

@@ -1,5 +1,6 @@
 import type { BuildingInput, HeatingMode, Level, Partition, RoomPurpose, SideConfig, SideType, WallSide } from "../buildings/types";
 import type { Opening } from "../walls/types";
+import type { FinishChoice } from "../finishes/catalog";
 import { cellAt, interior } from "../layout/rooms";
 
 /**
@@ -20,6 +21,8 @@ export interface Product {
   /** Sized by a capacity: birds for coops, cars for carports/garages */
   capacity?: { kind: "birds" | "cars" | "people"; default: number };
   input: () => BuildingInput;
+  /** Finishes the product is shown in (merged over the user's on selection) */
+  finishes?: Partial<FinishChoice>;
 }
 
 const P = "C89x41x11x0.95";
@@ -227,6 +230,94 @@ const tabletennis = () => club({ id: "tabletennis", length: 26150, width: 12200,
  */
 const crossfit = () => club({ id: "crossfit", length: 24000, width: 12000, height: 4200, service: 6000, lobby: 4000, men: 8000, panels: 8, studSpacing: 400 });
 
+/**
+ * One-storey family house 20.3 × 15.9 m after the RuPlans Rg6346 layout:
+ * a hall with a coat room at the entrance, an open kitchen–living room
+ * across the middle with the living part and the terrace door on the garden
+ * side, the children's wing on the left (two bedrooms around a shared bath,
+ * laundry and boiler room at the back with its own outside door), the
+ * master wing on the right (bedroom with an en-suite, a study and a sitting
+ * room off a corridor). Rendered plaster and soft shingles. The original's
+ * hip roof and double-height living room need hip and scissor trusses the
+ * generator does not have yet: the roof here is a gable.
+ */
+function house20(): BuildingInput {
+  const L = 20270;
+  const W = 15920;
+  const z1 = W - D;
+  const x1 = L - D;
+  const partitions = [
+    cross(4800, [door(1600, 900, 2100), door(5000, 800, 2100), door(8300, 900, 2100), door(12400, 800, 2100)]),
+    cross(12300, [door(6300, 900, 2100)]),
+    crossSpan(8500, D, 3200, [door(1000, 900, 2100)]),
+    crossSpan(2400, 11400, z1, [door(12900, 800, 2100)]),
+    crossSpan(17400, D, 5600, [door(3000, 800, 2100)]),
+    crossSpan(16200, 8000, z1),
+    alongSpan(4600, D, 4800),
+    alongSpan(7000, D, 4800),
+    alongSpan(11400, D, 4800),
+    alongSpan(3200, 4800, 12300, [door(5800, 1400, 2100)]),
+    // The kitchen opens into the living room through a 3 m opening
+    alongSpan(8000, 4800, 12300, [door(6900, 3000, 2400)]),
+    alongSpan(5600, 12300, x1, [door(13400, 900, 2100)]),
+    alongSpan(8000, 12300, x1, [door(13000, 900, 2100), door(17000, 900, 2100)]),
+  ];
+  const rooms = roomsAt(L, W, partitions, [
+    [2400, 2300, "bedroom"],
+    [2400, 5800, "bathroom"],
+    [2400, 9200, "bedroom"],
+    [1200, 13600, "technical"],
+    [3600, 13600, "washing"],
+    [6600, 1600, "hall"],
+    [10400, 1600, "storage"],
+    [8500, 5600, "kitchen"],
+    [8500, 12000, "living"],
+    [14800, 2800, "bedroom"],
+    [18800, 2800, "bathroom"],
+    [16200, 6800, "hall"],
+    [14200, 12000, "rest"],
+    [18200, 12000, "office"],
+  ]);
+  return building(
+    {
+      productId: "house20",
+      length: L,
+      width: W,
+      levels: [
+        level(
+          3000,
+          {
+            front: side("wall", [win(1600, 1600, 1500, 800), door(5900, 1100, 2200), win(13400, 2200, 1500, 800), win(18300, 900, 900, 1400)]),
+            back: side(
+              "wall",
+              [
+                win(backAt(L, 3600, 900), 900, 900, 1400),
+                win(backAt(L, 6000, 1500), 1500, 1700, 600),
+                door(backAt(L, 8550, 2400), 2400, 2200),
+                win(backAt(L, 11000, 1200), 1200, 1700, 600),
+                win(backAt(L, 14200, 1500), 1500, 1500, 800),
+                win(backAt(L, 18200, 1500), 1500, 1500, 800),
+              ].sort((a, b) => a.x - b.x),
+            ),
+            left: side("wall", [win(leftAt(W, 9200, 1500), 1500, 1500, 800), door(leftAt(W, 13600, 900), 900, 2100)].sort((a, b) => a.x - b.x)),
+            right: side("wall", [win(rightAt(2800, 900), 900, 900, 1400), win(rightAt(6800, 900), 900, 1500, 800), win(rightAt(12000, 1500), 1500, 1500, 800)].sort((a, b) => a.x - b.x)),
+          },
+          partitions,
+          rooms,
+        ),
+      ],
+      // 10 panels: at 12 the webs crowd the ridge node of a 30° truss
+      roof: { type: "gable", pitchDeg: 30, overhang: 600, pattern: "howe", panels: 10, heelHeight: 200 },
+      foundation: { type: "slab", plinth: 400 },
+      profileId: "C89x41x11x1.2",
+      studSpacing: 400,
+      // 500: at 600 the web node of a 15.9 m truss sits at 0.998 with no margin; +1 M ₸ buys 17 %
+      trussSpacing: 500,
+    },
+    "permanent",
+  );
+}
+
 const SPORT: Product[] = [
   { id: "bjj", category: "sport", props: ["sport"], capacity: { kind: "people", default: 40 }, input: bjj },
   { id: "fitness", category: "sport", props: ["sport"], capacity: { kind: "people", default: 40 }, input: fitness },
@@ -343,6 +434,13 @@ export const PRODUCTS: Product[] = [
         },
         "permanent",
       ),
+  },
+  {
+    id: "house20",
+    category: "living",
+    props: ["kitchen", "table"],
+    input: house20,
+    finishes: { facade: "plaster", facadeColor: "hsl(40 20% 94%)", roofing: "shingles", roofColor: "hsl(210 8% 24%)", trimColor: "hsl(0 0% 12%)" },
   },
   {
     id: "house2",

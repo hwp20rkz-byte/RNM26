@@ -279,6 +279,7 @@ export const ru = {
   "product.dacha": "Дачный домик",
   "product.house": "Дом одноэтажный",
   "product.house2": "Дом двухэтажный",
+  "product.house20": "Дом 20×16 с кухней-гостиной и террасой",
   "product.barnhouse": "Барнхаус",
   "product.aframe": "A-фрейм",
   "product.bath": "Баня",

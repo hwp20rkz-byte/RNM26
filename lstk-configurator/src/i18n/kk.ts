@@ -277,6 +277,7 @@ export const kk: Record<Key, string> = {
   "product.dacha": "Саяжай үйі",
   "product.house": "Бір қабатты үй",
   "product.house2": "Екі қабатты үй",
+  "product.house20": "20×16 үй, ас үй-қонақ бөлмесі және террасасы бар",
   "product.barnhouse": "Барнхаус",
   "product.aframe": "A-фрейм",
   "product.bath": "Монша",

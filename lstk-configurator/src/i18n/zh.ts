@@ -277,6 +277,7 @@ export const zh: Record<Key, string> = {
   "product.dacha": "别墅小屋",
   "product.house": "单层住宅",
   "product.house2": "两层住宅",
+  "product.house20": "20×16 住宅（厨房客厅一体、露台）",
   "product.barnhouse": "谷仓屋",
   "product.aframe": "A 字屋",
   "product.bath": "桑拿房",
