@@ -3,6 +3,7 @@
 import type { ReactElement } from "react";
 import type { Assembly } from "@/domain/assemblies/types";
 import { floorTrussDepth, sideOpenings, wallPlans, type Building } from "@/domain/buildings/generate";
+import { partitionSegments } from "@/domain/layout/rooms";
 import { centrelineLength } from "@/domain/members/member";
 import type { Analysis } from "@/domain/planner/analyze";
 import { NodeDetail } from "@/features/planner/NodeDetails";
@@ -55,13 +56,14 @@ function Plan({ c, li, box }: { c: Ctx; li: number; box: { x: number; y: number;
   const items: ReactElement[] = [];
   // Walls: outer ring + partitions
   items.push(<path key="ring" d={`M ${X(0)} ${Y(0)} H ${X(L)} V ${Y(W)} H ${X(0)} Z M ${X(dd)} ${Y(dd)} V ${Y(W - dd)} H ${X(L - dd)} V ${Y(dd)} Z`} fill="#d9d9d9" fillRule="evenodd" stroke="black" strokeWidth={LINE.thick} />);
-  for (const p of lv.partitions) {
-    const inner = b.levels[li]!.inner;
-    if (p.axis === "x") items.push(<rect key={p.id} x={X(p.at - dd / 2)} y={Y(inner.z1)} width={dd / k} height={(inner.z1 - inner.z0) / k} fill="#d9d9d9" stroke="black" strokeWidth={LINE.main} />);
-    else items.push(<rect key={p.id} x={X(inner.x0)} y={Y(p.at + dd / 2)} width={(inner.x1 - inner.x0) / k} height={dd / k} fill="#d9d9d9" stroke="black" strokeWidth={LINE.main} />);
-    for (const o of p.doors) {
-      if (p.axis === "x") items.push(<rect key={o.id} x={X(p.at - dd / 2) - 0.2} y={Y(inner.z0 + o.x + o.width)} width={dd / k + 0.4} height={o.width / k} fill="white" />);
-      else items.push(<rect key={o.id} x={X(inner.x0 + o.x)} y={Y(p.at + dd / 2) - 0.2} width={o.width / k} height={dd / k + 0.4} fill="white" />);
+  // Partitions as built: shortened ones stop at their span, long ones are cut at the cross walls
+  for (const g of partitionSegments(lv, b.levels[li]!.inner, dd)) {
+    const id = `${g.partition.id}:${Math.round(g.from)}`;
+    if (g.axis === "x") items.push(<rect key={id} x={X(g.at - dd / 2)} y={Y(g.to)} width={dd / k} height={(g.to - g.from) / k} fill="#d9d9d9" stroke="black" strokeWidth={LINE.main} />);
+    else items.push(<rect key={id} x={X(g.from)} y={Y(g.at + dd / 2)} width={(g.to - g.from) / k} height={dd / k} fill="#d9d9d9" stroke="black" strokeWidth={LINE.main} />);
+    for (const o of g.doors) {
+      if (g.axis === "x") items.push(<rect key={o.id} x={X(g.at - dd / 2) - 0.2} y={Y(g.from + o.x + o.width)} width={dd / k + 0.4} height={o.width / k} fill="white" />);
+      else items.push(<rect key={o.id} x={X(g.from + o.x)} y={Y(g.at + dd / 2) - 0.2} width={o.width / k} height={dd / k + 0.4} fill="white" />);
     }
   }
   // Outer openings: window = three thin lines, door = gap with a leaf arc
@@ -107,7 +109,7 @@ function Plan({ c, li, box }: { c: Ctx; li: number; box: { x: number; y: number;
     items.push(
       <g key={`r${i}`}>
         <Txt x={cx} y={cy - 0.5} s={3} a="middle" b>
-          {`${li + 1}0${i + 1}`}
+          {`${li + 1}${String(i + 1).padStart(2, "0")}`}
         </Txt>
         <line x1={cx - 4} x2={cx + 4} y1={cy + 0.4} y2={cy + 0.4} stroke="black" strokeWidth={LINE.thin} />
         <Txt x={cx} y={cy + 3.4} s={2.5} a="middle">

@@ -35,6 +35,7 @@ export const kk: Record<Key, string> = {
   "category.bath": "Монша",
   "category.auto": "Көлік",
   "category.farm": "Шаруашылық",
+  "category.sport": "Спорт және фитнес",
   "category.custom": "Өз құрылысым",
 
   "product.gazebo": "Шатыршық (беседка)",
@@ -54,6 +55,11 @@ export const kk: Record<Key, string> = {
   "product.coop": "Тауық қора",
   "product.poultry": "Құс қора",
   "product.workshop": "Шеберхана",
+  "product.bjj": "BJJ / жекпе-жек орталығы",
+  "product.fitness": "Фитнес-клуб",
+  "product.yoga": "Йога-студия",
+  "product.tabletennis": "Үстел теннисі залы",
+  "product.crossfit": "Функционалдық жаттығу залы",
   "product.custom": "Өз құрылысым",
 
   "shape.size": "Өлшемдер және қабаттылық",
@@ -164,6 +170,10 @@ export const kk: Record<Key, string> = {
   "room.workshop": "Шеберхана",
   "room.poultry": "Құс қора",
   "room.open": "Ашық алаң",
+  "room.gym": "Спорт залы",
+  "room.changing": "Киім ауыстыратын бөлме",
+  "room.office": "Жаттықтырушы бөлмесі",
+  "room.lobby": "Күту аймағы, ресепшн",
 
   "climate.city": "Құрылыс қаласы",
   "climate.t5": "Ең суық бескүндік (0,92)",
@@ -457,6 +467,7 @@ export const kk: Record<Key, string> = {
   "vehicle.truck10": "Борттық 10 т",
   "vehicle.manipulator": "Манипулятор 7 т",
   "vehicle.semi": "Фура 20 т",
+  "vehicle.semiExt": "Сырғымалы трал 20 т",
 
   "files.files": "Файлдар",
   "files.print": "КҰ / басып шығару",

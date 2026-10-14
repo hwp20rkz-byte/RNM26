@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { sideOpenings, wallPlans } from "@/domain/buildings/generate";
 import { WALL_SIDES, type Partition, type RoomPurpose } from "@/domain/buildings/types";
-import { interior, rooms, validatePartitions } from "@/domain/layout/rooms";
+import { interior, partitionReach, rooms, validatePartitions } from "@/domain/layout/rooms";
 import { findProfile } from "@/domain/profiles/catalog";
 import { useT } from "@/i18n";
 import { PURPOSE_COLOR } from "@/render/skin";
@@ -11,7 +11,7 @@ import { useConfigurator } from "@/store/configurator";
 import { NumberInput, Panel, Segmented, Select, Stat, Stats } from "../configurator/controls";
 import { int, one } from "../configurator/format";
 
-const PURPOSES: RoomPurpose[] = ["living", "bedroom", "kitchen", "bathroom", "hall", "storage", "technical", "rest", "steam", "washing", "garage", "workshop", "poultry", "open"];
+const PURPOSES: RoomPurpose[] = ["living", "bedroom", "kitchen", "bathroom", "hall", "storage", "technical", "rest", "steam", "washing", "garage", "workshop", "poultry", "open", "gym", "changing", "office", "lobby"];
 
 let seq = 0;
 const newId = (p: string) => `${p}${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -83,13 +83,14 @@ export function LayoutPanel() {
             );
           })}
           {/* partitions */}
-          {lv.partitions.map((p) =>
-            p.axis === "x" ? (
-              <line key={p.id} x1={p.at} x2={p.at} y1={Y(inner.z0)} y2={Y(inner.z1)} stroke="hsl(var(--ink))" strokeWidth={d} />
+          {lv.partitions.map((p) => {
+            const r = partitionReach(p, inner);
+            return p.axis === "x" ? (
+              <line key={p.id} x1={p.at} x2={p.at} y1={Y(r.lo)} y2={Y(r.hi)} stroke="hsl(var(--ink))" strokeWidth={d} />
             ) : (
-              <line key={p.id} x1={inner.x0} x2={inner.x1} y1={Y(p.at)} y2={Y(p.at)} stroke="hsl(var(--ink))" strokeWidth={d} />
-            ),
-          )}
+              <line key={p.id} x1={r.lo} x2={r.hi} y1={Y(p.at)} y2={Y(p.at)} stroke="hsl(var(--ink))" strokeWidth={d} />
+            );
+          })}
           {/* partition doors: gaps */}
           {lv.partitions.flatMap((p) =>
             p.doors.map((o) =>

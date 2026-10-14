@@ -56,6 +56,11 @@ export const ROOM_RULES: Record<RoomPurpose, RoomRule> = {
   workshop: R(1 / 2, 4, 1 / 6, ["basin"], 0, 6, [5.5]),
   poultry: R(0, 1, 1 / 8, ["drinker"], 0, 0, [], true),
   open: R(0, 1, 1 / 8, [], 0, 0),
+  // Sports hall: ~80 m³/h per person in training, ≈10 m³/h per m² of hall (СП РК / EN 16798 order of magnitude)
+  gym: R(1 / 8, 4, 1 / 8, [], 0, 10, [3]),
+  changing: R(1 / 6, 2, 1 / 6, ["basin"], 30, 6, [], true),
+  office: R(1 / 3, 3, 1 / 8, [], 0, 3),
+  lobby: R(1 / 6, 2, 1 / 8, [], 0, 3),
 };
 
 /** Fixture needs: hot, cold, drain */

@@ -27,6 +27,8 @@ export const VEHICLES: Vehicle[] = [
   { id: "truck10", payloadKg: 10000, bedLength: 7500, bedWidth: 2450, bedHeight: 2500, base: 35000, perKm: 520, crane: false },
   { id: "manipulator", payloadKg: 7000, bedLength: 7200, bedWidth: 2400, bedHeight: 2400, base: 45000, perKm: 600, crane: true },
   { id: "semi", payloadKg: 20000, bedLength: 13600, bedWidth: 2450, bedHeight: 2700, base: 55000, perKm: 750, crane: false },
+  // Extendable flatbed for long trusses: long-load flag, escort past 20 m
+  { id: "semiExt", payloadKg: 20000, bedLength: 19500, bedWidth: 2450, bedHeight: 2700, base: 95000, perKm: 1100, crane: false },
 ];
 
 export type ShippingMode = "kit" | "panels";

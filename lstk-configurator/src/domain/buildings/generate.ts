@@ -2,7 +2,7 @@ import type { Assembly } from "../assemblies/types";
 import { anchorStations, STUD_SCREW_PITCH, type HardwareItem } from "../connections/hardware";
 import { frame, toWorld, type Frame3 } from "../geometry/frame";
 import { v3, type Vec3 } from "../geometry/vec";
-import { interior, partitionSegments, strandedDoors, validatePartitions, type Interior } from "../layout/rooms";
+import { interior, partitionCovers, partitionSegments, strandedDoors, validatePartitions, type Interior } from "../layout/rooms";
 import { DETAILING, type DetailedAssembly } from "../detailing/planar";
 import { findProfile } from "../profiles/catalog";
 import type { ProfileSpec } from "../profiles/types";
@@ -170,6 +170,37 @@ export function sideOpenings(side: SideConfig, length: number, height: number, i
   return out;
 }
 
+/** Longest wall panel, mm: fits a 13.6 m semi-trailer bed with the packing and stays stiff enough to tilt up */
+export const MAX_PANEL = 12000;
+
+/**
+ * Where a long wall is split into panels: near equal parts, each joint moved
+ * off openings (with their posts) and backing studs to the nearest clear
+ * stretch. Returns [from, to] along the wall.
+ */
+export function panelCuts(length: number, openings: Opening[], backing: BackingStud[], p: ProfileSpec): [number, number][] {
+  const n = Math.ceil(length / MAX_PANEL - 1e-9);
+  if (n <= 1) return [[0, length]];
+  const f = flangeOf(p);
+  const busy: [number, number][] = [
+    ...openings.map((o) => [o.x - jambZone(o, p) - f - 250, o.x + o.width + jambZone(o, p) + f + 250] as [number, number]),
+    ...backing.map((b) => [b.x - 300, b.x + 300] as [number, number]),
+  ];
+  const free = (x: number) => x > 600 && x < length - 600 && !busy.some(([a, b]) => x > a && x < b);
+  const cuts: number[] = [];
+  for (let k = 1; k < n; k++) {
+    const target = (length * k) / n;
+    let best: number | null = null;
+    for (let dx = 0; dx < length / 2 && best === null; dx += 50) {
+      if (free(target - dx)) best = target - dx;
+      else if (free(target + dx)) best = target + dx;
+    }
+    if (best !== null) cuts.push(Math.round(best));
+  }
+  const xs = [0, ...cuts.sort((a, b) => a - b), length];
+  return xs.slice(1).map((x, i) => [xs[i]!, x] as [number, number]);
+}
+
 /** A pair of backing studs centred on `x` for a wall of thickness `d` meeting this one */
 function teePair(x: number, d: number, t: number): BackingStud[] {
   return [
@@ -193,9 +224,14 @@ export function outerBacking(input: BuildingInput, level: Level, side: WallSide,
     const endEnd: WallSide = side === "front" ? "right" : "left";
     if (closed(startEnd)) out.push({ x: d + t / 2, flipped: false, reason: "corner" });
     if (closed(endEnd)) out.push({ x: length - d - t / 2, flipped: true, reason: "corner" });
-    for (const p of level.partitions.filter((q) => q.axis === "x")) out.push(...teePair(side === "front" ? p.at : L - p.at, d, t));
+    // Only partitions that run up to this wall
+    const inner = interior(input, d);
+    const edge = side === "front" ? inner.z0 : inner.z1;
+    for (const p of level.partitions.filter((q) => q.axis === "x" && partitionCovers(q, inner, edge))) out.push(...teePair(side === "front" ? p.at : L - p.at, d, t));
   } else {
-    for (const p of level.partitions.filter((q) => q.axis === "z")) out.push(...teePair(side === "left" ? W - d - p.at : p.at - d, d, t));
+    const inner = interior(input, d);
+    const edge = side === "left" ? inner.x0 : inner.x1;
+    for (const p of level.partitions.filter((q) => q.axis === "z" && partitionCovers(q, inner, edge))) out.push(...teePair(side === "left" ? W - d - p.at : p.at - d, d, t));
   }
   return out;
 }
@@ -203,7 +239,7 @@ export function outerBacking(input: BuildingInput, level: Level, side: WallSide,
 export function validateBuilding(input: BuildingInput): string[] {
   const e: string[] = [];
   if (!(input.length >= 1500 && input.length <= 30000)) e.push("Длина здания — от 1,5 до 30 м");
-  if (!(input.width >= 1500 && input.width <= 15000)) e.push("Ширина (пролёт ферм) — от 1,5 до 15 м");
+  if (!(input.width >= 1500 && input.width <= 16000)) e.push("Ширина (пролёт ферм) — от 1,5 до 16 м");
   if (!(input.trussSpacing >= 300 && input.trussSpacing <= 1500)) e.push("Шаг ферм — от 300 до 1500 мм");
   if (!(input.postSpacing >= 1000 && input.postSpacing <= 6000)) e.push("Шаг стоек открытых сторон — от 1 до 6 м");
   if (input.levels.length < 1 || input.levels.length > 2) e.push("Этажей — 1 или 2");
@@ -267,25 +303,42 @@ export function generateBuilding(input: BuildingInput): Building {
     for (const plan of wallPlans(input, li, base)) {
       const side = level.sides[plan.side];
       const openings = sideOpenings(side, plan.length, level.height, input, profile);
-      let wall: DetailedAssembly;
       const backing = outerBacking(input, level, plan.side, plan.length, d, profile.thickness);
-      try {
-        wall = generateWallDetailed({ length: plan.length, height: level.height, studSpacing: input.studSpacing, profile, openings, noggings: side.type === "wall", backing }, plan.mark);
-      } catch (err) {
-        throw new Error(`Этаж ${li + 1}, стена ${plan.mark}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-      assemblies.push({
-        id: plan.mark,
-        mark: plan.mark,
-        kind: "wall",
-        name: `Стена ${plan.mark}`,
-        members: wall.members,
-        joints: wall.joints,
-        detailIssues: wall.issues,
-        placement: plan.placement,
-        size: { width: plan.length, height: level.height },
-        explode: plan.outward,
-        layer: li * 2,
+      // Long walls are built as several panels a truck can carry, joined end stud to end stud
+      const cuts = panelCuts(plan.length, openings, backing, profile);
+      cuts.forEach(([a, bEnd], k) => {
+        const mark = cuts.length > 1 ? `${plan.mark}.${k + 1}` : plan.mark;
+        let wall: DetailedAssembly;
+        try {
+          wall = generateWallDetailed(
+            {
+              length: bEnd - a,
+              height: level.height,
+              studSpacing: input.studSpacing,
+              profile,
+              openings: openings.filter((o) => o.x >= a && o.x + o.width <= bEnd).map((o) => ({ ...o, x: o.x - a })),
+              noggings: side.type === "wall",
+              backing: backing.filter((s) => s.x > a && s.x < bEnd).map((s) => ({ ...s, x: s.x - a })),
+            },
+            mark,
+          );
+        } catch (err) {
+          throw new Error(`Этаж ${li + 1}, стена ${mark}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        const f = plan.placement;
+        assemblies.push({
+          id: mark,
+          mark,
+          kind: "wall",
+          name: `Стена ${mark}`,
+          members: wall.members,
+          joints: wall.joints,
+          detailIssues: wall.issues,
+          placement: { ...f, origin: v3(f.origin.x + f.ex.x * a, f.origin.y + f.ex.y * a, f.origin.z + f.ex.z * a) },
+          size: { width: bEnd - a, height: level.height },
+          explode: plan.outward,
+          layer: li * 2,
+        });
       });
     }
     // Interior partitions
@@ -294,30 +347,46 @@ export function generateBuilding(input: BuildingInput): Building {
     const stranded = strandedDoors(level, inner, d);
     if (stranded.length) throw new Error(`Этаж ${li + 1}: дверь в продольной перегородке попадает на поперечную перегородку`);
     partitionSegments(level, inner, d).forEach((seg, k) => {
-      const mark = `P${li + 1}.${k + 1}`;
+      const base0 = `P${li + 1}.${k + 1}`;
       const length = seg.to - seg.from;
-      let wall: DetailedAssembly;
-      // Long partitions meeting this cross partition get a backing pair in it
-      const backing = seg.axis === "x" ? level.partitions.filter((q) => q.axis === "z").flatMap((q) => teePair(q.at - seg.from, d, profile.thickness)) : [];
-      try {
-        wall = generateWallDetailed({ length, height: level.height, studSpacing: input.studSpacing, profile, openings: seg.doors, noggings: false, backing }, mark);
-      } catch (err) {
-        throw new Error(`Этаж ${li + 1}, перегородка ${mark}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-      const placement =
-        seg.axis === "x" ? frame(v3(seg.at, base, seg.from), v3(0, 0, 1), v3(0, 1, 0)) : frame(v3(seg.from, base, seg.at), v3(1, 0, 0), v3(0, 1, 0));
-      assemblies.push({
-        id: mark,
-        mark,
-        kind: "wall",
-        name: `Перегородка ${mark}`,
-        members: wall.members,
-        joints: wall.joints,
-        detailIssues: wall.issues,
-        placement,
-        size: { width: length, height: level.height },
-        explode: v3(0, 1, 0),
-        layer: li * 2,
+      // Partitions that meet this one (end on it or cross it) get a backing pair in it
+      const meets = level.partitions.filter((q) => q.axis !== seg.axis && partitionCovers(q, inner, seg.at) && q.at > seg.from + d && q.at < seg.to - d);
+      const backing = meets.flatMap((q) => teePair(q.at - seg.from, d, profile.thickness));
+      const cuts = panelCuts(length, seg.doors, backing, profile);
+      cuts.forEach(([a, bEnd], m) => {
+        const mark = cuts.length > 1 ? `${base0}.${m + 1}` : base0;
+        let wall: DetailedAssembly;
+        try {
+          wall = generateWallDetailed(
+            {
+              length: bEnd - a,
+              height: level.height,
+              studSpacing: input.studSpacing,
+              profile,
+              openings: seg.doors.filter((o) => o.x >= a && o.x + o.width <= bEnd).map((o) => ({ ...o, x: o.x - a })),
+              noggings: false,
+              backing: backing.filter((s) => s.x > a && s.x < bEnd).map((s) => ({ ...s, x: s.x - a })),
+            },
+            mark,
+          );
+        } catch (err) {
+          throw new Error(`Этаж ${li + 1}, перегородка ${mark}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        const placement =
+          seg.axis === "x" ? frame(v3(seg.at, base, seg.from + a), v3(0, 0, 1), v3(0, 1, 0)) : frame(v3(seg.from + a, base, seg.at), v3(1, 0, 0), v3(0, 1, 0));
+        assemblies.push({
+          id: mark,
+          mark,
+          kind: "wall",
+          name: `Перегородка ${mark}`,
+          members: wall.members,
+          joints: wall.joints,
+          detailIssues: wall.issues,
+          placement,
+          size: { width: bEnd - a, height: level.height },
+          explode: v3(0, 1, 0),
+          layer: li * 2,
+        });
       });
     });
     // Floor between levels
@@ -436,18 +505,36 @@ function connections(
       hw.push({ kind: "corner-screws", at: v3(x, base + H / 2, z), level: li, mark: `L${li + 1}`, qty: 2 * screws });
     }
     // T-junctions and crossings of partitions
+    const inner = interior(input, d);
     const xs = level.partitions.filter((p) => p.axis === "x");
     const zs = level.partitions.filter((p) => p.axis === "z");
-    add("tee", 2 * xs.length + 2 * zs.length);
-    add("cross", 0);
-    for (const p of xs) for (const z of [0, W]) hw.push({ kind: "tee-screws", at: v3(p.at, base + H / 2, z), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+    // Partition ends on the outer walls
+    for (const p of xs)
+      for (const [z, edge] of [
+        [0, inner.z0],
+        [W, inner.z1],
+      ] as const) {
+        if (!partitionCovers(p, inner, edge)) continue;
+        add("tee");
+        hw.push({ kind: "tee-screws", at: v3(p.at, base + H / 2, z), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+      }
     for (const p of zs) {
-      for (const x of [0, L]) hw.push({ kind: "tee-screws", at: v3(x, base + H / 2, p.at), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+      for (const [x, edge] of [
+        [0, inner.x0],
+        [L, inner.x1],
+      ] as const) {
+        if (!partitionCovers(p, inner, edge)) continue;
+        add("tee");
+        hw.push({ kind: "tee-screws", at: v3(x, base + H / 2, p.at), level: li, mark: `L${li + 1}`, qty: 2 * screws });
+      }
+      // Partition meets partition
       for (const q of xs) {
+        if (!partitionCovers(p, inner, q.at) || !partitionCovers(q, inner, p.at)) continue;
         add("tee");
         hw.push({ kind: "tee-screws", at: v3(q.at, base + H / 2, p.at), level: li, mark: `L${li + 1}`, qty: 2 * screws });
       }
     }
+    add("cross", 0);
 
     for (const plan of wallPlans(input, li, base)) {
       const side = level.sides[plan.side];
