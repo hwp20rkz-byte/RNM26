@@ -4,8 +4,10 @@ import type { RoomPurpose } from "@/domain/buildings/types";
 import type { PropKind } from "@/domain/catalog/products";
 import { rooms, type Room } from "@/domain/layout/rooms";
 import { coopPlan } from "@/domain/livestock/coop";
+import { box, cyl, mat } from "./kit";
 import { hsl } from "./skin";
 import { MM } from "./profileGeometry";
+import { sportInterior } from "./sport";
 
 /**
  * Low-poly scenery that explains the building's purpose and scale: a car
@@ -13,40 +15,9 @@ import { MM } from "./profileGeometry";
  * nest boxes in the coop. Built from boxes and cylinders — no external models.
  */
 
-const mats = new Map<string, THREE.MeshStandardMaterial>();
-function mat(color: string, rough = 0.7, metal = 0): THREE.MeshStandardMaterial {
-  const k = `${color}|${rough}|${metal}`;
-  let m = mats.get(k);
-  if (!m) {
-    m = new THREE.MeshStandardMaterial({ color: hsl(color), roughness: rough, metalness: metal });
-    mats.set(k, m);
-  }
-  return m;
-}
-
 const WOOD = "hsl(28 45% 42%)";
 const DARK = "hsl(210 8% 18%)";
 const BRICK = "hsl(10 45% 40%)";
-
-function box(g: THREE.Group, x: number, y: number, z: number, sx: number, sy: number, sz: number, m: THREE.Material) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx * MM, sy * MM, sz * MM), m);
-  mesh.position.set((x + sx / 2) * MM, (y + sy / 2) * MM, (z + sz / 2) * MM);
-  mesh.castShadow = mesh.receiveShadow = true;
-  mesh.userData.ownsGeometry = true;
-  g.add(mesh);
-  return mesh;
-}
-
-function cyl(g: THREE.Group, x: number, y: number, z: number, r: number, h: number, m: THREE.Material, axis: "x" | "y" | "z" = "y") {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, h * MM, 16), m);
-  if (axis === "x") mesh.rotation.z = Math.PI / 2;
-  if (axis === "z") mesh.rotation.x = Math.PI / 2;
-  mesh.position.set(x * MM, y * MM, z * MM);
-  mesh.castShadow = true;
-  mesh.userData.ownsGeometry = true;
-  g.add(mesh);
-  return mesh;
-}
 
 /** A hatchback, 4.3 × 1.8 m, centred at (cx, cz) on floor y, along x or z */
 function car(g: THREE.Group, cx: number, y: number, cz: number, alongX: boolean, color: string) {
@@ -192,7 +163,7 @@ export function createProps(b: Building, kinds: readonly PropKind[], birds: numb
         const depth = Math.min(8000, Math.max(1500, area / L));
         const post = mat("hsl(210 8% 60%)", 0.4, 0.6);
         const mesh = new THREE.MeshStandardMaterial({ color: hsl("hsl(210 8% 55%)"), transparent: true, opacity: 0.25, side: THREE.DoubleSide });
-        mats.set("mesh", mesh);
+        mesh.userData.ownsMaterial = true;
         const h = 1800;
         for (const x of [0, L / 2, L]) box(g, x - 25, 0, -depth - 25, 50, h, 50, post);
         for (const z of [-depth / 2]) for (const x of [0, L]) box(g, x - 25, 0, z - 25, 50, h, 50, post);
@@ -201,6 +172,9 @@ export function createProps(b: Building, kinds: readonly PropKind[], birds: numb
         for (const x of [0, L]) box(g, x, 0, -depth, 5, h, depth - 20, mesh).castShadow = false;
         break;
       }
+      case "sport":
+        g.add(sportInterior(b));
+        break;
       case "stair": {
         if (input.levels.length < 2) break;
         const rise = b.levels[1]!.base - floor;

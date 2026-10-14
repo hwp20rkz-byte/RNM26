@@ -33,6 +33,8 @@ import { DOUBLE_JACK_WIDTH, DOUBLE_JAMB_WIDTH, HEADER_MIN_CLEAR, openingClass, t
 const BOX_GAP = DETAILING.buttGap;
 const MIN_GAP = 100;
 const MIN_CRIPPLE = 120;
+/** Deepest header truss between its chord strips, mm; webs past ~45° clash with the kings */
+const HEADER_MAX_DEPTH = 900;
 
 function flangeOf(p: ProfileSpec): number {
   return p.family === "Hat" ? p.crown : p.flange;
@@ -131,7 +133,8 @@ export function generateWallDetailed(input: WallInput, mark = "W"): DetailedAsse
     x < t + f ||
     x > L - t - f ||
     openings.some((o) => x > o.x - jambZone(o, profile) - f && x < o.x + o.width + jambZone(o, profile) + f) ||
-    backing.some((b) => Math.abs(x - b.x) < t + f);
+    // a grid stud must not land inside a T-junction pair (89 mm apart) either
+    backing.some((b) => Math.abs(x - b.x) < 2 * f + t);
 
   const grid: number[] = [];
   for (let x = input.studSpacing; x < L; x += input.studSpacing) grid.push(x);
@@ -159,7 +162,16 @@ export function generateWallDetailed(input: WallInput, mark = "W"): DetailedAsse
 
     // Header: room between the lintel strip and the top plate strip
     const clear = H - f - (top + f);
-    if (openingClass(o) !== "single" && clear >= HEADER_MIN_CLEAR) pieces.push(...headerTruss(left.bearing, right.bearing, top, H, profile));
+    if (openingClass(o) !== "single" && clear >= HEADER_MIN_CLEAR) {
+      // A tall wall gets its own top chord (flanges down, between the kings)
+      // at the truss depth, and cripples on the grid from it to the top plate
+      const yt = top + 2 * f + HEADER_MAX_DEPTH;
+      if (H - t - yt >= MIN_CRIPPLE) {
+        pieces.push(...headerTruss(left.bearing, right.bearing, top, yt, profile));
+        pieces.push({ role: "lintel", x0, y0: yt - t / 2, x1, y1: yt - t / 2, flipped: true });
+        for (const x of inside) pieces.push({ role: "cripple", x0: x, y0: yt, x1: x, y1: H - t, flipped: false });
+      } else pieces.push(...headerTruss(left.bearing, right.bearing, top, H, profile));
+    }
     else if (H - t - (top + t) >= MIN_CRIPPLE) for (const x of inside) pieces.push({ role: "cripple", x0: x, y0: top + t, x1: x, y1: H - t, flipped: false });
   }
 

@@ -34,7 +34,15 @@ export type RoomPurpose =
   | "garage"
   | "workshop"
   | "poultry"
-  | "open";
+  | "open"
+  /** Sports hall: mats, courts, equipment */
+  | "gym"
+  /** Changing room with lockers and benches */
+  | "changing"
+  /** Coaches' / admin office */
+  | "office"
+  /** Reception and waiting area */
+  | "lobby";
 
 export interface Partition {
   id: string;
@@ -44,6 +52,12 @@ export interface Partition {
   at: number;
   /** Doors, x measured from the inner face of the outer wall where the partition starts */
   doors: Opening[];
+  /**
+   * Extent along the partition, model mm (z for "x" partitions, x for "z"
+   * ones). Each end sits on the inner face of an outer wall or on the centre
+   * line of a crossing partition. Omitted: wall to wall.
+   */
+  span?: { from: number; to: number };
 }
 
 export interface Level {

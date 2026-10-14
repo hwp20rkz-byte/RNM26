@@ -35,6 +35,7 @@ export const zh: Record<Key, string> = {
   "category.bath": "桑拿",
   "category.auto": "车辆",
   "category.farm": "农用",
+  "category.sport": "体育与健身",
   "category.custom": "自定义",
 
   "product.gazebo": "凉亭",
@@ -54,6 +55,11 @@ export const zh: Record<Key, string> = {
   "product.coop": "鸡舍",
   "product.poultry": "禽舍",
   "product.workshop": "工作间",
+  "product.bjj": "柔术 / 格斗中心",
+  "product.fitness": "健身俱乐部",
+  "product.yoga": "瑜伽馆",
+  "product.tabletennis": "乒乓球馆",
+  "product.crossfit": "功能性训练馆",
   "product.custom": "自定义建筑",
 
   "shape.size": "尺寸与层数",
@@ -164,6 +170,10 @@ export const zh: Record<Key, string> = {
   "room.workshop": "工作间",
   "room.poultry": "禽舍",
   "room.open": "开敞区",
+  "room.gym": "运动馆",
+  "room.changing": "更衣室",
+  "room.office": "教练室",
+  "room.lobby": "等候区、前台",
 
   "climate.city": "建设城市",
   "climate.t5": "最冷五日平均温度 (0.92)",
@@ -457,6 +467,7 @@ export const zh: Record<Key, string> = {
   "vehicle.truck10": "栏板车 10 t",
   "vehicle.manipulator": "随车吊 7 t",
   "vehicle.semi": "半挂车 20 t",
+  "vehicle.semiExt": "伸缩半挂车 20 t",
 
   "files.files": "文件",
   "files.print": "报价单 / 打印",

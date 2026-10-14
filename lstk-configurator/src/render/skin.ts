@@ -37,6 +37,10 @@ export const PURPOSE_COLOR: Record<RoomPurpose, string> = {
   workshop: "hsl(45 45% 58%)",
   poultry: "hsl(55 60% 66%)",
   open: "hsl(30 30% 60%)",
+  gym: "hsl(215 55% 62%)",
+  changing: "hsl(170 35% 62%)",
+  office: "hsl(280 25% 70%)",
+  lobby: "hsl(42 45% 72%)",
 };
 
 type Look = ReturnType<typeof finish>["look"];

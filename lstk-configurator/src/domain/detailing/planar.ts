@@ -475,7 +475,8 @@ export function detailPlanar(input: readonly Member[], rules: DetailingRules = D
           const tilt = (s: Strip, e: End) => ((hostsAt.get(key(s, e))?.length ?? 0) > 1 ? -1 : 1 - Math.abs(crs(s.d, common.d)));
           const tA = tilt(A, eA);
           const tB = tilt(B, eB);
-          const movers = tA > tB + 0.05 ? [{ s: A, e: eA, o: B, oe: eB }] : tB > tA + 0.05 ? [{ s: B, e: eB, o: A, oe: eA }] : [{ s: A, e: eA, o: B, oe: eB }, { s: B, e: eB, o: A, oe: eA }];
+          // A full-height stud never walks off its line for a web or a cripple
+          const movers = A.rank > B.rank ? [{ s: B, e: eB, o: A, oe: eA }] : B.rank > A.rank ? [{ s: A, e: eA, o: B, oe: eB }] : tA > tB + 0.05 ? [{ s: A, e: eA, o: B, oe: eB }] : tB > tA + 0.05 ? [{ s: B, e: eB, o: A, oe: eA }] : [{ s: A, e: eA, o: B, oe: eB }, { s: B, e: eB, o: A, oe: eA }];
           // Middle of the strip end, so the side the web lies on does not bias the direction
           const mid = (s: Strip, e: End) => add(endPoint(s, e), mul(s.n, s.F / 2 - s.t / 2));
           const saved = movers.map(({ s, e, o, oe }) => {

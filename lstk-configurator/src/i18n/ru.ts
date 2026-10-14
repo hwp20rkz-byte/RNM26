@@ -37,6 +37,7 @@ export const ru = {
   "category.bath": "Баня",
   "category.auto": "Авто",
   "category.farm": "Хозяйство",
+  "category.sport": "Спорт и фитнес",
   "category.custom": "Своя постройка",
 
   "product.gazebo": "Беседка",
@@ -56,6 +57,11 @@ export const ru = {
   "product.coop": "Курятник",
   "product.poultry": "Птичник",
   "product.workshop": "Мастерская",
+  "product.bjj": "Центр BJJ / единоборств",
+  "product.fitness": "Фитнес-клуб",
+  "product.yoga": "Йога-студия",
+  "product.tabletennis": "Зал настольного тенниса",
+  "product.crossfit": "Зал функционального тренинга",
   "product.custom": "Своя постройка",
 
   "shape.size": "Размеры и этажность",
@@ -166,6 +172,10 @@ export const ru = {
   "room.workshop": "Мастерская",
   "room.poultry": "Птичник",
   "room.open": "Открытая площадка",
+  "room.gym": "Спортивный зал",
+  "room.changing": "Раздевалка",
+  "room.office": "Тренерская",
+  "room.lobby": "Зона ожидания, ресепшн",
 
   "climate.city": "Город строительства",
   "climate.t5": "Холодная пятидневка (0,92)",
@@ -459,6 +469,7 @@ export const ru = {
   "vehicle.truck10": "Бортовой 10 т",
   "vehicle.manipulator": "Манипулятор 7 т",
   "vehicle.semi": "Фура 20 т",
+  "vehicle.semiExt": "Раздвижной трал 20 т",
 
   "files.files": "Файлы",
   "files.print": "КП / печать",
