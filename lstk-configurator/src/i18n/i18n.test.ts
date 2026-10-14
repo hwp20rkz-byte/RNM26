@@ -53,5 +53,6 @@ describe("dictionaries", () => {
       need.push(...a.bom.cutList.map((c) => `role.${c.role}`));
     }
     expect([...new Set(need)].filter((k) => !keys.has(k))).toEqual([]);
-  });
+    // Analyses every product of the catalogue: well past the 5 s default on a CI runner
+  }, 60_000);
 });
