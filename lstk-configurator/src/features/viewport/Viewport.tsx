@@ -13,6 +13,7 @@ import { applyCut, applyExplode, highlightMember, memberIdFromHit } from "@/rend
 import { disposeOwned } from "@/render/meshes";
 import { siteIdFromHit } from "@/render/site";
 import { TourRig, WalkRig, type TourKind, type TourPoints } from "./Tour";
+import type { WallLine } from "./walls";
 import type { CameraPreset, LightingPreset } from "@/store/configurator";
 
 /**
@@ -185,6 +186,8 @@ export interface ViewportProps {
   tour?: { kind: TourKind; points: TourPoints; onDone: () => void } | null;
   /** First-person walk from this point (model mm) */
   walk?: [number, number, number] | null;
+  /** Walls the walker bumps into */
+  walkWalls?: readonly WallLine[];
 }
 
 /** Camera presets: fly to a view of the current model */
@@ -221,7 +224,7 @@ function Dimension({ d }: { d: Dim }) {
   );
 }
 
-export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, photo = false, shot = 0, onPick, onTool, tour = null, walk = null }: ViewportProps) {
+export default function Viewport({ object, offset, size, lighting, grid, explode, cut, selection, camera, dims, labels, ground, autoRotate = false, photo = false, shot = 0, onPick, onTool, tour = null, walk = null, walkWalls = [] }: ViewportProps) {
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Free per-build geometry when the scene is replaced
   useEffect(
@@ -268,7 +271,7 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
       {photo && <PhotoComposer shot={shot} />}
       {/* key: re-frame the camera whenever a new model is built, not on every edit of the view */}
       {object && (
-        <Bounds key={object.uuid} fit clip margin={1.2}>
+        <Bounds key={object.uuid} fit={!walk && !tour} clip margin={1.2}>
           <primitive object={object} onClick={pick} />
           <CameraRig camera={camera} size={size} />
         </Bounds>
@@ -312,7 +315,7 @@ export default function Viewport({ object, offset, size, lighting, grid, explode
         />
       )}
       {tour && <TourRig key={tour.kind} kind={tour.kind} points={tour.points} offset={offset} onDone={tour.onDone} />}
-      {walk && !tour && <WalkRig start={walk} offset={offset} />}
+      {walk && !tour && <WalkRig start={walk} offset={offset} walls={walkWalls} />}
       {!walk && <OrbitControls makeDefault enabled={!tour} enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI * 0.495} autoRotate={autoRotate && !reduce && !tour} autoRotateSpeed={0.5} />}
       {!photo && (
         <GizmoHelper alignment="bottom-right" margin={[64, 64]}>

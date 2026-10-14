@@ -4,6 +4,7 @@ import { PointerLockControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { collide, type WallLine } from "./walls";
 
 /**
  * Virtual camera work: an orbit, a cinematic flyover, an interior walk-
@@ -144,7 +145,8 @@ export function TourRig({ kind, points, offset, onDone, seconds }: { kind: TourK
 export const walkKeys = { forward: false, back: false, left: false, right: false, turnLeft: false, turnRight: false, run: false };
 
 /** First-person walk at eye height: mouse look (click to capture), WASD/arrows, Shift to run */
-export function WalkRig({ start, offset }: { start: [number, number, number]; offset: [number, number, number] }) {
+/** `walls` — plan wall lines (mm) the walker cannot pass; doors are gaps in them */
+export function WalkRig({ start, offset, walls = [] }: { start: [number, number, number]; offset: [number, number, number]; walls?: readonly WallLine[] }) {
   const { camera } = useThree();
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
@@ -202,6 +204,11 @@ export function WalkRig({ start, offset }: { start: [number, number, number]; of
     if (walkKeys.back) camera.position.addScaledVector(dir, -step);
     if (walkKeys.right) camera.position.addScaledVector(side, step);
     if (walkKeys.left) camera.position.addScaledVector(side, -step);
+    if (walls.length) {
+      const [x, z] = collide((camera.position.x - offset[0]) / 0.001, (camera.position.z - offset[2]) / 0.001, walls);
+      camera.position.x = x * 0.001 + offset[0];
+      camera.position.z = z * 0.001 + offset[2];
+    }
   });
   return <PointerLockControls selector="#walk-capture" />;
 }

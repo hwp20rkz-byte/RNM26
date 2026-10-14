@@ -351,7 +351,8 @@ export function generateBuilding(input: BuildingInput): Building {
       const length = seg.to - seg.from;
       // Partitions that meet this one (end on it or cross it) get a backing pair in it
       const meets = level.partitions.filter((q) => q.axis !== seg.axis && partitionCovers(q, inner, seg.at) && q.at > seg.from + d && q.at < seg.to - d);
-      const backing = meets.flatMap((q) => teePair(q.at - seg.from, d, profile.thickness));
+      // Two partitions meeting the same point from either side share one pair
+      const backing = [...new Set(meets.map((q) => q.at))].flatMap((at) => teePair(at - seg.from, d, profile.thickness));
       const cuts = panelCuts(length, seg.doors, backing, profile);
       cuts.forEach(([a, bEnd], m) => {
         const mark = cuts.length > 1 ? `${base0}.${m + 1}` : base0;

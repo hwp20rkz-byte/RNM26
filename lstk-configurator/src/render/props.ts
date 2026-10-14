@@ -7,6 +7,7 @@ import { coopPlan } from "@/domain/livestock/coop";
 import { box, cyl, mat } from "./kit";
 import { hsl } from "./skin";
 import { MM } from "./profileGeometry";
+import { homeInterior, kitchenRun } from "./home";
 import { sportInterior } from "./sport";
 
 /**
@@ -123,15 +124,10 @@ export function createProps(b: Building, kinds: readonly PropKind[], birds: numb
           if (r) table(g, (r.x0 + r.x1) / 2, floor, (r.z0 + r.z1) / 2, Math.min(1600, r.x1 - r.x0 - 800), true, true);
         }
         break;
-      case "kitchen": {
-        const r = findRoom(rs, ["kitchen"], l0.rooms);
-        if (!r) break;
-        const len = Math.min(3000, r.x1 - r.x0 - 200);
-        box(g, r.x0 + 100, floor, r.z1 - 620, len, 850, 600, mat("hsl(40 15% 90%)", 0.4));
-        box(g, r.x0 + 100, floor + 850, r.z1 - 620, len, 40, 620, mat("hsl(210 6% 30%)", 0.3));
-        box(g, r.x0 + 100, floor + 1450, r.z1 - 350, len, 700, 330, mat("hsl(40 15% 90%)", 0.4));
+      case "kitchen":
+        // Base and wall units along the longest free kitchen wall, clear of doors and openings
+        g.add(kitchenRun(b));
         break;
-      }
       case "workbench": {
         const len = Math.min(2400, L - 2 * d - 400);
         box(g, L - d - len - 200, floor + 850, W - d - 750, len, 50, 700, mat(WOOD));
@@ -172,6 +168,9 @@ export function createProps(b: Building, kinds: readonly PropKind[], birds: numb
         for (const x of [0, L]) box(g, x, 0, -depth, 5, h, depth - 20, mesh).castShadow = false;
         break;
       }
+      case "home":
+        g.add(homeInterior(b));
+        break;
       case "sport":
         g.add(sportInterior(b, brand));
         break;

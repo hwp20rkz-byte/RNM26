@@ -4,6 +4,7 @@ import type { RoomPurpose } from "@/domain/buildings/types";
 import { finish, type FinishChoice } from "@/domain/finishes/catalog";
 import { rooms, type Room } from "@/domain/layout/rooms";
 import { hallFloor } from "@/domain/planner/analyze";
+import { themeOf } from "@/domain/interior/theme";
 import { MM } from "./profileGeometry";
 import { hsl } from "./skin";
 import { openingGaps, type Gap } from "./sport";
@@ -93,6 +94,7 @@ export function createInterior(b: Building, f: FinishChoice, atticInsulation: nu
   // Unheated sheds and garages get their floors, but no lining or ceiling
   const finished = input.heating !== "none";
   const wool = new THREE.MeshStandardMaterial({ color: hsl("hsl(45 70% 62%)"), roughness: 1 });
+  const theme = themeOf(input.productId);
   const ceilingMat = surface(f.interior, finish(f.interior).color, 0.9);
   input.levels.forEach((level, li) => {
     const info = b.levels[li]!;
@@ -103,7 +105,9 @@ export function createInterior(b: Building, f: FinishChoice, atticInsulation: nu
     for (const r of rooms(level, info.inner, d)) {
       const p = r.purpose;
       const wallId = STEAM.includes(p) ? f.steam : WET.includes(p) ? f.wet : UTILITY.includes(p) ? "osbOpen" : f.interior;
-      if (finished) wallsOf(walls, r, gs, d, info.base, H, surface(wallId, finish(wallId).color));
+      // A club's theme tints the painted walls and the wet-room tiles
+      const tint = theme && wallId === f.interior ? theme.wall : theme && wallId === f.wet ? theme.tile : finish(wallId).color;
+      if (finished) wallsOf(walls, r, gs, d, info.base, H, surface(wallId, tint));
       // Floor finish of the room
       const floorId = p === "gym" ? hallFloor(input.productId) : WET.includes(p) ? "tile" : STEAM.includes(p) ? "deck" : UTILITY.includes(p) ? (input.foundation.type === "slab" ? "concrete" : "deck") : f.floor;
       const fl = slab(r.x0, info.base + 2, r.z0, r.x1 - r.x0, 16, r.z1 - r.z0, surface(floorId, finish(floorId).color, 0.6));

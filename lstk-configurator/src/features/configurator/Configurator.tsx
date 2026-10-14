@@ -9,6 +9,7 @@ import { PURPOSE_COLOR } from "@/render/skin";
 import { projectOf, useConfigurator, type CameraPreset, type Mode, type PlannerTab } from "@/store/configurator";
 import { Presentation } from "../presentation/Presentation";
 import { CameraBar, tourPoints, type CameraState } from "../viewport/CameraBar";
+import { walkWalls } from "../viewport/walls";
 import { CalcPanel, NodesPanel } from "../planner/CalcPanel";
 import { CatalogPanel } from "../planner/CatalogPanel";
 import { DrawingsPanel } from "../planner/DrawingsPanel";
@@ -110,6 +111,7 @@ export default function Configurator() {
   }, [key]);
 
   const points = useMemo(() => (scene.result?.analysis ? tourPoints(scene.result.analysis) : null), [scene.result]);
+  const walls = useMemo(() => (scene.result?.analysis ? walkWalls(scene.result.analysis.building) : []), [scene.result]);
   const canvas = () => document.querySelector("main canvas") as HTMLCanvasElement | null;
   const print = () => {
     const c = canvas();
@@ -304,6 +306,7 @@ export default function Configurator() {
               onTool={siteTool && tab === "site" ? editSite : undefined}
               tour={cam.tour && points ? { kind: cam.tour, points, onDone: () => setCam({ tour: null, walk: false }) } : null}
               walk={cam.walk && points ? [points.entrance?.x ?? points.length / 2, points.floor + 1600, -6000] : null}
+              walkWalls={walls}
             />
           )}
           {scene.error && (
