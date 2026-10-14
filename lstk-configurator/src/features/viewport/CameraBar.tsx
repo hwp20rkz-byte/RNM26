@@ -3,7 +3,7 @@
 import type { Analysis } from "@/domain/planner/analyze";
 import { sideOpenings } from "@/domain/buildings/generate";
 import { useT } from "@/i18n";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { canRecord, saveBlob, startRecording, type Recording } from "./recorder";
 import { walkKeys, type TourKind, type TourPoints } from "./Tour";
 
@@ -60,7 +60,9 @@ export function CameraBar({ a, cam, setCam, productId }: { a: Analysis; cam: Cam
   const t = useT();
   const [rec, setRec] = useState<{ r: Recording; name: string } | null>(null);
   const [withVideo, setWithVideo] = useState(false);
-  const recordable = canRecord();
+  // Known only in the browser: checked after hydration so the server HTML matches
+  const [recordable, setRecordable] = useState(false);
+  useEffect(() => setRecordable(canRecord()), []);
   const begin = (name: string) => {
     const c = document.querySelector("main canvas") as HTMLCanvasElement | null;
     if (!c || !recordable) return;
