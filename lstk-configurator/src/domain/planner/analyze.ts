@@ -7,6 +7,7 @@ import { hardwareTotals, type HardwareLine } from "../connections/hardware";
 import { FASTENERS, type FastenerKind } from "../connections/fasteners";
 import { detailingSummary, type DetailingSummary } from "../detailing/planar";
 import { doorArea, windowArea } from "../envelope/geometry";
+import { AUTONOMY_OFF, autonomy, type AutonomyResult, type AutonomySettings } from "../energy/autonomy";
 import { WOOL_FILL, wallLineLoad, type WallFill } from "../envelope/foamConcrete";
 import { thermal, type EfficiencyLevel, type InsulationMaterial, type ThermalResult } from "../envelope/insulation";
 import { DEFAULT_FINISHES, finish, type FinishChoice } from "../finishes/catalog";
@@ -57,6 +58,8 @@ export interface PlannerSettings {
   fastener: FastenerKind;
   /** Wall fill: stone wool, or foam concrete poured into ЦСП formwork */
   wallFill: WallFill;
+  /** On-site energy, heat, water and EV plant */
+  autonomy: AutonomySettings;
   /** Drawing set title block */
   doc: { code: string; org: string; developer: string; stage: string };
 }
@@ -82,6 +85,7 @@ export const DEFAULT_SETTINGS: PlannerSettings = {
   certifiedG550: false,
   fastener: "screw",
   wallFill: WOOL_FILL,
+  autonomy: AUTONOMY_OFF,
   doc: { code: "ЛСТК-01-АР/КМ", org: "", developer: "", stage: "П" },
 };
 
@@ -131,6 +135,8 @@ export interface Analysis {
   mep: Mep;
   foundation: FoundationResult;
   energy: EnergyResult;
+  /** On-site plant: PV, heat pump, UFH, water, genset, EV */
+  autonomy: AutonomyResult;
   delivery: DeliveryResult;
   cargo: Cargo[];
   coop: CoopPlan | null;
@@ -280,6 +286,7 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
   const floor = env.floorM2.reduce((s, x) => s + x, 0);
   const living = env.rooms.flat().filter((r) => ["living", "bedroom", "kitchen", "rest"].includes(r.purpose)).reduce((s, r) => s + r.area, 0);
   setCertifiedG550(settings.certifiedG550);
+  const plant = autonomy(building, city, thermalResult, env.rooms, settings.tariff, { ...AUTONOMY_OFF, ...settings.autonomy });
   const result: Analysis = {
     building,
     bom,
@@ -295,7 +302,9 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     lines: [],
     hardware,
     detailing: detailingSummary(building.assemblies),
-    design: design(building, city, settings.finishes, settings.fastener),
+    autonomy: plant,
+    // PV modules and rails add ≈ 0.15 kPa to the roof dead load
+    design: design(building, city, settings.finishes, settings.fastener, plant.pv?.loadKpa ?? 0),
     estimate: null as unknown as Estimate,
     settings,
     cost: 0,
@@ -304,6 +313,8 @@ export function analyze(input: Building["input"], settings: PlannerSettings, pri
     heatingPerYear: thermalResult.seasonKwh * settings.tariff,
     areas: { footprint: env.footprintM2, floor, living },
   };
+  // PV on a roof whose trusses no longer pass: closer trusses fix it
+  if (plant.pv?.count && result.design.worst > 1) plant.notes.push("pvTruss");
   const est = buildEstimate(
     result,
     { ...DEFAULT_ESTIMATE_OPTIONS, overheadPct: settings.overheadPct, contingencyPct: settings.contingencyPct, marginPct: settings.marginPct, vat: settings.vat, designPerM2: settings.designPerM2 },

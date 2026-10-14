@@ -203,13 +203,14 @@ export function trussJointFasteners(a: Assembly | undefined, model: TrussModel, 
   return { kind, perBar, heel: Number.isFinite(heel) ? heel : 0 };
 }
 
-export function design(b: Building, city: City, finishes: FinishChoice, fastener: FastenerKind = "screw"): Design {
+/** `extraRoofKpa` — added roof dead load on plan (PV modules), kPa */
+export function design(b: Building, city: City, finishes: FinishChoice, fastener: FastenerKind = "screw", extraRoofKpa = 0): Design {
   const { input, profile: p } = b;
   const W = input.width;
   const a = (input.roof.pitchDeg * Math.PI) / 180;
   const covering = finish(finishes.roofing).kgPerM2 + 6; // + battens and membrane
   const ceiling = input.heating === "none" ? 0 : 10 + 6; // lining + insulation
-  const roofG = ((covering / Math.cos(a) + ceiling + 8) * 9.81) / 1000; // + truss self-weight
+  const roofG = ((covering / Math.cos(a) + ceiling + 8) * 9.81) / 1000 + extraRoofKpa; // + truss self-weight
   const mu = snowShape(input.roof.pitchDeg);
   const snowRoof = mu * city.snowKpa;
   const roofDesign = GAMMA_G * roofG + GAMMA_Q * snowRoof;

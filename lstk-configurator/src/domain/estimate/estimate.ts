@@ -14,7 +14,7 @@ import { MATERIALS } from "../envelope/insulation";
  * edits rates in the planner; quantities come from the model.
  */
 
-export type EstUnit = "set" | "m" | "m2" | "m3" | "kg" | "t" | "pcs" | "kWh" | "h" | "trip" | "month" | "kW" | "shift";
+export type EstUnit = "set" | "m" | "m2" | "m3" | "kg" | "t" | "pcs" | "kWh" | "h" | "trip" | "month" | "kW" | "shift" | "kWp";
 
 export interface EstLine {
   code: string;
@@ -303,12 +303,16 @@ export function buildEstimate(a: Analysis, o: EstimateOptions = DEFAULT_ESTIMATE
   section("15", "heating");
   line("heaters", "kW", m.heatingKw, mp.heaterPerKw * 0.8, mp.heaterPerKw * 0.2);
 
-  // 16 Delivery and machinery
-  section("16", "delivery");
+  // 16 Energy plant and autonomous systems (supply + installation, 85 / 15)
+  section("16", "energy");
+  for (const it of a.autonomy.items) line(`auto.${it.key}`, it.unit, it.qty, (it.cost / it.qty) * 0.85, (it.cost / it.qty) * 0.15);
+
+  // 17 Delivery and machinery
+  section("17", "delivery");
   if (a.delivery.best) line(`vehicle.${a.delivery.best.vehicle.id}`, "trip", a.delivery.best.trips, 0, a.delivery.best.cost / a.delivery.best.trips);
 
-  // 17 Design and supervision
-  section("17", "design");
+  // 18 Design and supervision
+  section("18", "design");
   line("designDocs", "m2", Math.max(a.areas.floor, footprint), 0, o.designPerM2);
   ln("supervision", "set", 1, "supervision");
 

@@ -22,6 +22,7 @@ import { analyze, type Analysis } from "@/domain/planner/analyze";
 import { createHardware } from "@/render/hardware";
 import { createMep } from "@/render/mep";
 import { mepLayout } from "@/domain/mep/routing";
+import { createPlant } from "@/render/energy";
 import { createProps } from "@/render/props";
 import { createSkin } from "@/render/skin";
 import { trussShape, type ProjectState } from "@/store/configurator";
@@ -161,6 +162,7 @@ export function buildScene(s: ProjectState): Scene {
       /* unknown product id from an old file: no props */
     }
     root.add(createProps(building, kinds, s.planner.birds));
+    if (analysis?.autonomy.enabled) root.add(createPlant(building, analysis.autonomy, analysis.thermal.envelope.rooms));
   }
   const { object, offset, size } = settle(root, !!building);
 

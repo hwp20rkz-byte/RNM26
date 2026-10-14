@@ -1,6 +1,6 @@
 "use client";
 
-import { Calculator, ClipboardText, CubeFocus, Drop, FileArrowDown, Gauge, Graph, Layout, PaintRoller, Ruler, SquaresFour, Truck } from "@phosphor-icons/react";
+import { Calculator, ClipboardText, CubeFocus, Drop, FileArrowDown, Gauge, Graph, Layout, Lightning, PaintRoller, Ruler, SquaresFour, Truck } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { LANGS, useT } from "@/i18n";
@@ -10,6 +10,7 @@ import { Presentation } from "../presentation/Presentation";
 import { CalcPanel, NodesPanel } from "../planner/CalcPanel";
 import { CatalogPanel } from "../planner/CatalogPanel";
 import { DrawingsPanel } from "../planner/DrawingsPanel";
+import { EnergyPanel } from "../planner/EnergyPanel";
 import { ClimatePanel } from "../planner/ClimatePanel";
 import { DeliveryPanel } from "../planner/DeliveryPanel";
 import { EstimatePanel } from "../planner/EstimatePanel";
@@ -40,7 +41,7 @@ function useHydrated() {
   return ok;
 }
 
-const TABS: PlannerTab[] = ["catalog", "shape", "layout", "climate", "finish", "mep", "calc", "nodes", "estimate", "delivery", "drawings", "files"];
+const TABS: PlannerTab[] = ["catalog", "shape", "layout", "climate", "finish", "mep", "energy", "calc", "nodes", "estimate", "delivery", "drawings", "files"];
 const MM = 0.001;
 const TAB_ICON: Record<PlannerTab, typeof Ruler> = {
   catalog: SquaresFour,
@@ -49,6 +50,7 @@ const TAB_ICON: Record<PlannerTab, typeof Ruler> = {
   climate: Drop,
   finish: PaintRoller,
   mep: Gauge,
+  energy: Lightning,
   calc: Calculator,
   nodes: Graph,
   estimate: ClipboardText,
@@ -212,6 +214,7 @@ export default function Configurator() {
               {a && tab === "climate" && <ClimatePanel a={a} />}
               {a && tab === "finish" && <FinishPanel a={a} />}
               {a && tab === "mep" && <MepPanel a={a} />}
+              {a && tab === "energy" && <EnergyPanel a={a} />}
               {a && tab === "calc" && <CalcPanel a={a} />}
               {a && tab === "nodes" && <NodesPanel a={a} />}
               {a && tab === "estimate" && <EstimatePanel a={a} />}
