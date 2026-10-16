@@ -96,6 +96,7 @@ export interface FurnitureModule {
 export interface ProjectState {
   id: string;
   name: string;
+  clientName: string; // по нему менеджер ищет заказ в списке
   modules: FurnitureModule[];
 }
 

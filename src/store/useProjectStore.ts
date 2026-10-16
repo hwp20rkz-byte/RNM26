@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { DoorItem, DrawerBlock, FurnitureModule, ProjectState } from '../types/cad.types';
 
-let counter = 0;
-export const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(counter++).toString(36)}`;
+import { newId } from '../utils/id';
+
+export { newId };
 
 export function createBaseCabinet(name: string, x: number, width: number): FurnitureModule {
   return {
@@ -61,24 +62,32 @@ interface ProjectStore {
   addDrawerBlock: (moduleId: string) => void;
   removeShelf: (moduleId: string) => void;
   addModule: () => void;
+  loadProject: (project: ProjectState) => void;
+  setProjectMeta: (meta: Partial<Pick<ProjectState, 'name' | 'clientName'>>) => void;
   removeModule: (id: string) => void;
   updateModule: (id: string, recipe: (m: FurnitureModule) => void) => void;
 }
 
 // Демо из видео аналога: левая тумба 353 мм с дверью и правая 400 мм с ящиками.
-const initialModules = (() => {
+export function createDemoProject(): ProjectState {
   const left = createBaseCabinet('Левая тумба', 0, 353);
   left.subdivisions.doors.push(newDoor());
   const right = createBaseCabinet('Правая тумба', 353, 400);
   right.subdivisions.shelves = [];
   right.subdivisions.drawers.push(newDrawerBlock());
-  return [left, right];
-})();
+  return { id: newId('prj'), name: 'Пример: две тумбы', clientName: '', modules: [left, right] };
+}
+
+export function createEmptyProject(): ProjectState {
+  return { id: newId('prj'), name: 'Новый проект', clientName: '', modules: [createBaseCabinet('Модуль 1', 0, 400)] };
+}
+
+const initialProject = createDemoProject();
 
 export const useProjectStore = create<ProjectStore>()(
   immer((set) => ({
-    project: { id: newId('prj'), name: 'Новый проект', modules: initialModules },
-    selectedId: initialModules[0]?.id ?? null,
+    project: initialProject,
+    selectedId: initialProject.modules[0]?.id ?? null,
     showFacades: true,
     setShowFacades: (v) => set({ showFacades: v }),
     select: (id) => set({ selectedId: id }),
@@ -105,6 +114,11 @@ export const useProjectStore = create<ProjectStore>()(
           if (f.bottomRef === removed.id) f.bottomRef = 'bottom';
           if (f.topRef === removed.id) f.topRef = 'top';
         }
+      }),
+    loadProject: (project) => set({ project, selectedId: project.modules[0]?.id ?? null }),
+    setProjectMeta: (meta) =>
+      set((s) => {
+        Object.assign(s.project, meta);
       }),
     addModule: () =>
       set((s) => {

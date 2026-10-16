@@ -5,6 +5,8 @@ import { useAssemblies } from './store/useAssemblies';
 import { useProjectStore } from './store/useProjectStore';
 import { findOverlaps } from './cad-kernel/collision/overlaps';
 import { useMemo } from 'react';
+import { ProjectBar } from './components/project/ProjectBar';
+import { SaveBanners } from './components/project/SaveBanners';
 
 export default function App() {
   const assemblies = useAssemblies();
@@ -18,16 +20,19 @@ export default function App() {
   const selectedWarnings = assemblies.find((a) => a.moduleId === selectedId)?.warnings ?? [];
 
   return (
-    <div className="grid h-screen grid-cols-[200px_1fr_320px] grid-rows-[44px_1fr_240px] bg-white text-slate-800">
+    <div className="grid h-screen grid-cols-[200px_1fr_320px] grid-rows-[44px_auto_1fr_240px] bg-white text-slate-800">
       <header className="col-span-3 flex items-center gap-4 border-b border-slate-200 px-4">
-        <h1 className="font-semibold">RNM26 · Конструктор</h1>
-        <span className="text-xs text-slate-400">Проект хранится только в этой вкладке</span>
+        <h1 className="shrink-0 font-semibold">RNM26</h1>
+        <ProjectBar />
         {overlaps.length > 0 && (
-          <span className="rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">
+          <span className="truncate rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">
             Пересекаются: {overlaps.map(([a, b]) => `${nameOf(a)} и ${nameOf(b)}`).join('; ')}
           </span>
         )}
       </header>
+      <div className="col-span-3">
+        <SaveBanners />
+      </div>
 
       <aside className="row-span-2 overflow-auto border-r border-slate-200">
         <div className="flex items-center justify-between px-3 py-2">
