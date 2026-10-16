@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
+import { produce } from 'immer';
 import type { DoorItem, DrawerBlock, FurnitureModule, ProjectState } from '../types/cad.types';
-
 import { newId } from '../utils/id';
+import { describeChange, HISTORY_LIMIT } from './history';
 
 export { newId };
 
@@ -56,6 +56,13 @@ interface ProjectStore {
   project: ProjectState;
   selectedId: string | null;
   showFacades: boolean;
+  // История правок проекта: снимки до изменения (past) и отменённые (future).
+  // Снимки дешёвые: immer делит неизменённые части между версиями.
+  past: ProjectState[];
+  future: ProjectState[];
+  historyMessage: { text: string; at: number } | null;
+  undo: () => void;
+  redo: () => void;
   setShowFacades: (v: boolean) => void;
   select: (id: string | null) => void;
   addDoor: (moduleId: string) => void;
@@ -84,20 +91,76 @@ export function createEmptyProject(): ProjectState {
 
 const initialProject = createDemoProject();
 
-export const useProjectStore = create<ProjectStore>()(
-  immer((set) => ({
+type Draft = Pick<ProjectStore, 'project' | 'selectedId'>;
+
+// После отмены показываем затронутый модуль; если его больше нет — оставляем выбор как был.
+function selectionAfter(project: ProjectState, preferred: string | null, current: string | null): string | null {
+  const has = (id: string | null) => id !== null && project.modules.some((m) => m.id === id);
+  if (has(preferred)) return preferred;
+  if (has(current)) return current;
+  return project.modules[0]?.id ?? null;
+}
+
+export const useProjectStore = create<ProjectStore>()((set, get) => {
+  // Любая правка проекта идёт через change: она попадает в историю и сбрасывает «повторить».
+  // Правка, которая ничего не поменяла (то же число в поле), шага в истории не создаёт.
+  const change = (recipe: (d: Draft) => void) => {
+    const s = get();
+    const next = produce({ project: s.project, selectedId: s.selectedId }, recipe);
+    if (next.project === s.project) {
+      if (next.selectedId !== s.selectedId) set({ selectedId: next.selectedId });
+      return;
+    }
+    set({
+      project: next.project,
+      selectedId: next.selectedId,
+      past: [...s.past, s.project].slice(-HISTORY_LIMIT),
+      future: [],
+    });
+  };
+
+  return {
     project: initialProject,
     selectedId: initialProject.modules[0]?.id ?? null,
     showFacades: true,
+    past: [],
+    future: [],
+    historyMessage: null,
+    undo: () => {
+      const s = get();
+      const prev = s.past.at(-1);
+      if (!prev) return;
+      const d = describeChange(prev, s.project);
+      set({
+        project: prev,
+        past: s.past.slice(0, -1),
+        future: [...s.future, s.project],
+        selectedId: selectionAfter(prev, d.moduleId, s.selectedId),
+        historyMessage: { text: `Отменено: ${d.text}`, at: Date.now() },
+      });
+    },
+    redo: () => {
+      const s = get();
+      const next = s.future.at(-1);
+      if (!next) return;
+      const d = describeChange(s.project, next);
+      set({
+        project: next,
+        past: [...s.past, s.project].slice(-HISTORY_LIMIT),
+        future: s.future.slice(0, -1),
+        selectedId: selectionAfter(next, d.moduleId, s.selectedId),
+        historyMessage: { text: `Повторено: ${d.text}`, at: Date.now() },
+      });
+    },
     setShowFacades: (v) => set({ showFacades: v }),
     select: (id) => set({ selectedId: id }),
     addDoor: (moduleId) =>
-      set((s) => {
+      change((s) => {
         s.project.modules.find((m) => m.id === moduleId)?.subdivisions.doors.push(newDoor());
       }),
     // Новый блок ящиков копирует настройки последнего добавленного в проекте (ТЗ: копирование параметров).
     addDrawerBlock: (moduleId) =>
-      set((s) => {
+      change((s) => {
         const last = s.project.modules.flatMap((m) => m.subdivisions.drawers).at(-1);
         const block = last
           ? { ...newDrawerBlock(), count: last.count, mount: last.mount, runnerType: last.runnerType, handle: last.handle }
@@ -106,7 +169,7 @@ export const useProjectStore = create<ProjectStore>()(
       }),
     // Фасады, опиравшиеся на удалённую полку, переезжают на дно или крышу.
     removeShelf: (moduleId) =>
-      set((s) => {
+      change((s) => {
         const m = s.project.modules.find((x) => x.id === moduleId);
         const removed = m?.subdivisions.shelves.pop();
         if (!m || !removed) return;
@@ -115,13 +178,15 @@ export const useProjectStore = create<ProjectStore>()(
           if (f.topRef === removed.id) f.topRef = 'top';
         }
       }),
-    loadProject: (project) => set({ project, selectedId: project.modules[0]?.id ?? null }),
+    // Открытие другого проекта начинает историю заново: отмена не должна уводить в чужой проект.
+    loadProject: (project) =>
+      set({ project, selectedId: project.modules[0]?.id ?? null, past: [], future: [], historyMessage: null }),
     setProjectMeta: (meta) =>
-      set((s) => {
+      change((s) => {
         Object.assign(s.project, meta);
       }),
     addModule: () =>
-      set((s) => {
+      change((s) => {
         const mods = s.project.modules;
         const right = mods.reduce((mx, m) => Math.max(mx, m.transform.x + m.dimensions.width), 0);
         const m = createBaseCabinet(`Модуль ${mods.length + 1}`, right, 400);
@@ -129,14 +194,14 @@ export const useProjectStore = create<ProjectStore>()(
         s.selectedId = m.id;
       }),
     removeModule: (id) =>
-      set((s) => {
+      change((s) => {
         s.project.modules = s.project.modules.filter((m) => m.id !== id);
         if (s.selectedId === id) s.selectedId = s.project.modules[0]?.id ?? null;
       }),
     updateModule: (id, recipe) =>
-      set((s) => {
+      change((s) => {
         const m = s.project.modules.find((x) => x.id === id);
         if (m) recipe(m);
       }),
-  })),
-);
+  };
+});

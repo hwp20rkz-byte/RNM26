@@ -64,7 +64,11 @@ export function flushSave(): void {
     timer = null;
   }
   const project = currentProject();
-  if (project === lastSaved) return;
+  if (project === lastSaved) {
+    // Правку отменили до сохранения: в хранилище уже ровно это состояние.
+    if (useSaveStatus.getState().state === 'dirty') status({ state: 'saved' });
+    return;
+  }
   if (useSaveStatus.getState().state === 'conflict') return; // ждём решения менеджера
   status({ state: 'saving' });
   const r = session.save(project);
@@ -103,7 +107,11 @@ export function bootPersistence(): void {
   }
 
   useProjectStore.subscribe((s, prev) => {
-    if (s.project === prev.project || s.project === lastSaved) return;
+    if (s.project === prev.project) return;
+    if (s.project === lastSaved) {
+      flushSave(); // отмена вернула сохранённое состояние: снять «Есть изменения» и отложенное сохранение
+      return;
+    }
     if (useSaveStatus.getState().state !== 'conflict') status({ state: 'dirty' });
     scheduleSave();
   });

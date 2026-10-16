@@ -7,8 +7,10 @@ import { findOverlaps } from './cad-kernel/collision/overlaps';
 import { useMemo } from 'react';
 import { ProjectBar } from './components/project/ProjectBar';
 import { SaveBanners } from './components/project/SaveBanners';
+import { HistoryButtons, HistoryToast, useUndoShortcuts } from './components/project/HistoryControls';
 
 export default function App() {
+  useUndoShortcuts();
   const assemblies = useAssemblies();
   const modules = useProjectStore((s) => s.project.modules);
   const selectedId = useProjectStore((s) => s.selectedId);
@@ -23,6 +25,7 @@ export default function App() {
     <div className="grid h-screen grid-cols-[200px_1fr_320px] grid-rows-[44px_auto_1fr_240px] bg-white text-slate-800">
       <header className="col-span-3 flex items-center gap-4 border-b border-slate-200 px-4">
         <h1 className="shrink-0 font-semibold">RNM26</h1>
+        <HistoryButtons />
         <ProjectBar />
         {overlaps.length > 0 && (
           <span className="truncate rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">
@@ -33,6 +36,7 @@ export default function App() {
       <div className="col-span-3">
         <SaveBanners />
       </div>
+      <HistoryToast />
 
       <aside className="row-span-2 overflow-auto border-r border-slate-200">
         <div className="flex items-center justify-between px-3 py-2">
