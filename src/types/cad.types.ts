@@ -35,6 +35,33 @@ export interface ShelfItem {
   lockedGapBelow: number | null;
 }
 
+export type FacadeMount = 'overlay' | 'insert';
+// 'none' — без ручки: Tip-On у дверей, Push-to-Open у ящиков.
+export type HandleType = 'none' | 'bracket' | 'rail' | 'profile';
+export type RunnerType = 'telescopic' | 'concealed_tandem';
+// Граница проёма: дно, крыша или id полки.
+export type BoundaryRef = string;
+
+export interface DoorItem {
+  id: string;
+  bottomRef: BoundaryRef;
+  topRef: BoundaryRef;
+  mount: FacadeMount;
+  leaves: 1 | 2;
+  hingeSide: 'left' | 'right'; // для одностворчатой двери
+  handle: HandleType;
+}
+
+export interface DrawerBlock {
+  id: string;
+  bottomRef: BoundaryRef;
+  topRef: BoundaryRef;
+  count: number; // ящиков в проёме, фасады делят его поровну
+  mount: FacadeMount;
+  runnerType: RunnerType;
+  handle: HandleType;
+}
+
 export interface FurnitureModule {
   id: string;
   name: string;
@@ -61,6 +88,8 @@ export interface FurnitureModule {
   };
   subdivisions: {
     shelves: ShelfItem[];
+    doors: DoorItem[];
+    drawers: DrawerBlock[];
   };
 }
 
@@ -79,7 +108,15 @@ export type PartRole =
   | 'bottom'
   | 'back'
   | 'plinth_front'
-  | 'shelf';
+  | 'shelf'
+  | 'door'
+  | 'drawer_facade'
+  | 'drawer_side'
+  | 'drawer_front'
+  | 'drawer_back'
+  | 'drawer_bottom';
+
+export const FACADE_ROLES: ReadonlySet<PartRole> = new Set(['door', 'drawer_facade']);
 
 export type Axis = 'x' | 'y' | 'z';
 
@@ -99,8 +136,22 @@ export interface Part {
   edging: { length: number; width: number };
 }
 
+export interface HardwareItem {
+  key: string; // одинаковый ключ — одна строка сметы
+  name: string;
+  unit: 'шт' | 'компл.' | 'м.п.';
+  qty: number;
+}
+
+// Ручка для отображения в 3D. В смету идёт через HardwareItem.
+export interface HandleVisual {
+  box: { min: Vec3; size: Vec3 };
+}
+
 export interface Assembly {
   moduleId: string;
   parts: Part[];
+  hardware: HardwareItem[];
+  handles: HandleVisual[];
   warnings: string[];
 }

@@ -1,4 +1,4 @@
-import type { MaterialDef, Part } from '../types/cad.types';
+import type { HardwareItem, MaterialDef, Part } from '../types/cad.types';
 import type { NormValues } from '../cad-kernel/config/norms';
 
 export interface BomMaterialLine {
@@ -51,4 +51,15 @@ export function calculateBom(parts: Part[], materials: Map<string, MaterialDef>,
     ? round(lines.reduce((s, l) => s + (l.costRub ?? 0), 0), 2)
     : null;
   return { lines, totalCostRub: total };
+}
+
+// Фурнитура: одинаковые позиции из всех модулей сводятся в одну строку.
+export function aggregateHardware(items: HardwareItem[]): HardwareItem[] {
+  const map = new Map<string, HardwareItem>();
+  for (const it of items) {
+    const cur = map.get(it.key);
+    if (cur) cur.qty = round(cur.qty + it.qty, 3);
+    else map.set(it.key, { ...it });
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 }

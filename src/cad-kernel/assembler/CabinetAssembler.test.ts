@@ -39,7 +39,7 @@ function mod(over: {
       facadeMaterialId: 'mdf-veneer-oak-19',
       plinthMaterialId: 'egger-u708-16',
     },
-    subdivisions: { shelves: over.shelves ?? [] },
+    subdivisions: { shelves: over.shelves ?? [], doors: [], drawers: [] },
   };
 }
 

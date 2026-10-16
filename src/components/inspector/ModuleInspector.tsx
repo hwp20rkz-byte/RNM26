@@ -1,11 +1,11 @@
 import { computeInnerSpace } from '../../cad-kernel/assembler/CabinetAssembler';
 import { distributeShelves } from '../../cad-kernel/assembler/ShelfEngine';
-import { selectRunnerLength } from '../../cad-kernel/assembler/DrawerEngine';
 import { DEFAULT_MATERIALS } from '../../cad-kernel/config/catalog';
 import { MATERIALS, NORMS } from '../../store/useAssemblies';
 import { newId, useProjectStore } from '../../store/useProjectStore';
 import type { BackJoinery, BottomJoinery, FurnitureModule, TopJoinery } from '../../types/cad.types';
 import { MmInput, Row, Section, Select } from './fields';
+import { FacadesInspector } from './FacadesInspector';
 
 const TOP: { value: TopJoinery; label: string }[] = [
   { value: 'overlay', label: 'Накладная' },
@@ -32,12 +32,12 @@ const sheetOptions = (types: string[]) =>
 export function ModuleInspector({ module: m, warnings }: { module: FurnitureModule; warnings: string[] }) {
   const update = useProjectStore((s) => s.updateModule);
   const remove = useProjectStore((s) => s.removeModule);
+  const removeShelf = useProjectStore((s) => s.removeShelf);
   const set = (recipe: (d: FurnitureModule) => void) => update(m.id, recipe);
 
   const inner = computeInnerSpace(m, MATERIALS, NORMS);
   const T = MATERIALS.get(m.materials.carcassMaterialId)?.thickness ?? 16;
   const layout = distributeShelves(inner.y1 - inner.y0, T, m.subdivisions.shelves);
-  const runner = selectRunnerLength(inner.z1 - inner.z0, NORMS);
 
   return (
     <div className="text-sm">
@@ -143,6 +143,13 @@ export function ModuleInspector({ module: m, warnings }: { module: FurnitureModu
             onChange={(v) => set((d) => void (d.materials.backMaterialId = v))}
           />
         </Row>
+        <Row label="Фасады">
+          <Select
+            value={m.materials.facadeMaterialId}
+            options={sheetOptions(['mdf_veneer', 'ldsp'])}
+            onChange={(v) => set((d) => void (d.materials.facadeMaterialId = v))}
+          />
+        </Row>
         <Row label="Цоколь">
           <Select
             value={m.materials.plinthMaterialId}
@@ -201,18 +208,14 @@ export function ModuleInspector({ module: m, warnings }: { module: FurnitureModu
           <button
             className="rounded bg-slate-100 px-2 py-0.5 hover:bg-slate-200 disabled:opacity-40"
             disabled={m.subdivisions.shelves.length === 0}
-            onClick={() => set((d) => void d.subdivisions.shelves.pop())}
+            onClick={() => removeShelf(m.id)}
           >
             − полка
           </button>
         </div>
       </Section>
 
-      <Section title="Ящики (подбор направляющих)">
-        <p className="text-slate-600">
-          Направляющая для этой глубины: <b>{runner ? `${runner} мм` : 'не помещается'}</b>
-        </p>
-      </Section>
+      <FacadesInspector module={m} />
     </div>
   );
 }
