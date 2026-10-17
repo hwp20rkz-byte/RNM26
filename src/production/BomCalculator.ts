@@ -12,14 +12,12 @@ export interface BomMaterialLine {
   netAreaM2: number; // чистая площадь деталей
   grossAreaM2: number; // с коэффициентом отхода
   edgingM: number; // погонные метры кромки
-  costRub: number | null; // null — нет цены в каталоге
 }
 
 export interface Bom {
   lines: BomMaterialLine[];
   edging: { thickness: number; meters: number }[]; // кромка по толщинам — так её закупают
   grooveM: number; // фрезеровка пазов, м.п.
-  totalCostRub: number | null; // null, если хоть у одного материала нет цены
 }
 
 // Погонные миллиметры кромки детали, сгруппированные по толщине.
@@ -57,13 +55,9 @@ export function calculateBom(parts: Part[], materials: Map<string, MaterialDef>,
       netAreaM2: round(net, 3),
       grossAreaM2: round(gross, 3),
       edgingM: round(edgingMm / 1000, 2),
-      costRub: mat?.pricePerM2 != null ? round(gross * mat.pricePerM2, 2) : null,
     });
   }
 
-  const total = lines.every((l) => l.costRub !== null)
-    ? round(lines.reduce((s, l) => s + (l.costRub ?? 0), 0), 2)
-    : null;
   const byThickness = new Map<number, number>();
   for (const p of parts) for (const [t, mm] of edgingByThickness(p)) byThickness.set(t, (byThickness.get(t) ?? 0) + mm);
   const edging = [...byThickness]
@@ -71,7 +65,7 @@ export function calculateBom(parts: Part[], materials: Map<string, MaterialDef>,
     .map(([thickness, mm]) => ({ thickness, meters: round(mm / 1000, 2) }));
   const grooveM = round(parts.reduce((s, p) => s + grooveLength(p), 0) / 1000, 2);
 
-  return { lines, edging, grooveM, totalCostRub: total };
+  return { lines, edging, grooveM };
 }
 
 // Фурнитура: одинаковые позиции из всех модулей сводятся в одну строку.

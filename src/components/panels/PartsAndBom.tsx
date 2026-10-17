@@ -4,8 +4,10 @@ import { MATERIALS, NORMS } from '../../store/useAssemblies';
 import { useProjectStore } from '../../store/useProjectStore';
 import { EDGE_SIDES, type Assembly } from '../../types/cad.types';
 import { DEFAULT_NORMS } from '../../cad-kernel/config/norms';
+import { sheetsNeeded } from '../../production/Estimate';
+import { CostPanel, PricesPanel } from './CostPanels';
 
-type Tab = 'parts' | 'bom' | 'hardware' | 'norms';
+type Tab = 'parts' | 'bom' | 'hardware' | 'cost' | 'prices' | 'norms';
 
 const fmt = (v: number, d = 0) => v.toLocaleString('ru-RU', { maximumFractionDigits: d, minimumFractionDigits: d });
 
@@ -36,8 +38,10 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap border-b border-slate-200 px-2">
         {tabBtn('parts', `Деталировка (${allParts.length})`)}
-        {tabBtn('bom', 'Смета материалов')}
+        {tabBtn('bom', 'Материалы')}
         {tabBtn('hardware', `Фурнитура (${hardware.length})`)}
+        {tabBtn('cost', 'Стоимость')}
+        {tabBtn('prices', 'Прайс')}
         {tabBtn('norms', 'Нормы цеха')}
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
@@ -84,7 +88,7 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
                 <th className="px-3 py-1 text-right">Площадь, м²</th>
                 <th className="px-3 py-1 text-right">С отходом ×{NORMS.wasteFactor}, м²</th>
                 <th className="px-3 py-1 text-right">Кромка, м.п.</th>
-                <th className="px-3 py-1 text-right">Стоимость</th>
+                <th className="px-3 py-1 text-right" title="По площади с отходом, без раскроя">Листов (оценка)</th>
               </tr>
             </thead>
             <tbody>
@@ -97,22 +101,15 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
                   <td className="px-3 py-1 text-right tabular-nums">{fmt(l.netAreaM2, 3)}</td>
                   <td className="px-3 py-1 text-right tabular-nums">{fmt(l.grossAreaM2, 3)}</td>
                   <td className="px-3 py-1 text-right tabular-nums">{fmt(l.edgingM, 2)}</td>
-                  <td className="px-3 py-1 text-right text-slate-400">
-                    {l.costRub === null ? 'нет цены' : `${fmt(l.costRub, 2)} ₽`}
+                  <td className="px-3 py-1 text-right tabular-nums">
+                    {(() => {
+                      const m = MATERIALS.get(l.materialId);
+                      return m && m.type !== 'mdf_film' ? sheetsNeeded(l.grossAreaM2, m) : '—';
+                    })()}
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="border-t border-slate-300 font-semibold">
-                <td className="px-3 py-1" colSpan={5}>
-                  Итого
-                </td>
-                <td className="px-3 py-1 text-right">
-                  {bom.totalCostRub === null ? 'нужен прайс' : `${fmt(bom.totalCostRub, 2)} ₽`}
-                </td>
-              </tr>
-            </tfoot>
           </table>
         )}
         {tab === 'bom' && (bom.edging.length > 0 || bom.grooveM > 0) && (
@@ -160,6 +157,8 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
           </table>
         )}
 
+        {tab === 'cost' && <CostPanel bom={bom} hardware={hardware} onOpenPrices={() => setTab('prices')} />}
+        {tab === 'prices' && <PricesPanel bom={bom} />}
         {tab === 'norms' && (
           <table className="w-full text-sm">
             <tbody>

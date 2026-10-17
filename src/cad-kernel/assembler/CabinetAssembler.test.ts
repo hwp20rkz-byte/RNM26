@@ -191,7 +191,6 @@ describe('Смета материалов', () => {
     expect(ldsp.netAreaM2).toBeCloseTo(net, 3);
     expect(ldsp.grossAreaM2).toBeCloseTo(net * 1.15, 3);
     expect(ldsp.edgingM).toBeCloseTo((2 * sideH + 2 * 400) / 1000, 2);
-    expect(bom.totalCostRub).toBeNull();
   });
 });
 

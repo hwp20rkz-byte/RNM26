@@ -146,7 +146,7 @@ export function ModuleInspector({ module: m, warnings }: { module: FurnitureModu
         <Row label="Фасады">
           <Select
             value={m.materials.facadeMaterialId}
-            options={sheetOptions(['mdf_veneer', 'ldsp'])}
+            options={sheetOptions(['mdf_film', 'mdf_veneer', 'ldsp'])}
             onChange={(v) => set((d) => void (d.materials.facadeMaterialId = v))}
           />
         </Row>

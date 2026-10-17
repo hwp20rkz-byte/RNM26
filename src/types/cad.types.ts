@@ -20,12 +20,13 @@ export interface MaterialDef {
   id: string;
   name: string;
   code: string; // артикул, например "U708"
-  type: 'ldsp' | 'mdf_veneer' | 'hdf';
+  brand: string; // производитель плиты: от него зависит цена распила в цехе
+  // mdf_film — фасады МДФ в плёнке: их заказывают в цехе готовыми, по м², а не режут из листа
+  type: 'ldsp' | 'mdf_veneer' | 'mdf_film' | 'hdf';
   thickness: number;
   color: string; // цвет для превью, пока нет текстур
   sheetLength: number; // вдоль волокон, мм (Egger: 2800)
   sheetWidth: number; // мм (Egger: 2070)
-  pricePerM2: number | null; // null — цена не задана в прайсе
 }
 
 export interface ShelfItem {
