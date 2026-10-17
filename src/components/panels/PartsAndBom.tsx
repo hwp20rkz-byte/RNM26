@@ -34,7 +34,7 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex border-b border-slate-200 px-2">
+      <div className="flex flex-wrap border-b border-slate-200 px-2">
         {tabBtn('parts', `Деталировка (${allParts.length})`)}
         {tabBtn('bom', 'Смета материалов')}
         {tabBtn('hardware', `Фурнитура (${hardware.length})`)}
