@@ -8,9 +8,13 @@ import { useMemo } from 'react';
 import { ProjectBar } from './components/project/ProjectBar';
 import { SaveBanners } from './components/project/SaveBanners';
 import { HistoryButtons, HistoryToast, useUndoShortcuts } from './components/project/HistoryControls';
+import { useToolShortcuts } from './components/project/useToolShortcuts';
+import { PartsPanel } from './components/inspector/PartsPanel';
 
 export default function App() {
   useUndoShortcuts();
+  useToolShortcuts();
+  const partMode = useProjectStore((s) => s.partMode);
   const assemblies = useAssemblies();
   const modules = useProjectStore((s) => s.project.modules);
   const selectedId = useProjectStore((s) => s.selectedId);
@@ -67,7 +71,9 @@ export default function App() {
       </main>
 
       <aside className="row-span-2 overflow-auto border-l border-slate-200">
-        {selected ? (
+        {selected && partMode ? (
+          <PartsPanel module={selected} assembly={assemblies.find((a) => a.moduleId === selected.id)} />
+        ) : selected ? (
           <ModuleInspector key={selected.id} module={selected} warnings={selectedWarnings} />
         ) : (
           <p className="p-4 text-sm text-slate-500">Выберите модуль в списке или на сцене</p>

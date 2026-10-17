@@ -119,7 +119,7 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
           <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-200 px-3 py-2 text-sm text-slate-600">
             {bom.edging.map((e) => (
               <span key={e.thickness}>
-                Кромка ПВХ {fmt(e.thickness, 1)} мм: <b className="tabular-nums">{fmt(e.meters, 2)}</b> м.п.
+                Кромка ПВХ {e.thickness.toLocaleString('ru-RU')} мм: <b className="tabular-nums">{fmt(e.meters, 2)}</b> м.п.
               </span>
             ))}
             {bom.grooveM > 0 && (

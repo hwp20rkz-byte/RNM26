@@ -3,7 +3,7 @@ import { describeChange } from '../../store/history';
 import { useProjectStore } from '../../store/useProjectStore';
 
 // Поля ввода текста и чисел оставляем браузеру: там Ctrl+Z отменяет набранные символы.
-function isTextEntry(el: EventTarget | null): boolean {
+export function isTextEntry(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
   if (el.isContentEditable || el instanceof HTMLTextAreaElement) return true;
   return el instanceof HTMLInputElement && !['checkbox', 'radio', 'button', 'file'].includes(el.type);

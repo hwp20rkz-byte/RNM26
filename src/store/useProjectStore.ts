@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
-import type { DoorItem, DrawerBlock, FurnitureModule, ProjectState } from '../types/cad.types';
+import type { DoorItem, DrawerBlock, FurnitureModule, GrooveSpec, PartOverride, ProjectState } from '../types/cad.types';
 import { newId } from '../utils/id';
 import { describeChange, HISTORY_LIMIT } from './history';
 
@@ -62,6 +62,17 @@ interface ProjectStore {
   past: ProjectState[];
   future: ProjectState[];
   historyMessage: { text: string; at: number } | null;
+  // Инструмент «Детали»: клик по сцене выбирает деталь, а не модуль (как кнопка A в QDesign).
+  partMode: boolean;
+  selectedParts: string[]; // ключи деталей выбранного модуля
+  showEdges: boolean;
+  lastGroove: Omit<GrooveSpec, 'id'> | null; // параметры прошлого паза — чтобы не вводить заново
+  setPartMode: (v: boolean) => void;
+  setShowEdges: (v: boolean) => void;
+  selectParts: (moduleId: string, keys: string[]) => void;
+  updatePartOverrides: (moduleId: string, keys: string[], recipe: (ov: PartOverride, key: string) => void) => void;
+  resetPartOverrides: (moduleId: string, keys: string[]) => void;
+  rememberGroove: (g: Omit<GrooveSpec, 'id'>) => void;
   undo: () => void;
   redo: () => void;
   setShowFacades: (v: boolean) => void;
@@ -127,6 +138,28 @@ export const useProjectStore = create<ProjectStore>()((set, get) => {
     past: [],
     future: [],
     historyMessage: null,
+    partMode: false,
+    selectedParts: [],
+    showEdges: false,
+    lastGroove: null,
+    setPartMode: (v) => set({ partMode: v, selectedParts: [] }),
+    setShowEdges: (v) => set({ showEdges: v }),
+    selectParts: (moduleId, keys) => set({ selectedId: moduleId, selectedParts: keys }),
+    updatePartOverrides: (moduleId, keys, recipe) =>
+      change((s) => {
+        const m = s.project.modules.find((x) => x.id === moduleId);
+        if (!m) return;
+        for (const key of keys) {
+          const ov = (m.partOverrides[key] ??= {});
+          recipe(ov, key);
+        }
+      }),
+    resetPartOverrides: (moduleId, keys) =>
+      change((s) => {
+        const m = s.project.modules.find((x) => x.id === moduleId);
+        if (m) for (const key of keys) delete m.partOverrides[key];
+      }),
+    rememberGroove: (g) => set({ lastGroove: g }),
     undo: () => {
       const s = get();
       const prev = s.past.at(-1);
@@ -154,7 +187,7 @@ export const useProjectStore = create<ProjectStore>()((set, get) => {
       });
     },
     setShowFacades: (v) => set({ showFacades: v }),
-    select: (id) => set({ selectedId: id }),
+    select: (id) => set({ selectedId: id, selectedParts: [] }),
     addDoor: (moduleId) =>
       change((s) => {
         s.project.modules.find((m) => m.id === moduleId)?.subdivisions.doors.push(newDoor());
@@ -181,7 +214,7 @@ export const useProjectStore = create<ProjectStore>()((set, get) => {
       }),
     // Открытие другого проекта начинает историю заново: отмена не должна уводить в чужой проект.
     loadProject: (project) =>
-      set({ project, selectedId: project.modules[0]?.id ?? null, past: [], future: [], historyMessage: null }),
+      set({ project, selectedId: project.modules[0]?.id ?? null, selectedParts: [], past: [], future: [], historyMessage: null }),
     setProjectMeta: (meta) =>
       change((s) => {
         Object.assign(s.project, meta);

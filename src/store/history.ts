@@ -17,6 +17,7 @@ const PARTS: [keyof FurnitureModule | `subdivisions.${keyof FurnitureModule['sub
   ['subdivisions.shelves', 'полки'],
   ['subdivisions.doors', 'двери'],
   ['subdivisions.drawers', 'ящики'],
+  ['partOverrides', 'детали'],
 ];
 
 function changedParts(a: FurnitureModule, b: FurnitureModule): string[] {
