@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { askConfirm, notify } from '../common/dialogs';
 import { deleteProject, listProjects, openProject } from '../../persistence/persistenceController';
 import { useProjectStore } from '../../store/useProjectStore';
 
@@ -50,7 +51,7 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                   className="rounded bg-blue-600 px-2 py-0.5 text-sm text-white hover:bg-blue-700"
                   onClick={() => {
                     const err = openProject(p.id);
-                    if (err) alert(err);
+                    if (err) notify(err);
                     else onClose();
                   }}
                 >
@@ -59,8 +60,8 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
               )}
               <button
                 className="text-xs text-red-600 hover:underline"
-                onClick={() => {
-                  if (!confirm(`Удалить «${p.name}»? Вернуть можно только из скачанного файла.`)) return;
+                onClick={async () => {
+                  if (!(await askConfirm(`Удалить «${p.name}»? Вернуть можно только из скачанного файла.`))) return;
                   deleteProject(p.id);
                   setVersion((v) => v + 1);
                 }}

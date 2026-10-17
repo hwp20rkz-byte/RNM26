@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { notify } from '../common/dialogs';
 import {
   exportCurrentProject,
   importProjectFile,
@@ -72,11 +73,11 @@ export function ProjectBar() {
 
   const upload = async (file: File) => {
     if (file.size > 5_000_000) {
-      alert('Файл больше 5 МБ — это не проект RNM26');
+      notify('Файл больше 5 МБ — это не проект RNM26');
       return;
     }
     const err = importProjectFile(await file.text());
-    if (err) alert(err);
+    if (err) notify(err);
   };
 
   const btn = 'rounded px-2 py-0.5 text-sm hover:bg-slate-100';
@@ -94,7 +95,7 @@ export function ProjectBar() {
         className={btn}
         onClick={() => {
           const err = newProject();
-          if (err) alert(err);
+          if (err) notify(err);
         }}
       >
         Новый

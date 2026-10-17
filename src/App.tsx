@@ -10,6 +10,7 @@ import { SaveBanners } from './components/project/SaveBanners';
 import { HistoryButtons, HistoryToast, useUndoShortcuts } from './components/project/HistoryControls';
 import { useToolShortcuts } from './components/project/useToolShortcuts';
 import { PartsPanel } from './components/inspector/PartsPanel';
+import { DialogHost } from './components/common/dialogs';
 
 export default function App() {
   useUndoShortcuts();
@@ -41,6 +42,7 @@ export default function App() {
         <SaveBanners />
       </div>
       <HistoryToast />
+      <DialogHost />
 
       <aside className="row-span-2 overflow-auto border-r border-slate-200">
         <div className="flex items-center justify-between px-3 py-2">

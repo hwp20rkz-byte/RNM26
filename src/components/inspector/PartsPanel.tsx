@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { askConfirm } from '../common/dialogs';
 import { DEFAULT_MATERIALS } from '../../cad-kernel/config/catalog';
 import { grooveBox, sideGeometry } from '../../cad-kernel/assembler/parts';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -368,9 +369,9 @@ function PartCard({ parts, m }: { parts: Part[]; m: FurnitureModule }) {
       <div className="flex flex-wrap gap-2 px-3 py-2">
         <button
           className="rounded border border-red-300 px-2 py-0.5 text-red-700 hover:bg-red-50"
-          onClick={() => {
+          onClick={async () => {
             const what = single ? `«${single.name}»` : `${parts.length} детали`;
-            if (!confirm(`Удалить ${what}? Деталь уйдёт из сцены, деталировки и сметы. Вернуть можно в разделе «Удалённые детали».`)) return;
+            if (!(await askConfirm(`Удалить ${what}? Деталь уйдёт из сцены, деталировки и сметы. Вернуть можно в разделе «Удалённые детали».`))) return;
             set((ov) => void (ov.deleted = true));
             select(m.id, []);
           }}
