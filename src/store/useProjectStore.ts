@@ -29,6 +29,7 @@ export function createBaseCabinet(name: string, x: number, width: number): Furni
       plinthMaterialId: 'egger-u708-16',
     },
     subdivisions: { shelves: [{ id: newId('sh'), lockedGapBelow: null }], doors: [], drawers: [] },
+    partOverrides: {},
   };
 }
 

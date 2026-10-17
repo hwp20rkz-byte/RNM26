@@ -145,21 +145,24 @@ export function buildDoors(ctx: ModuleContext): FacadeResult {
           min: { x: leaf.x0, y: f.y0, z: f.z0 },
           max: { x: leaf.x1, y: f.y1, z: f.z1 },
           edges: 'all',
+          edgeThickness: n.edgeThickness,
         }),
       );
+      const partKey = `door:${door.id}:${li}`;
       out.hardware.push({
+        partKey,
         key: `hinge_${door.mount}`,
         name: door.mount === 'overlay' ? 'Петля накладная' : 'Петля вкладная',
         unit: 'шт',
         qty: hinges ?? lastRow?.[1] ?? 2,
       });
       if (door.handle === 'none') {
-        out.hardware.push({ key: 'tip_on', name: 'Толкатель Tip-On', unit: 'шт', qty: 1 });
+        out.hardware.push({ key: 'tip_on', name: 'Толкатель Tip-On', unit: 'шт', qty: 1, partKey });
       } else {
         const h = handleFor(door.handle, { ...f, x0: leaf.x0, x1: leaf.x1 }, 'vertical', leaf.hinge);
         if (h) {
-          out.hardware.push(h.hardware);
-          if (h.visual) out.handles.push(h.visual);
+          out.hardware.push({ ...h.hardware, partKey });
+          if (h.visual) out.handles.push({ ...h.visual, partKey });
         }
       }
     });

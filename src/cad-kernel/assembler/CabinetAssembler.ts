@@ -5,6 +5,7 @@ import { buildDoors, facadeOverlapWarnings } from './FacadeEngine';
 import { buildDrawers } from './DrawerEngine';
 import { thicknessOf, type InnerSpace, type ModuleContext } from './context';
 import { makePart } from './parts';
+import { applyModuleOverrides } from './overrides';
 
 export type { InnerSpace } from './context';
 
@@ -41,7 +42,7 @@ export function assembleCabinet(
   const carcass = m.materials.carcassMaterialId;
   const parts: Part[] = [];
   const warnings: string[] = [];
-  const result: Assembly = { moduleId: m.id, parts, hardware: [], handles: [], warnings };
+  const result: Assembly = { moduleId: m.id, parts, hardware: [], handles: [], deletedParts: [], warnings };
 
   if (W <= 2 * T || D <= 0 || H <= P + 2 * T) {
     warnings.push('Габариты меньше двух толщин плиты: корпус не собирается');
@@ -50,7 +51,7 @@ export function assembleCabinet(
 
   const inner = computeInnerSpace(m, materials, n);
   const part = (role: Part['role'], key: string, name: string, materialId: string, min: Part['box']['min'], max: Part['box']['min'], edges: 'front' | 'none' = 'front') =>
-    parts.push(makePart({ moduleId: m.id, role, key, name, materialId, min, max, edges }));
+    parts.push(makePart({ moduleId: m.id, role, key, name, materialId, min, max, edges, edgeThickness: n.edgeThickness }));
 
   // Боковины: верх упирается в накладную крышу, низ — в накладное дно или в пол.
   const sideTop = c.topType === 'overlay' ? H - T : H;
@@ -105,7 +106,7 @@ export function assembleCabinet(
     if (e === undefined) return;
     const y = inner.y0 + e;
     shelfY.set(sh.id, { y, index: i });
-    part('shelf', `shelf:${i}`, `Полка ${i + 1}`, carcass, { x: inner.x0, y, z: inner.z0 }, { x: inner.x1, y: y + T, z: shelfFront });
+    part('shelf', `shelf:${sh.id}`, `Полка ${i + 1}`, carcass, { x: inner.x0, y, z: inner.z0 }, { x: inner.x1, y: y + T, z: shelfFront });
   });
 
   const ctx: ModuleContext = { m, n, W, H, D, P, T, Tb, Tf, inner, shelfY };
@@ -117,5 +118,5 @@ export function assembleCabinet(
   }
   warnings.push(...facadeOverlapWarnings(parts));
 
-  return result;
+  return applyModuleOverrides(result, m.partOverrides, materials);
 }

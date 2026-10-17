@@ -1,5 +1,7 @@
-import type { HardwareItem, MaterialDef, Part } from '../types/cad.types';
+import { EDGE_SIDES, type HardwareItem, type MaterialDef, type Part } from '../types/cad.types';
 import type { NormValues } from '../cad-kernel/config/norms';
+import { sideLength } from '../cad-kernel/assembler/parts';
+import { grooveLength } from '../cad-kernel/assembler/overrides';
 
 export interface BomMaterialLine {
   materialId: string;
@@ -15,7 +17,19 @@ export interface BomMaterialLine {
 
 export interface Bom {
   lines: BomMaterialLine[];
+  edging: { thickness: number; meters: number }[]; // кромка по толщинам — так её закупают
+  grooveM: number; // фрезеровка пазов, м.п.
   totalCostRub: number | null; // null, если хоть у одного материала нет цены
+}
+
+// Погонные миллиметры кромки детали, сгруппированные по толщине.
+function edgingByThickness(p: Part): Map<number, number> {
+  const out = new Map<number, number>();
+  for (const side of EDGE_SIDES) {
+    const t = p.edges[side];
+    if (t > 0) out.set(t, (out.get(t) ?? 0) + sideLength(p, side));
+  }
+  return out;
 }
 
 const round = (v: number, digits: number) => Math.round(v * 10 ** digits) / 10 ** digits;
@@ -33,7 +47,7 @@ export function calculateBom(parts: Part[], materials: Map<string, MaterialDef>,
     const mat = materials.get(materialId);
     const net = list.reduce((s, p) => s + (p.cut.length * p.cut.width) / 1e6, 0);
     const gross = net * n.wasteFactor;
-    const edgingMm = list.reduce((s, p) => s + p.edging.length * p.cut.length + p.edging.width * p.cut.width, 0);
+    const edgingMm = list.reduce((s, p) => s + [...edgingByThickness(p).values()].reduce((a, b) => a + b, 0), 0);
     lines.push({
       materialId,
       materialName: mat?.name ?? materialId,
@@ -50,7 +64,14 @@ export function calculateBom(parts: Part[], materials: Map<string, MaterialDef>,
   const total = lines.every((l) => l.costRub !== null)
     ? round(lines.reduce((s, l) => s + (l.costRub ?? 0), 0), 2)
     : null;
-  return { lines, totalCostRub: total };
+  const byThickness = new Map<number, number>();
+  for (const p of parts) for (const [t, mm] of edgingByThickness(p)) byThickness.set(t, (byThickness.get(t) ?? 0) + mm);
+  const edging = [...byThickness]
+    .sort(([a], [b]) => a - b)
+    .map(([thickness, mm]) => ({ thickness, meters: round(mm / 1000, 2) }));
+  const grooveM = round(parts.reduce((s, p) => s + grooveLength(p), 0) / 1000, 2);
+
+  return { lines, edging, grooveM, totalCostRub: total };
 }
 
 // Фурнитура: одинаковые позиции из всех модулей сводятся в одну строку.
@@ -59,7 +80,7 @@ export function aggregateHardware(items: HardwareItem[]): HardwareItem[] {
   for (const it of items) {
     const cur = map.get(it.key);
     if (cur) cur.qty = round(cur.qty + it.qty, 3);
-    else map.set(it.key, { ...it });
+    else map.set(it.key, { key: it.key, name: it.name, unit: it.unit, qty: it.qty }); // строка сметы общая, без привязки к детали
   }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 }

@@ -1,4 +1,4 @@
-import type { Axis, Part, PartRole, Vec3 } from '../../types/cad.types';
+import { EDGE_SIDES, type Axis, type EdgeSide, type GrooveSpec, type Part, type PartRole, type Vec3 } from '../../types/cad.types';
 
 // Ось, вдоль которой у детали идёт текстура. null — вдоль длинной стороны (ХДФ без рисунка).
 const GRAIN_AXIS: Record<PartRole, Axis | null> = {
@@ -17,7 +17,7 @@ const GRAIN_AXIS: Record<PartRole, Axis | null> = {
   drawer_bottom: null,
 };
 
-// Какие кромки облицованы: передняя, верхняя, все четыре или ни одной.
+// Какие кромки облицованы по умолчанию: передняя, верхняя, все четыре или ни одной.
 export type EdgeSpec = 'front' | 'top' | 'all' | 'none';
 
 export const round = (v: number) => Math.round(v * 10) / 10;
@@ -28,53 +28,112 @@ function thicknessAxis(size: Vec3): Axis {
   return 'z';
 }
 
+// Где лежит сторона детали: на какой оси (axis), с какого края (at) и вдоль какой оси тянется (along).
+// L — вдоль длинной оси, лежит на короткой; W — наоборот. «1» — передняя (z), верхняя (y) или левая (x).
+export interface SideGeometry {
+  axis: Axis;
+  at: 'min' | 'max';
+  along: Axis;
+}
+
+export function sideGeometry(axes: Part['axes'], side: EdgeSide): SideGeometry {
+  const isL = side.startsWith('L');
+  const axis = isL ? axes.short : axes.long;
+  const along = isL ? axes.long : axes.short;
+  const firstAt = axis === 'x' ? 'min' : 'max';
+  const at = side.endsWith('1') ? firstAt : firstAt === 'min' ? 'max' : 'min';
+  return { axis, at, along };
+}
+
+export const sideLength = (p: Pick<Part, 'axes' | 'box'>, side: EdgeSide) => p.box.size[sideGeometry(p.axes, side).along];
+
+export function cutOf(size: Vec3, axes: Part['axes'], grainAxis: Axis): Part['cut'] {
+  const cross = grainAxis === axes.long ? axes.short : axes.long;
+  return { length: size[grainAxis], width: size[cross] };
+}
+
 export interface PartInput {
   moduleId: string;
   role: PartRole;
-  key: string; // уникален в пределах модуля
+  key: string; // уникален в пределах модуля и не зависит от порядка
   name: string;
   materialId: string;
   min: Vec3;
   max: Vec3;
   edges: EdgeSpec;
+  edgeThickness: number; // толщина кромки по нормам цеха
 }
+
+const noSides = (): Record<EdgeSide, number> => ({ L1: 0, L2: 0, W1: 0, W2: 0 });
 
 export function makePart(p: PartInput): Part {
   const { min, max } = p;
   const size = { x: round(max.x - min.x), y: round(max.y - min.y), z: round(max.z - min.z) };
   const tAxis = thicknessAxis(size);
-  const faceAxes = (['x', 'y', 'z'] as Axis[]).filter((a) => a !== tAxis) as [Axis, Axis];
+  const [a, b] = (['x', 'y', 'z'] as Axis[]).filter((x) => x !== tAxis) as [Axis, Axis];
   const fixedGrain = GRAIN_AXIS[p.role];
-  const grainAxis: Axis =
-    fixedGrain && fixedGrain !== tAxis ? fixedGrain : size[faceAxes[0]] >= size[faceAxes[1]] ? faceAxes[0] : faceAxes[1];
-  const crossAxis = faceAxes[0] === grainAxis ? faceAxes[1] : faceAxes[0];
+  // При равных сторонах длинной считаем ту, вдоль которой идут волокна.
+  const aLonger = size[a] > size[b] || (size[a] === size[b] && fixedGrain !== b);
+  const axes = { thickness: tAxis, long: aLonger ? a : b, short: aLonger ? b : a };
+  const grainAxis: Axis = fixedGrain && fixedGrain !== tAxis ? fixedGrain : axes.long;
 
-  // Передняя кромка лежит в плоскости z = max.z, верхняя — в плоскости y = max.y.
-  // Кромка тянется вдоль той оси пласти, которая не перпендикулярна этой плоскости.
-  const edgeAlong = (normal: Axis) => {
-    if (tAxis === normal) return { length: 0, width: 0 };
-    const axis = faceAxes.find((a) => a !== normal);
-    return axis === grainAxis ? { length: 1, width: 0 } : { length: 0, width: 1 };
-  };
-  const edging =
-    p.edges === 'all'
-      ? { length: 2, width: 2 }
-      : p.edges === 'front'
-        ? edgeAlong('z')
-        : p.edges === 'top'
-          ? edgeAlong('y')
-          : { length: 0, width: 0 };
+  const edges = noSides();
+  for (const side of EDGE_SIDES) {
+    const g = sideGeometry(axes, side);
+    const banded =
+      p.edges === 'all' ||
+      (p.edges === 'front' && g.axis === 'z' && g.at === 'max') ||
+      (p.edges === 'top' && g.axis === 'y' && g.at === 'max');
+    if (banded) edges[side] = p.edgeThickness;
+  }
 
   return {
     id: `${p.moduleId}:${p.key}`,
+    key: p.key,
     moduleId: p.moduleId,
     role: p.role,
     name: p.name,
     materialId: p.materialId,
     thickness: size[tAxis],
     box: { min: { x: round(min.x), y: round(min.y), z: round(min.z) }, size },
-    cut: { length: size[grainAxis], width: size[crossAxis] },
+    cut: cutOf(size, axes, grainAxis),
     grainAxis,
-    edging,
+    axes,
+    edges,
+    extend: noSides(),
+    grooves: [],
+    overridden: false,
   };
+}
+
+type Box = Part['box'];
+
+// Полоса кромки на торце детали — для показа в 3D.
+export function edgeBox(p: Pick<Part, 'axes' | 'box'>, side: EdgeSide, visual = 1.5): Box {
+  const g = sideGeometry(p.axes, side);
+  const min = { ...p.box.min };
+  const size = { ...p.box.size };
+  if (g.at === 'max') min[g.axis] = p.box.min[g.axis] + p.box.size[g.axis];
+  else min[g.axis] = p.box.min[g.axis] - visual;
+  size[g.axis] = visual;
+  return { min, size };
+}
+
+// Тело паза в координатах модуля — для 3D и будущей выгрузки на ЧПУ.
+export function grooveBox(p: Pick<Part, 'axes' | 'box'>, gr: GrooveSpec): Box {
+  const g = sideGeometry(p.axes, gr.side);
+  const t = p.axes.thickness;
+  const min = { ...p.box.min };
+  const size = { ...p.box.size };
+
+  min[g.along] = p.box.min[g.along] + gr.insetStart;
+  size[g.along] = p.box.size[g.along] - gr.insetStart - gr.insetEnd;
+
+  const edgeAt = g.at === 'max' ? p.box.min[g.axis] + p.box.size[g.axis] : p.box.min[g.axis];
+  min[g.axis] = g.at === 'max' ? edgeAt - gr.offset - gr.width : edgeAt + gr.offset;
+  size[g.axis] = gr.width;
+
+  min[t] = gr.face === 'max' ? p.box.min[t] + p.box.size[t] - gr.depth : p.box.min[t];
+  size[t] = gr.depth;
+  return { min, size };
 }

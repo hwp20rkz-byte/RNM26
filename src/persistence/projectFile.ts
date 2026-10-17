@@ -1,3 +1,8 @@
+import {
+  EDGE_SIDES,
+  type GrooveSpec,
+  type PartOverride,
+} from '../types/cad.types';
 import type {
   DoorItem,
   DrawerBlock,
@@ -9,7 +14,10 @@ import type {
 // Формат файла проекта. Тот же формат лежит в хранилище браузера и уходит в экспорт,
 // поэтому файл, скачанный менеджером, открывается так же, как проект из списка.
 export const FILE_FORMAT = 'rnm26-project';
-export const SCHEMA_VERSION = 1;
+// История схемы:
+// 1 — исходная.
+// 2 — у модуля появились partOverrides (инструмент «Детали»). Файлы версии 1 читаются с пустыми правками.
+export const SCHEMA_VERSION = 2;
 
 export interface ProjectFile {
   format: typeof FILE_FORMAT;
@@ -122,7 +130,66 @@ function parseDrawerBlock(v: unknown, path: string): DrawerBlock {
   };
 }
 
-function parseModule(v: unknown, path: string, knownMaterials: ReadonlySet<string>, warnings: string[]): FurnitureModule {
+function optNum(o: Obj, key: string, path: string, min: number, max: number): number | undefined {
+  return o[key] === undefined ? undefined : num(o, key, path, min, max);
+}
+
+function parseGroove(v: unknown, path: string): GrooveSpec {
+  const o = obj(v, path);
+  return {
+    id: str(o, 'id', path),
+    side: oneOf(o, 'side', path, EDGE_SIDES),
+    face: oneOf(o, 'face', path, ['min', 'max'] as const),
+    offset: num(o, 'offset', path, 0, MM),
+    width: num(o, 'width', path, 0, MM),
+    depth: num(o, 'depth', path, 0, 100),
+    insetStart: num(o, 'insetStart', path, 0, MM),
+    insetEnd: num(o, 'insetEnd', path, 0, MM),
+  };
+}
+
+function parseOverride(v: unknown, path: string): PartOverride {
+  const o = obj(v, path);
+  const out: PartOverride = {};
+  if (o.name !== undefined) out.name = str(o, 'name', path, { allowEmpty: true });
+  if (o.materialId !== undefined) out.materialId = str(o, 'materialId', path);
+  if (o.grain !== undefined) out.grain = oneOf(o, 'grain', path, ['long', 'short'] as const);
+  if (o.deleted !== undefined) out.deleted = bool(o, 'deleted', path);
+  if (o.edges !== undefined) {
+    const e = obj(o.edges, `${path}.edges`);
+    out.edges = {};
+    for (const side of Object.keys(e)) {
+      if (!(EDGE_SIDES as readonly string[]).includes(side)) throw new Invalid(`${path}.edges: неизвестная сторона «${side}»`);
+      const se = obj(e[side], `${path}.edges.${side}`);
+      out.edges[side as (typeof EDGE_SIDES)[number]] = {
+        thickness: optNum(se, 'thickness', `${path}.edges.${side}`, 0, 10),
+        extend: optNum(se, 'extend', `${path}.edges.${side}`, -MM, MM),
+      };
+    }
+  }
+  if (o.grooves !== undefined) out.grooves = arr(o, 'grooves', path, 50).map((g, i) => parseGroove(g, `${path}.grooves[${i}]`));
+  return out;
+}
+
+function parseOverrides(v: unknown, path: string): Record<string, PartOverride> {
+  const o = obj(v, path);
+  const keys = Object.keys(o);
+  if (keys.length > 2000) throw new Invalid(`${path}: больше 2000 правок`);
+  const out: Record<string, PartOverride> = {};
+  for (const k of keys) {
+    if (k.length > 200) throw new Invalid(`${path}: слишком длинный ключ детали`);
+    out[k] = parseOverride(o[k], `${path}[${k}]`);
+  }
+  return out;
+}
+
+function parseModule(
+  v: unknown,
+  path: string,
+  knownMaterials: ReadonlySet<string>,
+  warnings: string[],
+  version: number,
+): FurnitureModule {
   const o = obj(v, path);
   const t = obj(o.transform, `${path}.transform`);
   const d = obj(o.dimensions, `${path}.dimensions`);
@@ -175,6 +242,8 @@ function parseModule(v: unknown, path: string, knownMaterials: ReadonlySet<strin
       doors: arr(sub, 'doors', `${path}.subdivisions`).map((s, i) => parseDoor(s, `${path}.doors[${i}]`)),
       drawers: arr(sub, 'drawers', `${path}.subdivisions`).map((s, i) => parseDrawerBlock(s, `${path}.drawers[${i}]`)),
     },
+    // Миграция 1 → 2: в старых файлах правок деталей не было.
+    partOverrides: version >= 2 ? parseOverrides(o.partOverrides, `${path}.partOverrides`) : {},
   };
 }
 
@@ -194,7 +263,7 @@ export function parseProjectFile(text: string, knownMaterials: ReadonlySet<strin
     }
     const p = obj(o.project, 'проект');
     const warnings: string[] = [];
-    const modules = arr(p, 'modules', 'проект').map((m, i) => parseModule(m, `модуль ${i + 1}`, knownMaterials, warnings));
+    const modules = arr(p, 'modules', 'проект').map((m, i) => parseModule(m, `модуль ${i + 1}`, knownMaterials, warnings, version));
     const ids = new Set(modules.map((m) => m.id));
     if (ids.size !== modules.length) throw new Invalid('проект: у двух модулей одинаковый id');
 

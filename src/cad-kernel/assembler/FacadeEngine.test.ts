@@ -60,6 +60,7 @@ function mod(sub: Partial<FurnitureModule['subdivisions']> = {}, over: Partial<F
       plinthMaterialId: 'egger-u708-16',
     },
     subdivisions: { shelves: [], doors: [], drawers: [], ...sub },
+    partOverrides: {},
     ...over,
   };
 }
@@ -88,15 +89,15 @@ describe('Накладная дверь', () => {
   });
 
   it('облицована по всем четырём кромкам, волокна вертикальные', () => {
-    expect(d.edging).toEqual({ length: 2, width: 2 });
+    expect(d.edges).toEqual({ L1: N.edgeThickness, L2: N.edgeThickness, W1: N.edgeThickness, W2: N.edgeThickness });
     expect(d.grainAxis).toBe('y');
   });
 
   it('петли по высоте и Tip-On без ручки', () => {
     expect(a.hardware).toEqual(
       expect.arrayContaining([
-        { key: 'hinge_overlay', name: 'Петля накладная', unit: 'шт', qty: 2 },
-        { key: 'tip_on', name: 'Толкатель Tip-On', unit: 'шт', qty: 1 },
+        expect.objectContaining({ key: 'hinge_overlay', name: 'Петля накладная', unit: 'шт', qty: 2, partKey: 'door:d1:0' }),
+        expect.objectContaining({ key: 'tip_on', name: 'Толкатель Tip-On', unit: 'шт', qty: 1, partKey: 'door:d1:0' }),
       ]),
     );
     expect(a.warnings).toEqual([]);
@@ -200,7 +201,7 @@ describe('Ящики Push-to-Open', () => {
     expect(bottom.box.size.x).toBe(W - 2 * T - 2 * 13);
     expect(bottom.box.size.z).toBe(450);
     expect(sides).toHaveLength(6);
-    expect(sides[0]!.edging).toEqual({ length: 1, width: 0 });
+    expect(sides[0]!.edges).toEqual({ L1: N.edgeThickness, L2: 0, W1: 0, W2: 0 }); // верхний торец бока ящика (длинная сторона)
   });
 
   it('короб не выходит за горизонты корпуса и ниже фасада на 40 мм', () => {

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { aggregateHardware, calculateBom } from '../../production/BomCalculator';
 import { MATERIALS, NORMS } from '../../store/useAssemblies';
 import { useProjectStore } from '../../store/useProjectStore';
-import type { Assembly } from '../../types/cad.types';
+import { EDGE_SIDES, type Assembly } from '../../types/cad.types';
 import { DEFAULT_NORMS } from '../../cad-kernel/config/norms';
 
 type Tab = 'parts' | 'bom' | 'hardware' | 'norms';
@@ -64,11 +64,10 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
                   <td className="px-3 py-1 text-right tabular-nums">{fmt(p.cut.width, 1)}</td>
                   <td className="px-3 py-1 text-right tabular-nums">{p.thickness}</td>
                   <td className="px-3 py-1 text-xs text-slate-500">
-                    {p.edging.length + p.edging.width === 0
-                      ? '—'
-                      : [p.edging.length && `${p.edging.length}×Д`, p.edging.width && `${p.edging.width}×Ш`]
-                          .filter(Boolean)
-                          .join(' ')}
+                    {EDGE_SIDES.filter((side) => p.edges[side] > 0)
+                      .map((side) => `${side} ${fmt(p.edges[side], 1)}`)
+                      .join(' · ') || '—'}
+                    {p.grooves.length > 0 && <span className="ml-1 text-orange-600">паз ×{p.grooves.length}</span>}
                   </td>
                 </tr>
               ))}
@@ -115,6 +114,20 @@ export function PartsAndBom({ assemblies }: { assemblies: Assembly[] }) {
               </tr>
             </tfoot>
           </table>
+        )}
+        {tab === 'bom' && (bom.edging.length > 0 || bom.grooveM > 0) && (
+          <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-200 px-3 py-2 text-sm text-slate-600">
+            {bom.edging.map((e) => (
+              <span key={e.thickness}>
+                Кромка ПВХ {fmt(e.thickness, 1)} мм: <b className="tabular-nums">{fmt(e.meters, 2)}</b> м.п.
+              </span>
+            ))}
+            {bom.grooveM > 0 && (
+              <span>
+                Фрезеровка пазов: <b className="tabular-nums">{fmt(bom.grooveM, 2)}</b> м.п.
+              </span>
+            )}
+          </div>
         )}
 
         {tab === 'hardware' && (

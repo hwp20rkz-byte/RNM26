@@ -82,6 +82,7 @@ export function buildDrawers(ctx: ModuleContext): FacadeResult {
           min: { x: f.x0, y: fy0, z: f.z0 },
           max: { x: f.x1, y: fy1, z: f.z1 },
           edges: 'all',
+          edgeThickness: n.edgeThickness,
         }),
       );
 
@@ -99,15 +100,15 @@ export function buildDrawers(ctx: ModuleContext): FacadeResult {
 
       out.parts.push(
         makePart({ moduleId: m.id, role: 'drawer_side', key: `${key}:sl`, name: `${name} — бок левый`, materialId: carcass,
-          min: { x: bx0, y: wallY0, z: bz0 }, max: { x: bx0 + T, y: by1, z: bz1 }, edges: 'top' }),
+          min: { x: bx0, y: wallY0, z: bz0 }, max: { x: bx0 + T, y: by1, z: bz1 }, edges: 'top', edgeThickness: n.edgeThickness }),
         makePart({ moduleId: m.id, role: 'drawer_side', key: `${key}:sr`, name: `${name} — бок правый`, materialId: carcass,
-          min: { x: bx1 - T, y: wallY0, z: bz0 }, max: { x: bx1, y: by1, z: bz1 }, edges: 'top' }),
+          min: { x: bx1 - T, y: wallY0, z: bz0 }, max: { x: bx1, y: by1, z: bz1 }, edges: 'top', edgeThickness: n.edgeThickness }),
         makePart({ moduleId: m.id, role: 'drawer_front', key: `${key}:fr`, name: `${name} — передняя царга`, materialId: carcass,
-          min: { x: bx0 + T, y: wallY0, z: bz1 - T }, max: { x: bx1 - T, y: by1, z: bz1 }, edges: 'top' }),
+          min: { x: bx0 + T, y: wallY0, z: bz1 - T }, max: { x: bx1 - T, y: by1, z: bz1 }, edges: 'top', edgeThickness: n.edgeThickness }),
         makePart({ moduleId: m.id, role: 'drawer_back', key: `${key}:bk`, name: `${name} — задняя царга`, materialId: carcass,
-          min: { x: bx0 + T, y: wallY0, z: bz0 }, max: { x: bx1 - T, y: by1, z: bz0 + T }, edges: 'top' }),
+          min: { x: bx0 + T, y: wallY0, z: bz0 }, max: { x: bx1 - T, y: by1, z: bz0 + T }, edges: 'top', edgeThickness: n.edgeThickness }),
         makePart({ moduleId: m.id, role: 'drawer_bottom', key: `${key}:bt`, name: `${name} — дно`, materialId: m.materials.backMaterialId,
-          min: { x: bx0, y: by0, z: bz0 }, max: { x: bx1, y: wallY0, z: bz1 }, edges: 'none' }),
+          min: { x: bx0, y: by0, z: bz0 }, max: { x: bx1, y: wallY0, z: bz1 }, edges: 'none', edgeThickness: n.edgeThickness }),
       );
 
       out.hardware.push({
@@ -118,8 +119,8 @@ export function buildDrawers(ctx: ModuleContext): FacadeResult {
       });
       const h = handleFor(block.handle, { ...f, y0: fy0, y1: fy1 }, 'horizontal');
       if (h) {
-        out.hardware.push(h.hardware);
-        if (h.visual) out.handles.push(h.visual);
+        out.hardware.push({ ...h.hardware, partKey: `${key}:facade` });
+        if (h.visual) out.handles.push({ ...h.visual, partKey: `${key}:facade` });
       }
     }
   });

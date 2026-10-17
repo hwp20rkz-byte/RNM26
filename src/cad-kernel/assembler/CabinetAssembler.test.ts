@@ -40,6 +40,7 @@ function mod(over: {
       plinthMaterialId: 'egger-u708-16',
     },
     subdivisions: { shelves: over.shelves ?? [], doors: [], drawers: [] },
+    partOverrides: {},
   };
 }
 
@@ -84,7 +85,7 @@ describe('Боковины', () => {
     const side = part(assembleCabinet(mod(), MATS, N).parts, 'side_left');
     expect(side.grainAxis).toBe('y');
     expect(side.cut).toEqual({ length: 720 - 100 - 2 * T, width: 500 });
-    expect(side.edging).toEqual({ length: 1, width: 0 });
+    expect(side.edges).toEqual({ L1: N.edgeThickness, L2: 0, W1: 0, W2: 0 });
   });
 });
 
