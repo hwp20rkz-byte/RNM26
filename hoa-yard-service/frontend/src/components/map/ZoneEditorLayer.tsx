@@ -3,7 +3,21 @@ import { useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet-draw";
 import "leaflet-draw/dist/leaflet.draw.css";
-import { Check, X, PenTool, Square, MapPinPlus, Move, Eraser } from "lucide-react";
+import {
+  Check,
+  X,
+  PenTool,
+  Square,
+  Move,
+  Eraser,
+  DoorOpen,
+  Waypoints,
+  Trash2,
+  Trash,
+  TreePine,
+  Shrub,
+  Armchair
+} from "lucide-react";
 import type { Building, GeometryType, Zone, ZoneType } from "@/types/domain";
 
 interface ZoneEditorLayerProps {
@@ -31,13 +45,32 @@ const ZONE_TYPE_OPTIONS: { value: ZoneType; label: string }[] = [
   { value: "GATE", label: "Ворота" },
   { value: "STAIRS", label: "Лестница" },
   { value: "SPORT", label: "Спортзона" },
-  { value: "PLAYGROUND", label: "Детская площадка" }
+  { value: "PLAYGROUND", label: "Детская площадка" },
+  { value: "TREE", label: "Дерево" },
+  { value: "BUSH", label: "Кустарник" },
+  { value: "BENCH", label: "Лавочка" },
+  { value: "TRASH_BIN", label: "Урна" }
+];
+
+/**
+ * Точечные объекты конструктора — по одной кнопке на тип прямо в панели,
+ * вместо общей кнопки «Точка» + ручного выбора типа из списка после. Легко
+ * расширяется новым объектом — одна строка в массиве, не архитектурная правка.
+ */
+const QUICK_OBJECTS: { zoneType: ZoneType; label: string; icon: typeof PenTool }[] = [
+  { zoneType: "BENCH", label: "Лавочка", icon: Armchair },
+  { zoneType: "TRASH_BIN", label: "Урна", icon: Trash },
+  { zoneType: "TREE", label: "Дерево", icon: TreePine },
+  { zoneType: "BUSH", label: "Куст", icon: Shrub },
+  { zoneType: "ENTRANCE", label: "Вход", icon: DoorOpen },
+  { zoneType: "GATE", label: "Ворота", icon: DoorOpen },
+  { zoneType: "STAIRS", label: "Лестница", icon: Waypoints },
+  { zoneType: "TBO", label: "ТБО", icon: Trash2 }
 ];
 
 const TOOL_BUTTONS: { mode: ToolMode; label: string; icon: typeof PenTool }[] = [
   { mode: "draw-polygon", label: "Полигон", icon: PenTool },
   { mode: "draw-rectangle", label: "Прямоуг.", icon: Square },
-  { mode: "draw-marker", label: "Точка", icon: MapPinPlus },
   { mode: "edit", label: "Править", icon: Move },
   { mode: "delete", label: "Удалить", icon: Eraser }
 ];
@@ -88,6 +121,12 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
   const featureGroupRef = useRef<L.FeatureGroup | null>(null);
   const metaByLayer = useRef(new WeakMap<L.Layer, ZoneMeta>());
   const activeHandlerRef = useRef<L.Handler | null>(null);
+  // Тип объекта, который рисуется кнопкой быстрого размещения (Лавочка/Урна/…) —
+  // ref, а не state: значение нужно свежим внутри handleCreated, который
+  // регистрируется один раз в эффекте при монтировании (замкнул бы устаревшее
+  // значение state), а для подсветки активной кнопки в рендере ref тоже
+  // подходит — чтение .current во время рендера всегда актуально.
+  const presetZoneTypeRef = useRef<ZoneType | null>(null);
   const [mode, setMode] = useState<ToolMode>("idle");
   const [pending, setPending] = useState<{ layer: L.Layer; geometryType: GeometryType } | null>(null);
   const [form, setForm] = useState({ name: "", zoneType: "LAWN" as ZoneType, buildingId: "" });
@@ -134,7 +173,15 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
       const event = e as L.DrawEvents.Created;
       fg.addLayer(event.layer);
       const geo = layerToGeometry(event.layer);
-      if (geo) setPending({ layer: event.layer, geometryType: geo.geometryType });
+      if (geo) {
+        setPending({ layer: event.layer, geometryType: geo.geometryType });
+        const preset = presetZoneTypeRef.current;
+        if (preset) {
+          const presetLabel = QUICK_OBJECTS.find((o) => o.zoneType === preset)?.label ?? "";
+          setForm((f) => ({ ...f, zoneType: preset, name: f.name || presetLabel }));
+          presetZoneTypeRef.current = null;
+        }
+      }
       activeHandlerRef.current = null;
       setMode("idle");
     }
@@ -177,12 +224,14 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
     setMode("idle");
   }
 
-  function activateTool(next: ToolMode) {
-    if (mode === next) {
-      stopCurrentTool();
-      return;
-    }
+  /**
+   * Останавливает текущий инструмент (если есть) и запускает новый — не переключатель, всегда старт.
+   * `preset` пишется в presetZoneTypeRef безусловно (даже null) — так исключается протечка
+   * значения от предыдущего запуска, если рисование точки отменили и переключились на что-то ещё.
+   */
+  function startTool(next: ToolMode, preset: ZoneType | null = null) {
     stopCurrentTool();
+    presetZoneTypeRef.current = preset;
     const fg = featureGroupRef.current;
     if (!fg) return;
 
@@ -209,6 +258,27 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
     handler.enable();
     activeHandlerRef.current = handler;
     setMode(next);
+  }
+
+  /** Переключатель для 4 кнопок режима (Полигон/Прямоуг./Править/Удалить) — повторный тап выключает. */
+  function activateTool(next: ToolMode) {
+    if (mode === next) {
+      stopCurrentTool();
+      return;
+    }
+    startTool(next);
+  }
+
+  /** Кнопки быстрого размещения объекта (Лавочка/Урна/…) — все используют mode="draw-marker",
+   *  поэтому переключение между разными объектами не может полагаться на activateTool's
+   *  toggle-по-совпадению-mode: нужен явный перезапуск с новым presetZoneTypeRef. */
+  function activateQuickObject(zoneType: ZoneType) {
+    if (mode === "draw-marker" && presetZoneTypeRef.current === zoneType) {
+      stopCurrentTool();
+      presetZoneTypeRef.current = null;
+      return;
+    }
+    startTool("draw-marker", zoneType);
   }
 
   function confirmPending() {
@@ -287,28 +357,54 @@ export function ZoneEditorLayer({ zones, buildings, onZonesChange }: ZoneEditorL
       )}
 
       {/* Видимая панель инструментов конструктора — всегда внизу, вместо мелких иконок Leaflet в углу карты */}
-      <div className="grid grid-cols-5 gap-2 rounded-2xl bg-surface-raised p-2 shadow-[0_-4px_24px_rgba(0,0,0,0.12)]">
-        {TOOL_BUTTONS.map(({ mode: buttonMode, label, icon: Icon }) => {
-          const active = mode === buttonMode;
-          return (
-            <button
-              key={buttonMode}
-              onClick={() => activateTool(buttonMode)}
-              className={`flex flex-col items-center gap-2 rounded-xl py-4 text-xs font-medium transition ${
-                active ? "bg-accent text-white" : "bg-surface-sunken text-ink-muted"
-              }`}
-            >
-              <Icon size={18} />
-              {label}
-            </button>
-          );
-        })}
+      <div className="rounded-2xl bg-surface-raised p-2 shadow-[0_-4px_24px_rgba(0,0,0,0.12)]">
+        {/* Объекты — по кнопке на тип, сразу ставят точку нужного вида; список
+            прокручивается по горизонтали, а не растягивает панель по высоте */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {QUICK_OBJECTS.map(({ zoneType, label, icon: Icon }) => {
+            const active = mode === "draw-marker" && presetZoneTypeRef.current === zoneType;
+            return (
+              <button
+                key={zoneType}
+                onClick={() => activateQuickObject(zoneType)}
+                className={`flex w-20 shrink-0 flex-col items-center gap-2 rounded-xl py-4 text-xs font-medium transition ${
+                  active ? "bg-accent text-white" : "bg-surface-sunken text-ink-muted"
+                }`}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Режимы — фигуры-зоны и правка/удаление уже поставленного */}
+        <div className="grid grid-cols-4 gap-2">
+          {TOOL_BUTTONS.map(({ mode: buttonMode, label, icon: Icon }) => {
+            const active = mode === buttonMode;
+            return (
+              <button
+                key={buttonMode}
+                onClick={() => activateTool(buttonMode)}
+                className={`flex flex-col items-center gap-2 rounded-xl py-4 text-xs font-medium transition ${
+                  active ? "bg-accent text-white" : "bg-surface-sunken text-ink-muted"
+                }`}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       {mode !== "idle" && (
         <p className="rounded-xl bg-surface-raised/95 px-4 py-2 text-center text-xs text-ink-muted shadow-sm">
           {mode === "draw-polygon" && "Отмечайте вершины на карте, двойной клик — завершить"}
           {mode === "draw-rectangle" && "Потяните на карте, чтобы нарисовать прямоугольник"}
-          {mode === "draw-marker" && "Коснитесь карты, чтобы поставить точку"}
+          {mode === "draw-marker" &&
+            `Коснитесь карты, чтобы поставить точку «${
+              QUICK_OBJECTS.find((o) => o.zoneType === presetZoneTypeRef.current)?.label ?? "объект"
+            }»`}
           {mode === "edit" && "Перетаскивайте вершины/точки, затем нажмите «Править» ещё раз — сохранит"}
           {mode === "delete" && "Коснитесь зоны, чтобы отметить на удаление, затем «Удалить» ещё раз — подтвердит"}
         </p>
