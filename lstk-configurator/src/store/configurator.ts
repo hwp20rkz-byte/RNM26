@@ -4,13 +4,14 @@ import { MEP_SYSTEMS, type MepSystem } from "@/domain/mep/routing";
 import type { Prices } from "@/domain/bom/bom";
 import { type BuildingInput, type FoundationConfig, type Level, type Partition, type RoofConfig, type RoomPurpose, type SideConfig, type WallSide } from "@/domain/buildings/types";
 import { upperLevel } from "@/domain/buildings/levels";
-import { findProduct, productInput } from "@/domain/catalog/products";
+import { findProduct, PRODUCTS, productInput } from "@/domain/catalog/products";
 import type { FinishChoice } from "@/domain/finishes/catalog";
 import { DEFAULT_SETTINGS, type PlannerSettings } from "@/domain/planner/analyze";
 import type { TrussShape, WebPattern } from "@/domain/trusses/types";
 import { PATTERNS_FOR_SHAPE } from "@/domain/trusses/types";
 import { SITE_OFF, type SiteKind } from "@/domain/site/site";
 import { signPreset } from "@/domain/signage/sign";
+import { AUTONOMY_OFF, productPlant } from "@/domain/energy/autonomy";
 import { CLUB_FINISHES } from "@/domain/interior/theme";
 import type { Opening } from "@/domain/walls/types";
 import type { Lang } from "@/i18n";
@@ -218,11 +219,18 @@ export const useConfigurator = create<ProjectState & UiState & Actions>()(
           set((s) => {
             const p = findProduct(id);
             const birds = p.capacity?.kind === "birds" ? p.capacity.default : s.planner.birds;
-            // A sports club starts dressed: its sign on the facade and the plot with parking around it
+            // A club, a business or a guest house starts dressed: its sign on the facade and the plot with parking around it
             const sport = p.category === "sport";
-            const planner = sport
-              ? { ...s.planner, birds, sign: signPreset(id), site: { ...SITE_OFF, ...s.planner.site, enabled: true, items: [] }, finishes: { ...s.planner.finishes, ...CLUB_FINISHES } }
-              : { ...s.planner, birds, ...(p.finishes ? { finishes: { ...s.planner.finishes, ...p.finishes } } : {}) };
+            const dressed = sport || p.category === "business" || p.category === "tourism";
+            const finishes = { ...s.planner.finishes, ...(sport ? CLUB_FINISHES : (p.finishes ?? {})) };
+            // The previous product's own sign and plant do not carry over to the next one
+            const was = PRODUCTS.find((x) => x.id === s.building.productId);
+            const wasDressed = !!was && ["sport", "business", "tourism"].includes(was.category);
+            const plant = productPlant(id) ?? (productPlant(s.building.productId) ? AUTONOMY_OFF : s.planner.autonomy);
+            const base = { ...s.planner, birds, finishes, autonomy: plant };
+            const planner = dressed
+              ? { ...base, sign: signPreset(id), site: { ...SITE_OFF, ...s.planner.site, enabled: true, items: [] } }
+              : { ...base, sign: wasDressed ? { ...s.planner.sign, enabled: false } : s.planner.sign };
             return { building: productInput(id), planner, selection: null, view: { ...s.view, cut: -1, explode: 0 } };
           }),
         setBuilding: (patch) => editB((b) => ({ ...b, ...patch })),

@@ -197,7 +197,10 @@ const INTERIOR_ZONE: Partial<Record<RoomPurpose, "interior" | "wet" | "steam" | 
 
 /** Floor of a sports hall by the sport; a BJJ hall gets tatami (fit-out) on a screed */
 export function hallFloor(productId: string): string {
-  return productId === "fitness" || productId === "crossfit" ? "sportRubber" : productId === "tabletennis" ? "sportPvc" : productId === "yoga" ? "sportParquet" : "concrete";
+  if (["fitness", "crossfit", "boulder"].includes(productId)) return "sportRubber";
+  if (["tabletennis", "golfsim"].includes(productId)) return "sportPvc";
+  if (["yoga", "pilates"].includes(productId)) return "sportParquet";
+  return "concrete";
 }
 
 function operations(assemblies: readonly Assembly[]): number {
