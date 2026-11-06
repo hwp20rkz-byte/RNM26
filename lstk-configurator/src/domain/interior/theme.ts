@@ -26,6 +26,15 @@ export const THEMES: Record<string, SportTheme> = {
   yoga: { wall: "hsl(36 30% 90%)", accent: "#7f9c7a", accent2: "#d9b48f", tile: "hsl(36 20% 84%)", letters: "#ffffff" },
   tabletennis: { wall: "hsl(210 20% 96%)", accent: "#1f4fa3", accent2: "#e8590c", tile: "hsl(205 25% 84%)", letters: "#ffffff" },
   crossfit: { wall: "hsl(0 0% 92%)", accent: "#111111", accent2: "#e8590c", tile: "hsl(0 0% 70%)", letters: "#e8590c" },
+  pilates: { wall: "hsl(30 25% 93%)", accent: "#c9a38a", accent2: "#5e6b57", tile: "hsl(30 18% 86%)", letters: "#ffffff" },
+  golfsim: { wall: "hsl(150 8% 90%)", accent: "#0f3b2e", accent2: "#c8a24a", tile: "hsl(150 8% 80%)", letters: "#c8a24a" },
+  boulder: { wall: "hsl(0 0% 94%)", accent: "#1d4e89", accent2: "#f2542d", tile: "hsl(205 12% 80%)", letters: "#ffffff" },
+  // Commercial pavilions: the sign and the interior accents
+  coffee: { wall: "hsl(30 20% 92%)", accent: "#2b2420", accent2: "#c27c3e", tile: "hsl(30 15% 82%)", letters: "#f3e3c3" },
+  pvz: { wall: "hsl(0 0% 96%)", accent: "#6b2bd6", accent2: "#ff2d87", tile: "hsl(0 0% 85%)", letters: "#ffffff" },
+  carwash: { wall: "hsl(200 20% 94%)", accent: "#0a5bd6", accent2: "#ffcc00", tile: "hsl(200 30% 82%)", letters: "#ffffff" },
+  esports: { wall: "hsl(230 10% 22%)", accent: "#0b0d17", accent2: "#7b2ff7", tile: "hsl(230 8% 40%)", letters: "#28e0ff" },
+  evhub: { wall: "hsl(0 0% 96%)", accent: "#0f6d4a", accent2: "#38d39f", tile: "hsl(0 0% 85%)", letters: "#ffffff" },
 };
 
 export const themeOf = (productId: string): SportTheme | null => THEMES[productId] ?? null;

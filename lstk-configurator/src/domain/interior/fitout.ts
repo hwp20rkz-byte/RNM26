@@ -44,6 +44,10 @@ export const FIT_PRICES: Record<string, number> = {
   barrier: 25000,
   yogaMat: 15000,
   hairDryer: 55000,
+  reformer: 1600000,
+  golfBay: 9500000,
+  climbWall: 85000,
+  crashMat: 65000,
 };
 
 /** Gym kit by sport, from the hall's clear size (mm): the counts the 3D view draws */
@@ -53,6 +57,13 @@ export function hallKit(productId: string, w: number, h: number): Record<string,
   if (productId === "tabletennis") {
     const courts = Math.max(1, Math.floor(w / 10000)) * Math.max(1, Math.floor(h / 6000));
     return { ttTable: courts, barrier: courts * 10 };
+  }
+  if (productId === "pilates") return { reformer: Math.min(Math.floor((w - 1200) / 1300), 6) * Math.max(1, Math.min(2, Math.floor((h - 1200) / 3200))) };
+  if (productId === "golfsim") return { golfBay: Math.max(1, Math.floor(w / 5000)) };
+  if (productId === "boulder") {
+    // Walls 4 m high along the back and the far end, mats 2.5 m deep in front of them
+    const run = (w - 3300 + h - 800) / 1000;
+    return { climbWall: Math.round(run * 4), crashMat: Math.round(run * 2.5) };
   }
   if (productId === "crossfit") return { rig: 1, rower: 6, plates: 1 };
   if (productId === "fitness") return { treadmill: Math.floor(w / 1000 / 2), rack: 3, dumbbells: 3, weightBench: Math.floor(w / 4000) };
@@ -83,7 +94,7 @@ export function fitOut(b: Building, rooms: Room[]): FitItem[] {
           add("wallPad", Math.max(0, r.perimeter - 5) * 1.8);
         }
         if (id === "fitness") add("mirror", 12);
-        if (id === "yoga") add("mirror", (h - 1200) / 1000 * 2);
+        if (id === "yoga" || id === "pilates") add("mirror", (h - 1200) / 1000 * 2);
         for (const [k, q] of Object.entries(hallKit(id, w, h))) add(k, q);
         add("screen", 1);
         break;
@@ -114,6 +125,6 @@ export function fitOut(b: Building, rooms: Room[]): FitItem[] {
         break;
     }
   }
-  const m2 = new Set(["tatami", "wallPad", "mirror"]);
+  const m2 = new Set(["tatami", "wallPad", "mirror", "climbWall", "crashMat"]);
   return Object.entries(n).map(([key, qty]) => ({ key, qty: m2.has(key) ? Math.round(qty * 10) / 10 : Math.round(qty), unit: m2.has(key) ? "m2" : "pcs", price: FIT_PRICES[key] ?? 0 }));
 }

@@ -90,6 +90,15 @@ export function autonomyPreset(productId: string, city: City): AutonomySettings 
   };
 }
 
+/**
+ * Plant a product comes with: the solar charging hub starts with its PV
+ * canopy, a battery and five chargers (two AC, three DC), on the grid
+ */
+export function productPlant(productId: string): AutonomySettings | null {
+  if (productId === "evhub") return { ...AUTONOMY_OFF, pv: true, battery: true, evAc: 2, evDc: 3 };
+  return null;
+}
+
 /** Annual PV yield at a 20–35° tilt facing south, kWh per kWp (PVGIS-type estimates, ±10 %) */
 const YIELD: Record<string, number> = {
   astana: 1290, almaty: 1350, shymkent: 1450, karaganda: 1350, aktobe: 1320, atyrau: 1400, aktau: 1460, kostanay: 1270, pavlodar: 1290,

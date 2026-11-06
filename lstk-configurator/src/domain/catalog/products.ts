@@ -9,9 +9,9 @@ import { cellAt, interior } from "../layout/rooms";
  * and "custom" starts from a neutral shell.
  */
 
-export type Category = "leisure" | "living" | "bath" | "auto" | "farm" | "sport" | "custom";
+export type Category = "leisure" | "living" | "tourism" | "bath" | "auto" | "business" | "farm" | "sport" | "custom";
 
-export type PropKind = "table" | "benches" | "grill" | "bbq" | "stove" | "car" | "nests" | "perches" | "run" | "workbench" | "stair" | "kitchen" | "sport" | "home";
+export type PropKind = "table" | "benches" | "grill" | "bbq" | "stove" | "car" | "nests" | "perches" | "run" | "workbench" | "stair" | "kitchen" | "sport" | "home" | "commerce";
 
 export interface Product {
   id: string;
@@ -23,6 +23,8 @@ export interface Product {
   input: () => BuildingInput;
   /** Finishes the product is shown in (merged over the user's on selection) */
   finishes?: Partial<FinishChoice>;
+  /** Market trend the product answers, by the year it took off (shown as a badge) */
+  trend?: number;
 }
 
 const P = "C89x41x11x0.95";
@@ -230,6 +232,286 @@ const tabletennis = () => club({ id: "tabletennis", length: 26150, width: 12200,
  */
 const crossfit = () => club({ id: "crossfit", length: 24000, width: 12000, height: 4200, service: 6000, lobby: 4000, men: 8000, panels: 8, studSpacing: 400 });
 
+/** Reformer pilates studio: 13 × 9 m hall for 10 reformers in two rows, 3.3 m */
+const pilates = () => club({ id: "pilates", length: 18000, width: 9000, height: 3300, service: 5000, lobby: 3000, men: 6000, panels: 6, studSpacing: 600 });
+/**
+ * Indoor golf simulator studio ("screen golf"): three bays 5 m wide and
+ * 8.8 m deep in one hall, 3.6 m clear for a full driver swing
+ */
+const golfsim = () => club({ id: "golfsim", length: 20500, width: 9000, height: 3600, service: 5000, lobby: 3000, men: 6000, panels: 6, studSpacing: 400 });
+/** Bouldering gym: 18 × 12 m hall, 4 m walls with holds over 300 mm crash mats */
+const boulder = () => club({ id: "boulder", length: 24000, width: 12000, height: 4200, service: 6000, lobby: 4000, men: 8000, panels: 8, studSpacing: 400 });
+
+/**
+ * "Light–storage–charge" EV hub after the 2025 Chinese stations (Shanghai
+ * Xuhui, Lishui): an open canopy over five bays carrying the PV array, the
+ * chargers on the posts, the battery cabinet at the end
+ */
+const evhub = (): BuildingInput =>
+  building(
+    {
+      productId: "evhub",
+      length: 13500,
+      width: 6000,
+      levels: [level(2700, { front: side("open"), back: side("open"), left: side("open"), right: side("open") })],
+      roof: { type: "mono", pitchDeg: 8, overhang: 400, pattern: "pratt", panels: 6, heelHeight: 200 },
+      postSpacing: 2700,
+      foundation: { type: "screw-piles", plinth: 0 },
+    },
+    "none",
+  );
+
+/** Drive-through coffee kiosk: a serving window to the walk-up side, a pick-up window to the lane */
+const coffee = (): BuildingInput =>
+  building(
+    {
+      productId: "coffee",
+      length: 6000,
+      width: 3000,
+      levels: [
+        level(
+          2800,
+          {
+            front: side("wall", [win(600, 2600, 1300, 900), door(4500, 900, 2100)]),
+            left: side("wall", [win(600, 1200, 1000, 1000)]),
+            back: side("wall", [win(3600, 900, 600, 1500)]),
+          },
+          [],
+          { "0-0": "kitchen" },
+        ),
+      ],
+      roof: { type: "mono", pitchDeg: 6, overhang: 700, pattern: "pratt", panels: 4, heelHeight: 200 },
+      foundation: { type: "screw-piles", plinth: 300 },
+    },
+    "permanent",
+  );
+
+/** Parcel pick-up point (marketplace PVZ): a glazed front with the counter and fitting booths, the parcel store behind */
+function pvz(): BuildingInput {
+  const L = 9000;
+  const W = 6000;
+  return building(
+    {
+      productId: "pvz",
+      length: L,
+      width: W,
+      levels: [
+        level(
+          3000,
+          {
+            front: side("wall", [win(500, 2400, 2200, 300), door(3300, 1200, 2200), win(5000, 2400, 2200, 300)]),
+            back: side("wall", [door(backAt(L, 8000, 900), 900, 2100)]),
+          },
+          [cross(6200, [door(2400, 900, 2100)])],
+          { "0-0": "lobby", "1-0": "storage" },
+        ),
+      ],
+      roof: { type: "mono", pitchDeg: 10, overhang: 400, pattern: "pratt", panels: 6, heelHeight: 200 },
+      foundation: { type: "slab", plinth: 200 },
+      profileId: "C89x41x11x1.2",
+    },
+    "permanent",
+  );
+}
+
+/** Self-service car wash: four drive-through bays 5 × 7 m, 3.6 m for vans, a plant room at the end */
+function carwash(): BuildingInput {
+  const L = 23000;
+  const W = 7000;
+  const bay = 5000;
+  const gates = [0, 1, 2, 3].map((i) => bay / 2 + i * bay);
+  return building(
+    {
+      productId: "carwash",
+      length: L,
+      width: W,
+      levels: [
+        level(
+          3600,
+          {
+            front: side("wall", gates.map((x) => gate(x - 1500, 3000, 3000))),
+            back: side("wall", [...gates.map((x) => gate(backAt(L, x, 3000), 3000, 3000)), door(backAt(L, 21500, 900), 900, 2100)].sort((a, b) => a.x - b.x)),
+          },
+          [cross(bay), cross(2 * bay), cross(3 * bay), cross(4 * bay, [door(2500, 900, 2100)])],
+          { "0-0": "garage", "1-0": "garage", "2-0": "garage", "3-0": "garage", "4-0": "technical" },
+        ),
+      ],
+      roof: { type: "gable", pitchDeg: 15, overhang: 500, pattern: "howe", panels: 6, heelHeight: 200 },
+      foundation: { type: "slab", plinth: 150 },
+      profileId: "C89x41x11x1.2",
+      studSpacing: 400,
+    },
+    "seasonal",
+  );
+}
+
+/** Fulfilment / marketplace warehouse 30 × 12 m: two dock gates, an office and a WC at the end, 4.2 m for pallet racks */
+function warehouse(): BuildingInput {
+  const L = 30000;
+  const W = 12000;
+  const z1 = W - D;
+  const parts = [cross(4500, [door(1800, 1000, 2100)]), alongSpan(5000, D, 4500, [door(3000, 900, 2100)]), crossSpan(2500, 5000, z1, [door(6500, 800, 2100)])];
+  return building(
+    {
+      productId: "warehouse",
+      length: L,
+      width: W,
+      levels: [
+        level(
+          4200,
+          {
+            front: side("wall", [door(1500, 900, 2100), win(2800, 1200, 1200, 900), gate(9000, 3600, 3600), gate(18000, 3600, 3600)]),
+            back: side("wall", [door(backAt(L, 26000, 1200), 1200, 2100)]),
+            right: side("wall", [gate(rightAt(W / 2, 3600), 3600, 3600)]),
+          },
+          parts,
+          roomsAt(L, W, parts, [
+            [2250, 2500, "office"],
+            [1200, 8000, "bathroom"],
+            [3500, 8000, "technical"],
+            [17000, 6000, "storage"],
+          ]),
+        ),
+      ],
+      roof: { type: "gable", pitchDeg: 20, overhang: 500, pattern: "howe", panels: 8, heelHeight: 200 },
+      foundation: { type: "slab", plinth: 150 },
+      profileId: "C89x41x11x1.2",
+      studSpacing: 400,
+    },
+    "seasonal",
+  );
+}
+
+/** Esports / computer club: a bar-lobby at the entrance, a WC behind it, the gaming hall over the rest */
+function esports(): BuildingInput {
+  const L = 15000;
+  const W = 9000;
+  const parts = [cross(4500, [door(1500, 1200, 2100)]), alongSpan(5500, D, 4500, [door(2500, 900, 2100)])];
+  return building(
+    {
+      productId: "esports",
+      length: L,
+      width: W,
+      levels: [
+        level(
+          3300,
+          {
+            front: side("wall", [win(400, 1500, 1500, 900), door(2500, 1200, 2200)]),
+            right: side("wall", [door(rightAt(W / 2, 1000), 1000, 2100)]),
+          },
+          parts,
+          roomsAt(L, W, parts, [
+            [2250, 2700, "lobby"],
+            [2250, 7200, "bathroom"],
+            [9800, 4500, "rest"],
+          ]),
+        ),
+      ],
+      roof: { type: "gable", pitchDeg: 15, overhang: 400, pattern: "howe", panels: 6, heelHeight: 200 },
+      foundation: { type: "slab", plinth: 300 },
+      profileId: "C89x41x11x1.2",
+    },
+    "permanent",
+  );
+}
+
+/** Flat-pack site / office box after the Chinese standard 6055 × 2990 module */
+const officebox = (): BuildingInput =>
+  building(
+    {
+      productId: "officebox",
+      length: 6055,
+      width: 2990,
+      levels: [level(2600, { front: side("wall", [win(600, 1500, 1100, 900), door(4200, 900, 2000)]), back: side("wall", [win(2200, 1500, 1100, 900)]) }, [], { "0-0": "office" })],
+      roof: { type: "mono", pitchDeg: 4, overhang: 150, pattern: "pratt", panels: 4, heelHeight: 200 },
+      foundation: { type: "screw-piles", plinth: 300 },
+    },
+    "permanent",
+  );
+
+/** Glamping capsule: a bedroom with a panoramic end wall and a shower room, after the 2025 "space capsule" units */
+const capsule = (): BuildingInput =>
+  building(
+    {
+      productId: "capsule",
+      length: 8000,
+      width: 3600,
+      levels: [
+        level(
+          2700,
+          {
+            front: side("wall", [win(500, 2400, 2100, 300), door(3300, 900, 2100)]),
+            left: side("wall", [win(400, 2600, 2100, 300)]),
+            back: side("wall", [win(backAt(8000, 7000, 600), 600, 600, 1600)]),
+          },
+          [cross(6000, [door(1800, 800, 2100)])],
+          { "0-0": "bedroom", "1-0": "bathroom" },
+        ),
+      ],
+      roof: { type: "mono", pitchDeg: 5, overhang: 600, pattern: "pratt", panels: 4, heelHeight: 200 },
+      foundation: { type: "screw-piles", plinth: 500 },
+    },
+    "permanent",
+  );
+
+/**
+ * Boutique guest house after the Chinese rural "minsu": a café-lobby with
+ * the stair and a kitchen on the ground floor, the host's room with an
+ * en-suite; upstairs two guest rooms off a gallery corridor and a bathroom
+ */
+function minsu(): BuildingInput {
+  const L = 12000;
+  const W = 9000;
+  const x1 = L - D;
+  const ground = [cross(6000, [door(1200, 900, 2100), door(5600, 900, 2100)]), alongSpan(4500, 6000, x1), crossSpan(9600, D, 4500, [door(2000, 800, 2100)])];
+  const upper = [alongSpan(6600, D, x1, [door(2000, 900, 2100), door(5600, 800, 2100), door(8400, 900, 2100)]), crossSpan(5000, D, 6600), crossSpan(7200, D, 6600)];
+  return building(
+    {
+      productId: "minsu",
+      length: L,
+      width: W,
+      levels: [
+        level(
+          3000,
+          {
+            front: side("wall", [win(400, 2400, 2100, 300), door(3200, 1200, 2200), win(7000, 1500, 1500, 900)]),
+            back: side("wall", [win(backAt(L, 9000, 1500), 1500, 1200, 900), door(backAt(L, 3000, 1800), 1800, 2200)].sort((a, b) => a.x - b.x)),
+            left: side("wall", [win(leftAt(W, 4500, 2400), 2400, 2100, 300)]),
+            right: side("wall", [win(rightAt(2200, 900), 900, 900, 1400)]),
+          },
+          ground,
+          roomsAt(L, W, ground, [
+            [3000, 4500, "lobby"],
+            [7800, 2200, "bedroom"],
+            [10800, 2200, "bathroom"],
+            [9000, 6800, "kitchen"],
+          ]),
+        ),
+        level(
+          2800,
+          {
+            front: side("wall", [win(1200, 2400, 1800, 600), win(8000, 2400, 1800, 600)]),
+            back: side("wall", [win(backAt(L, 6100, 600), 600, 600, 1500), win(backAt(L, 2000, 1200), 1200, 1200, 900)].sort((a, b) => a.x - b.x)),
+            left: side("wall", [win(leftAt(W, 3300, 1500), 1500, 1500, 800)]),
+            right: side("wall", [win(rightAt(3300, 1500), 1500, 1500, 800)]),
+          },
+          upper,
+          roomsAt(L, W, upper, [
+            [2500, 3300, "bedroom"],
+            [6100, 3300, "bathroom"],
+            [9600, 3300, "bedroom"],
+            [6000, 7800, "hall"],
+          ]),
+        ),
+      ],
+      roof: { type: "gable", pitchDeg: 30, overhang: 500, pattern: "howe", panels: 6, heelHeight: 200 },
+      foundation: { type: "strip", plinth: 500 },
+      profileId: "C89x41x11x1.2",
+    },
+    "permanent",
+  );
+}
+
 /**
  * One-storey family house 20.3 × 15.9 m after the RuPlans Rg6346 layout:
  * a hall with a coat room at the entrance, an open kitchen–living room
@@ -324,6 +606,27 @@ const SPORT: Product[] = [
   { id: "yoga", category: "sport", props: ["sport"], capacity: { kind: "people", default: 15 }, input: yoga },
   { id: "tabletennis", category: "sport", props: ["sport"], capacity: { kind: "people", default: 16 }, input: tabletennis },
   { id: "crossfit", category: "sport", props: ["sport"], capacity: { kind: "people", default: 20 }, input: crossfit },
+  { id: "pilates", category: "sport", props: ["sport"], capacity: { kind: "people", default: 12 }, input: pilates, trend: 2025 },
+  { id: "golfsim", category: "sport", props: ["sport"], capacity: { kind: "people", default: 8 }, input: golfsim, trend: 2025 },
+  { id: "boulder", category: "sport", props: ["sport"], capacity: { kind: "people", default: 30 }, input: boulder, trend: 2025 },
+];
+
+/** Contemporary dark facade for the commercial pavilions */
+const PAVILION: Partial<FinishChoice> = { facade: "fibreCement", facadeColor: "hsl(210 6% 30%)", roofing: "seam", roofColor: "hsl(210 10% 20%)", trimColor: "hsl(0 0% 9%)" };
+
+const TOURISM: Product[] = [
+  { id: "capsule", category: "tourism", props: ["home"], capacity: { kind: "people", default: 2 }, input: capsule, trend: 2025, finishes: { facade: "fibreCement", facadeColor: "hsl(40 10% 92%)", roofing: "seam", roofColor: "hsl(210 8% 30%)", trimColor: "hsl(0 0% 12%)" } },
+  { id: "minsu", category: "tourism", props: ["kitchen", "stair", "home", "commerce"], capacity: { kind: "people", default: 6 }, input: minsu, trend: 2026, finishes: { facade: "plaster", facadeColor: "hsl(36 20% 92%)", roofing: "seam", roofColor: "hsl(210 8% 24%)", trimColor: "hsl(0 0% 12%)" } },
+];
+
+const BUSINESS: Product[] = [
+  { id: "evhub", category: "business", props: ["commerce"], capacity: { kind: "cars", default: 5 }, input: evhub, trend: 2025 },
+  { id: "coffee", category: "business", props: ["kitchen", "commerce"], input: coffee, trend: 2025, finishes: PAVILION },
+  { id: "pvz", category: "business", props: ["commerce"], input: pvz, trend: 2025, finishes: PAVILION },
+  { id: "carwash", category: "business", props: ["commerce"], capacity: { kind: "cars", default: 4 }, input: carwash, finishes: PAVILION },
+  { id: "warehouse", category: "business", props: ["commerce"], input: warehouse, trend: 2026 },
+  { id: "esports", category: "business", props: ["commerce"], capacity: { kind: "people", default: 30 }, input: esports, trend: 2026, finishes: PAVILION },
+  { id: "officebox", category: "business", props: ["commerce"], input: officebox, trend: 2025 },
 ];
 
 export const PRODUCTS: Product[] = [
@@ -511,6 +814,7 @@ export const PRODUCTS: Product[] = [
         "seasonal",
       ),
   },
+  ...TOURISM,
   // ── Bath ─────────────────────────────────────────────────
   {
     id: "bath",
@@ -610,6 +914,7 @@ export const PRODUCTS: Product[] = [
         "none",
       ),
   },
+  ...BUSINESS,
   // ── Farm ─────────────────────────────────────────────────
   {
     id: "shed",
@@ -701,7 +1006,7 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
-export const CATEGORIES: Category[] = ["leisure", "living", "bath", "auto", "farm", "sport", "custom"];
+export const CATEGORIES: Category[] = ["leisure", "living", "tourism", "bath", "auto", "business", "farm", "sport", "custom"];
 
 export function findProduct(id: string): Product {
   const p = PRODUCTS.find((x) => x.id === id);

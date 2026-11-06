@@ -56,10 +56,25 @@ export function signPreset(productId: string): SignSettings {
     yoga: ["PRANA", "Yoga · Stretching"],
     tabletennis: ["TOP SPIN", "Table tennis club"],
     crossfit: ["IRON BOX", "Functional training"],
+    pilates: ["CORE STUDIO", "Reformer pilates"],
+    golfsim: ["THE TEE", "Golf simulator lounge"],
+    boulder: ["BLOC", "Bouldering gym"],
+    coffee: ["COFFEE TO GO", "Drive-through"],
+    pvz: ["PICK-UP POINT", "Marketplace orders"],
+    carwash: ["WASH 24", "Self-service car wash"],
+    esports: ["E-ARENA", "Esports club"],
+    evhub: ["EV CHARGE", "Solar · storage · charging"],
+    warehouse: ["FULFILMENT", "Storage · Pick & pack"],
+    officebox: ["SITE OFFICE", ""],
+    capsule: ["STAR CAPSULE", "Glamping"],
+    minsu: ["MINSU", "Guest house · Café"],
   };
   const [text, sub] = name[productId] ?? ["LSTK", ""];
   const t = themeOf(productId);
-  return { ...SIGN_OFF, enabled: true, text, sub, ...(t ? { color: t.letters, background: t.accent } : {}) };
+  // An open canopy has no wall to carry letters, gates fill the front of a wash or a store, a kiosk is low
+  const place: SignPlace = productId === "evhub" ? "pylon" : productId === "carwash" || productId === "warehouse" ? "frieze" : "entrance";
+  const height = productId === "coffee" || productId === "officebox" ? 300 : SIGN_OFF.height;
+  return { ...SIGN_OFF, enabled: true, text, sub, place, height, ...(t ? { color: t.letters, background: t.accent } : {}) };
 }
 
 export interface SignLayout {

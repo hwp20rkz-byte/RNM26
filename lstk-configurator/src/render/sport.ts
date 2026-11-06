@@ -4,7 +4,7 @@ import { openingTop } from "@/domain/walls/generate";
 import { partitionSegments, rooms, type Room } from "@/domain/layout/rooms";
 import { box, cyl, mat } from "./kit";
 import { MM } from "./profileGeometry";
-import { lockersPerRoom } from "@/domain/interior/fitout";
+import { hallKit, lockersPerRoom } from "@/domain/interior/fitout";
 import { themeOf } from "@/domain/interior/theme";
 
 /**
@@ -267,6 +267,86 @@ function shelving(u: THREE.Group) {
   for (const y of [120, 620, 1120]) box(u, -380, y, 60, 300, 260, 380, mat("hsl(30 40% 55%)", 0.9));
 }
 
+const lv = (b: Building) => b.input.levels[0]!;
+
+/** A reformer 2.4 × 0.7 m, long axis along z, from its foot-end corner */
+function reformer(g: THREE.Group, x: number, y: number, z: number) {
+  const frame = mat(OAK, 0.5);
+  box(g, x, y + 150, z, 60, 80, 2400, frame);
+  box(g, x + 640, y + 150, z, 60, 80, 2400, frame);
+  for (const zz of [0, 2340]) box(g, x, y, z + zz, 700, 230, 60, frame);
+  box(g, x + 60, y + 230, z + 700, 580, 70, 700, mat(WHITE, 0.8));
+  box(g, x + 60, y + 230, z + 1400, 580, 120, 160, mat(WHITE, 0.8));
+  box(g, x, y, z - 80, 700, 650, 60, mat(STEEL, 0.4, 0.6));
+  for (const sx of [100, 560]) cyl(g, x + sx + 20, y + 900, z + 2380, 15, 500, mat(CHROME, 0.3, 0.9));
+}
+
+/** A golf simulator bay between x0 and x0 + bw: screen on the back wall, mat and tee, projector, lounge at the front */
+function golfBay(g: THREE.Group, x0: number, bw: number, z0: number, z1: number, y: number, height: number, net: boolean) {
+  const sw = Math.min(4200, bw - 600);
+  const sx = x0 + (bw - sw) / 2;
+  const sh = Math.min(3000, height - 400);
+  box(g, sx - 100, y, z1 - 800, sw + 200, sh + 100, 60, mat("hsl(0 0% 12%)", 0.9));
+  const lit = new THREE.MeshStandardMaterial({ color: "#3d7a3a", emissive: new THREE.Color("#5fb45a"), emissiveIntensity: 0.55, roughness: 0.9 });
+  lit.userData.ownsMaterial = true;
+  box(g, sx, y + 50, z1 - 845, sw, sh - 100, 6, lit);
+  // Enclosure sides of black netting
+  const black = new THREE.MeshStandardMaterial({ color: "#111", transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+  black.userData.ownsMaterial = true;
+  for (const x of [sx - 100, sx + sw + 60]) box(g, x, y, z1 - 4000, 40, sh, 3200, black).castShadow = false;
+  // Hitting mat with the fairway strip and a sensor unit
+  box(g, x0 + bw / 2 - 1000, y, z1 - 5400, 2000, 30, 1600, mat("hsl(120 35% 30%)", 1));
+  box(g, x0 + bw / 2 - 250, y + 30, z1 - 5000, 500, 15, 800, mat("hsl(120 30% 42%)", 1));
+  box(g, x0 + bw / 2 + 700, y, z1 - 4900, 300, 250, 300, mat("hsl(0 0% 10%)", 0.3, 0.5));
+  // Ceiling projector
+  box(g, x0 + bw / 2 - 200, y + height - 500, z1 - 4500, 400, 180, 400, mat(WHITE, 0.4));
+  // Lounge: sofa and a high table behind the tee
+  if (z1 - z0 > 7600) {
+    const m = mat("hsl(28 14% 30%)", 0.95);
+    box(g, x0 + bw / 2 - 1100, y + 100, z0 + 300, 2200, 330, 850, m);
+    box(g, x0 + bw / 2 - 1100, y + 100, z0 + 300, 2200, 750, 200, m);
+    box(g, x0 + bw / 2 - 500, y, z0 + 1400, 1000, 450, 600, mat(OAK, 0.5));
+  }
+  if (net) box(g, x0 + bw - 20, y, z0 + 2200, 40, height - 300, z1 - z0 - 3000, black).castShadow = false;
+}
+
+/** A bouldering wall from `a` to `b` along a room side, panels with a kicker and coloured holds */
+function boulderWall(g: THREE.Group, a: number, b: number, at: number, side: "z1" | "x1", y: number, h: number, accent: string) {
+  const ply = mat("hsl(34 30% 72%)", 0.85);
+  const colors = [accent, "hsl(48 90% 55%)", "hsl(140 55% 40%)", "hsl(330 70% 55%)", "hsl(0 0% 96%)", "hsl(270 45% 45%)"];
+  const len = b - a;
+  const panel = 1220;
+  const n = Math.max(1, Math.floor(len / panel));
+  for (let i = 0; i < n; i++) {
+    // Alternate vertical and overhanging panels (an overhang leans out by 600 mm at the top)
+    const over = i % 3 === 1 ? 600 : 0;
+    const u = new THREE.Group();
+    const face = new THREE.Mesh(new THREE.BoxGeometry(panel * MM, Math.hypot(h, over) * MM, 18 * MM), ply);
+    face.userData.ownsGeometry = true;
+    face.castShadow = face.receiveShadow = true;
+    face.position.set((panel / 2) * MM, (h / 2) * MM, (over / 2 + 30) * MM);
+    face.rotation.x = Math.atan2(over, h);
+    u.add(face);
+    for (let k = 0; k < 14; k++) {
+      const hx = 120 + ((k * 397 + i * 211) % (panel - 240));
+      const hy = 250 + ((k * 263 + i * 137) % (h - 400));
+      const hold = new THREE.Mesh(new THREE.IcosahedronGeometry((50 + ((k * 7) % 4) * 18) * MM, 0), mat(colors[(k + i) % colors.length]!, 0.8));
+      hold.userData.ownsGeometry = true;
+      hold.position.set(hx * MM, hy * MM, (30 + over * (hy / h) + 30) * MM);
+      u.add(hold);
+    }
+    const s = a + i * panel;
+    if (side === "z1") {
+      u.position.set((s + panel) * MM, y * MM, at * MM);
+      u.rotation.y = Math.PI;
+    } else {
+      u.position.set(at * MM, y * MM, s * MM);
+      u.rotation.y = -Math.PI / 2;
+    }
+    g.add(u);
+  }
+}
+
 function gymFloor(g: THREE.Group, r: Room, floor: number, color: string) {
   box(g, r.x0, floor, r.z0, r.x1 - r.x0, 12, r.z1 - r.z0, mat(color, 0.85));
 }
@@ -319,6 +399,36 @@ function hall(g: THREE.Group, b: Building, r: Room, gs: Gap[], floor: number) {
     // wall-ball targets at 3 m and plates
     for (let i = 0; i < 4; i++) cyl(g, r.x1 - 1000 - i * 1500, f + 3050, r.z1 - 30, 180, 30, mat("hsl(48 80% 50%)", 0.6), "z");
     for (let i = 0; i < 8; i++) cyl(g, r.x1 - 2000 - (i % 4) * 600, f + 225, r.z0 + 900 + Math.floor(i / 4) * 200, 225, 60, mat(RUBBER, 0.6), "z");
+    return;
+  }
+  if (id === "pilates") {
+    gymFloor(g, r, floor, OAK);
+    // Reformers in rows across the hall, the instructor's at the front; a mirror wall at the far end
+    const k = hallKit(id, w, h);
+    const cols = Math.ceil((k.reformer ?? 0) / 2);
+    for (let i = 0; i < (k.reformer ?? 0); i++) {
+      const col = i % cols;
+      const rw = Math.floor(i / cols);
+      reformer(g, r.x0 + 1200 + col * 1300, f, r.z0 + 1200 + rw * 3200);
+    }
+    box(g, r.x1 - 30, floor + 300, r.z0 + 600, 20, 2000, h - 1200, mat("hsl(210 20% 86%)", 0.03, 1));
+    return;
+  }
+  if (id === "golfsim") {
+    gymFloor(g, r, floor, "hsl(210 8% 20%)");
+    // Simulator bays 5 m wide side by side: impact screen on the back wall, hitting mat, nets between bays, a lounge behind the tee
+    const n = hallKit(id, w, h).golfBay ?? 0;
+    const bw = w / n;
+    for (let i = 0; i < n; i++) golfBay(g, r.x0 + i * bw, bw, r.z0, r.z1, f, lv(b).height, i < n - 1);
+    return;
+  }
+  if (id === "boulder") {
+    gymFloor(g, r, floor, RUBBER);
+    // Climbing walls on the back wall and the far end, crash mats 2.5 m deep in front of them
+    boulderWall(g, r.x0 + 600, r.x1 - 2700, r.z1, "z1", f, Math.min(4000, lv(b).height - 200), theme?.accent2 ?? "hsl(18 90% 52%)");
+    boulderWall(g, r.z0 + 600, r.z1 - 200, r.x1, "x1", f, Math.min(4000, lv(b).height - 200), theme?.accent ?? "hsl(200 70% 40%)");
+    box(g, r.x0 + 600, f, r.z1 - 2700, r.x1 - r.x0 - 3300, 300, 2500, mat("hsl(210 10% 28%)", 0.95));
+    box(g, r.x1 - 2700, f, r.z0 + 600, 2500, 300, r.z1 - r.z0 - 800, mat("hsl(210 10% 28%)", 0.95));
     return;
   }
   // Fitness: rubber floor, cardio line under the front windows, racks and dumbbells along the back

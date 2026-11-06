@@ -9,6 +9,7 @@ import { hsl } from "./skin";
 import { MM } from "./profileGeometry";
 import { homeInterior, kitchenRun } from "./home";
 import { sportInterior } from "./sport";
+import { car, commerceInterior } from "./commerce";
 
 /**
  * Low-poly scenery that explains the building's purpose and scale: a car
@@ -19,21 +20,6 @@ import { sportInterior } from "./sport";
 const WOOD = "hsl(28 45% 42%)";
 const DARK = "hsl(210 8% 18%)";
 const BRICK = "hsl(10 45% 40%)";
-
-/** A hatchback, 4.3 × 1.8 m, centred at (cx, cz) on floor y, along x or z */
-function car(g: THREE.Group, cx: number, y: number, cz: number, alongX: boolean, color: string) {
-  const c = new THREE.Group();
-  const body = mat(color, 0.25, 0.6);
-  box(c, -2150, 300, -880, 4300, 650, 1760, body);
-  box(c, -1300, 950, -800, 2400, 520, 1600, mat("hsl(205 30% 22%)", 0.1, 0.8));
-  box(c, -1250, 1460, -760, 2300, 30, 1520, body);
-  for (const [x, z] of [[-1400, -820], [1400, -820], [-1400, 820], [1400, 820]] as const) cyl(c, x, 320, z, 320, 220, mat(DARK, 0.9), "z");
-  box(c, 2140, 600, -700, 20, 120, 300, mat("hsl(50 80% 80%)", 0.2)).position.z += 0;
-  box(c, 2140, 600, 400, 20, 120, 300, mat("hsl(50 80% 80%)", 0.2));
-  if (!alongX) c.rotation.y = Math.PI / 2;
-  c.position.set(cx * MM, y * MM, cz * MM);
-  g.add(c);
-}
 
 function table(g: THREE.Group, cx: number, y: number, cz: number, len: number, alongX: boolean, benches: boolean) {
   const t = new THREE.Group();
@@ -173,6 +159,9 @@ export function createProps(b: Building, kinds: readonly PropKind[], birds: numb
         break;
       case "sport":
         g.add(sportInterior(b, brand));
+        break;
+      case "commerce":
+        g.add(commerceInterior(b));
         break;
       case "stair": {
         if (input.levels.length < 2) break;
