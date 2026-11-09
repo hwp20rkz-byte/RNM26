@@ -1,9 +1,9 @@
-/* Қазақша Ойна — детская игра для изучения казахского языка.
+/* Қазақша Ойна — детская игра для изучения казахского языка (1–3 класс).
  * Чистый JS без зависимостей: работает офлайн внутри Android WebView и в любом браузере. */
 (function () {
   'use strict';
 
-  var D = window.QDATA;
+  var D = window.QDATA, W = window.QWORLD;
   var $app = document.getElementById('app');
   var KEY = 'qazaqsha-oyna-v1';
   var DAILY_GOAL = 30;
@@ -22,33 +22,57 @@
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function uniqBy(a, f) { var seen = {}; return a.filter(function (x) { var k = f(x); if (seen[k]) return false; seen[k] = 1; return true; }); }
   function norm(s) { return String(s).toLowerCase().replace(/[.,!?;:«»"—–-]/g, ' ').replace(/\s+/g, ' ').trim(); }
-  function tokens(s) { return s.replace(/[.,!?;:«»"]/g, '').split(/\s+/).filter(Boolean); }
-  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function tokens(s) { return s.replace(/[.,!?;:«»"]/g, '').split(/\s+/).filter(function (t) { return t && t !== '—' && t !== '–'; }); }
   function qs(sel, el) { return (el || document).querySelector(sel); }
   function qsa(sel, el) { return Array.prototype.slice.call((el || document).querySelectorAll(sel)); }
   function dayStr(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function today() { return dayStr(new Date()); }
   function yesterday() { var d = new Date(); d.setDate(d.getDate() - 1); return dayStr(d); }
+  function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return dayStr(d); }
   function isNumGlyph(e) { return /^[0-9₸½]/.test(e); }
+  function isLabelGlyph(e) { return /^[А-Яа-яЁё]{2,3}$/.test(e); }
+  function isColorGlyph(e) { return e.indexOf('c:') === 0; }
+  function isTextGlyph(e) { return isNumGlyph(e) || isLabelGlyph(e); }
 
   /* ---------- state ---------- */
   function load() {
-    var d = { xp: 0, streak: 0, lastDay: '', done: {}, name: '', dayXp: 0, dayDate: '', sound: true, lessons: 0 };
+    var d = {
+      xp: 0, streak: 0, lastDay: '', done: {}, name: '', dayXp: 0, dayDate: '', sound: true, lessons: 0,
+      coins: 0, grade: 1, onboarded: false, heroes: ['bars'], heroSel: 'bars', stickers: {}, games: [],
+      ach: {}, perfects: 0, quizBest: 0, gamesPlayed: 0, freeze: 0, bonusHearts: 0, giftDay: '', lvlSeen: 1
+    };
     try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) for (var k in s) d[k] = s[k]; } catch (e) { /* storage blocked */ }
-    if (d.lastDay && d.lastDay !== today() && d.lastDay !== yesterday()) d.streak = 0;
+    // A streak freeze covers one missed day.
+    if (d.lastDay && d.lastDay !== today() && d.lastDay !== yesterday()) {
+      if (d.freeze > 0 && d.lastDay === daysAgo(2)) { d.freeze--; d.lastDay = yesterday(); } else d.streak = 0;
+    }
     if (d.dayDate !== today()) { d.dayXp = 0; d.dayDate = today(); }
+    W.GAMES.forEach(function (g) { if (!g.price && d.games.indexOf(g.id) < 0) d.games.push(g.id); });
     return d;
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
   var S = load();
 
-  var ALL = [];
-  D.UNITS.forEach(function (u, ui) { u.n = ui + 1; u.lessons.forEach(function (l) { l.unit = u; ALL.push(l); }); });
+  /* ---------- course index ---------- */
+  var ALL = [], GALL = [[], [], []];
+  D.GRADES.forEach(function (g, gi) {
+    g.units.forEach(function (u, ui) {
+      u.n = ui + 1; u.grade = gi;
+      u.lessons.forEach(function (l) { l.unit = u; ALL.push(l); GALL[gi].push(l); });
+    });
+  });
   var CONTENT = ALL.filter(function (l) { return !l.review; });
   var ALLWORDS = uniqBy([].concat.apply([], CONTENT.map(function (l) { return l.words || []; })), function (w) { return w.kk; });
   var ALLSENT = [].concat.apply([], CONTENT.map(function (l) { return l.sentences || []; }));
-  function unlocked(l) { var i = ALL.indexOf(l); return i === 0 || !!S.done[ALL[i - 1].id]; }
-  function currentLesson() { for (var i = 0; i < ALL.length; i++) if (!S.done[ALL[i].id]) return ALL[i]; return null; }
+  function gIdx() { return Math.min(2, Math.max(0, (S.grade || 1) - 1)); }
+  function unlocked(l) { var list = GALL[l.unit.grade], i = list.indexOf(l); return i === 0 || !!S.done[list[i - 1].id]; }
+  function currentLesson(gi) { var list = GALL[gi]; for (var i = 0; i < list.length; i++) if (!S.done[list[i].id]) return list[i]; return null; }
+  function gradeWords(gi) {
+    var done = GALL[gi].filter(function (l) { return S.done[l.id] && !l.review; });
+    var src = done.length >= 3 ? done : GALL[gi].filter(function (l) { return !l.review; });
+    return uniqBy([].concat.apply([], src.map(function (l) { return l.words || []; })), function (w) { return w.kk; });
+  }
+  function level() { return Math.floor(S.xp / 100) + 1; }
 
   /* ---------- sound effects (WebAudio, no files) ---------- */
   var AC = null;
@@ -74,31 +98,34 @@
     ok: function () { tone([660, 880], 0.09, 'sine', 0.3); },
     bad: function () { tone([240, 190], 0.12, 'triangle', 0.3); },
     win: function () { tone([523, 659, 784, 1047, 1319], 0.11, 'sine', 0.3); },
-    pair: function () { tone([784], 0.07, 'sine', 0.22); }
+    pair: function () { tone([784], 0.07, 'sine', 0.22); },
+    coin: function () { tone([988, 1319], 0.07, 'square', 0.12); },
+    pop: function () { tone([880, 440], 0.05, 'triangle', 0.2); }
   };
 
-  /* ---------- Kazakh text-to-speech (Android bridge → Web Speech fallback) ---------- */
+  /* ---------- Kazakh voice: bundled recordings first, then the phone's TTS ---------- */
+  var AUD = window.QAUDIO || {};
+  var curAudio = null;
+  function sysKk() { try { return !!(window.Android && window.Android.ttsState && window.Android.ttsState() === 'kk'); } catch (e) { return false; } }
   var TTS = {
-    state: function () {
-      try { if (window.Android && window.Android.ttsState) return window.Android.ttsState(); } catch (e) { /* bridge missing */ }
-      try {
-        if (window.speechSynthesis && speechSynthesis.getVoices().some(function (v) { return /^kk/i.test(v.lang); })) return 'kk';
-      } catch (e) { /* no speech */ }
-      return 'nokk';
-    },
-    ok: function () { return TTS.state() === 'kk'; },
+    file: function (text) { var k = D.audioKey(text); return AUD[k] ? k : null; },
+    has: function (text) { return !!TTS.file(text) || sysKk(); },
+    ok: function () { return Object.keys(AUD).length > 0 || sysKk(); },
     speak: function (text, quiet) {
-      if (!TTS.ok()) { if (!quiet) toast('🔇 На телефоне нет казахского голоса. Его можно установить: профиль → «Настроить озвучку».'); return; }
-      try {
-        if (window.Android && window.Android.speak) { window.Android.speak(text); return; }
-        var u = new SpeechSynthesisUtterance(text);
-        var v = speechSynthesis.getVoices().filter(function (x) { return /^kk/i.test(x.lang); })[0];
-        if (v) u.voice = v; u.lang = 'kk-KZ'; u.rate = 0.85;
-        speechSynthesis.cancel(); speechSynthesis.speak(u);
-      } catch (e) { /* ignore */ }
+      var k = TTS.file(text);
+      if (k) {
+        try {
+          if (curAudio) curAudio.pause();
+          curAudio = new Audio('audio/' + k + '.mp3');
+          var p = curAudio.play(); if (p && p.catch) p.catch(function () { /* autoplay blocked */ });
+        } catch (e) { /* ignore */ }
+        return;
+      }
+      (window.qMissing = window.qMissing || []).push(text);
+      if (sysKk()) { try { window.Android.speak(text); } catch (e) { /* ignore */ } return; }
+      if (!quiet) toast('🔇 Для этой фразы нет озвучки');
     }
   };
-  if (window.speechSynthesis) try { speechSynthesis.getVoices(); } catch (e) { /* ignore */ }
 
   var toastT;
   function toast(msg) {
@@ -107,37 +134,15 @@
     clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 2600);
   }
 
-  /* ---------- mascot: Барыс, a snow-leopard cub in a тақия ---------- */
-  function mascot(mood, cls) {
-    mood = mood || 'happy';
-    var mouth = mood === 'sad'
-      ? '<path d="M50 88 Q60 80 70 88" fill="none" stroke="#5b4a52" stroke-width="3.5" stroke-linecap="round"/>'
-      : mood === 'wow'
-        ? '<ellipse cx="60" cy="88" rx="7" ry="8" fill="#7a3446"/><ellipse cx="60" cy="91" rx="4" ry="3.5" fill="#ff8fa3"/>'
-        : '<path d="M48 82 Q54 92 60 84 Q66 92 72 82" fill="#7a3446" stroke="#5b4a52" stroke-width="3" stroke-linejoin="round"/><path d="M53 86 Q60 92 67 86" fill="#ff8fa3"/>';
-    var brows = mood === 'sad' ? '<path d="M36 50 L48 54 M84 50 L72 54" stroke="#5b4a52" stroke-width="3" stroke-linecap="round"/>' : '';
-    return '<svg class="m ' + (cls || '') + '" viewBox="0 0 120 120" aria-hidden="true">' +
-      '<ellipse cx="60" cy="114" rx="34" ry="5" fill="hsl(210 25% 92%)"/>' +
-      '<circle cx="28" cy="34" r="15" fill="#e9eef3" stroke="#5b4a52" stroke-width="3"/><circle cx="28" cy="34" r="7" fill="#ffb3c1"/>' +
-      '<circle cx="92" cy="34" r="15" fill="#e9eef3" stroke="#5b4a52" stroke-width="3"/><circle cx="92" cy="34" r="7" fill="#ffb3c1"/>' +
-      '<ellipse cx="60" cy="68" rx="44" ry="40" fill="#f4f7fa" stroke="#5b4a52" stroke-width="3"/>' +
-      '<g fill="#8b97a6"><circle cx="40" cy="44" r="3.5"/><circle cx="47" cy="38" r="2.5"/><circle cx="80" cy="44" r="3.5"/><circle cx="73" cy="38" r="2.5"/>' +
-      '<circle cx="24" cy="70" r="3"/><circle cx="28" cy="80" r="2.4"/><circle cx="96" cy="70" r="3"/><circle cx="92" cy="80" r="2.4"/></g>' +
-      // тақия (skullcap) with gold ornament
-      '<path d="M36 34 Q60 6 84 34 Z" fill="hsl(199 84% 50%)" stroke="#5b4a52" stroke-width="3" stroke-linejoin="round"/>' +
-      '<path d="M44 29 q4 -6 8 0 q4 -6 8 0 q4 -6 8 0 q4 -6 8 0" fill="none" stroke="hsl(43 100% 55%)" stroke-width="2.5" stroke-linecap="round"/>' +
-      '<circle cx="60" cy="13" r="4" fill="hsl(43 100% 55%)" stroke="#5b4a52" stroke-width="2"/>' +
-      brows +
-      '<g class="eye"><ellipse cx="44" cy="62" rx="11" ry="12" fill="#fff" stroke="#5b4a52" stroke-width="3"/><circle cx="46" cy="64" r="7" fill="hsl(170 55% 32%)"/><circle cx="46" cy="64" r="3.5" fill="#1d2430"/><circle cx="49" cy="60" r="2.5" fill="#fff"/></g>' +
-      '<g class="eye"><ellipse cx="76" cy="62" rx="11" ry="12" fill="#fff" stroke="#5b4a52" stroke-width="3"/><circle cx="74" cy="64" r="7" fill="hsl(170 55% 32%)"/><circle cx="74" cy="64" r="3.5" fill="#1d2430"/><circle cx="77" cy="60" r="2.5" fill="#fff"/></g>' +
-      '<ellipse cx="32" cy="80" rx="7" ry="4.5" fill="#ffc2cf" opacity=".8"/><ellipse cx="88" cy="80" rx="7" ry="4.5" fill="#ffc2cf" opacity=".8"/>' +
-      '<path d="M55 74 L65 74 L60 80 Z" fill="#ff8fa3" stroke="#5b4a52" stroke-width="2.5" stroke-linejoin="round"/>' +
-      mouth + '</svg>';
-  }
+  /* ---------- heroes ---------- */
+  var curHero = 'bars';
+  function mascot(mood, cls) { return W.hero(curHero, mood, cls); }
+  function myHero(mood, cls) { return W.hero(S.heroSel, mood, cls); }
+  function heroInfo(id) { return W.HEROES.filter(function (h) { return h.id === id; })[0] || W.HEROES[0]; }
 
   /* ---------- analogue clock ---------- */
   function clockSVG(h, m) {
-    var ticks = '', nums = '';
+    var nums = '', ticks = '';
     for (var i = 1; i <= 12; i++) {
       var a = i * 30 * Math.PI / 180;
       nums += '<text x="' + (50 + 33 * Math.sin(a)).toFixed(1) + '" y="' + (50 - 33 * Math.cos(a) + 4).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="900" fill="hsl(218 30% 18%)">' + i + '</text>';
@@ -157,11 +162,14 @@
   function hm(t) { return t[0] + ':' + (t[1] ? '30' : '00'); }
 
   /* ---------- small view helpers ---------- */
-  function glyph(e) { return isNumGlyph(e) ? '<span class="num">' + esc(e) + '</span>' : '<span class="em">' + esc(e) + '</span>'; }
+  function glyph(e) {
+    if (isColorGlyph(e)) return '<span class="swatch" style="background:' + esc(e.slice(2)) + '"></span>';
+    return isTextGlyph(e) ? '<span class="num">' + esc(e) + '</span>' : '<span class="em">' + esc(e) + '</span>';
+  }
   function spk(text, cls) { return '<button class="spk ' + (cls || '') + '" data-say="' + esc(text) + '" aria-label="Тыңдау — прослушать">🔊</button>'; }
   function prompt(text, kk) { return '<div class="prompt">' + mascot('happy') + '<div class="say">' + (kk ? spk(text) : '') + '<span>' + esc(text) + '</span></div></div>'; }
   function bindSpeak(el) { qsa('[data-say]', el).forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); TTS.speak(b.getAttribute('data-say')); }; }); }
-  function autoSay(text) { if (TTS.ok()) setTimeout(function () { TTS.speak(text, true); }, 250); }
+  function autoSay(text) { if (TTS.has(text)) setTimeout(function () { TTS.speak(text, true); }, 250); }
   function selectOne(el, onPick) {
     var cards = qsa('.card', el);
     cards.forEach(function (c) {
@@ -180,15 +188,16 @@
     });
   }
   function distract(w, pool, n) {
-    var bad = function (x) { return x.kk === w.kk || x.ru === w.ru; };
-    var num = isNumGlyph(w.e);
-    var from = function (src) { return shuffle(src.filter(function (x) { return !bad(x) && isNumGlyph(x.e) === num; })); };
+    var bad = function (x) { return x.kk === w.kk || x.ru === w.ru || x.e === w.e; };
+    var kind = function (x) { return isColorGlyph(x.e) ? 'c' : isTextGlyph(x.e) ? 't' : 'e'; };
+    var from = function (src) { return shuffle(src.filter(function (x) { return !bad(x) && kind(x) === kind(w); })); };
     var out = uniqBy(from(pool).concat(from(ALLWORDS), shuffle(ALLWORDS.filter(function (x) { return !bad(x); }))), function (x) { return x.kk; });
-    out = uniqBy(out, function (x) { return x.ru; });
+    out = uniqBy(uniqBy(out, function (x) { return x.ru; }), function (x) { return x.e; });
     return out.slice(0, n);
   }
 
   /* ---------- exercise types ---------- */
+  function rowGlyph(e) { return '<span class="em' + (isTextGlyph(e) ? ' n' : '') + '">' + (isColorGlyph(e) ? glyph(e) : esc(e)) + '</span>'; }
   // 0. Word cards shown before a new lesson: learn first, then practise
   function exLearn(words) {
     return {
@@ -196,7 +205,7 @@
       render: function (el, ctx) {
         el.innerHTML = '<span class="tag new">✨ Жаңа сөздер · новые слова</span><h2 class="task">Запомни слова этого урока</h2>' +
           '<div class="learn">' + words.map(function (w) {
-            return '<div class="word-row"><span class="em' + (isNumGlyph(w.e) ? ' n' : '') + '">' + esc(w.e) + '</span><div class="w">' + esc(w.kk) + '<span>' + esc(w.ru) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
+            return '<div class="word-row">' + rowGlyph(w.e) + '<div class="w">' + esc(w.kk) + '<span>' + esc(w.ru) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
           }).join('') + '</div><button class="btn" id="learned">Түсіндім · понятно!</button>';
         bindSpeak(el);
         qs('#learned', el).onclick = function () { ctx.done({ ok: true, silent: true }); };
@@ -230,7 +239,7 @@
         el.innerHTML = (isNew ? '<span class="tag new">✨ Жаңа сөз · новое слово</span>' : '') +
           '<h2 class="task">Как по-казахски «' + esc(w.ru) + '»?</h2>' +
           '<div class="cards">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + glyph(o.e) + '<span>' + esc(o.kk) + '</span></button>'; }).join('') + '</div>';
-        selectOne(el, function (i) { sel = i; ctx.ready(true); if (TTS.ok()) TTS.speak(opts[i].kk, true); });
+        selectOne(el, function (i) { sel = i; ctx.ready(true); TTS.speak(opts[i].kk, true); });
       },
       check: function () {
         var right = opts.indexOf(w); markCards(el, right, sel);
@@ -268,7 +277,7 @@
         qsa('.card', el).forEach(function (c) {
           c.onclick = function () {
             var side = c.getAttribute('data-side');
-            if (side === 'L') { selL = c; if (TTS.ok()) TTS.speak(c.getAttribute('data-k'), true); } else selR = c;
+            if (side === 'L') { selL = c; TTS.speak(c.getAttribute('data-k'), true); } else selR = c;
             qsa('.card[data-side="' + side + '"]', el).forEach(function (x) { x.classList.toggle('sel', x === c); });
             sfx.tap();
             if (selL && selR) {
@@ -301,7 +310,7 @@
         b.onclick = function () {
           var id = +b.getAttribute('data-id'); if (picked.indexOf(id) >= 0) return;
           sfx.tap(); picked.push(id); draw(ctx);
-          if (TTS.ok()) TTS.speak(tiles[id], true);
+          TTS.speak(tiles[id], true);
         };
       });
       ctx.ready(picked.length > 0);
@@ -350,12 +359,13 @@
   // 7. Fill the gap (words, case endings, possessive endings, tenses)
   function exFill(f) {
     var opts, sel, el;
-    var suffix = f.pre && !/\s$/.test(f.pre) && f.ans.length <= 4;
+    var letter = !!f.letter;
+    var suffix = !letter && f.pre && !/\s$/.test(f.pre) && f.ans.length <= 4;
     return {
       render: function (root, ctx) {
         el = root; sel = -1; opts = shuffle(f.opts);
-        el.innerHTML = '<span class="tag">✏️ Толықтыр · дополни</span><h2 class="task">' + (suffix ? 'Выбери правильное окончание' : 'Заполни пропуск') + '</h2>' +
-          '<div class="sentence">' + esc(f.pre) + '<span class="gap empty' + (suffix ? ' suf' : '') + '">' + esc(f.ans) + '</span>' + esc(f.post) + '<div class="hint">' + esc(f.ru) + '</div></div>' +
+        el.innerHTML = '<span class="tag">✏️ Толықтыр · дополни</span><h2 class="task">' + (letter ? 'Вставь казахскую букву' : suffix ? 'Выбери правильное окончание' : 'Заполни пропуск') + '</h2>' +
+          '<div class="sentence' + (letter ? ' letter' : '') + '">' + esc(f.pre) + '<span class="gap empty' + (suffix || letter ? ' suf' : '') + '">' + esc(f.ans) + '</span>' + esc(f.post) + '<div class="hint">' + esc(f.ru) + '</div></div>' +
           '<div class="chips">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + (suffix ? '-' : '') + esc(o) + '</button>'; }).join('') + '</div>';
         selectOne(el, function (i) {
           sel = i; var g = qs('.gap', el); g.textContent = opts[i]; g.classList.remove('empty'); ctx.ready(true);
@@ -364,7 +374,7 @@
       check: function () {
         var right = opts.indexOf(f.ans); markCards(el, right, sel);
         var full = f.pre + f.ans + f.post;
-        return { ok: opts[sel] === f.ans, ans: full.replace(/^— /, ''), tr: f.ru, say: full.replace(/—/g, '') };
+        return { ok: opts[sel] === f.ans, ans: full.replace(/^— /, ''), tr: f.ru, say: full.replace(/—/g, ' ') };
       }
     };
   }
@@ -380,7 +390,7 @@
         el.innerHTML = '<span class="tag">🕐 Уақыт · время</span><h2 class="task">Сағат неше? <span class="muted">Который час?</span></h2>' +
           '<div style="width:180px;margin:0 auto">' + clockSVG(t[0], t[1]) + '</div>' +
           '<div class="cards list">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '"><span class="idx">' + (i + 1) + '</span><span>' + esc(D.timeKk(o[0], o[1])) + '</span></button>'; }).join('') + '</div>';
-        selectOne(el, function (i) { sel = i; ctx.ready(true); if (TTS.ok()) TTS.speak(D.timeKk(opts[i][0], opts[i][1]), true); });
+        selectOne(el, function (i) { sel = i; ctx.ready(true); TTS.speak(D.timeKk(opts[i][0], opts[i][1]), true); });
       },
       check: function () {
         var right = opts.indexOf(t); markCards(el, right, sel);
@@ -430,8 +440,9 @@
     };
   }
   // 11. Number in digits → Kazakh words
-  function exNum(range) {
+  function exNum(ranges) {
     var opts, sel, el, n;
+    var range = typeof ranges[0] === 'number' ? ranges : ranges[rnd(ranges.length)];
     return {
       render: function (root, ctx) {
         el = root; sel = -1;
@@ -444,7 +455,7 @@
         el.innerHTML = '<span class="tag">🔢 Сандар · числа</span><h2 class="task">Как это число по-казахски?</h2>' +
           '<div class="card" style="pointer-events:none;align-self:center;min-width:160px"><span class="num" style="font-size:44px">' + n + '</span></div>' +
           '<div class="cards list">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '"><span class="idx">' + (i + 1) + '</span><span>' + esc(D.numToKk(o)) + '</span></button>'; }).join('') + '</div>';
-        selectOne(el, function (i) { sel = i; ctx.ready(true); if (TTS.ok()) TTS.speak(D.numToKk(opts[i]), true); });
+        selectOne(el, function (i) { sel = i; ctx.ready(true); TTS.speak(D.numToKk(opts[i]), true); });
       },
       check: function () {
         var right = opts.indexOf(n); markCards(el, right, sel);
@@ -477,7 +488,7 @@
         var start = rnd(items.length - 3);
         slots = items.slice(start, start + 4);
         bank = shuffle(slots); chosen = [null, null, null, null];
-        el.innerHTML = '<span class="tag">📋 Күн тәртібі</span><h2 class="task">Составь распорядок дня</h2><div class="slots"></div><div class="bank"></div>';
+        el.innerHTML = '<span class="tag">📋 Рет · порядок</span><h2 class="task">Расставь по порядку</h2><div class="slots"></div><div class="bank"></div>';
         draw(ctx);
       },
       check: function () {
@@ -499,7 +510,7 @@
       c.words = c.words.concat(l.words || []); c.sentences = c.sentences.concat(l.sentences || []);
       c.fills = c.fills.concat(l.fills || []); c.clocks = c.clocks.concat(l.clocks || []);
       c.clocksLoc = c.clocksLoc.concat(l.clocksLoc || []); if (l.order) c.order = l.order;
-      if (l.nums) c.nums = c.nums ? [Math.min(c.nums[0], l.nums[0]), Math.max(c.nums[1], l.nums[1]), 1] : l.nums;
+      if (l.nums) (c.nums = c.nums || []).push(l.nums);
     });
     c.words = uniqBy(c.words, function (w) { return w.kk; });
     c.clocks = shuffle(uniqBy(c.clocks, hm)).slice(0, 6);
@@ -510,7 +521,7 @@
   }
   function genLesson(c, count, opts) {
     opts = opts || {};
-    var N = count || 10, tts = TTS.ok(), groups = {};
+    var N = count || 10, groups = {};
     function add(g, fn) { (groups[g] = groups[g] || []).push(fn); }
     var words = shuffle(c.words || []), intro = [];
     if (words.length && !opts.noIntro) {
@@ -520,7 +531,7 @@
     words.slice(opts.noIntro ? 0 : 2).forEach(function (w, i) {
       add(i % 2 ? 'pickR' : 'pick', i % 2 ? function () { return exPickR(w, c.words); } : function () { return exPick(w, c.words); });
     });
-    if (tts) words.slice(0, 3).forEach(function (w) { add('listen', function () { return exListen(w, c.words); }); });
+    words.filter(function (w) { return TTS.has(w.kk); }).slice(0, 3).forEach(function (w) { add('listen', function () { return exListen(w, c.words); }); });
     (c.sentences || []).forEach(function (s) { add('build', function () { return exBuild(s, c.sentences); }); });
     shuffle(c.sentences || []).slice(0, 2).forEach(function (s) { add('sent', function () { return exSent(s, c.sentences); }); });
     (c.fills || []).forEach(function (f) { add('fill', function () { return exFill(f); }); });
@@ -547,60 +558,128 @@
     return seq.map(function (f) { return f(); });
   }
 
-  /* ---------- views ---------- */
-  var view = 'home', tab = 'path', L = null, sheetOpen = null;
 
+  /* ---------- progress, coins, rewards ---------- */
+  var view = 'home', tab = 'path', L = null, sheetOpen = null, rewards = [], G = null;
+
+  function bumpStreak() {
+    if (S.lastDay === today()) return false;
+    S.streak = S.lastDay === yesterday() ? S.streak + 1 : 1; S.lastDay = today();
+    return true;
+  }
+  function addXp(n) { if (S.dayDate !== today()) { S.dayXp = 0; S.dayDate = today(); } S.xp += n; S.dayXp += n; }
+  function addReward(r) { rewards.push(r); }
+  function levelCheck() {
+    while (level() > S.lvlSeen) {
+      S.lvlSeen++; S.coins += 50;
+      addReward({ icon: '🆙', title: S.lvlSeen + '-деңгей!', sub: 'Новый уровень! Подарок — 50 монет.', coins: 50 });
+    }
+  }
+  function checkAch() {
+    var X = { doneCount: ALL.filter(function (l) { return S.done[l.id]; }).length, gradeDone: GALL.map(function (list) { return list.every(function (l) { return S.done[l.id]; }); }) };
+    W.ACH.forEach(function (a) {
+      if (!S.ach[a.id] && a.t(S, X)) {
+        S.ach[a.id] = 1; S.coins += a.coins;
+        addReward({ icon: a.icon, title: 'Жетістік: ' + a.kk, sub: a.ru, coins: a.coins });
+      }
+    });
+    save();
+  }
+  function flushRewards() {
+    if (sheetOpen || !rewards.length) return;
+    var r = rewards.shift();
+    sfx.win(); confetti();
+    sheet('<div class="reward-ic">' + r.icon + '</div><h3>' + esc(r.title) + '</h3><p>' + esc(r.sub) + '</p>' +
+      (r.coins ? '<p class="coins-big">+' + r.coins + ' 🪙</p>' : '') + '<button class="btn gold" id="rok">Керемет!</button>');
+    qs('#rok').onclick = function () { closeSheet(); refresh(); flushRewards(); };
+  }
+  function refresh() { if (view === 'home') { var y = qs('#scroll') ? qs('#scroll').scrollTop : 0; renderHome(true); if (qs('#scroll')) qs('#scroll').scrollTop = y; } }
+
+  function pickSticker() {
+    var bag = [];
+    W.STICKERS.forEach(function (s) { var w = s.r === 1 ? 6 : s.r === 2 ? 3 : 1; for (var i = 0; i < w; i++) bag.push(s); });
+    return bag[rnd(bag.length)];
+  }
+  // Gift chest: shake → open → reveal a sticker (or coins for a duplicate).
+  function openChest(title, extraCoins, stickerChance) {
+    sheet('<div class="chest">🎁</div><h3>' + esc(title) + '</h3><p>Нажми, чтобы открыть!</p><button class="btn gold" id="open">Ашу · открыть</button>');
+    qs('#open').onclick = function () {
+      var st = Math.random() < stickerChance ? pickSticker() : null, coins = extraCoins || 0, isNew = false;
+      if (st) { isNew = !S.stickers[st.id]; S.stickers[st.id] = (S.stickers[st.id] || 0) + 1; if (!isNew) coins += 15; }
+      S.coins += coins; save();
+      sfx.win(); confetti();
+      qs('.sheet').innerHTML = (st ? '<div class="sticker-big r' + st.r + '">' + st.e + '</div><h3>' + esc(st.kk) + '</h3><p>' + esc(st.ru) + ' · ' + '★'.repeat(st.r) + (isNew ? ' · новая наклейка!' : ' · уже есть') + '</p>' : '<div class="sticker-big">🪙</div><h3>Алтын!</h3>') +
+        (coins ? '<p class="coins-big">+' + coins + ' 🪙</p>' : '') + '<button class="btn gold" id="rok">Керемет!</button>';
+      qs('#rok').onclick = function () { closeSheet(); checkAch(); refresh(); flushRewards(); };
+    };
+  }
+  function buy(price, what, fn) {
+    if (S.coins < price) { sfx.bad(); toast('Алтын жетпейді: нужно ' + price + ' 🪙, а у тебя ' + S.coins + ' 🪙. Проходи уроки и игры!'); return; }
+    sheet(myHero('wow') + '<h3>' + esc(what) + '</h3><p>Купить за <b>' + price + ' 🪙</b>?</p>' +
+      '<button class="btn ok" id="yes">Сатып алу · купить</button><button class="btn ghost" id="no">Жоқ · нет</button>');
+    qs('#yes').onclick = function () { S.coins -= price; sfx.coin(); fn(); save(); closeSheet(); checkAch(); refresh(); flushRewards(); };
+    qs('#no').onclick = closeSheet;
+  }
+
+  /* ---------- shell ---------- */
   function topbar() {
-    return '<header class="topbar"><div class="brand">' + mascot('happy') + '<span>Қазақша Ойна</span></div><div class="stats">' +
+    return '<header class="topbar"><div class="brand">' + myHero('happy') + '<span>Қазақша Ойна</span></div><div class="stats">' +
       '<span class="stat fire" title="Дней подряд"><span class="ico">🔥</span>' + S.streak + '</span>' +
+      '<span class="stat coin" title="Монеты"><span class="ico">🪙</span>' + S.coins + '</span>' +
       '<span class="stat xp" title="Очки опыта"><span class="ico">⚡</span>' + S.xp + '</span></div></header>';
   }
   function nav() {
-    var items = [['path', '🏠', 'Жол'], ['dict', '📖', 'Сөздік'], ['practice', '🏋️', 'Жаттығу'], ['me', '🧒', 'Мен']];
+    var items = [['path', '🏠', 'Жол'], ['games', '🎮', 'Ойындар'], ['shop', '🛍️', 'Дүкен'], ['dict', '📖', 'Сөздік'], ['me', '🧒', 'Мен']];
     return '<nav class="nav">' + items.map(function (it) { return '<button data-tab="' + it[0] + '" class="' + (tab === it[0] ? 'on' : '') + '"><span class="ico">' + it[1] + '</span>' + it[2] + '</button>'; }).join('') + '</nav>';
   }
-  function bindNav() {
-    qsa('[data-tab]').forEach(function (b) { b.onclick = function () { sfx.tap(); tab = b.getAttribute('data-tab'); renderHome(); }; });
+  function gradeSwitch() {
+    return '<div class="seg">' + D.GRADES.map(function (g) { return '<button data-grade="' + g.n + '" class="' + (S.grade === g.n ? 'on' : '') + '">' + g.kk + '</button>'; }).join('') + '</div>';
   }
-
-  function renderHome() {
+  function renderHome(keep) {
     view = 'home';
-    var body = tab === 'dict' ? dictPage() : tab === 'practice' ? practicePage() : tab === 'me' ? mePage() : pathPage();
+    var body = tab === 'dict' ? dictPage() : tab === 'games' ? gamesPage() : tab === 'shop' ? shopPage() : tab === 'me' ? mePage() : pathPage();
     $app.innerHTML = topbar() + '<main class="scroll" id="scroll">' + body + '</main>' + nav();
-    bindNav(); bindSpeak($app);
-    if (tab === 'path') bindPath();
-    if (tab === 'practice') bindPractice();
+    qsa('[data-tab]').forEach(function (b) { b.onclick = function () { sfx.tap(); tab = b.getAttribute('data-tab'); renderHome(); }; });
+    qsa('[data-grade]').forEach(function (b) { b.onclick = function () { sfx.tap(); S.grade = +b.getAttribute('data-grade'); save(); renderHome(); }; });
+    bindSpeak($app);
+    if (tab === 'path') bindPath(keep);
+    if (tab === 'games') bindGames();
+    if (tab === 'shop') bindShop();
     if (tab === 'me') bindMe();
-    if (tab === 'path') {
-      var cur = qs('.node-wrap.current');
-      if (cur && cur.scrollIntoView) setTimeout(function () { cur.scrollIntoView({ block: 'center' }); }, 30);
-    }
+    if (!S.onboarded) onboarding(); else flushRewards();
   }
 
+  /* ---------- path ---------- */
   function pathPage() {
-    var cur = currentLesson();
+    var gi = gIdx(), cur = currentLesson(gi);
     var goal = Math.min(100, Math.round(S.dayXp / DAILY_GOAL * 100));
-    var html = '<section class="hero">' + mascot(goal >= 100 ? 'wow' : 'happy') + '<div style="flex:1"><h1>Сәлем, ' + esc(S.name || 'досым') + '!</h1>' +
+    var lv = level(), lvPct = S.xp % 100;
+    var gift = S.giftDay !== today();
+    var html = '<div class="pad">' + gradeSwitch() + '</div>' +
+      '<section class="hero">' + myHero(goal >= 100 ? 'wow' : 'happy') + '<div style="flex:1"><h1>Сәлем, ' + esc(S.name || 'досым') + '!</h1>' +
       '<p>' + (goal >= 100 ? 'Цель на сегодня выполнена! 🎉' : 'Цель на сегодня: ' + S.dayXp + ' / ' + DAILY_GOAL + ' ⚡') + '</p>' +
-      '<div class="goal"><i style="width:' + goal + '%"></i></div></div></section>';
-    D.UNITS.forEach(function (u) {
+      '<div class="goal"><i style="width:' + goal + '%"></i></div>' +
+      '<p class="lv">' + lv + '-деңгей · уровень ' + lv + ' <span>' + lvPct + '/100</span></p><div class="goal thin"><i style="width:' + lvPct + '%;background:hsl(0 0% 100%)"></i></div>' +
+      '</div></section>' +
+      (gift ? '<div class="pad"><button class="btn gold gift-btn" id="gift">🎁 Күнделікті сыйлық · подарок дня</button></div>' : '');
+    D.GRADES[gi].units.forEach(function (u) {
       var uc = 'var(--u-' + u.hue + ')', ucd = 'var(--u-' + u.hue + '-d)';
-      html += '<section class="unit" style="--uc:' + uc + ';--ucd:' + ucd + '"><div class="unit-head"><div><small>' + u.n + '-бөлім</small><b>' + esc(u.kk) + '</b><div class="sub">' + esc(u.ru) + '</div></div><span class="badge">' + u.lessons[0].icon + '</span></div><div class="path">';
+      html += '<section class="unit" style="--uc:' + uc + ';--ucd:' + ucd + '"><div class="unit-head"><div><small>' + u.n + '-бөлім</small><b>' + esc(u.kk) + '</b><div class="sub">' + esc(u.ru) + '</div></div>' + W.hero(u.hero, 'happy', 'uh') + '</div><div class="path">';
       u.lessons.forEach(function (l, i) {
         var done = S.done[l.id], open = unlocked(l), isCur = l === cur;
         var x = Math.round(Math.sin((i + u.n) * 1.3) * 64);
         html += '<div class="node-wrap' + (isCur ? ' current' : '') + '" style="transform:translateX(' + x + 'px)">' +
           (isCur ? '<span class="start-tip">БАСТАУ!</span>' : '') +
-          '<button class="node' + (done ? ' done' : '') + (open ? '' : ' locked') + '" data-l="' + l.id + '" aria-label="' + esc(l.kk) + '">' +
-          (isCur ? '<span class="ring"></span>' : '') + '<span>' + (open ? (done ? '⭐' : l.icon) : '🔒') + '</span></button>' +
+          '<button class="node' + (done ? ' done' : '') + (open ? '' : ' locked') + (l.review ? ' review' : '') + '" data-l="' + l.id + '" aria-label="' + esc(l.kk) + '">' +
+          (isCur ? '<span class="ring"></span>' : '') + '<span>' + (open ? (done ? (l.review ? '🏆' : '⭐') : l.icon) : '🔒') + '</span></button>' +
           '<div class="stars">' + (done ? '⭐'.repeat(done) : '') + '</div>' +
           '<div class="node-label">' + esc(l.kk) + '<em>' + esc(l.ru) + '</em></div></div>';
       });
-      html += '</div><div class="mascot-row">' + mascot('happy') + '<div class="bubble">' + esc(u.mascot) + '</div></div></section>';
+      html += '</div><div class="mascot-row">' + W.hero(u.hero, 'happy') + '<div class="bubble">' + esc(u.mascot) + '</div></div></section>';
     });
     return html + '<div style="height:24px"></div>';
   }
-  function bindPath() {
+  function bindPath(keep) {
     qsa('[data-l]').forEach(function (b) {
       b.onclick = function () {
         var l = ALL.filter(function (x) { return x.id === b.getAttribute('data-l'); })[0];
@@ -608,108 +687,195 @@
         sfx.tap(); lessonSheet(l);
       };
     });
+    var g = qs('#gift');
+    if (g) g.onclick = function () { S.giftDay = today(); save(); openChest('Күнделікті сыйлық', 10 + rnd(31), 0.35); };
+    var first = GALL[gIdx()][0];
+    if (!keep && S.done[first.id]) {
+      var cur = qs('.node-wrap.current');
+      if (cur && cur.scrollIntoView) setTimeout(function () { cur.scrollIntoView({ block: 'center' }); }, 30);
+    }
   }
   function lessonSheet(l) {
     var done = S.done[l.id];
-    sheet('<div style="font-size:56px">' + l.icon + '</div><h3>' + esc(l.kk) + '</h3><p>' + esc(l.ru) + (done ? ' · ' + '⭐'.repeat(done) : '') + '</p>' +
-      '<p class="muted">' + (l.review ? '12 заданий из всех тем' : '10 заданий · ' + HEARTS + ' ❤️') + '</p>' +
+    sheet(W.hero(l.unit.hero, 'wow') + '<div style="font-size:40px">' + l.icon + '</div><h3>' + esc(l.kk) + '</h3><p>' + esc(l.ru) + (done ? ' · ' + '⭐'.repeat(done) : '') + '</p>' +
+      '<p class="muted">' + (l.review ? '12 заданий из всех тем класса · +30 🪙' : '10 заданий · ' + (HEARTS + S.bonusHearts) + ' ❤️ · до +20 🪙') + '</p>' +
       '<button class="btn ' + (done ? 'gold' : 'ok') + '" id="go">' + (done ? 'Қайталау · повторить' : 'Бастау · начать') + '</button>' +
       '<button class="btn ghost" id="cancel">Жабу · закрыть</button>');
     qs('#go').onclick = function () { closeSheet(); startLesson(l); };
     qs('#cancel').onclick = closeSheet;
   }
 
+  /* ---------- dictionary ---------- */
   function dictPage() {
-    var html = '<div class="page"><p class="muted">Нажми 🔊, чтобы послушать слово.</p>';
-    D.UNITS.forEach(function (u) {
+    var gi = gIdx();
+    var html = '<div class="page">' + gradeSwitch() + '<p class="muted">Нажми 🔊, чтобы послушать слово.</p>';
+    D.GRADES[gi].units.forEach(function (u) {
       var words = uniqBy([].concat.apply([], u.lessons.map(function (l) { return l.words || []; })), function (w) { return w.kk; });
       if (!words.length) return;
       html += '<h2>' + esc(u.kk) + ' · <span class="muted" style="font-size:inherit">' + esc(u.ru) + '</span></h2>';
       words.forEach(function (w) {
-        html += '<div class="word-row"><span class="em' + (isNumGlyph(w.e) ? ' n' : '') + '">' + esc(w.e) + '</span><div class="w">' + esc(w.kk) + '<span>' + esc(w.ru) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
+        html += '<div class="word-row"><span class="em' + (isTextGlyph(w.e) ? ' n' : '') + '">' + (isColorGlyph(w.e) ? glyph(w.e) : esc(w.e)) + '</span><div class="w">' + esc(w.kk) + '<span>' + esc(w.ru) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
       });
     });
     return html + '</div>';
   }
 
-  function practicePage() {
-    var tts = TTS.ok();
+  /* ---------- games tab ---------- */
+  function gamesPage() {
+    var gi = gIdx();
+    var html = '<div class="page">' + gradeSwitch() +
+      '<div class="hero" style="margin:0">' + myHero('wow') + '<div><h1>Ойындар</h1><p>Играй со словами ' + D.GRADES[gi].ru + 'а и зарабатывай 🪙</p></div></div><div class="game-grid">';
+    W.GAMES.forEach(function (g) {
+      var own = S.games.indexOf(g.id) >= 0;
+      html += '<button class="game-card' + (own ? '' : ' locked') + '" data-game="' + g.id + '"><span class="gi">' + g.icon + '</span><b>' + esc(g.kk) + '</b><span class="muted">' + esc(g.ru) + '</span>' +
+        (own ? '<span class="pill ok">Ойнау ▶</span>' : '<span class="pill">🔒 ' + g.price + ' 🪙</span>') + '</button>';
+    });
+    html += '</div><h2>Жаттығулар · тренировки</h2>';
     var items = [
-      ['mix', '🏋️', 'Жаттығу', 'Смешанная тренировка из пройденных уроков'],
-      ['clock', '🕐', 'Сағат неше?', 'Тренировка: часы и время'],
-      ['num', '🔢', 'Сандар', 'Тренировка: числа до двух тысяч'],
-      ['build', '🧱', 'Сөйлем құра', 'Собери предложения из слов']
+      ['mix', '🏋️', 'Аралас жаттығу', 'Смешанная тренировка из пройденного'],
+      ['clock', '🕐', 'Сағат неше?', 'Часы и время'],
+      ['num', '🔢', 'Сандар', 'Числа до двух тысяч'],
+      ['build', '🧱', 'Сөйлем құра', 'Собери предложения из слов'],
+      ['listen', '🎧', 'Тыңда', 'Слушай и выбирай']
     ];
-    if (tts) items.push(['listen', '🎧', 'Тыңда', 'Слушай и выбирай']);
-    return '<div class="page"><div class="hero" style="margin:0">' + mascot('wow') + '<div><h1>Жаттығу</h1><p>Тренировка без новых слов. Каждая даёт +10 ⚡</p></div></div>' +
-      items.map(function (it) {
-        return '<button class="card" data-p="' + it[0] + '" style="flex-direction:row;justify-content:flex-start;text-align:left;gap:16px"><span class="em">' + it[1] + '</span><span><b style="display:block;font-size:var(--fs-3)">' + it[2] + '</b><span class="muted">' + it[3] + '</span></span></button>';
-      }).join('') + '</div>';
+    return html + items.map(function (it) {
+      return '<button class="card" data-p="' + it[0] + '" style="flex-direction:row;justify-content:flex-start;text-align:left;gap:16px"><span class="em">' + it[1] + '</span><span><b style="display:block;font-size:var(--fs-3)">' + it[2] + '</b><span class="muted">' + it[3] + '</span></span></button>';
+    }).join('') + '</div>';
   }
-  function bindPractice() {
-    qsa('[data-p]').forEach(function (b) {
+  function bindGames() {
+    qsa('[data-game]').forEach(function (b) {
       b.onclick = function () {
-        sfx.tap();
-        var mode = b.getAttribute('data-p');
-        var doneL = CONTENT.filter(function (l) { return S.done[l.id]; });
-        if (!doneL.length) doneL = [CONTENT[0]];
-        var c, exs;
-        if (mode === 'clock') {
-          var times = randTimes(8, false).concat(randTimes(6, true));
-          c = { clocks: times, clocksLoc: randTimes(3, false) };
-          exs = genLesson(c, 10, { noIntro: true, noMatch: true });
-        } else if (mode === 'num') {
-          var nums = [];
-          for (var i = 0; i < 10; i++) nums.push(i < 4 ? exNum([1, 99, 1]) : i < 7 ? exNum([100, 990, 10]) : exNum([1000, 2000, 50]));
-          exs = nums;
-        } else if (mode === 'build') {
-          exs = shuffle(ALLSENT.filter(function (s) { return doneL.some(function (l) { return (l.sentences || []).indexOf(s) >= 0; }); })).slice(0, 8)
-            .map(function (s) { return exBuild(s, ALLSENT); });
-          if (exs.length < 4) exs = shuffle(ALLSENT).slice(0, 8).map(function (s) { return exBuild(s, ALLSENT); });
-        } else if (mode === 'listen') {
-          var ws = shuffle(uniqBy([].concat.apply([], doneL.map(function (l) { return l.words || []; })), function (w) { return w.kk; }));
-          if (ws.length < 4) ws = shuffle(ALLWORDS);
-          exs = ws.slice(0, 10).map(function (w) { return exListen(w, ws); });
-        } else {
-          exs = genLesson(contentOf(doneL), 10, { noIntro: true });
-        }
-        startLesson({ id: 'practice', kk: 'Жаттығу', ru: 'Тренировка', icon: '🏋️', practice: true }, exs);
+        var g = W.GAMES.filter(function (x) { return x.id === b.getAttribute('data-game'); })[0];
+        if (S.games.indexOf(g.id) >= 0) { sfx.tap(); startGame(g.id); return; }
+        buy(g.price, 'Ойын «' + g.kk + '»', function () { S.games.push(g.id); });
       };
     });
+    qsa('[data-p]').forEach(function (b) { b.onclick = function () { sfx.tap(); startPractice(b.getAttribute('data-p')); }; });
+  }
+  function startPractice(mode) {
+    var gi = gIdx();
+    var doneL = GALL[gi].filter(function (l) { return S.done[l.id] && !l.review; });
+    if (!doneL.length) doneL = [GALL[gi][0]];
+    var exs;
+    curHero = S.heroSel;
+    if (mode === 'clock') {
+      exs = genLesson({ clocks: randTimes(8, false).concat(randTimes(6, true)), clocksLoc: randTimes(3, false) }, 10, { noIntro: true, noMatch: true });
+    } else if (mode === 'num') {
+      exs = []; for (var i = 0; i < 10; i++) exs.push(exNum(D.NUM_RANGES[i < 4 ? 0 : i < 7 ? 1 : 2]));
+    } else if (mode === 'build') {
+      var ss = [].concat.apply([], doneL.map(function (l) { return l.sentences || []; }));
+      if (ss.length < 4) ss = [].concat.apply([], GALL[gi].map(function (l) { return l.sentences || []; }));
+      exs = shuffle(ss).slice(0, 8).map(function (s) { return exBuild(s, ss); });
+    } else if (mode === 'listen') {
+      var ws = shuffle(gradeWords(gi).filter(function (w) { return TTS.has(w.kk); }));
+      if (ws.length < 4) { toast('Нет озвучки для этих слов'); return; }
+      exs = ws.slice(0, 10).map(function (w) { return exListen(w, ws); });
+    } else {
+      exs = genLesson(contentOf(doneL), 10, { noIntro: true });
+    }
+    startLesson({ id: 'practice', kk: 'Жаттығу', ru: 'Тренировка', icon: '🏋️', practice: true }, exs);
   }
 
+  /* ---------- shop ---------- */
+  function shopPage() {
+    var html = '<div class="page"><div class="balance">' + myHero('wow') + '<div><small>Сенің алтының · твои монеты</small><b>' + S.coins + ' 🪙</b></div></div>' +
+      '<button class="shop-gift" id="box"><span class="chest-sm">🎁</span><span><b>Сыйлық қорабы</b><span class="muted">Случайная наклейка для альбома</span></span><span class="pill">' + W.SHOP.giftBox + ' 🪙</span></button>' +
+      '<h2>Кейіпкерлер · герои</h2><div class="hero-grid">';
+    W.HEROES.forEach(function (h) {
+      var own = S.heroes.indexOf(h.id) >= 0, sel = S.heroSel === h.id;
+      html += '<button class="hero-card' + (sel ? ' sel' : '') + (own ? '' : ' locked') + '" data-hero="' + h.id + '">' + W.hero(h.id, sel ? 'wow' : 'happy') +
+        '<b>' + esc(h.kk) + '</b><span class="muted">' + esc(h.ru) + '</span>' +
+        '<span class="pill' + (own ? ' ok' : '') + '">' + (sel ? '✓ Сенің досың' : own ? 'Таңдау' : h.price + ' 🪙') + '</span></button>';
+    });
+    html += '</div><h2>Ойындар · игры</h2>';
+    W.GAMES.filter(function (g) { return g.price; }).forEach(function (g) {
+      var own = S.games.indexOf(g.id) >= 0;
+      html += '<button class="shop-row" data-sgame="' + g.id + '"' + (own ? ' disabled' : '') + '><span class="em">' + g.icon + '</span><span><b>' + esc(g.kk) + '</b><span class="muted">' + esc(g.ru) + '</span></span><span class="pill' + (own ? ' ok' : '') + '">' + (own ? 'Ашық ✓' : g.price + ' 🪙') + '</span></button>';
+    });
+    html += '<h2>Бонустар</h2>' +
+      '<button class="shop-row" id="bhearts"><span class="em">❤️</span><span><b>+2 жүрек</b><span class="muted">Два лишних сердечка на следующий урок (сейчас: +' + S.bonusHearts + ')</span></span><span class="pill">' + W.SHOP.hearts + ' 🪙</span></button>' +
+      '<button class="shop-row" id="bfreeze"' + (S.freeze >= W.SHOP.maxFreeze ? ' disabled' : '') + '><span class="em">🧊</span><span><b>Серияны қорғау</b><span class="muted">Сохранит серию 🔥, если пропустишь один день (есть: ' + S.freeze + ' из ' + W.SHOP.maxFreeze + ')</span></span><span class="pill">' + W.SHOP.freeze + ' 🪙</span></button>' +
+      '<h2>Стикерлер · наклейки</h2>' + albumHtml() + '</div>';
+    return html;
+  }
+  function albumHtml() {
+    var n = Object.keys(S.stickers).length;
+    return '<p class="muted">Собрано ' + n + ' из ' + W.STICKERS.length + '. Наклейки выпадают из подарков.</p><div class="album">' + W.STICKERS.map(function (s) {
+      var c = S.stickers[s.id];
+      return '<div class="stk' + (c ? ' r' + s.r : ' off') + '"><span class="e">' + (c ? s.e : '❔') + '</span><span class="n">' + (c ? esc(s.kk) : '???') + '</span>' + (c > 1 ? '<i>×' + c + '</i>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  function bindShop() {
+    qs('#box').onclick = function () { buy(W.SHOP.giftBox, 'Сыйлық қорабы', function () { setTimeout(function () { openChest('Сыйлық қорабы', 0, 1); }, 50); }); };
+    qsa('[data-hero]').forEach(function (b) {
+      b.onclick = function () {
+        var h = heroInfo(b.getAttribute('data-hero'));
+        if (S.heroes.indexOf(h.id) >= 0) { S.heroSel = h.id; save(); sfx.pair(); toast(h.kk + ': ' + h.say); refresh(); return; }
+        buy(h.price, 'Кейіпкер: ' + h.kk + ' (' + h.ru + ')', function () { S.heroes.push(h.id); S.heroSel = h.id; });
+      };
+    });
+    qsa('[data-sgame]').forEach(function (b) {
+      b.onclick = function () { var g = W.GAMES.filter(function (x) { return x.id === b.getAttribute('data-sgame'); })[0]; buy(g.price, 'Ойын «' + g.kk + '»', function () { S.games.push(g.id); }); };
+    });
+    qs('#bhearts').onclick = function () { buy(W.SHOP.hearts, '+2 жүрек', function () { S.bonusHearts += 2; }); };
+    qs('#bfreeze').onclick = function () { buy(W.SHOP.freeze, 'Серияны қорғау', function () { S.freeze++; }); };
+  }
+
+  /* ---------- profile ---------- */
   function mePage() {
     var lessonsDone = ALL.filter(function (l) { return S.done[l.id]; }).length;
     var stars = ALL.reduce(function (a, l) { return a + (S.done[l.id] || 0); }, 0);
-    var st = TTS.state();
     var android = !!(window.Android && window.Android.openTtsSettings);
-    return '<div class="page"><div class="me-head">' + mascot('wow') +
-      '<div style="flex:1"><h2 style="margin:0">' + esc(S.name || 'Досым') + '</h2><span class="muted">Сенің жетістіктерің · твои успехи</span></div></div>' +
+    var nAud = Object.keys(AUD).length;
+    return '<div class="page"><div class="me-head">' + myHero('wow') +
+      '<div style="flex:1"><h2 style="margin:0">' + esc(S.name || 'Досым') + '</h2><span class="muted">' + level() + '-деңгей · ' + esc(heroInfo(S.heroSel).kk) + ' — сенің досың</span></div></div>' +
       '<label class="muted" for="nm">Атың кім? — Как тебя зовут?</label><input id="nm" class="name" maxlength="24" value="' + esc(S.name) + '" placeholder="Например, Айгерім" autocomplete="off">' +
+      '<label class="muted">Нешінші сынып? — В каком ты классе?</label>' + gradeSwitch() +
       '<div class="kpis">' +
       '<div class="kpi"><span class="ico">⚡</span><div><b>' + S.xp + '</b><span>очков опыта</span></div></div>' +
+      '<div class="kpi"><span class="ico">🪙</span><div><b>' + S.coins + '</b><span>монет</span></div></div>' +
       '<div class="kpi"><span class="ico">🔥</span><div><b>' + S.streak + '</b><span>дней подряд</span></div></div>' +
       '<div class="kpi"><span class="ico">📘</span><div><b>' + lessonsDone + ' / ' + ALL.length + '</b><span>уроков</span></div></div>' +
-      '<div class="kpi"><span class="ico">⭐</span><div><b>' + stars + '</b><span>звёзд</span></div></div></div>' +
+      '<div class="kpi"><span class="ico">⭐</span><div><b>' + stars + '</b><span>звёзд</span></div></div>' +
+      '<div class="kpi"><span class="ico">🎮</span><div><b>' + S.gamesPlayed + '</b><span>игр сыграно</span></div></div></div>' +
+      '<h2>Жетістіктер · достижения</h2><div class="ach">' + W.ACH.map(function (a) {
+        return '<div class="a' + (S.ach[a.id] ? ' on' : '') + '"><span class="i">' + a.icon + '</span><b>' + esc(a.kk) + '</b><span>' + esc(a.ru) + '</span><i>+' + a.coins + ' 🪙</i></div>';
+      }).join('') + '</div>' +
+      '<h2>Стикер альбомы</h2>' + albumHtml() +
       '<div class="panel" style="display:flex;flex-direction:column;gap:16px">' +
       '<button class="btn ghost" id="snd">' + (S.sound ? '🔔 Звуки: включены' : '🔕 Звуки: выключены') + '</button>' +
-      '<div><b>🗣️ Казахская озвучка: ' + (st === 'kk' ? '✅ есть' : st === 'init' ? '⏳ проверяем…' : '❌ не найдена') + '</b>' +
-      (st === 'kk' ? '' : '<p class="muted" style="margin:8px 0 0">Чтобы слова звучали вслух, установи казахский голос в «Синтезе речи» телефона (например, в «Распознавание и синтез речи Google» → Установить голосовые данные → Қазақ тілі). Без него игра работает полностью, просто без звука слов.</p>') +
-      '</div>' + (android ? '<button class="btn ghost" id="ttsset">⚙️ Настроить озвучку</button>' : '') + '</div>' +
+      '<div><b>🗣️ Казахская озвучка: ' + (nAud ? '✅ встроена (' + nAud + ' фраз)' : sysKk() ? '✅ голос телефона' : '❌ нет') + '</b>' +
+      '<p class="muted" style="margin:8px 0 0">Голос — модель KazakhTTS (ISSAI, Назарбаев Университет), лицензия CC BY 4.0, синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
+      (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
-      '<p class="muted" style="text-align:center">По учебнику: раздел «3. Уақыт», тема «Менің күн тәртібім».</p></div>';
+      '<p class="muted" style="text-align:center">Темы по программе «Қазақ тілі» для 1–3 классов.</p></div>';
   }
   function bindMe() {
     var nm = qs('#nm');
     nm.oninput = function () { S.name = nm.value.trim().slice(0, 24); save(); };
-    qs('#snd').onclick = function () { S.sound = !S.sound; save(); sfx.tap(); renderHome(); };
+    qs('#snd').onclick = function () { S.sound = !S.sound; save(); sfx.tap(); refresh(); };
     var ts = qs('#ttsset'); if (ts) ts.onclick = function () { try { window.Android.openTtsSettings(); } catch (e) { /* ignore */ } };
     qs('#reset').onclick = function () {
-      sheet(mascot('sad') + '<h3>Начать заново?</h3><p>Все очки, звёзды и уроки будут сброшены.</p>' +
+      sheet(myHero('sad') + '<h3>Начать заново?</h3><p>Все очки, монеты, герои, наклейки и уроки будут сброшены.</p>' +
         '<button class="btn bad" id="yes">Да, сбросить</button><button class="btn ghost" id="no">Нет</button>');
-      qs('#yes').onclick = function () { var n = S.name; try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } S = load(); S.name = n; save(); closeSheet(); tab = 'path'; renderHome(); };
+      qs('#yes').onclick = function () { var n = S.name, g = S.grade; try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } S = load(); S.name = n; S.grade = g; S.onboarded = true; save(); closeSheet(); tab = 'path'; renderHome(); };
       qs('#no').onclick = closeSheet;
     };
+  }
+
+  function onboarding() {
+    if (sheetOpen) return;
+    sheet(W.hero('bars', 'wow') + '<h3>Сәлем! Мен Барыспын 🐾</h3><p>Привет! Я Барыс. Давай учить казахский вместе!</p>' +
+      '<input id="onm" class="name" maxlength="24" placeholder="Атың кім? — Как тебя зовут?" value="' + esc(S.name) + '">' +
+      '<p class="muted">Нешінші сыныпта оқисың? — В каком ты классе?</p>' +
+      '<div class="seg big">' + D.GRADES.map(function (g) { return '<button data-og="' + g.n + '">' + g.kk + '</button>'; }).join('') + '</div>');
+    qsa('[data-og]').forEach(function (b) {
+      b.onclick = function () {
+        S.name = qs('#onm').value.trim().slice(0, 24); S.grade = +b.getAttribute('data-og'); S.onboarded = true;
+        S.coins += 50; addReward({ icon: '🎁', title: 'Қош келдің!', sub: 'Добро пожаловать! Вот 50 монет для магазина.', coins: 50 });
+        save(); closeSheet(); renderHome();
+      };
+    });
   }
 
   /* ---------- sheet ---------- */
@@ -718,7 +884,6 @@
     var bg = document.createElement('div');
     bg.className = 'sheet-bg';
     bg.innerHTML = '<div class="sheet" role="dialog">' + inner + '</div>';
-    bg.onclick = function (e) { if (e.target === bg) closeSheet(); };
     document.body.appendChild(bg);
     sheetOpen = bg;
   }
@@ -726,11 +891,13 @@
 
   /* ---------- lesson runner ---------- */
   function startLesson(lesson, exs) {
+    if (lesson.unit) curHero = lesson.unit.hero;
     if (!exs) {
-      if (lesson.review) exs = genLesson(contentOf(CONTENT), 12, { noIntro: true });
+      if (lesson.review) exs = genLesson(contentOf(GALL[lesson.unit.grade].filter(function (l) { return !l.review; })), 12, { noIntro: true });
       else exs = genLesson(lesson, 10);
     }
-    L = { lesson: lesson, q: exs, i: 0, total: exs.filter(function (e) { return !e.free; }).length, good: 0, mistakes: 0, hearts: HEARTS, retried: [] };
+    var hearts = HEARTS + S.bonusHearts; S.bonusHearts = 0; save();
+    L = { lesson: lesson, q: exs, i: 0, total: exs.filter(function (e) { return !e.free; }).length, good: 0, mistakes: 0, hearts: hearts, retried: [] };
     renderLesson();
   }
   function renderLesson() {
@@ -758,7 +925,7 @@
     if (r.ok) {
       if (!ex._counted) { L.good++; ex._counted = true; }
       sfx.ok();
-      if (r.say && TTS.ok()) TTS.speak(r.say, true);
+      if (r.say) setTimeout(function () { TTS.speak(r.say, true); }, 150);
     } else {
       sfx.bad(); L.mistakes++; L.hearts--;
       if (L.retried.indexOf(ex) < 0) { L.retried.push(ex); L.q.push(ex); }
@@ -784,26 +951,25 @@
     sheet(mascot('sad') + '<h3>Шынымен шығасың ба?</h3><p>Правда выйти? Прогресс этого урока пропадёт.</p>' +
       '<button class="btn" id="stay">Оқуды жалғастыру · учиться дальше</button><button class="btn ghost" id="quit" style="color:var(--bad-d)">Шығу · выйти</button>');
     qs('#stay').onclick = closeSheet;
-    qs('#quit').onclick = function () { closeSheet(); L = null; renderHome(); };
+    qs('#quit').onclick = function () { var p = L && L.lesson.practice; closeSheet(); L = null; if (p) tab = 'games'; renderHome(); };
   }
   function outOfHearts() {
     var lesson = L.lesson;
-    sheet(mascot('sad') + '<h3>Жүректер бітті 💔</h3><p>Сердечки закончились. Не грусти — попробуй ещё раз!</p>' +
+    sheet(mascot('sad') + '<h3>Жүректер бітті 💔</h3><p>Сердечки закончились. Не грусти — попробуй ещё раз! В магазине можно купить +2 ❤️.</p>' +
       '<button class="btn ok" id="again">Қайтадан · ещё раз</button><button class="btn ghost" id="home">Шығу · выйти</button>');
-    qs('#again').onclick = function () { closeSheet(); if (lesson.practice) { L = null; tab = 'practice'; renderHome(); } else startLesson(lesson); };
+    qs('#again').onclick = function () { closeSheet(); if (lesson.practice) { L = null; tab = 'games'; renderHome(); } else startLesson(lesson); };
     qs('#home').onclick = function () { closeSheet(); L = null; renderHome(); };
   }
   function finish() {
     var l = L.lesson;
     var stars = L.mistakes === 0 ? 3 : L.mistakes <= 2 ? 2 : 1;
     var xp = l.practice ? 10 : (l.review ? 20 : 10) + (stars === 3 ? 5 : 0);
+    var coins = l.practice ? 5 : l.review ? 30 : 5 + stars * 5;
     var acc = Math.round(L.good / Math.max(1, L.good + L.mistakes) * 100);
-    var firstToday = S.lastDay !== today();
-    if (firstToday) { S.streak = S.lastDay === yesterday() ? S.streak + 1 : 1; S.lastDay = today(); }
-    if (S.dayDate !== today()) { S.dayXp = 0; S.dayDate = today(); }
-    S.xp += xp; S.dayXp += xp; S.lessons++;
-    if (!l.practice) S.done[l.id] = Math.max(S.done[l.id] || 0, stars);
-    save();
+    var firstToday = bumpStreak();
+    addXp(xp); S.coins += coins; S.lessons++;
+    if (!l.practice) { S.done[l.id] = Math.max(S.done[l.id] || 0, stars); if (stars === 3) S.perfects++; }
+    levelCheck(); checkAch(); save();
     view = 'result';
     sfx.win(); confetti();
     var title = stars === 3 ? 'Керемет! Мінсіз!' : stars === 2 ? 'Жарайсың!' : 'Сабақ аяқталды!';
@@ -812,12 +978,12 @@
       '<div class="big-stars">' + [1, 2, 3].map(function (i) { return '<span class="' + (i <= stars ? '' : 'off') + '">⭐</span>'; }).join('') + '</div>' +
       '<h2>' + title + '</h2><p>' + sub + '</p>' +
       '<div class="res-grid">' +
-      '<div class="res-box" style="--c:var(--sun-500)"><small>Ұпай · XP</small><b>+' + xp + '</b></div>' +
-      '<div class="res-box" style="--c:var(--ok)"><small>Дәлдік · точно</small><b>' + acc + '%</b></div>' +
-      '<div class="res-box" style="--c:var(--sun-600)"><small>Күн · дни</small><b>🔥' + S.streak + '</b></div></div>' +
-      (firstToday && S.streak > 1 ? '<p><b>🔥 ' + S.streak + ' дней подряд! Так держать!</b></p>' : '') +
+      '<div class="res-box" style="--c:var(--sky-600)"><small>Ұпай · XP</small><b>+' + xp + '</b></div>' +
+      '<div class="res-box" style="--c:var(--sun-600)"><small>Алтын</small><b>+' + coins + '🪙</b></div>' +
+      '<div class="res-box" style="--c:var(--ok)"><small>Дәлдік</small><b>' + acc + '%</b></div></div>' +
+      '<p><b>🔥 ' + S.streak + (firstToday && S.streak > 1 ? ' дней подряд! Так держать!' : ' · серия дней') + '</b></p>' +
       '</div><div class="l-foot"><button class="btn ok" id="cont">Жалғастыру</button></div></div>';
-    qs('#cont').onclick = function () { sfx.tap(); L = null; if (l.practice) tab = 'practice'; renderHome(); };
+    qs('#cont').onclick = function () { sfx.tap(); L = null; if (l.practice) tab = 'games'; renderHome(); };
   }
   function confetti() {
     var c = document.createElement('div'); c.className = 'confetti';
@@ -830,18 +996,54 @@
     setTimeout(function () { c.remove(); }, 4000);
   }
 
+  /* ---------- mini-games host ---------- */
+  function startGame(id) {
+    if (G && G.cleanup) G.cleanup();
+    view = 'game'; G = { id: id, cleanup: null };
+    var api = {
+      words: gradeWords(gIdx()), allWords: ALLWORDS,
+      esc: esc, shuffle: shuffle, rnd: rnd, uniqBy: uniqBy, qs: qs, qsa: qsa, glyph: glyph, isColor: isColorGlyph,
+      sfx: sfx, TTS: TTS, toast: toast, hero: myHero,
+      frame: function (title, inner) {
+        $app.innerHTML = '<div class="game"><div class="g-top"><button class="x" id="gx" aria-label="Выйти">✕</button><b class="g-title">' + esc(title) + '</b><span class="g-stat" id="gstat"></span></div><div class="g-body" id="gb">' + inner + '</div></div>';
+        qs('#gx').onclick = exitGame;
+        return qs('#gb');
+      },
+      stat: function (html) { var s = qs('#gstat'); if (s) s.innerHTML = html; },
+      onLeave: function (fn) { G.cleanup = fn; },
+      end: function (res) { endGame(id, res); }
+    };
+    window.QGAMES[id](api);
+  }
+  function exitGame() { if (G && G.cleanup) G.cleanup(); G = null; tab = 'games'; renderHome(); }
+  function endGame(id, res) {
+    if (G && G.cleanup) G.cleanup();
+    G = null; view = 'gameover';
+    var coins = Math.max(0, res.coins | 0);
+    S.gamesPlayed++; S.coins += coins; addXp(Math.min(10, res.score | 0)); bumpStreak();
+    if (id === 'quiz') S.quizBest = Math.max(S.quizBest, res.score | 0);
+    levelCheck(); checkAch(); save();
+    sfx.win(); confetti();
+    $app.innerHTML = '<div class="lesson"><div class="result">' + myHero('wow') + '<h2>' + esc(res.title || 'Ойын аяқталды!') + '</h2>' +
+      '<p>' + esc(res.sub || '') + '</p><div class="res-grid two">' +
+      '<div class="res-box" style="--c:var(--sky-600)"><small>Нәтиже · счёт</small><b>' + esc(res.scoreText || String(res.score)) + '</b></div>' +
+      '<div class="res-box" style="--c:var(--sun-600)"><small>Алтын</small><b>+' + coins + '🪙</b></div></div></div>' +
+      '<div class="l-foot" style="display:flex;flex-direction:column;gap:12px"><button class="btn ok" id="again">Тағы ойнау · ещё раз</button><button class="btn ghost" id="out">Шығу · выйти</button></div></div>';
+    qs('#again').onclick = function () { sfx.tap(); startGame(id); };
+    qs('#out').onclick = function () { sfx.tap(); tab = 'games'; renderHome(); };
+  }
+
   /* ---------- Android back button ---------- */
   window.qBack = function () {
-    if (sheetOpen) { closeSheet(); return true; }
+    if (sheetOpen) { if (!S.onboarded) return true; closeSheet(); flushRewards(); return true; }
     if (view === 'lesson') { confirmExit(); return true; }
-    if (view === 'result') { L = null; renderHome(); return true; }
+    if (view === 'game') { exitGame(); return true; }
+    if (view === 'result' || view === 'gameover') { L = null; renderHome(); return true; }
     if (tab !== 'path') { tab = 'path'; renderHome(); return true; }
     return false;
   };
-  // When the user returns from TTS settings, refresh the profile status.
-  window.qResume = function () { if (view === 'home' && tab === 'me') renderHome(); };
+  window.qResume = function () { if (view === 'home' && tab === 'me') refresh(); };
+  window.qDebug = { setHearts: function (n) { if (L) L.hearts = n; }, state: function () { return S; } };
 
-  window.qDebug = { setHearts: function (n) { if (L) L.hearts = n; } };
-
-  renderHome();
+  window.Q = { boot: function () { renderHome(); } };
 })();
