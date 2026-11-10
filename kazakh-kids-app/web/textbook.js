@@ -579,7 +579,7 @@
           ]
         },
         {
-          id: 'tb3l10', kk: 'Нәтиже сабақ', ru: 'Итоговый урок: что я узнал?', en: 'Review: what have I learned?', icon: '🏆', page: 105, game: 'tg_signs',
+          id: 'tb3l10', kk: 'Нәтиже сабақ', ru: 'Итоговый урок: что я узнал?', en: 'Review: what have I learned?', icon: '🏆', page: 105, game: 'tg_time4',
           review: true, assess: true, book: 'Тақырыпқа қатысты сөздерді табу және сөйлегенде қолдану.',
           rule: 'Сағат — уақыт бөлшегі, сағат — өмір өлшемі.', proverb: 'Шанаңды жазда сайла, арбаңды қыста сайла.'
         }
@@ -741,6 +741,20 @@
         it('Қар ериді', '💧', 'koktem', 'Тает снег', 'The snow melts'), it('Ағаштар бүршік жарады', '🌿', 'koktem', 'Распускаются почки', 'Buds burst'), it('Құстар ұшып келеді', '🐦', 'koktem', 'Прилетают птицы', 'Birds fly back'),
         it('Жеміс-жидек піседі', '🍓', 'zhaz', 'Созревают ягоды', 'Berries ripen'), it('Біз суға шомыламыз', '🏊', 'zhaz', 'Мы купаемся', 'We swim'), it('Күн ыстық болады', '🥵', 'zhaz', 'Жарко', 'It is hot'),
         it('Егін орады', '🌾', 'kuz', 'Убирают урожай', 'The harvest is gathered'), it('Құстар жылы жаққа ұшып кетеді', '🦩', 'kuz', 'Птицы улетают на юг', 'Birds fly south'), it('Біз қолшатыр ұстаймыз', '☂️', 'kuz', 'Мы берём зонты', 'We carry umbrellas')
+      ]
+    },
+    tg_time4: {
+      type: 'sort', kk: 'Бұрынғы, қазір, кейін, әрқашан', ru: 'Когда это бывает?', en: 'Before, now, later, always', icon: '🏆', showWord: true, wide: true,
+      bins: [{ id: 'past', kk: 'Бұрынғы', e: '⏪' }, { id: 'now', kk: 'Қазір', e: '⏺️' }, { id: 'fut', kk: 'Кейін', e: '⏩' }, { id: 'alw', kk: 'Әрқашан', e: '♾️' }],
+      items: [
+        it('Қыста боран болды', '🌨️', 'past', 'Зимой была метель', 'There was a blizzard in winter'), it('Кеше біз киноға бардық', '🎬', 'past', 'Вчера мы ходили в кино', 'Yesterday we went to the cinema'),
+        it('Жазда теңізде демалдым', '🏖️', 'past', 'Летом я отдыхал на море', 'In summer I rested at the sea'),
+        it('Қазір сабақ жүріп жатыр', '📚', 'now', 'Сейчас идёт урок', 'The lesson is going on now'), it('Әжем кітап оқып отыр', '📖', 'now', 'Бабушка читает книгу', 'Grandma is reading a book'),
+        it('Мысық диванда жатыр', '🐈', 'now', 'Кошка лежит на диване', 'The cat is lying on the sofa'),
+        it('Ертең жаңбыр жауады', '☔', 'fut', 'Завтра будет дождь', 'It will rain tomorrow'), it('Келесі жазда ауылға барамын', '🏡', 'fut', 'Следующим летом поеду в аул', 'Next summer I will go to the village'),
+        it('Кешке үй тапсырмасын орындаймын', '📝', 'fut', 'Вечером сделаю домашнее задание', 'In the evening I will do my homework'),
+        it('Күн шығыстан шығады', '🌅', 'alw', 'Солнце встаёт на востоке', 'The sun rises in the east'), it('Қыстан кейін көктем келеді', '🌱', 'alw', 'После зимы приходит весна', 'Spring comes after winter'),
+        it('Бір жылда он екі ай бар', '📅', 'alw', 'В году двенадцать месяцев', 'A year has twelve months')
       ]
     },
     tg_monthorder: {

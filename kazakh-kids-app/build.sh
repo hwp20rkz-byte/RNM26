@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_CODE=${VERSION_CODE:-3}
-VERSION_NAME=${VERSION_NAME:-3.0}
+VERSION_CODE=${VERSION_CODE:-4}
+VERSION_NAME=${VERSION_NAME:-3.1}
 SDK=${ANDROID_SDK:-/usr/lib/android-sdk}
 ANDROID_JAR="$SDK/platforms/android-23/android.jar"
 DX="$SDK/build-tools/debian/dx"
@@ -21,7 +21,7 @@ mkdir -p "$BUILD/gen" "$BUILD/classes" "$BUILD/assets" dist
 
 # 1. Web game -> assets (only what the app needs)
 cp web/*.html web/*.css web/*.js "$BUILD/assets/"
-cp -r web/fonts web/audio web/vendor "$BUILD/assets/"
+cp -r web/fonts web/audio web/audio-iseke web/vendor "$BUILD/assets/"
 
 # 2. R.java
 aapt package -f -m -J "$BUILD/gen" -M android/AndroidManifest.xml -S android/res -I "$ANDROID_JAR"
