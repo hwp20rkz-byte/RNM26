@@ -144,10 +144,10 @@
     qs('#ax').onclick = leave;
     var stage = null, bones = [];
     if (V && V.ok()) {
-      stage = V.stage(qs('#ast'), { camPos: [0, 6.2, 6.4], camLook: [0, 0.3, 0], fov: 36 });
+      stage = V.stage(qs('#ast'), { camPos: [0, 8.2, 7.4], camLook: [0, 0.2, 0.3], fov: 36 });
       if (stage) {
-        stage.scene.add(V.box(9, 0.2, 6, 0x7a1f3d, 0, -0.1, 0), V.box(9.2, 0.16, 6.2, V.glow(V.NEON.gold), 0, -0.14, 0));
-        for (var i = 0; i < 4; i++) { var b = V.asyk(); b.scale.setScalar(1.1); b.position.set(-2.7 + i * 1.8, 0.3, 0); b.rotation.x = Math.PI / 2; b.rotation.y = 0.3; stage.scene.add(b); bones.push(b); }
+        stage.scene.add(V.box(8, 0.2, 5, 0x7a1f3d, 0, -0.1, 0), V.box(8.2, 0.16, 5.2, V.glow(V.NEON.gold), 0, -0.14, 0));
+        for (var i = 0; i < 4; i++) { var b = V.asyk(); b.scale.setScalar(0.82); b.position.set(-2.25 + i * 1.5, 0.3, 0); b.rotation.x = Math.PI / 2; b.rotation.y = 0.3; stage.scene.add(b); bones.push(b); }
       }
     }
     qs('#tgo').onclick = function () {

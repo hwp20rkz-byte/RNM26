@@ -132,7 +132,7 @@
           if (busy) { if (record.stop) record.stop(); return; }
           mic.classList.add('on'); qs('#vhint', el).textContent = 'Слушаю… говори!'; A.sfx.tap();
           listen(s.kk, function (lv) { mic.style.setProperty('--lv', lv.toFixed(2)); }).then(function (r) {
-            if (!el.isConnected) return;
+            if (!document.body.contains(el)) return;
             mic.classList.remove('on'); tries++;
             if (r.error) { qs('#vhint', el).textContent = errText(r.error); A.sfx.bad(); return; }
             if (!best || r.score > best.score) best = r;

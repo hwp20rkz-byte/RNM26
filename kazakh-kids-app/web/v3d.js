@@ -332,7 +332,7 @@
     };
     (function loop() {
       if (dead) return;
-      if (!renderer.domElement.isConnected) return S.dispose();
+      if (!document.body.contains(renderer.domElement)) return S.dispose();   // (isConnected is missing in old WebViews)
       var t = now(), dt = Math.min(0.05, t - last); last = t;
       actors.forEach(function (a) { animate(a, t, dt); });
       ticks.forEach(function (fn) { fn(t, dt); });
