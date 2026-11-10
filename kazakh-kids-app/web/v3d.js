@@ -214,8 +214,18 @@
     g.position.y = 0.9;
     return g;
   }
+  // Асық: dog-bone silhouette. Sides are marked so the result of a toss is readable:
+  // top = алшы (gold S-ridge), bottom = тәйке (dark), front = бүк (smooth belly), back = шік (hollow groove).
   function asyk() {
-    var bone = lam(0xf2e3c2), g = group(0, 0, 0, box(0.9, 0.5, 0.56, bone), box(0.3, 0.58, 0.6, 0xe6d3a8, -0.3, 0, 0), box(0.3, 0.58, 0.6, 0xe6d3a8, 0.3, 0, 0), box(0.5, 0.06, 0.3, glow(NEON.gold), 0, 0.27, 0), box(0.5, 0.06, 0.3, 0xb8a27a, 0, -0.27, 0));
+    var bone = lam(0xf4e6c8), dark = lam(0xd9c49a);
+    var g = group(0, 0, 0,
+      box(0.62, 0.4, 0.5, bone),                                   // waist
+      box(0.42, 0.52, 0.66, bone, -0.5, 0, 0), box(0.42, 0.52, 0.66, bone, 0.5, 0, 0),   // knobs
+      box(0.18, 0.44, 0.56, dark, -0.78, 0, 0), box(0.18, 0.44, 0.56, dark, 0.78, 0, 0),
+      box(0.5, 0.05, 0.14, glow(NEON.gold), -0.2, 0.275, 0.1), box(0.5, 0.05, 0.14, glow(NEON.gold), 0.2, 0.275, -0.1),   // алшы
+      box(1.1, 0.05, 0.3, 0x8a6f45, 0, -0.275, 0),                 // тәйке
+      box(0.7, 0.3, 0.06, 0xfff6e0, 0, 0, 0.3),                    // бүк
+      box(0.7, 0.2, 0.06, 0x6b5636, 0, 0, -0.3));                  // шік
     return g;
   }
   function hammer() {

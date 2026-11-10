@@ -60,7 +60,7 @@
         lotObj.scale.setScalar(sc); stage.add(lotObj, 0, l.kind === 'trail' ? 1.6 : 0.6, 0);
         ham = place(stage, V.hammer(), 2.6, 0.5, 0.6); ham.rotation.y = -0.6;
         place(stage, V.box(0.9, 0.3, 0.9, 0x4b2f1c), 1.75, 0.15, 0.95);                      // sound block
-        var bidder = V.make('batyr'); bidder.scale.setScalar(0.62); bidder.rotation.y = 0.5; stage.add(bidder, -2.7, 0, 0.8);
+        var bidder = V.make('batyr'); bidder.scale.setScalar(0.58); bidder.rotation.y = 0.5; stage.add(bidder, -2.25, 0, 0.9);
         stage.onTick(function (t) {
           if (l.kind !== 'trail') lotObj.rotation.y = t * 0.9;
           var k = t - hamT;                                                              // strike: wind up → hit → rebound
@@ -75,8 +75,9 @@
       qs('#abid').innerHTML = au.bid + ' 🪙'; qs('#atime').textContent = '00:' + ('0' + Math.max(0, au.time)).slice(-2);
       qs('#acoins').innerHTML = S().coins + ' 🪙';
       qs('#atime').className = au.time <= 5 ? 'hot' : '';
+      if (!au.active) return;                        // the result panel is drawn by finish()
       var lead = au.leader === ME;
-      qs('#abtn').innerHTML = !au.active ? '' : lead ? '<p class="lead">✅ Сенің бағаң жоғары! · твоя ставка лидирует</p>' :
+      qs('#abtn').innerHTML = lead ? '<p class="lead">✅ Сенің бағаң жоғары! · твоя ставка лидирует</p>' :
         [10, 30, 60].map(function (inc) {
           var amt = au.bid + inc, can = S().coins >= amt;
           return '<button class="btn ' + (can ? 'gold' : '') + '" data-bid="' + amt + '"' + (can ? '' : ' disabled') + '>' + amt + ' 🔨</button>';
@@ -146,12 +147,12 @@
       stage = V.stage(qs('#ast'), { camPos: [0, 6.2, 6.4], camLook: [0, 0.3, 0], fov: 36 });
       if (stage) {
         stage.scene.add(V.box(9, 0.2, 6, 0x7a1f3d, 0, -0.1, 0), V.box(9.2, 0.16, 6.2, V.glow(V.NEON.gold), 0, -0.14, 0));
-        for (var i = 0; i < 4; i++) { var b = V.asyk(); b.position.set(-2.4 + i * 1.6, 0.3, 0); b.rotation.x = Math.PI / 2; stage.scene.add(b); bones.push(b); }
+        for (var i = 0; i < 4; i++) { var b = V.asyk(); b.scale.setScalar(1.1); b.position.set(-2.7 + i * 1.8, 0.3, 0); b.rotation.x = Math.PI / 2; b.rotation.y = 0.3; stage.scene.add(b); bones.push(b); }
       }
     }
     qs('#tgo').onclick = function () {
       var res = [0, 1, 2, 3].map(function () { return rollPos(Math.random); }), prize = tossPrize(res);
-      st.tossDay = A.today(); A.save();
+      st.tossDay = A.today(); A.save(); questEvent({ t: 'toss' });
       qs('#tbtn').innerHTML = ''; A.sfx.tap(); A.vibrate(40);
       var t0 = V ? V.now() : 0, done = false;
       var spin = bones.map(function () { return { sx: 6 + Math.random() * 8, sz: 4 + Math.random() * 6, h: 2.2 + Math.random() * 1.4, d: 1.1 + Math.random() * 0.5, zx: (Math.random() - 0.5) * 1.4 }; });
@@ -159,7 +160,7 @@
         bones.forEach(function (b, i) {
           var k = Math.min(1, (t - t0) / spin[i].d), fall = 1 - k;
           b.position.y = 0.3 + Math.sin(k * Math.PI) * spin[i].h; b.position.z = spin[i].zx * k;
-          b.rotation.x = res[i].rot + fall * spin[i].sx; b.rotation.z = fall * spin[i].sz; b.rotation.y = fall * 3 + i * 0.4;
+          b.rotation.x = res[i].rot + fall * spin[i].sx; b.rotation.z = fall * spin[i].sz; b.rotation.y = fall * 3 + 0.25 + (i % 2 ? -0.5 : 0);
         });
       });
       setTimeout(function () {
@@ -177,6 +178,56 @@
       }, stage ? 1800 : 500);
     };
   }
+
+  /* ================= daily quests ================= */
+  var QUESTS = [
+    { id: 'lesson', icon: '📘', goal: 2, kk: '2 сабақ өт', ru: 'Пройди 2 урока', en: 'Finish 2 lessons', coins: 20 },
+    { id: 'perfect', icon: '💎', goal: 1, kk: 'Мінсіз сабақ', ru: 'Пройди урок без ошибок', en: 'Finish a lesson with no mistakes', coins: 25 },
+    { id: 'arcade', icon: '🕹️', goal: 1, kk: 'Аркада ойна', ru: 'Сыграй в аркаду', en: 'Play an arcade game', coins: 15 },
+    { id: 'games', icon: '🎮', goal: 2, kk: '2 ойын ойна', ru: 'Сыграй в 2 любые игры', en: 'Play any 2 games', coins: 15 },
+    { id: 'xp', icon: '⚡', goal: 40, kk: '40 XP жина', ru: 'Набери 40 XP за день', en: 'Earn 40 XP today', coins: 20 },
+    { id: 'toss', icon: '🦴', goal: 1, kk: 'Асық үйір', ru: 'Брось асыки', en: 'Throw the asyks', coins: 10 }
+  ];
+  function quests() {
+    var st = S(), day = A.today();
+    if (!st.quests || st.quests.day !== day) {
+      var rng = AU.seeded(day.split('-').reduce(function (n, x) { return n * 37 + (+x); }, 7));
+      var pool = QUESTS.slice().sort(function () { return rng() - 0.5; }).slice(0, 3);
+      st.quests = { day: day, bonus: false, q: pool.map(function (q) { return { id: q.id, p: 0, c: false }; }) };
+      A.save();
+    }
+    st.quests.q.forEach(function (x) { if (x.id === 'xp') x.p = st.dayXp || 0; });
+    return st.quests;
+  }
+  function qDef(id) { return QUESTS.filter(function (q) { return q.id === id; })[0]; }
+  function questEvent(e) {
+    quests().q.forEach(function (x) {
+      if ((x.id === 'lesson' && e.t === 'lesson' && !e.practice) || (x.id === 'perfect' && e.t === 'lesson' && e.stars === 3 && !e.practice) ||
+        (x.id === 'arcade' && e.t === 'game' && e.arcade) || (x.id === 'games' && e.t === 'game') || (x.id === 'toss' && e.t === 'toss')) x.p++;
+    });
+    A.save();
+  }
+  function questsHtml() {
+    var Q = quests(), allClaimed = Q.q.every(function (x) { return x.c; });
+    return '<div class="pad"><div class="quests"><div class="q-head"><b>Күнделікті тапсырмалар</b><span class="muted">задания дня</span></div>' + Q.q.map(function (x, i) {
+      var d = qDef(x.id), p = Math.min(d.goal, x.p), done = p >= d.goal;
+      return '<div class="quest' + (x.c ? ' claimed' : done ? ' done' : '') + '"><span class="qi">' + d.icon + '</span><div class="qt"><b>' + esc(d.kk) + '</b><span class="muted">' + esc(L(d)) + '</span>' +
+        '<div class="goal dark"><i style="width:' + Math.round(p / d.goal * 100) + '%"></i></div></div>' +
+        (x.c ? '<span class="pill ok">✓</span>' : done ? '<button class="btn gold q-claim" data-q="' + i + '">+' + d.coins + ' 🪙</button>' : '<span class="pill">' + p + '/' + d.goal + '</span>') + '</div>';
+    }).join('') + (allClaimed && !Q.bonus ? '<button class="btn gold" id="qbonus">🎁 Сандық · бонус за все задания</button>' : '') + '</div></div>';
+  }
+  function bindQuests() {
+    qsa('[data-q]').forEach(function (b) {
+      b.onclick = function () {
+        var Q = quests(), x = Q.q[+b.getAttribute('data-q')], d = qDef(x.id);
+        if (x.c) return;
+        x.c = true; S().coins += d.coins; A.save(); A.sfx.coin(); A.vibrate(30); A.refresh();
+      };
+    });
+    var qb = qs('#qbonus');
+    if (qb) qb.onclick = function () { quests().bonus = true; A.save(); A.openChest('Күнделікті сандық', 30, 0.6); };
+  }
+  window.Q.ext.event = questEvent;
 
   /* ================= leagues ================= */
   function leagueBoard() {
@@ -208,7 +259,7 @@
   function bindGallery() {
     var st = S(), h = A.heroInfo(st.heroSel), stage = null, av = null;
     if (h.neo && V && V.ok() && qs('#gst')) {
-      stage = V.stage(qs('#gst'), { camPos: [0.6, 2.5, 8], camLook: [0.3, 1.55, 0], fov: 34 });
+      stage = V.stage(qs('#gst'), { camPos: [0.6, 2.6, 10.2], camLook: [0.3, 1.75, 0], fov: 34 });
       if (stage) {
         av = V.make(h.id); if (st.eq.skin) V.wear(av, st.eq.skin); av.rotation.y = -0.25; stage.add(av, -0.2, 0, 0);
         place(stage, V.pedestal(), -0.2, -0.56, 0);
@@ -253,12 +304,13 @@
     var boost = A.xpBoost() > 1 ? '<div class="boost">⚡ ×2 Шежіре XP — ещё ' + fmtTime(st.xpBoostUntil - Date.now()) + '</div>' : '';
     return '<div class="pad">' + boost + '<div class="chips3"><button class="chip' + (toss ? ' hot' : '') + '" id="hc-toss"><span>🦴</span>Асық үйіру' + (toss ? '<i>!</i>' : '') + '</button>' +
       '<button class="chip' + (auc ? ' hot' : '') + '" id="hc-auc"><span>🔨</span>Аукцион' + (auc ? '<i>LIVE</i>' : '') + '</button>' +
-      '<button class="chip" id="hc-lg"><span>' + lg.icon + '</span>' + esc(lg.kk) + '</button></div></div>';
+      '<button class="chip" id="hc-lg"><span>' + lg.icon + '</span>' + esc(lg.kk) + '</button></div></div>' + questsHtml();
   };
   window.Q.ext.bindHome = function () {
     qs('#hc-toss').onclick = function () { A.sfx.tap(); openToss(); };
     qs('#hc-auc').onclick = function () { A.sfx.tap(); openAuction(); };
     qs('#hc-lg').onclick = function () { A.sfx.tap(); A.setTab('me'); A.renderHome(); };
+    bindQuests();
   };
   window.Q.ext.shopTop = function () {
     var st = S(), toss = st.tossDay !== A.today();
@@ -274,5 +326,5 @@
   window.Q.ext.meTop = function () { return galleryHtml() + leagueBoard() + (window.Q.ext.voicePanel ? window.Q.ext.voicePanel() : ''); };
   window.Q.ext.bindMe = function () { bindGallery(); if (window.Q.ext.bindVoicePanel) window.Q.ext.bindVoicePanel(); };
 
-  window.QARENA = { openAuction: openAuction, openToss: openToss, currentLot: currentLot, tossPrize: tossPrize, POS: POS };
+  window.QARENA = { openAuction: openAuction, openToss: openToss, currentLot: currentLot, tossPrize: tossPrize, rollPos: rollPos, POS: POS };
 })();

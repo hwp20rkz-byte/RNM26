@@ -953,7 +953,7 @@
     view = 'lesson';
     var pct = Math.round(L.good / L.total * 100);
     $app.innerHTML = '<div class="lesson"><div class="l-top"><button class="x" id="lx" aria-label="Выйти">✕</button>' +
-      '<div class="bar"><i style="width:' + pct + '%"></i></div><span class="stat heart"><span class="ico">❤️</span>' + L.hearts + '</span></div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' + ((L.combo || 0) >= 3 ? '<span class="stat fire">🔥' + L.combo + '</span>' : '') + '<span class="stat heart"><span class="ico">❤️</span>' + L.hearts + '</span></div>' +
       '<div class="l-body" id="lb"></div><div class="l-foot" id="lf"><button class="btn ok" id="lc" disabled>Тексеру</button></div></div>';
     var ex = L.q[L.i], lb = qs('#lb'), lc = qs('#lc');
     qs('#lx').onclick = confirmExit;
@@ -968,15 +968,24 @@
   function feedback(r, ex) {
     if (r.silent) { L.i++; return renderLesson(); }
     var lb = qs('#lb'), lf = qs('#lf');
+    if (r.neutral) {                 // e.g. the recogniser did not understand: no heart lost, nothing to repeat
+      lb.style.pointerEvents = 'none'; lf.style.display = ''; lf.className = 'l-foot';
+      lf.innerHTML = '<div class="fb"><span class="ic">💬</span><div><h3>' + esc(r.title || 'Жарайды!') + '</h3><p>' + esc(r.ans) + '</p>' + (r.tr ? '<p class="tr">' + esc(r.tr) + '</p>' : '') +
+        '<p class="tr">Сердечко не потеряно: микрофон иногда ошибается.</p></div></div><button class="btn" id="next">Жалғастыру</button>';
+      qs('#next').onclick = next;
+      return;
+    }
     lb.style.pointerEvents = 'none';
     qsa('[data-say]', lb).forEach(function (b) { b.style.pointerEvents = 'auto'; });
     lf.style.display = '';
     if (r.ok) {
       if (!ex._counted) { L.good++; ex._counted = true; }
       sfx.ok();
+      L.combo = (L.combo || 0) + 1;
+      if (L.combo === 5 || L.combo === 10) comboPop(L.combo);
       if (r.say) setTimeout(function () { TTS.speak(r.say, true); }, 150);
     } else {
-      sfx.bad(); L.mistakes++; L.hearts--;
+      sfx.bad(); L.mistakes++; L.hearts--; L.combo = 0;
       if (L.retried.indexOf(ex) < 0) { L.retried.push(ex); L.q.push(ex); }
       var hb = qs('.stat.heart'); if (hb) { hb.innerHTML = '<span class="ico">💔</span>' + L.hearts; hb.classList.add('shake'); }
     }
@@ -988,6 +997,16 @@
         : '<h3>Дұрыс жауап:</h3><p>' + esc(r.ans) + '</p>' + (r.tr ? '<p class="tr">' + esc(r.tr) + '</p>' : '') + '<p class="tr">Ничего страшного — это задание вернётся в конце.</p>') +
       '</div></div><button class="btn ' + (r.ok ? 'ok' : 'bad') + '" id="next">Жалғастыру</button>';
     qs('#next').onclick = next;
+  }
+  // 5 in a row → a cheer; 10 in a row → the hero's signature «Shattyq Slam» and bonus asyks.
+  function comboPop(n) {
+    var big = n >= 10, h = heroInfo(curHero), line = W.LINES[curHero] ? W.LINES[curHero].combo : W.LINES.batyr.combo;
+    var p = document.createElement('div'); p.className = 'combo-pop' + (big ? ' big' : '');
+    p.innerHTML = mascot('wow') + '<div><b>🔥 ×' + n + (big ? ' · Shattyq Slam!' : '') + '</b><span>' + esc(big ? line.kk : 'Керемет! Так держать!') + (big ? ' +5 🪙' : '') + '</span></div>';
+    document.body.appendChild(p);
+    if (big) { S.coins += 5; save(); vibrate(60); setTimeout(function () { TTS.speak(line.kk, true); }, 500); }
+    setTimeout(function () { p.remove(); }, big ? 2200 : 1500);
+    return h;
   }
   function next() {
     sfx.tap();
@@ -1018,6 +1037,7 @@
     var firstToday = bumpStreak();
     xp = addXp(xp); S.coins += coins; S.lessons++;
     if (!l.practice) { S.done[l.id] = Math.max(S.done[l.id] || 0, stars); if (stars === 3) S.perfects++; }
+    X('event', { t: 'lesson', stars: stars, practice: !!l.practice });
     levelCheck(); checkAch(); save();
     view = 'result';
     sfx.win(); confetti();
@@ -1073,6 +1093,7 @@
     S.gamesPlayed++; S.coins += coins; addXp(res.xp != null ? res.xp : Math.min(10, res.score | 0)); bumpStreak();
     if (res.arcade) { S.arcade = S.arcade || {}; S.arcade[id] = Math.max(S.arcade[id] || 0, res.score | 0); }
     if (id === 'quiz') S.quizBest = Math.max(S.quizBest, res.score | 0);
+    X('event', { t: 'game', arcade: !!res.arcade });
     levelCheck(); checkAch(); save();
     sfx.win(); confetti();
     $app.innerHTML = '<div class="lesson"><div class="result">' + myHero('wow') + '<h2>' + esc(res.title || 'Ойын аяқталды!') + '</h2>' +
@@ -1103,7 +1124,7 @@
       D: D, W: W, state: function () { return S; }, save: save, esc: esc, rnd: rnd, shuffle: shuffle, uniqBy: uniqBy, qs: qs, qsa: qsa, norm: norm, tokens: tokens,
       tr: tr, lang: lang, glyph: glyph, sfx: sfx, TTS: TTS, toast: toast, sheet: sheet, closeSheet: closeSheet, confetti: confetti, vibrate: vibrate,
       hero: W.hero, myHero: myHero, heroInfo: heroInfo, addXp: addXp, addReward: addReward, levelCheck: levelCheck, checkAch: checkAch, flushRewards: flushRewards,
-      refresh: refresh, renderHome: renderHome, buy: buy, league: league, xpBoost: xpBoost, today: today, startGame: startGame, bumpStreak: bumpStreak,
+      refresh: refresh, renderHome: renderHome, buy: buy, openChest: openChest, league: league, xpBoost: xpBoost, today: today, startGame: startGame, bumpStreak: bumpStreak,
       setTab: function (t) { tab = t; }, setView: function (v) { view = v; }, app: $app, selectOne: selectOne, markCards: markCards, spk: spk, bindSpeak: bindSpeak,
       prompt: prompt, mascot: mascot, allSentences: function () { return ALLSENT; }, gradeLessons: function (gi) { return GALL[gi]; }, gIdx: gIdx
     },

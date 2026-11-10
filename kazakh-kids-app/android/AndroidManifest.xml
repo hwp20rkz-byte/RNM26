@@ -2,12 +2,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="kz.qazaqsha.oyna">
 
-    <!-- No INTERNET permission: the game is fully offline and collects nothing. -->
+    <!-- The game itself is fully offline. These three are for optional features only:
+         VIBRATE       — haptics for the auction hammer and arcade hits;
+         RECORD_AUDIO  — pronunciation tasks (asked the first time the child taps the microphone);
+         INTERNET      — only to reach the QazaqVerse voice server a parent sets up on the home network. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Android 11+: lets the app see installed text-to-speech engines (for Kazakh voice). -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Android 11+: lets the app see installed text-to-speech and speech-recognition services. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 
@@ -16,6 +27,7 @@
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"

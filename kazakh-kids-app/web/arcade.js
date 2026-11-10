@@ -29,7 +29,7 @@
     el.appendChild(p); setTimeout(function () { p.remove(); }, 1800);
   }
   function countdown(api, secs, onTick, onEnd) {
-    var left = secs, id = setInterval(function () { left--; onTick(left); if (left <= 0) { clearInterval(id); onEnd(); } }, 1000);
+    var left = window.qFast ? Math.min(secs, 16) : secs, id = setInterval(function () { left--; onTick(left); if (left <= 0) { clearInterval(id); onEnd(); } }, 1000);
     onTick(left);
     return { stop: function () { clearInterval(id); }, add: function (d) { left = Math.max(1, left + d); onTick(left); }, left: function () { return left; } };
   }
@@ -45,7 +45,7 @@
     var all = api.shuffle(want.map(function (w, i) { return { w: w, k: i }; }).concat(extra.map(function (w) { return { w: w, k: -1 }; })));
     function draw() {
       el.innerHTML = '<div class="bub-line">' + want.map(function (w, i) { return '<span class="' + (i < got.length ? 'on' : '') + '">' + (i < got.length ? api.esc(w) : '•••') + '</span>'; }).join(' ') + '</div>' +
-        '<div class="bubs">' + all.map(function (b, i) { return '<button class="bub' + (b.used ? ' used' : '') + '" data-b="' + i + '" style="animation-delay:' + (i * 0.12).toFixed(2) + 's">' + api.esc(b.w) + '</button>'; }).join('') + '</div>';
+        '<div class="bubs">' + all.map(function (b, i) { return '<button class="bub' + (b.used ? ' used' : '') + '" data-b="' + i + '" data-k="' + b.k + '" style="animation-delay:' + (i * 0.12).toFixed(2) + 's">' + api.esc(b.w) + '</button>'; }).join('') + '</div>';
       api.qsa('.bub', el).forEach(function (btn) {
         btn.onclick = function () {
           var b = all[+btn.getAttribute('data-b')]; if (b.used) return;
@@ -108,8 +108,8 @@
       api.TTS.speak(words, true);
       task('Расслышь цену и выбери её', 'Listen to the price and pick it');
       var opts = api.shuffle([price, price + (price >= 1000 ? 100 : 50), Math.max(50, price - (price >= 1000 ? 200 : 100))]);
-      api.qs('#inp').innerHTML = '<button class="btn ghost" id="again">🔊 ' + (api.lang() === 'en' ? 'Listen again' : 'Ещё раз') + '</button><div class="prices">' + opts.map(function (p) { return '<button class="ptag" data-p="' + p + '">' + p + ' ₸</button>'; }).join('') + '</div>';
-      api.qs('#again').onclick = function () { api.TTS.speak(words, true); };
+      api.qs('#inp').innerHTML = '<button class="btn ghost" id="relisten">🔊 ' + (api.lang() === 'en' ? 'Listen again' : 'Ещё раз') + '</button><div class="prices">' + opts.map(function (p) { return '<button class="ptag" data-p="' + p + '">' + p + ' ₸</button>'; }).join('') + '</div>';
+      api.qs('#relisten').onclick = function () { api.TTS.speak(words, true); };
       api.qsa('.ptag').forEach(function (b) {
         b.onclick = function () {
           if (+b.getAttribute('data-p') === price) { ok(1); stall(words.charAt(0).toUpperCase() + words.slice(1) + ' теңге', null, price + ' ₸'); setTimeout(good.sweet && Math.random() < 0.45 ? sweet : haggle, 600); }
@@ -373,7 +373,8 @@
     var allWords = api.uniqBy([].concat.apply([], VERSES.map(function (v) { return (v.a + ' ' + v.b).split(' '); })), function (w) { return w.toLowerCase(); });
     api.frame('Айтыс Beat Battle', '<div class="duel"><span>🎤 Сен</span><div class="duel-bar"><i id="hype"></i></div><span>Қарсылас 🤖</span></div>' +
       '<div class="verse" id="verse"></div><div class="lanes" id="lanes"><div class="hitline"></div></div><div class="judge" id="judge"></div>'); neon(api);
-    api.onLeave(function () { over = true; cancelAnimationFrame(raf); try { if (AC) AC.close(); } catch (e) { /* ignore */ } });
+    api.onLeave(function () { over = true; cancelAnimationFrame(raf); closeAudio(); });
+    function closeAudio() { try { if (AC && AC.state !== 'closed') AC.close().catch(function () { /* already closed */ }); } catch (e) { /* ignore */ } }
     function hud() { api.stat('⭐ ' + score + (combo > 2 ? ' · 🔥×' + combo : '')); var h = api.qs('#hype'); if (h) h.style.width = Math.max(4, Math.min(96, hype)) + '%'; }
     function drum(t, f0, f1, dur, vol, type) { var o = AC.createOscillator(), g = AC.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02); }
     function hat(t, vol) { var n = AC.createBufferSource(), b = AC.createBuffer(1, 2205, 44100), d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length); n.buffer = b; var g = AC.createGain(); g.gain.value = vol; var f = AC.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000; n.connect(f); f.connect(g); g.connect(AC.destination); n.start(t); }
@@ -436,12 +437,12 @@
         return true;
       });
       hype -= 0.012;                                                     // the rival keeps rhyming
-      if (now - sched > 75 || hype <= 0) return end();
+      if (now - sched > (window.qFast ? 16 : 75) || hype <= 0) return end();
       raf = requestAnimationFrame(frame);
     }
     function end() {
       if (over) return; over = true; cancelAnimationFrame(raf);
-      try { AC.close(); } catch (e) { /* ignore */ }
+      closeAudio();
       var acc = total ? Math.round(hits / Math.max(1, total - rows.filter(function (r) { return !r.done; }).length) * 100) : 0;
       finish(api, 'aisulu', { score: score, scoreText: score + ' ⭐ · ' + acc + '%', coins: Math.min(40, Math.floor(hits * 0.8) + (hype >= 50 ? 8 : 0)), xp: Math.min(15, Math.floor(hits / 2)), win: hype >= 50,
         sub: (hype >= 50 ? (api.lang() === 'en' ? 'You won the duel! ' : 'Дуэль выиграна! ') : (api.lang() === 'en' ? 'The rival was louder. ' : 'Соперник был громче. ')) + (api.lang() === 'en' ? 'Hits: ' : 'Попаданий: ') + hits + (best >= 5 ? ' · комбо ×' + best : '') });

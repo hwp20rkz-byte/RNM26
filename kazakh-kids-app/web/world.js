@@ -182,7 +182,7 @@
     { id: 'a_g3', icon: '🥇', kk: '3-сынып бітті', ru: 'Все уроки 3 класса', coins: 100, t: function (S, X) { return X.gradeDone[2]; } },
     { id: 'a_quiz', icon: '🏅', kk: 'Викторина чемпионы', ru: '10 из 10 в викторине', coins: 50, t: function (S) { return S.quizBest >= 10; } },
     { id: 'a_st10', icon: '🖼️', kk: 'Коллекционер', ru: 'Собери 10 наклеек', coins: 50, t: function (S) { return Object.keys(S.stickers).length >= 10; } },
-    { id: 'a_hero', icon: '🤝', kk: 'Жаңа дос', ru: 'Купи нового героя', coins: 20, t: function (S) { return S.heroes.length >= 2; } },
+    { id: 'a_hero', icon: '🤝', kk: 'Жаңа дос', ru: 'Купи нового героя', coins: 20, t: function (S) { return S.heroes.length >= 3; } },
     { id: 'a_games', icon: '🎮', kk: 'Ойыншы', ru: 'Сыграй 10 игр', coins: 40, t: function (S) { return S.gamesPlayed >= 10; } }
   ];
 
@@ -225,7 +225,7 @@
     batyr: {
       intro: { kk: 'Пәлі! Базарға кеттік, батырым!', ru: 'Ого! Пошли на базар, мой батыр!', en: 'Whoa! Off to the bazaar, my hero!' },
       win: { kk: 'Бәрекелді! Нағыз батырсың!', ru: 'Браво! Ты настоящий батыр!', en: 'Bravo! You are a true hero!' },
-      combo: { kk: 'Шаттық Slam! Керемет!', ru: 'Шаттык-слэм! Великолепно!', en: 'Shattyq Slam! Magnificent!' },
+      combo: { kk: 'Шаттық соққысы! Керемет!', ru: 'Шаттык-слэм! Великолепно!', en: 'Shattyq Slam! Magnificent!' },
       lose: { kk: 'Қап! Ештеңе етпейді, тағы байқап көр.', ru: 'Эх! Ничего страшного, попробуй ещё.', en: 'Oh no! Never mind, try again.' }
     },
     aisulu: {

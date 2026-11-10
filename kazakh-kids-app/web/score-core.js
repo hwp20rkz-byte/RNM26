@@ -15,8 +15,22 @@
   var SPECIAL_W = 1.5;
   var PASS = 70;
 
+  var UNITS = ['', 'бір', 'екі', 'үш', 'төрт', 'бес', 'алты', 'жеті', 'сегіз', 'тоғыз'];
+  var TENS = ['', 'он', 'жиырма', 'отыз', 'қырық', 'елу', 'алпыс', 'жетпіс', 'сексен', 'тоқсан'];
+  // 0–9999 in Kazakh words (recognisers like Whisper write «730» where the child said «жеті жүз отыз»).
+  function numToKk(n) {
+    if (n === 0) return 'нөл';
+    if (n > 9999) return String(n);
+    var th = Math.floor(n / 1000), h = Math.floor(n % 1000 / 100), t = Math.floor(n % 100 / 10), u = n % 10, out = [];
+    if (th) out.push(th === 1 ? 'мың' : UNITS[th] + ' мың');
+    if (h) out.push(h === 1 ? 'жүз' : UNITS[h] + ' жүз');
+    if (t) out.push(TENS[t]);
+    if (u) out.push(UNITS[u]);
+    return out.join(' ');
+  }
   function normalize(t) {
     return String(t || '').toLowerCase().replace(/ё/g, 'е')
+      .replace(/\d+/g, function (d) { return ' ' + numToKk(parseInt(d, 10)) + ' '; })
       .replace(/[^a-zа-яәіңғүұқөһ0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   }
   function w(ch) { return SPECIAL.indexOf(ch) >= 0 ? SPECIAL_W : 1; }

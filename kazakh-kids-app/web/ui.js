@@ -7,14 +7,20 @@
   var A = window.Q.api, W = window.QWORLD, DICT = window.QUI_EN, COIN = '🪙';
   var miss = window.qUntranslated = {};
 
+  function frags(t) {
+    for (var i = 0; i < DICT.frag.length; i++) if (t.indexOf(DICT.frag[i][0]) >= 0) t = t.split(DICT.frag[i][0]).join(DICT.frag[i][1]);
+    return t;
+  }
   function translate(s) {
     var m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s), core = m[2];
     if (!core || !/[А-Яа-яЁё]/.test(core)) return s;
     if (Object.prototype.hasOwnProperty.call(DICT.exact, core)) return m[1] + DICT.exact[core] + m[3];
     for (var i = 0; i < DICT.rx.length; i++) {
-      if (DICT.rx[i][0].test(core)) return m[1] + core.replace(DICT.rx[i][0], DICT.rx[i][1]) + m[3];
+      if (DICT.rx[i][0].test(core)) return m[1] + frags(core.replace(DICT.rx[i][0], DICT.rx[i][1])) + m[3];
     }
-    miss[core] = 1;
+    var f = frags(core);
+    if (f !== core) return m[1] + f + m[3];
+    if (window.qFast !== undefined || window.qTrackI18n) miss[core] = 1;   // test runs only
     return s;
   }
   function fixText(n) {

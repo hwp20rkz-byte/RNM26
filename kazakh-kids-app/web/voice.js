@@ -137,15 +137,16 @@
             if (r.error) { qs('#vhint', el).textContent = errText(r.error); A.sfx.bad(); return; }
             if (!best || r.score > best.score) best = r;
             qs('#vres', el).innerHTML = resultHtml(best);
-            qs('#vhint', el).textContent = best.passed ? 'Можно ещё раз — или жми «Тексеру».' : tries >= 3 ? 'Жми «Тексеру» — это задание вернётся позже.' : 'Попробуй ещё раз!';
+            qs('#vhint', el).textContent = best.passed ? 'Можно ещё раз — или жми «Тексеру».' : tries >= 3 ? 'Жми «Тексеру» и идём дальше.' : 'Попробуй ещё раз!';
             if (r.passed) A.sfx.ok(); else A.sfx.bad();
             ctx.ready(best.passed || tries >= 3);
           });
         };
       },
       check: function () {
-        var ok = !!(best && best.passed);
-        return { ok: ok, ans: s.kk + (best ? ' — ' + Math.round(best.score) + '%' : ''), tr: A.tr(s), say: ok ? null : s.kk };
+        var ans = s.kk + (best ? ' — ' + Math.round(best.score) + '%' : '');
+        // Speech recognition is never perfect, least of all with children: a miss costs nothing.
+        return best && best.passed ? { ok: true, ans: ans, tr: A.tr(s) } : { neutral: true, title: 'Жаттыға бер!', ans: ans, tr: A.tr(s) };
       }
     };
   }
