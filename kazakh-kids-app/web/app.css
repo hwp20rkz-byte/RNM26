@@ -631,3 +631,64 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .combo-pop svg { width: 52px; height: 52px; flex: none; }
 .combo-pop b { display: block; font-weight: 900; } .combo-pop span { font-size: var(--fs-1); font-weight: 700; }
 .combo-pop.big { background: linear-gradient(90deg, var(--u-purple), var(--sky-500)); color: var(--ink-0); box-shadow: 0 4px 0 var(--u-purple-d); }
+
+/* ================= textbook track: learn boxes, thematic games, assessment ================= */
+.tb-box { position: relative; border-radius: var(--r-2); padding: var(--s-3); padding-right: 56px; font-size: var(--fs-2); line-height: 1.5; }
+.tb-box b { display: block; font-size: var(--fs-1); margin-bottom: var(--s-1); }
+.tb-box p { margin: 0; }
+.tb-box i { display: block; font-size: var(--fs-1); color: var(--ink-400); margin-top: var(--s-1); }
+.tb-box .spk { position: absolute; right: var(--s-2); top: var(--s-2); }
+.tb-box.rule { background: var(--bad-bg); border: 2px solid hsl(356 80% 85%); }
+.tb-box.rule b { color: var(--bad-d); }
+.tb-box.poem { background: var(--ok-bg); border: 2px solid hsl(100 50% 75%); font-style: italic; }
+.tb-box.poem b { color: var(--ok-d); font-style: normal; }
+.tg-task { margin: 0; }
+.tg-card { min-height: 190px; border-radius: var(--r-3); border: 2px solid var(--ink-100); box-shadow: 0 6px 0 var(--ink-100); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-1); padding: var(--s-3); text-align: center; background: var(--ink-0); }
+.tg-card.pop { animation: pop .25s var(--ease); }
+.tg-card.fly { transition: transform .45s var(--ease), opacity .45s; transform: translateY(120px) scale(.6); opacity: 0; }
+.tg-e { font-size: 76px; line-height: 1; } .tg-e.small { font-size: 44px; }
+.tg-w { font-size: var(--fs-4); font-weight: 900; } .tg-w.wide { font-size: var(--fs-3); }
+.tg-card small { color: var(--ink-400); font-weight: 700; }
+.tg-bins { display: grid; gap: var(--s-2); margin-top: auto; }
+.tg-bins.b2 { grid-template-columns: 1fr 1fr; } .tg-bins.b3 { grid-template-columns: repeat(3, 1fr); } .tg-bins.b4 { grid-template-columns: 1fr 1fr; }
+.tg-bin { position: relative; min-height: 96px; border-radius: var(--r-2); border: 3px dashed var(--sky-300); background: var(--sky-50); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: var(--s-2) var(--s-1); }
+.tg-bin .e { font-size: 30px; } .tg-bin b { font-size: var(--fs-1); line-height: 1.15; text-align: center; }
+.tg-bin .cnt { position: absolute; top: 4px; right: 8px; font-style: normal; font-size: 12px; color: var(--sky-700); font-weight: 900; }
+.tg-bin.right { border-style: solid; border-color: var(--ok); background: var(--ok-bg); }
+.tg-bin.wrong { border-style: solid; border-color: var(--bad); background: var(--bad-bg); }
+.tg-bin.hint { border-style: solid; border-color: var(--sun-500); background: var(--sun-100); }
+.tg-pairs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2) var(--s-3); }
+.tg-p { min-height: 64px; border-radius: var(--r-2); border: 2px solid var(--ink-100); box-shadow: var(--lip) var(--ink-100); background: var(--ink-0); display: flex; align-items: center; justify-content: center; gap: var(--s-2); padding: var(--s-1) var(--s-2); font-size: var(--fs-2); text-align: center; }
+.tg-p .e { font-size: 30px; }
+.tg-p.sel { border-color: var(--sky-300); background: var(--sky-50); }
+.tg-p.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.tg-p.done { border-color: var(--ok); background: var(--ok-bg); opacity: .55; pointer-events: none; }
+.tg-slots { display: flex; flex-direction: column; gap: 6px; }
+.tg-slot { display: flex; align-items: center; gap: var(--s-2); }
+.tg-slot .t { width: 56px; flex: none; font-weight: 900; color: var(--sky-600); }
+.tg-slot .v { flex: 1; min-height: 44px; border: 2px dashed var(--ink-200); border-radius: var(--r-1); display: flex; align-items: center; padding: 0 var(--s-2); }
+.tg-slot.filled .v { border-style: solid; border-color: var(--ok); background: var(--ok-bg); }
+.tg-bank { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; padding-top: var(--s-2); }
+.tg-phrase { display: flex; align-items: center; justify-content: center; gap: var(--s-2); font-size: var(--fs-3); text-align: center; min-height: 56px; }
+.tg-clock { position: relative; width: 220px; margin: 0 auto; }
+.tg-clock.ok-glow svg { filter: drop-shadow(0 0 10px var(--ok)); }
+.tg-digital { display: block; text-align: center; font-size: var(--fs-3); color: var(--ink-400); }
+.tg-ctrl { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.tg-ctrl > div { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-1); align-items: center; }
+.tg-ctrl small { grid-column: 1 / -1; text-align: center; color: var(--ink-400); font-weight: 800; }
+.tg-ctrl .btn { min-height: 52px; font-size: var(--fs-4); padding: 0; }
+.tg-list { display: flex; flex-direction: column; gap: var(--s-2); }
+.tg-row { display: flex; align-items: center; gap: var(--s-3); text-align: left; padding: var(--s-2) var(--s-3); border: 2px solid var(--ink-100); border-radius: var(--r-2); background: var(--ink-0); box-shadow: 0 3px 0 var(--ink-100); min-height: 56px; }
+.tg-row > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; } .tg-row small { color: var(--ink-400); font-size: 12px; }
+.tg-row .e { font-size: 28px; } .tg-row.locked { background: var(--ink-50); color: var(--ink-400); }
+.grade-card { display: flex; gap: var(--s-3); align-items: center; width: 100%; border: 2px solid var(--ink-100); border-radius: var(--r-2); padding: var(--s-3); text-align: left; }
+.grade-card .mark { flex: none; width: 84px; height: 84px; border-radius: 50%; background: var(--c); color: var(--ink-0); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.grade-card .mark b { font-size: 40px; line-height: 1; } .grade-card .mark small { font-size: 10px; font-weight: 800; }
+.grade-card .gk { flex: 1; display: flex; flex-direction: column; gap: 4px; } .grade-card .gk p { margin: 0; }
+.grade-card .sk { display: grid; grid-template-columns: 84px 1fr 34px; gap: var(--s-1); align-items: center; font-size: 12px; font-weight: 800; }
+.grade-card .sk .goal { margin: 0; } .grade-card .sk em { font-style: normal; color: var(--ink-400); }
+.tsheet table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 12px; }
+.tsheet td { padding: 5px 4px; border-bottom: 1px solid var(--ink-100); } .tsheet td:first-child { color: var(--ink-400); width: 22px; }
+.tsheet td:nth-child(3) { white-space: nowrap; }
+.mk { display: inline-block; min-width: 22px; text-align: center; border-radius: 6px; color: var(--ink-0); font-weight: 900; }
+.mk.m5 { background: var(--ok); } .mk.m4 { background: var(--sky-500); } .mk.m3 { background: var(--sun-600); } .mk.m2 { background: var(--bad); }

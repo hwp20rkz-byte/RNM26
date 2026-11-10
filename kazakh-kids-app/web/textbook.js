@@ -9,8 +9,9 @@
   function s(kk, ru, en, alt) { var o = { kk: kk, ru: ru, en: en }; if (alt) o.alt = alt; return o; }
   function f(pre, ans, post, opts, ru, en) { return { pre: pre, ans: ans, post: post, opts: opts, ru: ru, en: en }; }
 
-  D.GRADES.push({ n: 5, kk: 'Оқулық', ru: 'Учебник 3 кл.', en: 'Textbook G3', units: [] });
-  D.GRADES[4].units.push(
+  var TRACK = { n: D.GRADES.length + 1, kk: 'Оқулық', ru: 'Учебник 3 кл.', en: 'Textbook G3', textbook: true, units: [] };
+  D.GRADES.push(TRACK);
+  TRACK.units.push(
     {
       id: 'tbm1', kk: 'Жанды табиғат', ru: 'Живая природа', en: 'Living nature', hue: 'green', hero: 'qoyan', module: 1,
       mascot: 'Табиғат — тал бесік. — Природа — наша колыбель.', mascotEn: 'Табиғат — тал бесік. — Nature is our cradle.',
@@ -750,7 +751,7 @@
 
   /* small Kazakh helpers used by the pair voice-overs */
   function cap(x) { return x.charAt(0).toUpperCase() + x.slice(1); }
-  function lastVowel(x) { var m = x.match(/[аәеиоөұүыіуэюя](?=[^аәеиоөұүыіуэюя]*$)/); return m ? m[0] : 'а'; }
+  function lastVowel(x) { var m = x.match(/[аәеоөұүыі](?=[^аәеоөұүыі]*$)/); return m ? m[0] : 'а'; }
   // ілік септік: after a vowel -ның/-нің; after л м н ң ж з р й у -дың/-дің; after other consonants -тың/-тің
   function gen(x) {
     var back = /[аоұы]/.test(lastVowel(x)), c = x.slice(-1);

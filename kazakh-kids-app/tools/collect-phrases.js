@@ -4,7 +4,7 @@
 const path = require('path');
 global.window = {};
 const web = path.resolve(__dirname, '../web');
-['data', 'grade1', 'grade2', 'grade3', 'life', 'world'].forEach((f) => require(path.join(web, f + '.js')));
+['data', 'grade1', 'grade2', 'grade3', 'life', 'textbook', 'world'].forEach((f) => require(path.join(web, f + '.js')));
 // arcade.js only needs a stub of the app API to expose its word lists
 window.Q = { api: { state: () => ({}) }, ext: {} };
 require(path.join(web, 'arcade.js'));
@@ -47,5 +47,18 @@ ARC.RESPECT.forEach(add);
 ARC.NEEDS.forEach((n) => add(n.kk));
 ARC.VERSES.forEach((v) => { sentence(v.a); sentence(v.b); });
 ['кездескенше', 'қымбат', 'арзан', 'рақмет', 'қолма-қол', 'келістік', 'тәтті', 'ба'].forEach((t) => add(t));
+
+// textbook track: rules, poems, riddles + thematic games
+D.GRADES.forEach((g) => g.units.forEach((u) => u.lessons.forEach((l) => {
+  if (l.rule) add(l.rule);
+  if (l.poem) add(l.poem.kk.replace(/\n/g, ' '));
+})));
+Object.values(D.TOPIC_GAMES || {}).forEach((g) => {
+  (g.items || []).forEach((x) => add(Array.isArray(x) ? x[1] : x.kk));
+  Object.values(g.plural || {}).forEach((x) => add(x));
+  (g.pairs || []).forEach((p) => { add(p.a); add(p.b); if (g.say) add(g.say(p)); });
+});
+for (let h = 1; h <= 12; h++) [0, 10, 15, 20, 30, 40, 45, 50].forEach((m) => add(D.clockPhrase(h, m)));
+add('Сәлем! Мен сенің дауысыңмын.');
 
 process.stdout.write(JSON.stringify([...out.values()], null, 0));
