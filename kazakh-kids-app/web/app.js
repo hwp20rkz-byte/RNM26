@@ -11,10 +11,11 @@
   var HOURS_RU_V = ['', 'в час', 'в два', 'в три', 'в четыре', 'в пять', 'в шесть', 'в семь', 'в восемь', 'в девять', 'в десять', 'в одиннадцать', 'в двенадцать'];
   var PRONOUNS = ['мен', 'сен', 'ол', 'сіз', 'біз', 'олар'];
   var LOC_VERBS = [
-    { kk: 'тұрамын', ru: 'Я встаю' }, { kk: 'мектепке барамын', ru: 'Я иду в школу' },
-    { kk: 'ұйықтаймын', ru: 'Я ложусь спать' }, { kk: 'түскі ас ішемін', ru: 'Я обедаю' },
-    { kk: 'шахмат ойнаймын', ru: 'Я играю в шахматы' }, { kk: 'үйге келемін', ru: 'Я прихожу домой' }
+    { kk: 'тұрамын', ru: 'Я встаю', en: 'I get up' }, { kk: 'мектепке барамын', ru: 'Я иду в школу', en: 'I go to school' },
+    { kk: 'ұйықтаймын', ru: 'Я ложусь спать', en: 'I go to bed' }, { kk: 'түскі ас ішемін', ru: 'Я обедаю', en: 'I have lunch' },
+    { kk: 'шахмат ойнаймын', ru: 'Я играю в шахматы', en: 'I play chess' }, { kk: 'үйге келемін', ru: 'Я прихожу домой', en: 'I come home' }
   ];
+  var HOURS_EN_V = ['', 'at one', 'at two', 'at three', 'at four', 'at five', 'at six', 'at seven', 'at eight', 'at nine', 'at ten', 'at eleven', 'at twelve'];
 
   /* ---------- helpers ---------- */
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -34,14 +35,35 @@
   function isColorGlyph(e) { return e.indexOf('c:') === 0; }
   function isTextGlyph(e) { return isNumGlyph(e) || isLabelGlyph(e); }
 
+  /* ---------- learning mode: RU → KK or EN → KK ---------- */
+  function lang() { return S && S.lang === 'en' ? 'en' : 'ru'; }
+  // Translation of a content item (word, sentence, fill, unit, lesson…) into the learner's language.
+  function tr(x) {
+    if (!x) return '';
+    if (lang() === 'en') return x.en || (D.EN && D.EN[x.ru]) || x.ru || '';
+    return x.ru || '';
+  }
+  function locHint(v, h) { return lang() === 'en' ? v.en + ' ' + HOURS_EN_V[h] + '.' : v.ru + ' ' + HOURS_RU_V[h] + '.'; }
+  function mascotLine(u) {
+    if (lang() !== 'en') return u.mascot;
+    return u.mascotEn || (D.MASCOT_EN && D.MASCOT_EN[u.id]) || u.mascot.split(' — ')[0];
+  }
+
   /* ---------- state ---------- */
   function load() {
     var d = {
       xp: 0, streak: 0, lastDay: '', done: {}, name: '', dayXp: 0, dayDate: '', sound: true, lessons: 0,
       coins: 0, grade: 1, onboarded: false, heroes: ['bars'], heroSel: 'bars', stickers: {}, games: [],
-      ach: {}, perfects: 0, quizBest: 0, gamesPlayed: 0, freeze: 0, bonusHearts: 0, giftDay: '', lvlSeen: 1
+      ach: {}, perfects: 0, quizBest: 0, gamesPlayed: 0, freeze: 0, bonusHearts: 0, giftDay: '', lvlSeen: 1,
+      // v3 — QazaqVerse
+      lang: 'ru', inv: {}, eq: { skin: '', pet: '', trail: '' }, arcade: {}, auctionSlot: '', auctionWins: 0, tossDay: '', jackpots: 0,
+      xpBoostUntil: 0, xpBoost: 1, weekId: '', weekXp: 0, lgSeen: 0, spoken: 0, sttUrl: '', micOn: true
     };
-    try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) for (var k in s) d[k] = s[k]; } catch (e) { /* storage blocked */ }
+    var fresh = true;
+    try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) { fresh = false; for (var k in s) d[k] = s[k]; } } catch (e) { /* storage blocked */ }
+    if (fresh) d.heroSel = 'batyr';
+    W.HEROES.forEach(function (h) { if (!h.price && d.heroes.indexOf(h.id) < 0) d.heroes.push(h.id); });
+    if (!d.eq) d.eq = { skin: '', pet: '', trail: '' };
     // A streak freeze covers one missed day.
     if (d.lastDay && d.lastDay !== today() && d.lastDay !== yesterday()) {
       if (d.freeze > 0 && d.lastDay === daysAgo(2)) { d.freeze--; d.lastDay = yesterday(); } else d.streak = 0;
@@ -54,7 +76,7 @@
   var S = load();
 
   /* ---------- course index ---------- */
-  var ALL = [], GALL = [[], [], []];
+  var ALL = [], GALL = D.GRADES.map(function () { return []; });
   D.GRADES.forEach(function (g, gi) {
     g.units.forEach(function (u, ui) {
       u.n = ui + 1; u.grade = gi;
@@ -64,7 +86,7 @@
   var CONTENT = ALL.filter(function (l) { return !l.review; });
   var ALLWORDS = uniqBy([].concat.apply([], CONTENT.map(function (l) { return l.words || []; })), function (w) { return w.kk; });
   var ALLSENT = [].concat.apply([], CONTENT.map(function (l) { return l.sentences || []; }));
-  function gIdx() { return Math.min(2, Math.max(0, (S.grade || 1) - 1)); }
+  function gIdx() { return Math.min(D.GRADES.length - 1, Math.max(0, (S.grade || 1) - 1)); }
   function unlocked(l) { var list = GALL[l.unit.grade], i = list.indexOf(l); return i === 0 || !!S.done[list[i - 1].id]; }
   function currentLesson(gi) { var list = GALL[gi]; for (var i = 0; i < list.length; i++) if (!S.done[list[i].id]) return list[i]; return null; }
   function gradeWords(gi) {
@@ -188,24 +210,25 @@
     });
   }
   function distract(w, pool, n) {
-    var bad = function (x) { return x.kk === w.kk || x.ru === w.ru || x.e === w.e; };
+    var bad = function (x) { return x.kk === w.kk || tr(x) === tr(w) || x.e === w.e; };
     var kind = function (x) { return isColorGlyph(x.e) ? 'c' : isTextGlyph(x.e) ? 't' : 'e'; };
     var from = function (src) { return shuffle(src.filter(function (x) { return !bad(x) && kind(x) === kind(w); })); };
     var out = uniqBy(from(pool).concat(from(ALLWORDS), shuffle(ALLWORDS.filter(function (x) { return !bad(x); }))), function (x) { return x.kk; });
-    out = uniqBy(uniqBy(out, function (x) { return x.ru; }), function (x) { return x.e; });
+    out = uniqBy(uniqBy(out, function (x) { return tr(x); }), function (x) { return x.e; });
     return out.slice(0, n);
   }
 
   /* ---------- exercise types ---------- */
   function rowGlyph(e) { return '<span class="em' + (isTextGlyph(e) ? ' n' : '') + '">' + (isColorGlyph(e) ? glyph(e) : esc(e)) + '</span>'; }
   // 0. Word cards shown before a new lesson: learn first, then practise
-  function exLearn(words) {
+  function exLearn(words, tip) {
     return {
       noCheck: true, free: true,
       render: function (el, ctx) {
         el.innerHTML = '<span class="tag new">✨ Жаңа сөздер · новые слова</span><h2 class="task">Запомни слова этого урока</h2>' +
+          (tip ? '<div class="tip"><b>💡 ' + (lang() === 'en' ? 'Grammar tip' : 'Подсказка') + '</b>' + esc(lang() === 'en' ? tip.en : tip.ru) + '</div>' : '') +
           '<div class="learn">' + words.map(function (w) {
-            return '<div class="word-row">' + rowGlyph(w.e) + '<div class="w">' + esc(w.kk) + '<span>' + esc(w.ru) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
+            return '<div class="word-row">' + rowGlyph(w.e) + '<div class="w">' + esc(w.kk) + '<span>' + esc(tr(w)) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
           }).join('') + '</div><button class="btn" id="learned">Түсіндім · понятно!</button>';
         bindSpeak(el);
         qs('#learned', el).onclick = function () { ctx.done({ ok: true, silent: true }); };
@@ -220,13 +243,13 @@
         el = root; sel = -1; opts = shuffle([w].concat(distract(w, pool, 3)));
         el.innerHTML = (isNew ? '<span class="tag new">✨ Жаңа сөз · новое слово</span>' : '') +
           '<h2 class="task">Что значит «' + esc(w.kk) + '»?</h2>' + prompt(w.kk, true) +
-          '<div class="cards">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + glyph(o.e) + '<span>' + esc(o.ru) + '</span></button>'; }).join('') + '</div>';
+          '<div class="cards">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + glyph(o.e) + '<span>' + esc(tr(o)) + '</span></button>'; }).join('') + '</div>';
         bindSpeak(el); autoSay(w.kk);
         selectOne(el, function (i) { sel = i; ctx.ready(true); });
       },
       check: function () {
         var right = opts.indexOf(w); markCards(el, right, sel);
-        return { ok: sel === right, ans: w.kk + ' — ' + w.ru, say: w.kk };
+        return { ok: sel === right, ans: w.kk + ' — ' + tr(w), say: w.kk };
       }
     };
   }
@@ -237,13 +260,13 @@
       render: function (root, ctx) {
         el = root; sel = -1; opts = shuffle([w].concat(distract(w, pool, 3)));
         el.innerHTML = (isNew ? '<span class="tag new">✨ Жаңа сөз · новое слово</span>' : '') +
-          '<h2 class="task">Как по-казахски «' + esc(w.ru) + '»?</h2>' +
+          '<h2 class="task">Как по-казахски «' + esc(tr(w)) + '»?</h2>' +
           '<div class="cards">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + glyph(o.e) + '<span>' + esc(o.kk) + '</span></button>'; }).join('') + '</div>';
         selectOne(el, function (i) { sel = i; ctx.ready(true); TTS.speak(opts[i].kk, true); });
       },
       check: function () {
         var right = opts.indexOf(w); markCards(el, right, sel);
-        return { ok: sel === right, ans: w.kk + ' — ' + w.ru, say: w.kk };
+        return { ok: sel === right, ans: w.kk + ' — ' + tr(w), say: w.kk };
       }
     };
   }
@@ -260,7 +283,7 @@
       },
       check: function () {
         var right = opts.indexOf(w); markCards(el, right, sel);
-        return { ok: sel === right, ans: w.kk + ' — ' + w.ru };
+        return { ok: sel === right, ans: w.kk + ' — ' + tr(w) };
       }
     };
   }
@@ -269,11 +292,11 @@
     return {
       noCheck: true,
       render: function (el, ctx) {
-        words = uniqBy(uniqBy(words, function (w) { return w.ru; }), function (w) { return w.kk; });
+        words = uniqBy(uniqBy(words, function (w) { return tr(w); }), function (w) { return w.kk; });
         var L = shuffle(words), R = shuffle(words), selL = null, selR = null, left = words.length;
         el.innerHTML = '<span class="tag">🧩 Жұптар · пары</span><h2 class="task">Найди пары</h2><div class="match">' +
           L.map(function (w, i) { return '<button class="card" data-side="L" data-k="' + esc(w.kk) + '" style="grid-column:1;grid-row:' + (i + 1) + '">' + esc(w.kk) + '</button>'; }).join('') +
-          R.map(function (w, i) { return '<button class="card" data-side="R" data-k="' + esc(w.kk) + '" style="grid-column:2;grid-row:' + (i + 1) + '">' + esc(w.ru) + '</button>'; }).join('') + '</div>';
+          R.map(function (w, i) { return '<button class="card" data-side="R" data-k="' + esc(w.kk) + '" style="grid-column:2;grid-row:' + (i + 1) + '">' + esc(tr(w)) + '</button>'; }).join('') + '</div>';
         qsa('.card', el).forEach(function (c) {
           c.onclick = function () {
             var side = c.getAttribute('data-side');
@@ -326,14 +349,14 @@
           .filter(function (t) { return lower.indexOf(t) < 0 && PRONOUNS.indexOf(t) < 0; })
           .slice(0, Math.max(2, Math.min(4, 9 - own.length)));
         tiles = shuffle(own.concat(extra));
-        el.innerHTML = '<span class="tag">🎯 Аудар · переведи</span><h2 class="task">Переведи предложение</h2>' + prompt(s.ru, false) +
+        el.innerHTML = '<span class="tag">🎯 Аудар · переведи</span><h2 class="task">Переведи предложение</h2>' + prompt(tr(s), false) +
           '<div class="answer-lines"></div><div class="bank"></div>';
         draw(ctx);
       },
       check: function () {
         var got = norm(picked.map(function (id) { return tiles[id]; }).join(' '));
         var ok = [s.kk].concat(s.alt || []).some(function (v) { return norm(v) === got; });
-        return { ok: ok, ans: s.kk, tr: s.ru, say: s.kk };
+        return { ok: ok, ans: s.kk, tr: tr(s), say: s.kk };
       }
     };
   }
@@ -343,16 +366,16 @@
     return {
       render: function (root, ctx) {
         el = root; sel = -1;
-        var others = uniqBy(shuffle(pool.concat(shuffle(ALLSENT))).filter(function (x) { return x.ru !== s.ru; }), function (x) { return x.ru; }).slice(0, 2);
+        var others = uniqBy(shuffle(pool.concat(shuffle(ALLSENT))).filter(function (x) { return tr(x) !== tr(s); }), function (x) { return tr(x); }).slice(0, 2);
         opts = shuffle([s].concat(others));
         el.innerHTML = '<span class="tag">📖 Оқы · читай</span><h2 class="task">Выбери правильный перевод</h2>' + prompt(s.kk, true) +
-          '<div class="cards list">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '"><span class="idx">' + (i + 1) + '</span><span>' + esc(o.ru) + '</span></button>'; }).join('') + '</div>';
+          '<div class="cards list">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '"><span class="idx">' + (i + 1) + '</span><span>' + esc(tr(o)) + '</span></button>'; }).join('') + '</div>';
         bindSpeak(el); autoSay(s.kk);
         selectOne(el, function (i) { sel = i; ctx.ready(true); });
       },
       check: function () {
         var right = opts.indexOf(s); markCards(el, right, sel);
-        return { ok: sel === right, ans: s.ru, tr: s.kk };
+        return { ok: sel === right, ans: tr(s), tr: s.kk };
       }
     };
   }
@@ -365,7 +388,7 @@
       render: function (root, ctx) {
         el = root; sel = -1; opts = shuffle(f.opts);
         el.innerHTML = '<span class="tag">✏️ Толықтыр · дополни</span><h2 class="task">' + (letter ? 'Вставь казахскую букву' : suffix ? 'Выбери правильное окончание' : 'Заполни пропуск') + '</h2>' +
-          '<div class="sentence' + (letter ? ' letter' : '') + '">' + esc(f.pre) + '<span class="gap empty' + (suffix || letter ? ' suf' : '') + '">' + esc(f.ans) + '</span>' + esc(f.post) + '<div class="hint">' + esc(f.ru) + '</div></div>' +
+          '<div class="sentence' + (letter ? ' letter' : '') + '">' + esc(f.pre) + '<span class="gap empty' + (suffix || letter ? ' suf' : '') + '">' + esc(f.ans) + '</span>' + esc(f.post) + '<div class="hint">' + esc(tr(f)) + '</div></div>' +
           '<div class="chips">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + (suffix ? '-' : '') + esc(o) + '</button>'; }).join('') + '</div>';
         selectOne(el, function (i) {
           sel = i; var g = qs('.gap', el); g.textContent = opts[i]; g.classList.remove('empty'); ctx.ready(true);
@@ -374,7 +397,7 @@
       check: function () {
         var right = opts.indexOf(f.ans); markCards(el, right, sel);
         var full = f.pre + f.ans + f.post;
-        return { ok: opts[sel] === f.ans, ans: full.replace(/^— /, ''), tr: f.ru, say: full.replace(/—/g, ' ') };
+        return { ok: opts[sel] === f.ans, ans: full.replace(/^— /, ''), tr: tr(f), say: full.replace(/—/g, ' ') };
       }
     };
   }
@@ -428,14 +451,14 @@
         opts = shuffle([t[0]].concat(hs));
         el.innerHTML = '<span class="tag">⏰ Нешеде? · во сколько?</span><h2 class="task">Заполни пропуск</h2>' +
           '<div style="width:140px;margin:0 auto">' + clockSVG(t[0], 0) + '</div>' +
-          '<div class="sentence">Мен <span class="gap empty">' + esc(D.hourLoc(t[0])) + '</span> ' + esc(v.kk) + '.<div class="hint">' + esc(v.ru + ' ' + HOURS_RU_V[t[0]]) + '.</div></div>' +
+          '<div class="sentence">Мен <span class="gap empty">' + esc(D.hourLoc(t[0])) + '</span> ' + esc(v.kk) + '.<div class="hint">' + esc(locHint(v, t[0])) + '</div></div>' +
           '<div class="chips">' + opts.map(function (h, i) { return '<button class="card" data-i="' + i + '">' + esc(D.hourLoc(h)) + '</button>'; }).join('') + '</div>';
         selectOne(el, function (i) { sel = i; var g = qs('.gap', el); g.textContent = D.hourLoc(opts[i]); g.classList.remove('empty'); ctx.ready(true); });
       },
       check: function () {
         var right = opts.indexOf(t[0]); markCards(el, right, sel);
         var full = 'Мен ' + D.hourLoc(t[0]) + ' ' + v.kk + '.';
-        return { ok: sel === right, ans: full, tr: v.ru + ' ' + HOURS_RU_V[t[0]] + '.', say: full };
+        return { ok: sel === right, ans: full, tr: locHint(v, t[0]), say: full };
       }
     };
   }
@@ -541,9 +564,10 @@
     (c.clocksLoc || []).forEach(function (t) { add('clockLoc', function () { return exClockLoc(t); }); });
     if (c.nums) for (var k = 0; k < 4; k++) add('num', function () { return exNum(c.nums); });
     if (c.order) add('order', function () { return exOrder(c.order); });
+    if (X('voiceReady')) shuffle(c.sentences || []).slice(0, 2).forEach(function (s) { add('speak', function () { return window.Q.ext.exSpeak(s); }); });
 
     Object.keys(groups).forEach(function (g) { groups[g] = shuffle(groups[g]); });
-    var matchable = uniqBy(c.words || [], function (w) { return w.ru; }).length >= 4 && !opts.noMatch;
+    var matchable = uniqBy(c.words || [], function (w) { return tr(w); }).length >= 4 && !opts.noMatch;
     var target = N - (matchable ? 1 : 0), seq = intro.slice(), keys = Object.keys(groups), guard = 0;
     while (seq.length < target && guard++ < 50) {
       keys = shuffle(keys.filter(function (k) { return groups[k].length; }));
@@ -554,7 +578,7 @@
       (function (w) { seq.push(Math.random() < 0.5 ? function () { return exPick(w, c.words); } : function () { return exPickR(w, c.words); }); })(words[rnd(words.length)]);
     }
     if (matchable) seq.splice(Math.min(3, seq.length), 0, function () { return exMatch(shuffle(c.words).slice(0, 5)); });
-    if (!opts.noIntro && (c.words || []).length) seq.unshift(function () { return exLearn(c.words); });
+    if (!opts.noIntro && (c.words || []).length) seq.unshift(function () { return exLearn(c.words, c.tip); });
     return seq.map(function (f) { return f(); });
   }
 
@@ -567,12 +591,28 @@
     S.streak = S.lastDay === yesterday() ? S.streak + 1 : 1; S.lastDay = today();
     return true;
   }
-  function addXp(n) { if (S.dayDate !== today()) { S.dayXp = 0; S.dayDate = today(); } S.xp += n; S.dayXp += n; }
+  function xpBoost() { return Date.now() < (S.xpBoostUntil || 0) ? (S.xpBoost || 2) : 1; }
+  function weekId() { var d = new Date(), j = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + '-' + Math.ceil(((d - j) / 864e5 + j.getDay() + 1) / 7); }
+  function addXp(n) {
+    n = Math.round(n * xpBoost());
+    if (S.dayDate !== today()) { S.dayXp = 0; S.dayDate = today(); }
+    if (S.weekId !== weekId()) { S.weekId = weekId(); S.weekXp = 0; }
+    S.xp += n; S.dayXp += n; S.weekXp += n;
+    return n;
+  }
+  function league() { var i = 0; W.LEAGUES.forEach(function (l, k) { if (S.xp >= l.xp) i = k; }); return i; }
+  function vibrate(ms) { try { if (window.Android && window.Android.vibrate) window.Android.vibrate(ms); else if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* no haptics */ } }
+  function X(name, arg) { var f = window.Q && window.Q.ext[name]; return f ? f(arg) : ''; }
   function addReward(r) { rewards.push(r); }
   function levelCheck() {
     while (level() > S.lvlSeen) {
       S.lvlSeen++; S.coins += 50;
-      addReward({ icon: '🆙', title: S.lvlSeen + '-деңгей!', sub: 'Новый уровень! Подарок — 50 монет.', coins: 50 });
+      addReward({ icon: '🆙', title: S.lvlSeen + '-деңгей!', sub: 'Новый уровень! Подарок — 50 асыков.', coins: 50 });
+    }
+    while (league() > (S.lgSeen || 0)) {
+      S.lgSeen = (S.lgSeen || 0) + 1; S.coins += 100;
+      var lg = W.LEAGUES[S.lgSeen];
+      addReward({ icon: lg.icon, title: lg.kk + '!', sub: 'Новая лига Шежіре! Подарок — 100 асыков.', coins: 100 });
     }
   }
   function checkAch() {
@@ -580,7 +620,7 @@
     W.ACH.forEach(function (a) {
       if (!S.ach[a.id] && a.t(S, X)) {
         S.ach[a.id] = 1; S.coins += a.coins;
-        addReward({ icon: a.icon, title: 'Жетістік: ' + a.kk, sub: a.ru, coins: a.coins });
+        addReward({ icon: a.icon, title: 'Жетістік: ' + a.kk, sub: tr(a), coins: a.coins });
       }
     });
     save();
@@ -608,7 +648,7 @@
       if (st) { isNew = !S.stickers[st.id]; S.stickers[st.id] = (S.stickers[st.id] || 0) + 1; if (!isNew) coins += 15; }
       S.coins += coins; save();
       sfx.win(); confetti();
-      qs('.sheet').innerHTML = (st ? '<div class="sticker-big r' + st.r + '">' + st.e + '</div><h3>' + esc(st.kk) + '</h3><p>' + esc(st.ru) + ' · ' + '★'.repeat(st.r) + (isNew ? ' · новая наклейка!' : ' · уже есть') + '</p>' : '<div class="sticker-big">🪙</div><h3>Алтын!</h3>') +
+      qs('.sheet').innerHTML = (st ? '<div class="sticker-big r' + st.r + '">' + st.e + '</div><h3>' + esc(st.kk) + '</h3><p>' + esc(tr(st)) + ' · ' + '★'.repeat(st.r) + (isNew ? ' · новая наклейка!' : ' · уже есть') + '</p>' : '<div class="sticker-big">🪙</div><h3>Алтын!</h3>') +
         (coins ? '<p class="coins-big">+' + coins + ' 🪙</p>' : '') + '<button class="btn gold" id="rok">Керемет!</button>';
       qs('#rok').onclick = function () { closeSheet(); checkAch(); refresh(); flushRewards(); };
     };
@@ -623,7 +663,7 @@
 
   /* ---------- shell ---------- */
   function topbar() {
-    return '<header class="topbar"><div class="brand">' + myHero('happy') + '<span>Қазақша Ойна</span></div><div class="stats">' +
+    return '<header class="topbar"><div class="brand">' + myHero('happy') + '<span>QazaqVerse</span></div><div class="stats">' +
       '<span class="stat fire" title="Дней подряд"><span class="ico">🔥</span>' + S.streak + '</span>' +
       '<span class="stat coin" title="Монеты"><span class="ico">🪙</span>' + S.coins + '</span>' +
       '<span class="stat xp" title="Очки опыта"><span class="ico">⚡</span>' + S.xp + '</span></div></header>';
@@ -635,14 +675,18 @@
   function gradeSwitch() {
     return '<div class="seg">' + D.GRADES.map(function (g) { return '<button data-grade="' + g.n + '" class="' + (S.grade === g.n ? 'on' : '') + '">' + g.kk + '</button>'; }).join('') + '</div>';
   }
+  function langSwitch() {
+    return '<div class="seg two">' + [['ru', 'Русский → Қазақша'], ['en', 'English → Қазақша']].map(function (l) { return '<button data-lang="' + l[0] + '" class="' + (lang() === l[0] ? 'on' : '') + '">' + l[1] + '</button>'; }).join('') + '</div>';
+  }
   function renderHome(keep) {
     view = 'home';
     var body = tab === 'dict' ? dictPage() : tab === 'games' ? gamesPage() : tab === 'shop' ? shopPage() : tab === 'me' ? mePage() : pathPage();
     $app.innerHTML = topbar() + '<main class="scroll" id="scroll">' + body + '</main>' + nav();
     qsa('[data-tab]').forEach(function (b) { b.onclick = function () { sfx.tap(); tab = b.getAttribute('data-tab'); renderHome(); }; });
+    qsa('[data-lang]').forEach(function (b) { b.onclick = function () { sfx.tap(); S.lang = b.getAttribute('data-lang'); save(); renderHome(true); }; });
     qsa('[data-grade]').forEach(function (b) { b.onclick = function () { sfx.tap(); S.grade = +b.getAttribute('data-grade'); save(); renderHome(); }; });
     bindSpeak($app);
-    if (tab === 'path') bindPath(keep);
+    if (tab === 'path') { bindPath(keep); X('bindHome'); }
     if (tab === 'games') bindGames();
     if (tab === 'shop') bindShop();
     if (tab === 'me') bindMe();
@@ -661,10 +705,10 @@
       '<div class="goal"><i style="width:' + goal + '%"></i></div>' +
       '<p class="lv">' + lv + '-деңгей · уровень ' + lv + ' <span>' + lvPct + '/100</span></p><div class="goal thin"><i style="width:' + lvPct + '%;background:hsl(0 0% 100%)"></i></div>' +
       '</div></section>' +
-      (gift ? '<div class="pad"><button class="btn gold gift-btn" id="gift">🎁 Күнделікті сыйлық · подарок дня</button></div>' : '');
+      (gift ? '<div class="pad"><button class="btn gold gift-btn" id="gift">🎁 Күнделікті сыйлық · подарок дня</button></div>' : '') + X('homeCard');
     D.GRADES[gi].units.forEach(function (u) {
       var uc = 'var(--u-' + u.hue + ')', ucd = 'var(--u-' + u.hue + '-d)';
-      html += '<section class="unit" style="--uc:' + uc + ';--ucd:' + ucd + '"><div class="unit-head"><div><small>' + u.n + '-бөлім</small><b>' + esc(u.kk) + '</b><div class="sub">' + esc(u.ru) + '</div></div>' + W.hero(u.hero, 'happy', 'uh') + '</div><div class="path">';
+      html += '<section class="unit" style="--uc:' + uc + ';--ucd:' + ucd + '"><div class="unit-head"><div><small>' + u.n + '-бөлім</small><b>' + esc(u.kk) + '</b><div class="sub">' + esc(tr(u)) + '</div></div>' + W.hero(u.hero, 'happy', 'uh') + '</div><div class="path">';
       u.lessons.forEach(function (l, i) {
         var done = S.done[l.id], open = unlocked(l), isCur = l === cur;
         var x = Math.round(Math.sin((i + u.n) * 1.3) * 64);
@@ -673,9 +717,9 @@
           '<button class="node' + (done ? ' done' : '') + (open ? '' : ' locked') + (l.review ? ' review' : '') + '" data-l="' + l.id + '" aria-label="' + esc(l.kk) + '">' +
           (isCur ? '<span class="ring"></span>' : '') + '<span>' + (open ? (done ? (l.review ? '🏆' : '⭐') : l.icon) : '🔒') + '</span></button>' +
           '<div class="stars">' + (done ? '⭐'.repeat(done) : '') + '</div>' +
-          '<div class="node-label">' + esc(l.kk) + '<em>' + esc(l.ru) + '</em></div></div>';
+          '<div class="node-label">' + esc(l.kk) + '<em>' + esc(tr(l)) + '</em></div></div>';
       });
-      html += '</div><div class="mascot-row">' + W.hero(u.hero, 'happy') + '<div class="bubble">' + esc(u.mascot) + '</div></div></section>';
+      html += '</div><div class="mascot-row">' + W.hero(u.hero, 'happy') + '<div class="bubble">' + esc(mascotLine(u)) + '</div></div></section>';
     });
     return html + '<div style="height:24px"></div>';
   }
@@ -697,7 +741,7 @@
   }
   function lessonSheet(l) {
     var done = S.done[l.id];
-    sheet(W.hero(l.unit.hero, 'wow') + '<div style="font-size:40px">' + l.icon + '</div><h3>' + esc(l.kk) + '</h3><p>' + esc(l.ru) + (done ? ' · ' + '⭐'.repeat(done) : '') + '</p>' +
+    sheet(W.hero(l.unit.hero, 'wow') + '<div style="font-size:40px">' + l.icon + '</div><h3>' + esc(l.kk) + '</h3><p>' + esc(tr(l)) + (done ? ' · ' + '⭐'.repeat(done) : '') + '</p>' +
       '<p class="muted">' + (l.review ? '12 заданий из всех тем класса · +30 🪙' : '10 заданий · ' + (HEARTS + S.bonusHearts) + ' ❤️ · до +20 🪙') + '</p>' +
       '<button class="btn ' + (done ? 'gold' : 'ok') + '" id="go">' + (done ? 'Қайталау · повторить' : 'Бастау · начать') + '</button>' +
       '<button class="btn ghost" id="cancel">Жабу · закрыть</button>');
@@ -712,9 +756,9 @@
     D.GRADES[gi].units.forEach(function (u) {
       var words = uniqBy([].concat.apply([], u.lessons.map(function (l) { return l.words || []; })), function (w) { return w.kk; });
       if (!words.length) return;
-      html += '<h2>' + esc(u.kk) + ' · <span class="muted" style="font-size:inherit">' + esc(u.ru) + '</span></h2>';
+      html += '<h2>' + esc(u.kk) + ' · <span class="muted" style="font-size:inherit">' + esc(tr(u)) + '</span></h2>';
       words.forEach(function (w) {
-        html += '<div class="word-row"><span class="em' + (isTextGlyph(w.e) ? ' n' : '') + '">' + (isColorGlyph(w.e) ? glyph(w.e) : esc(w.e)) + '</span><div class="w">' + esc(w.kk) + '<span>' + esc(w.ru) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
+        html += '<div class="word-row"><span class="em' + (isTextGlyph(w.e) ? ' n' : '') + '">' + (isColorGlyph(w.e) ? glyph(w.e) : esc(w.e)) + '</span><div class="w">' + esc(w.kk) + '<span>' + esc(tr(w)) + '</span></div>' + spk(w.kk, 'sm') + '</div>';
       });
     });
     return html + '</div>';
@@ -723,11 +767,11 @@
   /* ---------- games tab ---------- */
   function gamesPage() {
     var gi = gIdx();
-    var html = '<div class="page">' + gradeSwitch() +
-      '<div class="hero" style="margin:0">' + myHero('wow') + '<div><h1>Ойындар</h1><p>Играй со словами ' + D.GRADES[gi].ru + 'а и зарабатывай 🪙</p></div></div><div class="game-grid">';
+    var html = '<div class="page">' + X('gamesTop') + gradeSwitch() +
+      '<div class="hero" style="margin:0">' + myHero('wow') + '<div><h1>Ойындар</h1><p>Слова раздела «' + esc(D.GRADES[gi].kk) + '». Играй и зарабатывай 🪙</p></div></div><div class="game-grid">';
     W.GAMES.forEach(function (g) {
       var own = S.games.indexOf(g.id) >= 0;
-      html += '<button class="game-card' + (own ? '' : ' locked') + '" data-game="' + g.id + '"><span class="gi">' + g.icon + '</span><b>' + esc(g.kk) + '</b><span class="muted">' + esc(g.ru) + '</span>' +
+      html += '<button class="game-card' + (own ? '' : ' locked') + '" data-game="' + g.id + '"><span class="gi">' + g.icon + '</span><b>' + esc(g.kk) + '</b><span class="muted">' + esc(tr(g)) + '</span>' +
         (own ? '<span class="pill ok">Ойнау ▶</span>' : '<span class="pill">🔒 ' + g.price + ' 🪙</span>') + '</button>';
     });
     html += '</div><h2>Жаттығулар · тренировки</h2>';
@@ -751,6 +795,7 @@
       };
     });
     qsa('[data-p]').forEach(function (b) { b.onclick = function () { sfx.tap(); startPractice(b.getAttribute('data-p')); }; });
+    X('bindGames');
   }
   function startPractice(mode) {
     var gi = gIdx();
@@ -778,24 +823,24 @@
 
   /* ---------- shop ---------- */
   function shopPage() {
-    var html = '<div class="page"><div class="balance">' + myHero('wow') + '<div><small>Сенің алтының · твои монеты</small><b>' + S.coins + ' 🪙</b></div></div>' +
-      '<button class="shop-gift" id="box"><span class="chest-sm">🎁</span><span><b>Сыйлық қорабы</b><span class="muted">Случайная наклейка для альбома</span></span><span class="pill">' + W.SHOP.giftBox + ' 🪙</span></button>' +
+    var html = '<div class="page"><div class="balance">' + myHero('wow') + '<div><small>Алтын асық · золотые асыки</small><b>' + S.coins + ' 🪙</b></div></div>' +
+      X('shopTop') + '<button class="shop-gift" id="box"><span class="chest-sm">🎁</span><span><b>Сыйлық қорабы</b><span class="muted">Случайная наклейка для альбома</span></span><span class="pill">' + W.SHOP.giftBox + ' 🪙</span></button>' +
       '<h2>Кейіпкерлер · герои</h2><div class="hero-grid">';
     W.HEROES.forEach(function (h) {
       var own = S.heroes.indexOf(h.id) >= 0, sel = S.heroSel === h.id;
       html += '<button class="hero-card' + (sel ? ' sel' : '') + (own ? '' : ' locked') + '" data-hero="' + h.id + '">' + W.hero(h.id, sel ? 'wow' : 'happy') +
-        '<b>' + esc(h.kk) + '</b><span class="muted">' + esc(h.ru) + '</span>' +
+        '<b>' + esc(h.kk) + '</b><span class="muted">' + esc(tr(h)) + '</span>' +
         '<span class="pill' + (own ? ' ok' : '') + '">' + (sel ? '✓ Сенің досың' : own ? 'Таңдау' : h.price + ' 🪙') + '</span></button>';
     });
     html += '</div><h2>Ойындар · игры</h2>';
     W.GAMES.filter(function (g) { return g.price; }).forEach(function (g) {
       var own = S.games.indexOf(g.id) >= 0;
-      html += '<button class="shop-row" data-sgame="' + g.id + '"' + (own ? ' disabled' : '') + '><span class="em">' + g.icon + '</span><span><b>' + esc(g.kk) + '</b><span class="muted">' + esc(g.ru) + '</span></span><span class="pill' + (own ? ' ok' : '') + '">' + (own ? 'Ашық ✓' : g.price + ' 🪙') + '</span></button>';
+      html += '<button class="shop-row" data-sgame="' + g.id + '"' + (own ? ' disabled' : '') + '><span class="em">' + g.icon + '</span><span><b>' + esc(g.kk) + '</b><span class="muted">' + esc(tr(g)) + '</span></span><span class="pill' + (own ? ' ok' : '') + '">' + (own ? 'Ашық ✓' : g.price + ' 🪙') + '</span></button>';
     });
     html += '<h2>Бонустар</h2>' +
       '<button class="shop-row" id="bhearts"><span class="em">❤️</span><span><b>+2 жүрек</b><span class="muted">Два лишних сердечка на следующий урок (сейчас: +' + S.bonusHearts + ')</span></span><span class="pill">' + W.SHOP.hearts + ' 🪙</span></button>' +
       '<button class="shop-row" id="bfreeze"' + (S.freeze >= W.SHOP.maxFreeze ? ' disabled' : '') + '><span class="em">🧊</span><span><b>Серияны қорғау</b><span class="muted">Сохранит серию 🔥, если пропустишь один день (есть: ' + S.freeze + ' из ' + W.SHOP.maxFreeze + ')</span></span><span class="pill">' + W.SHOP.freeze + ' 🪙</span></button>' +
-      '<h2>Стикерлер · наклейки</h2>' + albumHtml() + '</div>';
+      X('shopBottom') + '<h2>Стикерлер · наклейки</h2>' + albumHtml() + '</div>';
     return html;
   }
   function albumHtml() {
@@ -810,8 +855,8 @@
     qsa('[data-hero]').forEach(function (b) {
       b.onclick = function () {
         var h = heroInfo(b.getAttribute('data-hero'));
-        if (S.heroes.indexOf(h.id) >= 0) { S.heroSel = h.id; save(); sfx.pair(); toast(h.kk + ': ' + h.say); refresh(); return; }
-        buy(h.price, 'Кейіпкер: ' + h.kk + ' (' + h.ru + ')', function () { S.heroes.push(h.id); S.heroSel = h.id; });
+        if (S.heroes.indexOf(h.id) >= 0) { S.heroSel = h.id; save(); sfx.pair(); toast(h.kk + ': ' + (lang() === 'en' ? h.sayEn : h.say)); refresh(); return; }
+        buy(h.price, 'Кейіпкер: ' + h.kk + ' (' + tr(h) + ')', function () { S.heroes.push(h.id); S.heroSel = h.id; });
       };
     });
     qsa('[data-sgame]').forEach(function (b) {
@@ -819,6 +864,7 @@
     });
     qs('#bhearts').onclick = function () { buy(W.SHOP.hearts, '+2 жүрек', function () { S.bonusHearts += 2; }); };
     qs('#bfreeze').onclick = function () { buy(W.SHOP.freeze, 'Серияны қорғау', function () { S.freeze++; }); };
+    X('bindShop');
   }
 
   /* ---------- profile ---------- */
@@ -831,15 +877,16 @@
       '<div style="flex:1"><h2 style="margin:0">' + esc(S.name || 'Досым') + '</h2><span class="muted">' + level() + '-деңгей · ' + esc(heroInfo(S.heroSel).kk) + ' — сенің досың</span></div></div>' +
       '<label class="muted" for="nm">Атың кім? — Как тебя зовут?</label><input id="nm" class="name" maxlength="24" value="' + esc(S.name) + '" placeholder="Например, Айгерім" autocomplete="off">' +
       '<label class="muted">Нешінші сынып? — В каком ты классе?</label>' + gradeSwitch() +
+      '<label class="muted">Оқу режимі — режим обучения</label>' + langSwitch() +
       '<div class="kpis">' +
-      '<div class="kpi"><span class="ico">⚡</span><div><b>' + S.xp + '</b><span>очков опыта</span></div></div>' +
-      '<div class="kpi"><span class="ico">🪙</span><div><b>' + S.coins + '</b><span>монет</span></div></div>' +
+      '<div class="kpi"><span class="ico">⚡</span><div><b>' + S.xp + '</b><span>Шежіре XP</span></div></div>' +
+      '<div class="kpi"><span class="ico">🪙</span><div><b>' + S.coins + '</b><span>алтын асық</span></div></div>' +
       '<div class="kpi"><span class="ico">🔥</span><div><b>' + S.streak + '</b><span>дней подряд</span></div></div>' +
       '<div class="kpi"><span class="ico">📘</span><div><b>' + lessonsDone + ' / ' + ALL.length + '</b><span>уроков</span></div></div>' +
       '<div class="kpi"><span class="ico">⭐</span><div><b>' + stars + '</b><span>звёзд</span></div></div>' +
       '<div class="kpi"><span class="ico">🎮</span><div><b>' + S.gamesPlayed + '</b><span>игр сыграно</span></div></div></div>' +
-      '<h2>Жетістіктер · достижения</h2><div class="ach">' + W.ACH.map(function (a) {
-        return '<div class="a' + (S.ach[a.id] ? ' on' : '') + '"><span class="i">' + a.icon + '</span><b>' + esc(a.kk) + '</b><span>' + esc(a.ru) + '</span><i>+' + a.coins + ' 🪙</i></div>';
+      X('meTop') + '<h2>Жетістіктер · достижения</h2><div class="ach">' + W.ACH.map(function (a) {
+        return '<div class="a' + (S.ach[a.id] ? ' on' : '') + '"><span class="i">' + a.icon + '</span><b>' + esc(a.kk) + '</b><span>' + esc(tr(a)) + '</span><i>+' + a.coins + ' 🪙</i></div>';
       }).join('') + '</div>' +
       '<h2>Стикер альбомы</h2>' + albumHtml() +
       '<div class="panel" style="display:flex;flex-direction:column;gap:16px">' +
@@ -848,15 +895,16 @@
       '<p class="muted" style="margin:8px 0 0">Голос — модель KazakhTTS (ISSAI, Назарбаев Университет), лицензия CC BY 4.0, синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
       (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
-      '<p class="muted" style="text-align:center">Темы по программе «Қазақ тілі» для 1–3 классов.</p></div>';
+      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.0 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
   }
   function bindMe() {
     var nm = qs('#nm');
     nm.oninput = function () { S.name = nm.value.trim().slice(0, 24); save(); };
     qs('#snd').onclick = function () { S.sound = !S.sound; save(); sfx.tap(); refresh(); };
+    X('bindMe');
     var ts = qs('#ttsset'); if (ts) ts.onclick = function () { try { window.Android.openTtsSettings(); } catch (e) { /* ignore */ } };
     qs('#reset').onclick = function () {
-      sheet(myHero('sad') + '<h3>Начать заново?</h3><p>Все очки, монеты, герои, наклейки и уроки будут сброшены.</p>' +
+      sheet(myHero('sad') + '<h3>Начать заново?</h3><p>Все очки, асыки, герои, наклейки, скины и уроки будут сброшены.</p>' +
         '<button class="btn bad" id="yes">Да, сбросить</button><button class="btn ghost" id="no">Нет</button>');
       qs('#yes').onclick = function () { var n = S.name, g = S.grade; try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } S = load(); S.name = n; S.grade = g; S.onboarded = true; save(); closeSheet(); tab = 'path'; renderHome(); };
       qs('#no').onclick = closeSheet;
@@ -865,14 +913,15 @@
 
   function onboarding() {
     if (sheetOpen) return;
-    sheet(W.hero('bars', 'wow') + '<h3>Сәлем! Мен Барыспын 🐾</h3><p>Привет! Я Барыс. Давай учить казахский вместе!</p>' +
+    sheet(W.hero('batyr', 'wow') + '<h3>QazaqVerse: Tíl Quest</h3><p>Сәлем! Давай учить казахский вместе!</p>' + langSwitch() +
       '<input id="onm" class="name" maxlength="24" placeholder="Атың кім? — Как тебя зовут?" value="' + esc(S.name) + '">' +
       '<p class="muted">Нешінші сыныпта оқисың? — В каком ты классе?</p>' +
       '<div class="seg big">' + D.GRADES.map(function (g) { return '<button data-og="' + g.n + '">' + g.kk + '</button>'; }).join('') + '</div>');
+    qsa('.sheet [data-lang]').forEach(function (b) { b.onclick = function () { S.lang = b.getAttribute('data-lang'); S.name = qs('#onm').value.trim().slice(0, 24); save(); closeSheet(); onboarding(); }; });
     qsa('[data-og]').forEach(function (b) {
       b.onclick = function () {
         S.name = qs('#onm').value.trim().slice(0, 24); S.grade = +b.getAttribute('data-og'); S.onboarded = true;
-        S.coins += 50; addReward({ icon: '🎁', title: 'Қош келдің!', sub: 'Добро пожаловать! Вот 50 монет для магазина.', coins: 50 });
+        S.coins += 50; addReward({ icon: '🎁', title: 'Қош келдің!', sub: 'Добро пожаловать! Вот 50 золотых асыков для базара.', coins: 50 });
         save(); closeSheet(); renderHome();
       };
     });
@@ -967,7 +1016,7 @@
     var coins = l.practice ? 5 : l.review ? 30 : 5 + stars * 5;
     var acc = Math.round(L.good / Math.max(1, L.good + L.mistakes) * 100);
     var firstToday = bumpStreak();
-    addXp(xp); S.coins += coins; S.lessons++;
+    xp = addXp(xp); S.coins += coins; S.lessons++;
     if (!l.practice) { S.done[l.id] = Math.max(S.done[l.id] || 0, stars); if (stars === 3) S.perfects++; }
     levelCheck(); checkAch(); save();
     view = 'result';
@@ -988,8 +1037,9 @@
   function confetti() {
     var c = document.createElement('div'); c.className = 'confetti';
     var colors = ['hsl(199 84% 50%)', 'hsl(43 100% 52%)', 'hsl(102 64% 45%)', 'hsl(268 70% 62%)', 'hsl(350 90% 58%)'];
-    var html = '';
+    var html = '', emo = { tr_tulip: '🌷', tr_stars: '⭐', tr_spark: '✨' }[S.eq && S.eq.trail];
     for (var i = 0; i < 70; i++) {
+      if (emo && i % 3 === 0) { html += '<i class="emo" style="left:' + rnd(100) + '%;animation-duration:' + (1.8 + Math.random() * 1.6).toFixed(2) + 's;animation-delay:' + (Math.random() * 0.5).toFixed(2) + 's">' + emo + '</i>'; continue; }
       html += '<i style="left:' + rnd(100) + '%;background:' + colors[i % colors.length] + ';animation-duration:' + (1.6 + Math.random() * 1.6).toFixed(2) + 's;animation-delay:' + (Math.random() * 0.5).toFixed(2) + 's;transform:rotate(' + rnd(360) + 'deg)"></i>';
     }
     c.innerHTML = html; document.body.appendChild(c);
@@ -1003,7 +1053,7 @@
     var api = {
       words: gradeWords(gIdx()), allWords: ALLWORDS,
       esc: esc, shuffle: shuffle, rnd: rnd, uniqBy: uniqBy, qs: qs, qsa: qsa, glyph: glyph, isColor: isColorGlyph,
-      sfx: sfx, TTS: TTS, toast: toast, hero: myHero,
+      sfx: sfx, TTS: TTS, toast: toast, hero: myHero, tr: tr, lang: lang, S: S, vibrate: vibrate, sheet: sheet, closeSheet: closeSheet, confetti: confetti, heroSvg: W.hero,
       frame: function (title, inner) {
         $app.innerHTML = '<div class="game"><div class="g-top"><button class="x" id="gx" aria-label="Выйти">✕</button><b class="g-title">' + esc(title) + '</b><span class="g-stat" id="gstat"></span></div><div class="g-body" id="gb">' + inner + '</div></div>';
         qs('#gx').onclick = exitGame;
@@ -1013,14 +1063,15 @@
       onLeave: function (fn) { G.cleanup = fn; },
       end: function (res) { endGame(id, res); }
     };
-    window.QGAMES[id](api);
+    (window.QGAMES[id] || window.QARCADE[id])(api);
   }
   function exitGame() { if (G && G.cleanup) G.cleanup(); G = null; tab = 'games'; renderHome(); }
   function endGame(id, res) {
     if (G && G.cleanup) G.cleanup();
     G = null; view = 'gameover';
     var coins = Math.max(0, res.coins | 0);
-    S.gamesPlayed++; S.coins += coins; addXp(Math.min(10, res.score | 0)); bumpStreak();
+    S.gamesPlayed++; S.coins += coins; addXp(res.xp != null ? res.xp : Math.min(10, res.score | 0)); bumpStreak();
+    if (res.arcade) { S.arcade = S.arcade || {}; S.arcade[id] = Math.max(S.arcade[id] || 0, res.score | 0); }
     if (id === 'quiz') S.quizBest = Math.max(S.quizBest, res.score | 0);
     levelCheck(); checkAch(); save();
     sfx.win(); confetti();
@@ -1038,6 +1089,7 @@
     if (sheetOpen) { if (!S.onboarded) return true; closeSheet(); flushRewards(); return true; }
     if (view === 'lesson') { confirmExit(); return true; }
     if (view === 'game') { exitGame(); return true; }
+    if (view === 'arena') { X('arenaBack'); return true; }
     if (view === 'result' || view === 'gameover') { L = null; renderHome(); return true; }
     if (tab !== 'path') { tab = 'path'; renderHome(); return true; }
     return false;
@@ -1045,5 +1097,16 @@
   window.qResume = function () { if (view === 'home' && tab === 'me') refresh(); };
   window.qDebug = { setHearts: function (n) { if (L) L.hearts = n; }, state: function () { return S; } };
 
-  window.Q = { boot: function () { renderHome(); } };
+  window.Q = {
+    ext: {},
+    api: {
+      D: D, W: W, state: function () { return S; }, save: save, esc: esc, rnd: rnd, shuffle: shuffle, uniqBy: uniqBy, qs: qs, qsa: qsa, norm: norm, tokens: tokens,
+      tr: tr, lang: lang, glyph: glyph, sfx: sfx, TTS: TTS, toast: toast, sheet: sheet, closeSheet: closeSheet, confetti: confetti, vibrate: vibrate,
+      hero: W.hero, myHero: myHero, heroInfo: heroInfo, addXp: addXp, addReward: addReward, levelCheck: levelCheck, checkAch: checkAch, flushRewards: flushRewards,
+      refresh: refresh, renderHome: renderHome, buy: buy, league: league, xpBoost: xpBoost, today: today, startGame: startGame, bumpStreak: bumpStreak,
+      setTab: function (t) { tab = t; }, setView: function (v) { view = v; }, app: $app, selectOne: selectOne, markCards: markCards, spk: spk, bindSpeak: bindSpeak,
+      prompt: prompt, mascot: mascot, allSentences: function () { return ALLSENT; }, gradeLessons: function (gi) { return GALL[gi]; }, gIdx: gIdx
+    },
+    boot: function () { renderHome(); }
+  };
 })();

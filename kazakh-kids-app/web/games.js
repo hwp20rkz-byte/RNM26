@@ -7,11 +7,11 @@
     var bad = ['❓', '❔'];
     var pool = api.words.filter(function (w) { return bad.indexOf(w.e) < 0; });
     if (pool.length < n) pool = pool.concat(api.allWords.filter(function (w) { return bad.indexOf(w.e) < 0; }));
-    pool = api.uniqBy(api.uniqBy(api.uniqBy(api.shuffle(pool), function (w) { return w.e; }), function (w) { return w.kk; }), function (w) { return w.ru; });
+    pool = api.uniqBy(api.uniqBy(api.uniqBy(api.shuffle(pool), function (w) { return w.e; }), function (w) { return w.kk; }), function (w) { return api.tr(w); });
     return pool.slice(0, n);
   }
   function others(api, w, pool, n) {
-    return api.shuffle(pool.filter(function (x) { return x.kk !== w.kk && x.ru !== w.ru && x.e !== w.e; })).slice(0, n);
+    return api.shuffle(pool.filter(function (x) { return x.kk !== w.kk && api.tr(x) !== api.tr(w) && x.e !== w.e; })).slice(0, n);
   }
   function timer(api, secs, onTick, onEnd) {
     var left = secs, id = setInterval(function () {
@@ -36,8 +36,8 @@
       var opts = api.shuffle([w].concat(others(api, w, pool, 3)));
       api.stat(qn + '/10 · ⭐ ' + score);
       api.qs('#qq').innerHTML = mode
-        ? '<div class="g-word">' + api.esc(w.kk) + '</div><p class="muted center">Что это значит?</p><div class="cards">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + api.glyph(o.e) + '<span>' + api.esc(o.ru) + '</span></button>'; }).join('') + '</div>'
-        : '<div class="g-pic">' + api.glyph(w.e) + '<span>' + api.esc(w.ru) + '</span></div><p class="muted center">Как по-казахски?</p><div class="cards list">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + api.esc(o.kk) + '</button>'; }).join('') + '</div>';
+        ? '<div class="g-word">' + api.esc(w.kk) + '</div><p class="muted center">Что это значит?</p><div class="cards">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + api.glyph(o.e) + '<span>' + api.esc(api.tr(o)) + '</span></button>'; }).join('') + '</div>'
+        : '<div class="g-pic">' + api.glyph(w.e) + '<span>' + api.esc(api.tr(w)) + '</span></div><p class="muted center">Как по-казахски?</p><div class="cards list">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + api.esc(o.kk) + '</button>'; }).join('') + '</div>';
       if (mode) api.TTS.speak(w.kk, true);
       var bar = api.qs('#qt'); bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)';
       setTimeout(function () { bar.style.transition = 'transform 10s linear'; bar.style.transform = 'scaleX(0)'; }, 30);
@@ -93,7 +93,7 @@
       api.stat('Выучено: ' + known + '/' + total);
       if (!deck.length) return api.end({ score: total, scoreText: total + ' слов', coins: 8, title: 'Барлығын білесің!', sub: 'Ты повторил ' + total + ' слов' });
       var w = deck[0];
-      api.qs('#fc').innerHTML = '<button class="flash" id="flip"><span class="f1">' + api.glyph(w.e) + '<b>' + api.esc(w.kk) + '</b><span class="muted">Нажми, чтобы перевернуть</span></span><span class="f2"><b>' + api.esc(w.ru) + '</b><span class="muted">' + api.esc(w.kk) + '</span></span></button>' +
+      api.qs('#fc').innerHTML = '<button class="flash" id="flip"><span class="f1">' + api.glyph(w.e) + '<b>' + api.esc(w.kk) + '</b><span class="muted">Нажми, чтобы перевернуть</span></span><span class="f2"><b>' + api.esc(api.tr(w)) + '</b><span class="muted">' + api.esc(w.kk) + '</span></span></button>' +
         '<div class="fc-btns"><button class="btn ghost" id="again">↻ Тағы · ещё</button><button class="btn ok" id="know">✓ Білемін · знаю</button></div>';
       api.TTS.speak(w.kk, true);
       api.qs('#flip').onclick = function () { api.sfx.tap(); api.qs('#flip').classList.toggle('flipped'); api.TTS.speak(w.kk, true); };
@@ -120,7 +120,7 @@
       if (over) return;
       w = pool[api.rnd(pool.length)];
       var opts = api.shuffle([w].concat(others(api, w, pool, 2)));
-      api.qs('#bt').innerHTML = api.glyph(w.e) + '<b>' + api.esc(w.ru) + '</b>';
+      api.qs('#bt').innerHTML = api.glyph(w.e) + '<b>' + api.esc(api.tr(w)) + '</b>';
       var lanes = api.shuffle([8, 38, 68]);
       api.qs('#sky').innerHTML = opts.map(function (o, i) {
         return '<button class="balloon" data-ok="' + (o === w ? 1 : 0) + '" style="left:' + lanes[i] + '%;--bc:' + colors[api.rnd(colors.length)] + ';animation-duration:' + (6 + Math.random() * 1.5).toFixed(2) + 's;animation-delay:' + (i * 0.25).toFixed(2) + 's"><span>' + api.esc(o.kk) + '</span></button>';
@@ -157,7 +157,7 @@
       var p = idx[api.rnd(idx.length)], ch = w.kk[p];
       var opts = api.shuffle([ch].concat(LOOK[ch]));
       api.stat(qn + '/10 · ⭐ ' + score);
-      api.qs('#lq').innerHTML = '<div class="g-pic">' + api.glyph(w.e) + '<span>' + api.esc(w.ru) + '</span></div>' +
+      api.qs('#lq').innerHTML = '<div class="g-pic">' + api.glyph(w.e) + '<span>' + api.esc(api.tr(w)) + '</span></div>' +
         '<div class="g-word letters">' + api.esc(w.kk.slice(0, p)) + '<span class="gap">?</span>' + api.esc(w.kk.slice(p + 1)) + '</div>' +
         '<div class="chips big">' + opts.map(function (o, i) { return '<button class="card" data-i="' + i + '">' + o + '</button>'; }).join('') + '</div>';
       api.qsa('#lq .card').forEach(function (c) {

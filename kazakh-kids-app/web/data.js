@@ -44,9 +44,9 @@
 
   window.QDATA = {
     GRADES: [
-      { n: 1, kk: '1-сынып', ru: '1 класс', units: [] },
-      { n: 2, kk: '2-сынып', ru: '2 класс', units: [] },
-      { n: 3, kk: '3-сынып', ru: '3 класс', units: [] }
+      { n: 1, kk: '1-сынып', ru: '1 класс', en: 'Grade 1', units: [] },
+      { n: 2, kk: '2-сынып', ru: '2 класс', en: 'Grade 2', units: [] },
+      { n: 3, kk: '3-сынып', ru: '3 класс', en: 'Grade 3', units: [] }
     ],
     HOURS: HOURS,
     HOURS_LOC: HOURS_LOC,
