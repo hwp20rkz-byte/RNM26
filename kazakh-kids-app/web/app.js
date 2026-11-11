@@ -815,7 +815,9 @@
   function gamesPage() {
     var gi = gIdx();
     var html = '<div class="page">' + X('gamesTop') + gradeSwitch() +
-      '<div class="hero" style="margin:0">' + myHero('wow') + '<div><h1>Ойындар</h1><p>Слова раздела «' + esc(D.GRADES[gi].kk) + '». Играй и зарабатывай 🪙</p></div></div><div class="game-grid">';
+      '<div class="hero" style="margin:0">' + myHero('wow') + '<div><h1>Ойындар</h1><p>Слова раздела «' + esc(D.GRADES[gi].kk) + '». Играй и зарабатывай 🪙</p></div></div>' +
+      (window.QSUITE ? '<button class="suite-card" id="suite3d"><span class="em">🔮</span><span><b>3D-зал · Неостепь</b><small>Септік тотемі — 7 падежей и жіктік в 3D</small></span><span class="pill ok">β</span></button>' : '') +
+      '<div class="game-grid">';
     W.GAMES.forEach(function (g) {
       var own = S.games.indexOf(g.id) >= 0;
       html += '<button class="game-card' + (own ? '' : ' locked') + '" data-game="' + g.id + '"><span class="gi">' + g.icon + '</span><b>' + esc(g.kk) + '</b><span class="muted">' + esc(tr(g)) + '</span>' +
@@ -842,6 +844,7 @@
       };
     });
     qsa('[data-p]').forEach(function (b) { b.onclick = function () { sfx.tap(); startPractice(b.getAttribute('data-p')); }; });
+    var s3 = qs('#suite3d'); if (s3) s3.onclick = function () { sfx.tap(); save(); window.location.href = 'suite/index.html#/games/totem-cases'; };
     qsa('[data-tg]').forEach(function (b) {
       b.onclick = function () {
         if (!S.done[b.getAttribute('data-tl')]) { sfx.bad(); toast('🔒 Сначала пройди урок — игра закрепляет его материал'); return; }
@@ -949,7 +952,7 @@
       '<p class="muted" style="margin:8px 0 0">Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
       (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
-      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.3 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
+      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.4 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
   }
   function bindMe() {
     var nm = qs('#nm');

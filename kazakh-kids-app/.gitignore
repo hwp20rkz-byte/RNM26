@@ -1,3 +1,4 @@
 build/
 *.idsig
 node_modules/
+suite/dist/

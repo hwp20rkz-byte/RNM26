@@ -104,7 +104,7 @@ window.QUI_EN = {
     '🎙️ Слушаю…': '🎙️ Listening…', '🎙️ Айту · сказать вслух (×2)': '🎙️ Айту · say it aloud (×2)',
     'Задания «Айт!» и голосовой ввод в аркадах включаются, когда есть распознавание речи: сервер QazaqVerse Voice (казахский Whisper, через интернет) или распознавание самого телефона. Без него всё работает бабблами и свайпами. Вставь адрес сервера вместе с ключом одной строкой — его выдаёт владелец сервиса.': '«Айт!» tasks and voice input in the arcades turn on when speech recognition is available: the QazaqVerse Voice server (Kazakh Whisper, over the internet) or the phone’s own recogniser. Without it everything works with bubbles and swipes. Paste the server address together with the key as one line — the service owner gives it to you.',
     '🔒 Запись голоса отправляется на сервер только для оценки и там не хранится.': '🔒 The voice recording is sent to the server only for scoring and is not stored there.',
-    'https://…:8443/k/КЛЮЧ': 'https://…:8443/k/KEY', 'Сервер:': 'Server:', 'на связи': 'online', 'проверяю…': 'checking…',
+    'https://…:8443/k/КЛЮЧ': 'https://…:8443/k/KEY', 'Сервер:': 'Server:', '3D-зал · Неостепь': '3D hall · Neo-Steppe', 'Септік тотемі — 7 падежей и жіктік в 3D': 'Totem of Cases — the 7 cases and personal endings in 3D', 'на связи': 'online', 'проверяю…': 'checking…',
     'Адрес должен начинаться с https://': 'The address must start with https://',
     'Сервер голоса не ответил. Можно пропустить задание.': 'The voice server did not answer. You can skip this task.',
     'Сервер голоса вернул ошибку. Можно пропустить задание.': 'The voice server returned an error. You can skip this task.',
@@ -115,7 +115,7 @@ window.QUI_EN = {
     'Запись не получилась. Попробуй ещё раз.': 'The recording did not work. Try again.',
     'Эту фразу нельзя проверить. Пропусти задание.': 'This phrase cannot be checked. Skip the task.',
     'Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.': 'Voices: ISSAI KazakhTTS2 (CC BY 4.0) and ISEKE (Piper), synthesised with Piper. Works offline on any phone, including Huawei.',
-    'QazaqVerse: Tíl Quest · v3.3 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.': 'QazaqVerse: Tíl Quest · v3.3 · school topics for grades 1–3 plus real-life Kazakh.',
+    'QazaqVerse: Tíl Quest · v3.4 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.': 'QazaqVerse: Tíl Quest · v3.4 · school topics for grades 1–3 plus real-life Kazakh.',
     // textbook track
     'Дауыс — голос диктора': 'Дауыс — narrator voice',
     'Оқулық ойындары · по темам учебника': 'Оқулық ойындары · games for the textbook topics',

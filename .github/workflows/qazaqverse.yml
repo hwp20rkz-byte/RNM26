@@ -1,0 +1,88 @@
+name: QazaqVerse game
+
+# Kazakh learning game (kazakh-kids-app/): lesson engine, 3D suite (React 19 + R3F) and the Android APK.
+# PR-only like ci.yml, path-filtered so the other apps in this repo are not rebuilt.
+on:
+  pull_request:
+    paths:
+      - 'kazakh-kids-app/**'
+      - '.github/workflows/qazaqverse.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qazaqverse-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Lesson engine + curriculum
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kazakh-kids-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kazakh-kids-app/package-lock.json
+      - run: npm ci
+      - run: npm run build          # validates curriculum.json, strict tsc, esbuild bundle
+      - run: npm test               # score / auction / LessonEngine / dialogue / riddle tests
+      - name: Generated files are committed
+        run: git diff --exit-code -- web/curriculum.js web/qv-modules.js
+
+  suite:
+    name: 3D suite (typecheck, unit, build, budget, e2e)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kazakh-kids-app/suite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kazakh-kids-app/suite/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test               # morphology vs corpus, distractor property test, reducers, stores
+      - run: npm run build
+      - run: npm run budget         # JS ≤ 4.2 MB raw / 1.45 MB gzip, CSS ≤ 60 KB
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e            # full round from file:// (phone + desktop) and real drag/tap on the canvas
+      - uses: actions/upload-artifact@v4
+        with:
+          name: suite-dist
+          path: kazakh-kids-app/suite/dist
+          retention-days: 7
+
+  apk:
+    name: Android APK
+    needs: [core, suite]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kazakh-kids-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: suite-dist
+          path: kazakh-kids-app/suite/dist
+      - name: Android build tools (Debian/Ubuntu packages, no Gradle)
+        run: sudo apt-get update && sudo apt-get install -y aapt apksigner zipalign dalvik-exchange android-sdk-platform-23 default-jdk-headless
+      - run: ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qazaqsha-oyna-apk
+          path: kazakh-kids-app/dist/qazaqsha-oyna.apk
+          retention-days: 14

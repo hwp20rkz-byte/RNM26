@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_CODE=${VERSION_CODE:-6}
-VERSION_NAME=${VERSION_NAME:-3.3}
+VERSION_CODE=${VERSION_CODE:-7}
+VERSION_NAME=${VERSION_NAME:-3.4}
 SDK=${ANDROID_SDK:-/usr/lib/android-sdk}
 ANDROID_JAR="$SDK/platforms/android-23/android.jar"
 DX="$SDK/build-tools/debian/dx"
@@ -25,6 +25,15 @@ if [ -d node_modules ]; then npm run -s build; fi
 # 1. Web game -> assets (only what the app needs)
 cp web/*.html web/*.css web/*.js "$BUILD/assets/"
 cp -r web/fonts web/audio web/audio-iseke web/vendor "$BUILD/assets/"
+
+# 1b. 3D suite (React 19 + R3F, suite/) -> assets/suite; opened from the games tab
+if [ -d suite/node_modules ]; then (cd suite && npm run -s build && npm run -s budget); fi
+if [ -f suite/dist/index.html ]; then
+  mkdir -p "$BUILD/assets/suite" && cp -r suite/dist/. "$BUILD/assets/suite/"
+  printf 'window.QSUITE = true;\n' > "$BUILD/assets/suite/available.js"
+else
+  echo "warning: suite/dist is missing — building the APK without the 3D hall (run: cd suite && npm ci && npm run build)"
+fi
 
 # 2. R.java
 aapt package -f -m -J "$BUILD/gen" -M android/AndroidManifest.xml -S android/res -I "$ANDROID_JAR"

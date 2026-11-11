@@ -1,0 +1,39 @@
+{
+  "name": "qazaqverse-3d-suite",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "QazaqVerse 3D \u2014 immersive Kazakh grammar games (React 19 + React Three Fiber + Rapier). Ships as a static site and inside the Android APK (assets/suite/).",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "npm run typecheck && vite build && node scripts/postbuild.mjs",
+    "preview": "vite preview",
+    "budget": "node scripts/budget.mjs",
+    "e2e": "node tests/e2e/totem.e2e.cjs && node tests/e2e/totem.e2e.cjs \"\" 1280 720 && node tests/e2e/physics.e2e.cjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
+    "@react-three/postprocessing": "3.2.2",
+    "@react-three/rapier": "2.2.0",
+    "postprocessing": "6.39.5",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "three": "0.186.1",
+    "zustand": "5.0.16"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "4.1.12",
+    "playwright": "1.63.0"
+  }
+}

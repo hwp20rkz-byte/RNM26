@@ -80,4 +80,13 @@ C.room.containers.forEach((x) => add(x.kk));
 C.workshop.forEach((b) => { add(b.done); b.tiers.forEach((t) => { add(t.q); add(t.ans); }); });
 add('Сәлем! Мен сенің дауысыңмын.');
 
+// 3D suite (suite/src/data/kazakhGrammarCorpus.ts): every sentence with its correct ending, spoken after an answer
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/kazakhGrammarCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  [...m.exports.CASE_SENTENCES, ...m.exports.PERSON_SENTENCES].forEach((x) => add(x.before + x.root + x.ending + x.after));
+} catch (e) { process.stderr.write('suite corpus skipped: ' + e.message + '\n'); }
+
 process.stdout.write(JSON.stringify([...out.values()], null, 0));
