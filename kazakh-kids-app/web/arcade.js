@@ -72,12 +72,13 @@
     api.onLeave(function () { over = true; if (T) T.stop(); if (window.QVOICE) window.QVOICE.stop(); });
     function hud(left) { api.stat('⏱ ' + (left != null ? left : T.left()) + ' · 🧺 ' + deals + ' · ⭐ ' + score + (combo > 1 ? ' · 🔥×' + combo : '')); }
     function stall(line, tr, tag) {
-      api.qs('#stall').innerHTML = '<div class="seller">' + W.hero(seller, 'happy') + '</div><div class="good"><span class="em">' + good.e + '</span><b>' + api.esc(good.kk) + '</b>' + (tag ? '<span class="price">' + tag + '</span>' : '') + '</div>' +
+      var el = api.qs('#stall'); if (!el || over) return;     // a pending timer can fire after the round ended
+      el.innerHTML = '<div class="seller">' + W.hero(seller, 'happy') + '</div><div class="good"><span class="em">' + good.e + '</span><b>' + api.esc(good.kk) + '</b>' + (tag ? '<span class="price">' + tag + '</span>' : '') + '</div>' +
         (line ? '<div class="say-b"><b>' + api.esc(line) + '</b>' + (tr ? '<small>' + api.esc(tr) + '</small>' : '') + '</div>' : '');
     }
     function ok(mult) { combo++; best = Math.max(best, combo); score += 10 * Math.min(4, 1 + Math.floor(combo / 3)) * (mult || 1); api.sfx.ok(); if (combo === 10) hostPop(api, 'batyr', 'combo'); hud(); }
     function miss() { combo = 0; T.add(-3); hud(); }
-    function task(ru, en) { api.qs('#task').innerHTML = api.esc(api.lang() === 'en' ? en : ru); }
+    function task(ru, en) { var el = api.qs('#task'); if (el && !over) el.innerHTML = api.esc(api.lang() === 'en' ? en : ru); }
     function phrase(text, extra, next) {
       var el = api.qs('#inp'), mic = window.QVOICE && window.QVOICE.ready();
       el.innerHTML = '<div id="bubs"></div>' + (mic ? '<button class="btn ghost mic-btn" id="bmic">🎙️ Айту · сказать вслух (×2)</button>' : '');
@@ -277,7 +278,7 @@
     api.frame('Дастархан Master', '<div class="dk" id="dk"></div><div class="arc-task" id="task"></div><div id="inp"></div>'); neon(api);
     api.onLeave(function () { over = true; if (T) T.stop(); clearTimeout(spawnT); clearInterval(tickT); });
     function hud(left) { api.stat('⏱ ' + (left != null ? left : T.left()) + ' · 🍽️ ' + served + ' · ⭐ ' + score + ' · ' + '❤️'.repeat(Math.max(0, hearts))); }
-    function task(ru, en) { api.qs('#task').innerHTML = api.esc(api.lang() === 'en' ? en : ru); }
+    function task(ru, en) { var el = api.qs('#task'); if (el && !over) el.innerHTML = api.esc(api.lang() === 'en' ? en : ru); }
     function draw() {
       var seat = function (i) {
         var g = seats[i];
