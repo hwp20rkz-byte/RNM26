@@ -177,7 +177,8 @@
 
   var ENGINE = { sort: sortGame, pairs: pairsGame, seq: seqGame, clock: clockGame };
   Object.keys(CFG).forEach(function (id) {
+    if (!ENGINE[CFG[id].type]) return;          // '3d' and 'dialogue' games are registered by web/qv-modules.js
     window.QGAMES[id] = function (api) { ENGINE[CFG[id].type](id, CFG[id], api); };
   });
-  window.QTOPIC = { CFG: CFG, CLOCK_MIN: CLOCK_MIN, clockFace: clockFace };
+  window.QTOPIC = { CFG: CFG, CLOCK_MIN: CLOCK_MIN, clockFace: clockFace, done: done };
 })();

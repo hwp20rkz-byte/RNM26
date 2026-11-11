@@ -384,7 +384,7 @@
 
   window.QV3D = {
     ok: ok, THREE: T, NEON: NEON, box: box, cyl: cyl, ball: ball, group: group, lam: lam, glow: glow,
-    make: make, wear: wear, asyk: asyk, hammer: hammer, pedestal: pedestal,
+    make: make, wear: wear, asyk: asyk, hammer: hammer, pedestal: pedestal, humanoid: humanoid, face: { eye: eye, smile: smile, blush: blush },
     stage: stage, disposeAll: disposeAll, play: play, sparks: sparks, snapshot: snapshot, ease: ease, now: now
   };
 })();

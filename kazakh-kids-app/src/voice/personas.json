@@ -1,0 +1,233 @@
+{
+  "_comment": "Voice personas of modules 2 and 4. `piper` = the offline stand-in actually bundled in the APK (ISSAI KazakhTTS2 speakers + pitch/tempo in ffmpeg, see tools/make-audio.py). `azure` / `elevenlabs` = production specs for a cloud re-voicing; they are not used by the build. APAI renders with the narrator voice (tag NARR: ISEKE or ISSAI, chosen in the profile).",
+  "personas": {
+    "ALIBEK": {
+      "name": "Әлібек",
+      "role": "Main student hero, boy 9–10, polite, loves architecture and models",
+      "acoustics": {
+        "pitchSt": 4,
+        "speed": 0.95,
+        "energy": "high",
+        "emotion": "cheerful, curious"
+      },
+      "piper": {
+        "speaker": 0,
+        "lengthScale": 1.05,
+        "pitchSt": 4.0,
+        "filter": ""
+      },
+      "azure": {
+        "voice": "kk-KZ-DauletNeural",
+        "pitch": "+4st",
+        "rate": "-5%",
+        "volume": "+0%"
+      },
+      "elevenlabs": {
+        "description": "Kazakh boy, 9-10 years old, bright and curious, very clear diction",
+        "stability": 0.45,
+        "similarity_boost": 0.8,
+        "style": 0.35,
+        "speed": 0.95
+      }
+    },
+    "ANEL": {
+      "name": "Әнел",
+      "role": "Support student hero, girl 9–10, reads books, loves fountains and history",
+      "acoustics": {
+        "pitchSt": 3,
+        "speed": 0.95,
+        "energy": "medium",
+        "emotion": "warm, melodic"
+      },
+      "piper": {
+        "speaker": 4,
+        "lengthScale": 1.05,
+        "pitchSt": 3.0,
+        "filter": ""
+      },
+      "azure": {
+        "voice": "kk-KZ-AigulNeural",
+        "pitch": "+3st",
+        "rate": "-5%",
+        "volume": "+0%"
+      },
+      "elevenlabs": {
+        "description": "Kazakh girl, 9-10 years old, melodic and friendly, crisp pronunciation",
+        "stability": 0.5,
+        "similarity_boost": 0.8,
+        "style": 0.3,
+        "speed": 0.95
+      }
+    },
+    "ZHALKAU": {
+      "name": "Жалқаубек",
+      "role": "Comedic growth character, boy 10, sleepy and playful; the player helps him become ұқыпты",
+      "acoustics": {
+        "pitchSt": 2,
+        "speed": 0.8,
+        "energy": "low",
+        "emotion": "sleepy, playful"
+      },
+      "piper": {
+        "speaker": 0,
+        "lengthScale": 1.32,
+        "pitchSt": 2.5,
+        "filter": ""
+      },
+      "azure": {
+        "voice": "kk-KZ-DauletNeural",
+        "pitch": "+2st",
+        "rate": "-20%",
+        "volume": "-5%"
+      },
+      "elevenlabs": {
+        "description": "Kazakh boy, 10, sleepy, yawning, playful and a bit lazy, slow delivery",
+        "stability": 0.35,
+        "similarity_boost": 0.75,
+        "style": 0.55,
+        "speed": 0.8
+      }
+    },
+    "ATA": {
+      "name": "Ата",
+      "role": "Wise mentor (grandfather), host of «Тіл Кереметі»",
+      "acoustics": {
+        "pitchSt": -2,
+        "speed": 0.85,
+        "energy": "medium",
+        "emotion": "warm, resonant, fatherly"
+      },
+      "piper": {
+        "speaker": 1,
+        "lengthScale": 1.2,
+        "pitchSt": -2.0,
+        "filter": ""
+      },
+      "azure": {
+        "voice": "kk-KZ-DauletNeural",
+        "pitch": "-2st",
+        "rate": "-15%",
+        "volume": "+0%"
+      },
+      "elevenlabs": {
+        "description": "Elderly Kazakh man, deep chest resonance, warm blessing tone (Бәрекелді!)",
+        "stability": 0.6,
+        "similarity_boost": 0.8,
+        "style": 0.25,
+        "speed": 0.85
+      }
+    },
+    "AZHE": {
+      "name": "Әже",
+      "role": "Grandmother in the bus scene; gives the blessing «Өркенің өссін!»",
+      "acoustics": {
+        "pitchSt": -1,
+        "speed": 0.85,
+        "energy": "low",
+        "emotion": "gentle, grandmotherly"
+      },
+      "piper": {
+        "speaker": 3,
+        "lengthScale": 1.2,
+        "pitchSt": -1.0,
+        "filter": ""
+      },
+      "azure": {
+        "voice": "kk-KZ-AigulNeural",
+        "pitch": "-1st",
+        "rate": "-15%",
+        "volume": "+0%"
+      },
+      "elevenlabs": {
+        "description": "Elderly Kazakh woman, soft and kind, slow, grandmotherly warmth",
+        "stability": 0.6,
+        "similarity_boost": 0.8,
+        "style": 0.3,
+        "speed": 0.85
+      }
+    },
+    "APAI": {
+      "name": "Баян апай",
+      "role": "Teacher / narrator / system voice; literary standard Kazakh for pronunciation drills",
+      "acoustics": {
+        "pitchSt": 0,
+        "speed": 0.87,
+        "energy": "medium",
+        "emotion": "neutral, reassuring"
+      },
+      "piper": {
+        "tag": "NARR"
+      },
+      "azure": {
+        "voice": "kk-KZ-AigulNeural",
+        "pitch": "+0st",
+        "rate": "-13%",
+        "volume": "+0%"
+      },
+      "elevenlabs": {
+        "description": "Kazakh female teacher, studio-neutral, perfect literary pronunciation, calm",
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0.1,
+        "speed": 0.87
+      }
+    },
+    "ARCH": {
+      "name": "Шетелдік сәулетші",
+      "role": "Foreign architect interviewing Alibek at Baiterek; speaks simple, slightly careful Kazakh",
+      "acoustics": {
+        "pitchSt": -1,
+        "speed": 0.9,
+        "energy": "medium",
+        "emotion": "friendly, curious"
+      },
+      "piper": {
+        "speaker": 1,
+        "lengthScale": 1.08,
+        "pitchSt": 0.5,
+        "filter": ""
+      },
+      "azure": {
+        "voice": "kk-KZ-DauletNeural",
+        "pitch": "-1st",
+        "rate": "-10%",
+        "volume": "+0%"
+      },
+      "elevenlabs": {
+        "description": "Adult man, friendly foreign architect speaking careful, simple Kazakh",
+        "stability": 0.55,
+        "similarity_boost": 0.8,
+        "style": 0.2,
+        "speed": 0.9
+      }
+    }
+  },
+  "lines": {
+    "ATA": {
+      "hello": "Сәлем, балалар! Тіл Кереметіне қош келдіңдер!",
+      "spin": "Дөңгелекті айналдыр!",
+      "yes": "Бәрекелді!",
+      "no": "Мұндай әріп жоқ.",
+      "solved": "Керемет! Сөзді таптың!",
+      "prize": "Жүлде! Саған сыйлық!",
+      "hint": "Қаріп! Бір әріпті ашамын.",
+      "bonus": "Бонус! Келесі ұпай екі есе!",
+      "bless": "Өркенің өссін!",
+      "bye": "Жарайсың, ақылдым!"
+    },
+    "ZHALKAU": {
+      "start": "Қойшы, ертең жинаймын…",
+      "mid": "Ой, бөлмем тазара бастады!",
+      "end": "Рақмет! Енді мен ұқыптымын!"
+    },
+    "ALIBEK": {
+      "room": "Жүр, бөлмеңді бірге жинайық!",
+      "workshop": "Жүр, макет жасайық!",
+      "done": "Біз нағыз жас сәулетшіміз!"
+    },
+    "APAI": {
+      "where": "Оны қайда қоямыз?",
+      "pick": "Қай ғимаратты саламыз?"
+    }
+  }
+}

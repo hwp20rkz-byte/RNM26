@@ -38,6 +38,15 @@ PIPER_VOICES = {
     'E4': (3, 1.25, -2.5, 'chorus=0.7:0.9:22:0.35:0.25:2'),       # Әже-Bot 3000: warm, slow, a touch robotic
     'E1': (1, 1.15, -1.5, ''),                                    # auction judge: deep, measured
 }
+# Personas of modules 2 & 4 (src/voice/personas.json): same tuple format; APAI uses the narrator tag.
+try:
+    with open(os.path.join(ROOT, 'src', 'voice', 'personas.json'), encoding='utf-8') as _fh:
+        for _id, _p in json.load(_fh)['personas'].items():
+            _pp = _p.get('piper', {})
+            if 'speaker' in _pp:
+                PIPER_VOICES[_id] = (_pp['speaker'], _pp.get('lengthScale', 1.0), _pp.get('pitchSt', 0.0), _pp.get('filter', ''))
+except FileNotFoundError:
+    pass
 TRIM = 'silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse'
 
 

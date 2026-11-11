@@ -43,7 +43,6 @@ window.QUI_EN = {
     'Жми «Тексеру» и идём дальше.': 'Tap «Тексеру» and let’s move on.',
     'Сердечко не потеряно: микрофон иногда ошибается.': 'No heart lost: the microphone sometimes gets it wrong.',
     'Великолепно!': 'Magnificent!', 'Молодец!': 'Well done!', 'Чудесно!': 'Wonderful!', 'Очень хорошо!': 'Very good!', 'Правильно!': 'Correct!', 'Браво!': 'Bravo!',
-    'Ничего страшного — это задание вернётся в конце.': 'No worries — this task will come back at the end.',
     'Правда выйти? Прогресс этого урока пропадёт.': 'Really leave? This lesson’s progress will be lost.',
     'Оқуды жалғастыру · учиться дальше': 'Оқуды жалғастыру · keep learning', 'Шығу · выйти': 'Шығу · leave',
     'Сердечки закончились. Не грусти — попробуй ещё раз! В магазине можно купить +2 ❤️.': 'You are out of hearts. Don’t worry — try again! You can buy +2 ❤️ in the shop.',
@@ -123,9 +122,14 @@ window.QUI_EN = {
     'Мұғалім парағы · для учителя': 'Мұғалім парағы · for the teacher',
     'Баға · оценка': 'Баға · mark',
     'Баға: 85–100% «5», 65–84% «4», 40–64% «3», <40% «2» — по доле заданий, выполненных с первой попытки.': 'Баға: 85–100% «5», 65–84% «4», 40–64% «3», <40% «2» — by the share of tasks done right on the first try.',
-    '🔒 Сначала пройди урок — игра закрепляет его материал': '🔒 Finish the lesson first — the game practises its material'
+    '🔒 Сначала пройди урок — игра закрепляет его материал': '🔒 Finish the lesson first — the game practises its material',
+    'Время вышло. Чекпоинт не пройден. Повтори уроки модуля и попробуй ещё раз!': 'Time is up. Checkpoint not passed. Review the module lessons and try again!',
+    'Ничего страшного — это задание вернётся в конце.': 'No worries — this task will come back at the end.'
   },
   rx: [
+    [/^⏱ (\d+) мин · (\d+) ❤️ · чекпоинт$/, '⏱ $1 min · $2 ❤️ · checkpoint'],
+    [/^⏱ (\d+) с · (.*)$/, '⏱ $1 s · $2'],
+    [/^Время вышло\. Чекпоинт не пройден: с первой попытки (\d+) из (\d+)\. Повтори уроки модуля и попробуй ещё раз!$/, 'Time is up. Checkpoint not passed: $1 of $2 right on the first try. Review the module lessons and try again!'],
     [/^(🎮 .+) — откроется после урока$/, '$1 — opens after the lesson'],
     [/^(🎮 .+) · закрепим!$/, '$1 · let’s practise!'],
     [/^14 заданий по модулю · оценка 2–5 · \+30(.*)$/, '14 tasks from the module · mark 2–5 · +30$1'],

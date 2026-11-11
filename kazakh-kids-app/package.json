@@ -1,0 +1,18 @@
+{
+  "name": "qazaqverse-tilquest",
+  "version": "3.3.0",
+  "private": true,
+  "description": "QazaqVerse: Tíl Quest — offline Kazakh learning game (Android WebView). TypeScript sources in src/ are bundled into web/qv-modules.js.",
+  "scripts": {
+    "build:data": "node tools/build-curriculum.js",
+    "build:ts": "tsc --noEmit -p tsconfig.json && esbuild src/main.ts --bundle --format=iife --target=es2017 --outfile=web/qv-modules.js --legal-comments=none",
+    "build": "npm run build:data && npm run build:ts",
+    "test": "node tests/score.test.js && node tests/auction.test.js && node tests/engine.test.js",
+    "apk": "npm run build && ./build.sh"
+  },
+  "devDependencies": {
+    "@types/three": "0.149.0",
+    "esbuild": "0.25.11",
+    "typescript": "5.6.3"
+  }
+}

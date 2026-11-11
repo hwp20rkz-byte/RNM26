@@ -554,8 +554,9 @@
 
   /* ---------- lesson generator ---------- */
   function contentOf(list) {
-    var c = { words: [], sentences: [], fills: [], clocks: [], clocksLoc: [], order: null, nums: null };
+    var c = { words: [], sentences: [], fills: [], clocks: [], clocksLoc: [], order: null, nums: null, affixes: [], busters: [], posts: [] };
     list.forEach(function (l) {
+      c.affixes = c.affixes.concat(l.affixes || []); c.busters = c.busters.concat(l.busters || []); c.posts = c.posts.concat(l.posts || []);
       c.words = c.words.concat(l.words || []); c.sentences = c.sentences.concat(l.sentences || []);
       c.fills = c.fills.concat(l.fills || []); c.clocks = c.clocks.concat(l.clocks || []);
       c.clocksLoc = c.clocksLoc.concat(l.clocksLoc || []); if (l.order) c.order = l.order;
@@ -590,6 +591,7 @@
     (c.clocksLoc || []).forEach(function (t) { add('clockLoc', function () { return exClockLoc(t); }); });
     if (c.nums) for (var k = 0; k < 4; k++) add('num', function () { return exNum(c.nums); });
     if (c.order) add('order', function () { return exOrder(c.order); });
+    if (window.Q.ext.extraEx) window.Q.ext.extraEx(c, add);     // Жалғау шебері, Қатені тап, шылаулар (src/exercises)
     if (X('voiceReady')) shuffle(c.sentences || []).slice(0, 2).forEach(function (s) { add('speak', function () { return window.Q.ext.exSpeak(s); }); });
 
     Object.keys(groups).forEach(function (g) { groups[g] = shuffle(groups[g]); });
@@ -771,7 +773,7 @@
     sheet(W.hero(l.unit.hero, 'wow') + '<div style="font-size:40px">' + l.icon + '</div><h3>' + esc(l.kk) + '</h3><p>' + esc(tr(l)) + (done ? ' · ' + '⭐'.repeat(done) : '') + '</p>' +
       (l.page ? '<p class="muted">📖 Оқулық, ' + l.page + '-бет</p>' : '') +
       (l.game && D.TOPIC_GAMES[l.game] ? '<p class="muted">🎮 ' + esc(D.TOPIC_GAMES[l.game].kk) + (S.done[l.id] ? '' : ' — откроется после урока') + '</p>' : '') +
-      '<p class="muted">' + (l.assess ? '14 заданий по модулю · оценка 2–5 · +30 🪙' : l.review ? '12 заданий из всех тем класса · +30 🪙' : '10 заданий · ' + (HEARTS + S.bonusHearts) + ' ❤️ · до +20 🪙') + '</p>' +
+      (l.boss ? '<p class="muted">⏱ ' + Math.round(l.boss.seconds / 60) + ' мин · ' + l.boss.hearts + ' ❤️ · чекпоинт</p>' : '') + '<p class="muted">' + (l.assess ? '14 заданий по модулю · оценка 2–5 · +30 🪙' : l.review ? '12 заданий из всех тем класса · +30 🪙' : '10 заданий · ' + (HEARTS + S.bonusHearts) + ' ❤️ · до +20 🪙') + '</p>' +
       '<button class="btn ' + (done ? 'gold' : 'ok') + '" id="go">' + (done ? 'Қайталау · повторить' : 'Бастау · начать') + '</button>' +
       '<button class="btn ghost" id="cancel">Жабу · закрыть</button>');
     qs('#go').onclick = function () { closeSheet(); startLesson(l); };
@@ -997,15 +999,30 @@
       if (lesson.review) exs = genLesson(contentOf((lesson.unit.module ? lesson.unit.lessons : GALL[lesson.unit.grade]).filter(function (l) { return !l.review; })), lesson.assess ? 14 : 12, { noIntro: true });
       else exs = genLesson(lesson, 10);
     }
-    var hearts = HEARTS + S.bonusHearts; S.bonusHearts = 0; save();
+    var boss = lesson.boss, hearts = boss ? boss.hearts : HEARTS + S.bonusHearts;
+    if (!boss) S.bonusHearts = 0;
+    save();
+    exs.forEach(function (e, i) { e._id = 't' + i; });
     L = { lesson: lesson, q: exs, i: 0, total: exs.filter(function (e) { return !e.free; }).length, good: 0, mistakes: 0, hearts: hearts, retried: [] };
+    // LessonEngine (src/engine): combo multiplier, mistake categories, boss time limit
+    if (window.QLE) {
+      var eng = L.eng = new window.QLE.LessonEngine({ total: L.total, hearts: hearts, seconds: boss ? boss.seconds : 0 });
+      if (eng.timed) {
+        var tm = setInterval(function () {
+          if (!L || L.eng !== eng) return clearInterval(tm);
+          var t = qs('#ltimer'), ms = eng.remainingMs();
+          if (t) { t.textContent = '⏱ ' + Math.floor(ms / 60000) + ':' + ('0' + Math.floor(ms / 1000) % 60).slice(-2); t.classList.toggle('low', ms < 30000); }
+          if (eng.tick() === 'timeup') { clearInterval(tm); timeUp(); }
+        }, 500);
+      }
+    }
     renderLesson();
   }
   function renderLesson() {
     view = 'lesson';
     var pct = Math.round(L.good / L.total * 100);
     $app.innerHTML = '<div class="lesson"><div class="l-top"><button class="x" id="lx" aria-label="Выйти">✕</button>' +
-      '<div class="bar"><i style="width:' + pct + '%"></i></div>' + ((L.combo || 0) >= 3 ? '<span class="stat fire">🔥' + L.combo + '</span>' : '') + '<span class="stat heart"><span class="ico">❤️</span>' + L.hearts + '</span></div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' + ((L.combo || 0) >= 3 ? '<span class="stat fire">🔥' + L.combo + (L.mult > 1 ? ' ×' + L.mult : '') + '</span>' : '') + (L.eng && L.eng.timed ? '<span class="stat timer" id="ltimer">⏱</span>' : '') + '<span class="stat heart"><span class="ico">❤️</span>' + L.hearts + '</span></div>' +
       '<div class="l-body" id="lb"></div><div class="l-foot" id="lf"><button class="btn ok" id="lc" disabled>Тексеру</button></div></div>';
     var ex = L.q[L.i], lb = qs('#lb'), lc = qs('#lc');
     qs('#lx').onclick = confirmExit;
@@ -1030,6 +1047,7 @@
     lb.style.pointerEvents = 'none';
     qsa('[data-say]', lb).forEach(function (b) { b.style.pointerEvents = 'auto'; });
     lf.style.display = '';
+    if (L.eng && L.eng.phase === 'question') { var er = L.eng.answer(ex._id || ('x' + L.i), ex.kind || 'pick', !!r.ok); L.mult = er.multiplier; }
     if (r.ok) {
       if (!ex._counted) { L.good++; ex._counted = true; }
       sfx.ok();
@@ -1046,7 +1064,7 @@
     lf.className = 'l-foot ' + (r.ok ? 'good' : 'fail');
     lf.innerHTML = '<div class="fb"><span class="ic">' + (r.ok ? '✅' : '❌') + '</span><div>' +
       (r.ok ? '<h3>' + praise[0] + '</h3><p class="tr">' + praise[1] + '</p>' + (r.tr ? '<p>' + esc(r.ans) + '</p><p class="tr">' + esc(r.tr) + '</p>' : '')
-        : '<h3>Дұрыс жауап:</h3><p>' + esc(r.ans) + '</p>' + (r.tr ? '<p class="tr">' + esc(r.tr) + '</p>' : '') + '<p class="tr">Ничего страшного — это задание вернётся в конце.</p>') +
+        : '<h3>Дұрыс жауап:</h3><p>' + esc(r.ans) + '</p>' + (r.tr ? '<p class="tr">' + esc(r.tr) + '</p>' : '') + (r.why ? '<p class="why">💡 ' + esc(r.why) + '</p>' : '') + '<p class="tr">Ничего страшного — это задание вернётся в конце.</p>') +
       '</div></div><button class="btn ' + (r.ok ? 'ok' : 'bad') + '" id="next">Жалғастыру</button>';
     qs('#next').onclick = next;
   }
@@ -1064,6 +1082,7 @@
     sfx.tap();
     if (L.hearts <= 0) return outOfHearts();
     L.i++;
+    if (L.eng) { L.eng.next(L.i < L.q.length); if (L.eng.phase === 'timeup') return timeUp(); }
     if (L.i >= L.q.length) return finish();
     renderLesson();
   }
@@ -1072,6 +1091,14 @@
       '<button class="btn" id="stay">Оқуды жалғастыру · учиться дальше</button><button class="btn ghost" id="quit" style="color:var(--bad-d)">Шығу · выйти</button>');
     qs('#stay').onclick = closeSheet;
     qs('#quit').onclick = function () { var p = L && L.lesson.practice; closeSheet(); L = null; if (p) tab = 'games'; renderHome(); };
+  }
+  function timeUp() {
+    if (!L || view !== 'lesson') return;
+    var lesson = L.lesson, sm = L.eng ? L.eng.summary() : null;
+    sheet(mascot('sad') + '<h3>Уақыт бітті ⏰</h3><p>Время вышло. Чекпоинт не пройден' + (sm ? ': с первой попытки ' + sm.firstTry + ' из ' + sm.total : '') + '. Повтори уроки модуля и попробуй ещё раз!</p>' +
+      '<button class="btn ok" id="again">Қайтадан · ещё раз</button><button class="btn ghost" id="home">Шығу · выйти</button>');
+    qs('#again').onclick = function () { closeSheet(); startLesson(lesson); };
+    qs('#home').onclick = function () { closeSheet(); L = null; renderHome(); };
   }
   function outOfHearts() {
     var lesson = L.lesson;
@@ -1083,7 +1110,7 @@
   /* ---------- assessment (критериальное оценивание) ----------
    * First-try correct answers / all graded tasks → percent → mark by the thresholds used for summative
    * assessment in Kazakhstan schools: 85–100 % «5», 65–84 % «4», 40–64 % «3», below 40 % «2». */
-  var SKILL = { listen: 'tyn', pick: 'oqy', pickR: 'oqy', sent: 'oqy', match: 'oqy', clock: 'oqy', clockR: 'oqy', build: 'zhaz', fill: 'zhaz', order: 'zhaz', clockLoc: 'zhaz', num: 'zhaz', speak: 'ait' };
+  var SKILL = { listen: 'tyn', pick: 'oqy', pickR: 'oqy', sent: 'oqy', match: 'oqy', clock: 'oqy', clockR: 'oqy', build: 'zhaz', fill: 'zhaz', order: 'zhaz', clockLoc: 'zhaz', num: 'zhaz', speak: 'ait', affix: 'zhaz', post: 'zhaz', buster: 'tyn' };
   var SKILL_NAME = { tyn: ['Тыңдалым', 'Аудирование', 'Listening'], oqy: ['Оқылым', 'Чтение и лексика', 'Reading & vocabulary'], zhaz: ['Жазылым', 'Письмо и грамматика', 'Writing & grammar'], ait: ['Айтылым', 'Говорение', 'Speaking'] };
   function markOf(p) { return p >= 85 ? 5 : p >= 65 ? 4 : p >= 40 ? 3 : 2; }
   function assessResult(Ls) {
@@ -1123,6 +1150,8 @@
     var coins = l.practice ? 5 : l.review ? 30 : 5 + stars * 5;
     var acc = Math.round(L.good / Math.max(1, L.good + L.mistakes) * 100);
     var firstToday = bumpStreak();
+    var sm = L.eng ? L.eng.summary() : null;
+    if (sm) xp += sm.xp;                          // combo-multiplied XP for every answer
     xp = addXp(xp); S.coins += coins; S.lessons++;
     if (!l.practice) { S.done[l.id] = Math.max(S.done[l.id] || 0, stars); if (stars === 3) S.perfects++; }
     var grade = l.assess ? assessResult(L) : null;
@@ -1141,6 +1170,8 @@
       '<div class="res-box" style="--c:var(--sun-600)"><small>Алтын</small><b>+' + coins + '🪙</b></div>' +
       '<div class="res-box" style="--c:var(--ok)"><small>Дәлдік</small><b>' + acc + '%</b></div></div>' +
       (grade ? gradeCard(grade) : '') +
+      (sm && sm.weakest && window.QLE.ADVICE[sm.weakest] ? '<p class="why">💡 ' + esc(window.QLE.ADVICE[sm.weakest][lang() === 'en' ? 'en' : 'ru']) + '</p>' : '') +
+      (l.boss && sm ? '<p class="muted">⏱ ' + Math.round(sm.timeUsedMs / 1000) + ' с · ❤️ ' + L.hearts + ' / ' + l.boss.hearts + ' · 🔥 ' + sm.bestCombo + '</p>' : '') +
       '<p><b>🔥 ' + S.streak + (firstToday && S.streak > 1 ? ' дней подряд! Так держать!' : ' · серия дней') + '</b></p>' +
       '</div><div class="l-foot">' + (l.game && D.TOPIC_GAMES[l.game] ? '<button class="btn gold" id="tgame">🎮 ' + esc(D.TOPIC_GAMES[l.game].kk) + ' · закрепим!</button>' : '') +
       '<button class="btn ok" id="cont">Жалғастыру</button></div></div>';
