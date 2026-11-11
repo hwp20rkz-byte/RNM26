@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_CODE=${VERSION_CODE:-5}
-VERSION_NAME=${VERSION_NAME:-3.2}
+VERSION_CODE=${VERSION_CODE:-6}
+VERSION_NAME=${VERSION_NAME:-3.3}
 SDK=${ANDROID_SDK:-/usr/lib/android-sdk}
 ANDROID_JAR="$SDK/platforms/android-23/android.jar"
 DX="$SDK/build-tools/debian/dx"
@@ -18,6 +18,9 @@ OUT=dist/qazaqsha-oyna.apk
 # remove only our own build directory (fixed relative path)
 rm -rf -- "./$BUILD"
 mkdir -p "$BUILD/gen" "$BUILD/classes" "$BUILD/assets" dist
+
+# 0. TypeScript sources and curriculum data -> web/qv-modules.js, web/curriculum.js (committed, so this is optional)
+if [ -d node_modules ]; then npm run -s build; fi
 
 # 1. Web game -> assets (only what the app needs)
 cp web/*.html web/*.css web/*.js "$BUILD/assets/"

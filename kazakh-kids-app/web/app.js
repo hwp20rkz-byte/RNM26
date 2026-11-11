@@ -949,7 +949,7 @@
       '<p class="muted" style="margin:8px 0 0">Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
       (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
-      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.2 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
+      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.3 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
   }
   function bindMe() {
     var nm = qs('#nm');

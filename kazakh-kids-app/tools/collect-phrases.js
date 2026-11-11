@@ -65,7 +65,7 @@ D.GRADES.forEach((g) => g.units.forEach((u) => u.lessons.forEach((l) => {
 Object.values(D.TOPIC_GAMES || {}).forEach((g) => {
   (g.items || []).forEach((x) => add(Array.isArray(x) ? x[1] : x.kk));
   Object.values(g.plural || {}).forEach((x) => add(x));
-  (g.pairs || []).forEach((p) => { add(p.a); add(p.b); if (g.say) add(g.say(p)); });
+  (g.pairs || []).forEach((p) => { add(p.a); add(p.b); add(g.say ? g.say(p) : p.a + ' ' + p.b); });   // topic-games.js speaks «a b» when there is no say()
 });
 for (let h = 1; h <= 12; h++) [0, 10, 15, 20, 30, 40, 45, 50].forEach((m) => add(D.clockPhrase(h, m)));
 // modules 2 & 4: new exercise kinds, riddles, 3D games (narrator voice)
