@@ -1,28 +1,58 @@
 /* Голосовой клиент: запись с микрофона → распознавание → оценка произношения (QScore).
  *
  * Три уровня распознавания, по убыванию качества:
- *   1. server  — QazaqVerse Voice Server (backend/): silero-VAD + Whisper/ sherpa-onnx, адрес задаётся в профиле;
+ *   1. server  — QazaqVerse Voice (HTTPS API: GET /health, POST /assess, GET /tts). Адрес задаётся в профиле одной строкой
+ *                вместе с ключом: https://host:8443/k/<КЛЮЧ>. Ключа нет ни в коде, ни в репозитории;
  *   2. android — системный распознаватель речи телефона (kk-KZ), если он есть (обычно телефоны с Google);
  *   3. none    — микрофона нет: задания «скажи вслух» не показываются, аркады работают бабблами и свайпами. */
 (function () {
   'use strict';
   var A = window.Q.api, QS = window.QScore, esc = A.esc, qs = A.qs;
   function S() { return A.state(); }
-  var srvOk = false, srvInfo = null, busy = false;
+  var srvOk = false, srvInfo = null, srvErr = '', lastPing = 0, coolUntil = 0, busy = false, pinging = null;
 
   /* ---------- engines ---------- */
   function androidStt() { try { return !!(window.Android && window.Android.sttAvailable && window.Android.sttAvailable()); } catch (e) { return false; } }
-  function engine() { return !S().micOn ? 'none' : (S().sttUrl && srvOk) ? 'server' : androidStt() ? 'android' : 'none'; }
-  function ready() { return engine() !== 'none'; }
-  function base() { return String(S().sttUrl || '').trim().replace(/\/+$/, ''); }
-  function withTimeout(p, ms) { return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, ms); })]); }
-  function ping() {
-    srvOk = false; srvInfo = null;
-    if (!base() || !window.fetch) return Promise.resolve(false);
-    return withTimeout(fetch(base() + '/health').then(function (r) { return r.json(); }), 4000)
-      .then(function (j) { srvOk = !!(j && j.ok); srvInfo = j; return srvOk; })
-      .catch(function () { srvOk = false; return false; });
+  function engine() {
+    if (!S().micOn) return 'none';
+    if (base() && !srvOk) maybePing();          // server came back (or the phone got online): picked up next time
+    return (base() && srvOk) ? 'server' : androidStt() ? 'android' : 'none';
   }
+  function ready() { return engine() !== 'none'; }
+  function base() { return String(S().sttUrl || '').trim().replace(/\/+$/, '').replace(/\/(health|assess|tts|voices)$/, ''); }
+  // Address for the profile: the key part of /k/<key> is masked.
+  function shownBase() { return base().replace(/\/k\/([^/]{0,3})[^/]*/, function (m, a) { return '/k/' + a + '•••'; }); }
+
+  /* HTTP with a real abort on timeout; always resolves to {status, json} or {status: 0, json: {error}} */
+  function http(path, opts, ms) {
+    if (!window.fetch) return Promise.resolve({ status: 0, json: { error: 'network' } });
+    if (Date.now() < coolUntil) return Promise.resolve({ status: 429, json: { error: 'rate_limited' } });
+    var ctrl = window.AbortController ? new AbortController() : null, timer;
+    var o = Object.assign({ cache: 'default' }, opts || {}); if (ctrl) o.signal = ctrl.signal;
+    var timeout = new Promise(function (res) { timer = setTimeout(function () { if (ctrl) ctrl.abort(); res({ status: 0, json: { error: 'timeout' } }); }, ms); });
+    var call = fetch(base() + path, o).then(function (r) {
+      return r.text().then(function (t) {
+        var j; try { j = JSON.parse(t); } catch (e) { j = { error: r.ok ? 'server' : 'http_' + r.status }; }
+        if (r.status === 429) coolUntil = Date.now() + 60000;   // the API asks clients not to retry in a loop
+        if (!r.ok && !j.error) j.error = r.status === 401 ? 'unauthorized' : r.status === 429 ? 'rate_limited' : 'server';
+        return { status: r.status, json: j };
+      });
+    }, function () { return { status: 0, json: { error: 'network' } }; });
+    return Promise.race([call, timeout]).then(function (x) { clearTimeout(timer); return x; });
+  }
+  function ping() {
+    if (!base()) { srvOk = false; srvInfo = null; srvErr = ''; return Promise.resolve(false); }
+    if (pinging) return pinging;
+    lastPing = Date.now();
+    pinging = http('/health', { cache: 'no-store' }, 5000).then(function (x) {
+      pinging = null;
+      srvOk = !!(x.status === 200 && x.json && x.json.ok && x.json.stt !== false);
+      srvInfo = srvOk ? x.json : null; srvErr = srvOk ? '' : (x.json && x.json.error) || (x.json && x.json.stt === false ? 'stt_unavailable' : 'server');
+      return srvOk;
+    });
+    return pinging;
+  }
+  function maybePing() { if (!pinging && Date.now() - lastPing > 60000) ping(); }
 
   /* ---------- microphone → 16 kHz mono WAV, with a simple energy end-pointer ---------- */
   function record(maxSec, onLevel) {
@@ -75,13 +105,20 @@
     var eng = engine();
     if (eng === 'none') return Promise.resolve({ error: 'nomic' });
     busy = true;
+    var tgt = String(target).slice(0, 300);
     var p = eng === 'server'
-      ? record(7, onLevel).then(function (rec) {
-        if (!rec.spoke) return { error: 'silence' };
-        return withTimeout(fetch(base() + '/assess?target=' + encodeURIComponent(target) + '&lang=' + A.lang(), { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: rec.wav }).then(function (r) { return r.json(); }), 30000)
-          .then(function (j) {
-            if (!j || j.error) return { error: j && j.error || 'server' };
-            var r = QS.assess(j.hypothesis, target, j.confidence);   // same formula as the server; recomputed locally for the diff view
+      ? record(9, onLevel).then(function (rec) {
+        // The server has its own (better) VAD and answers {error:"silence"}: the local end-pointer only decides when to stop.
+        return http('/assess?target=' + encodeURIComponent(tgt) + '&lang=' + A.lang(), { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: rec.wav, cache: 'no-store' }, 30000)
+          .then(function (x) {
+            var j = x.json || {};
+            if (j.error) { if (/^(network|timeout|stt_unavailable|server|unauthorized)$/.test(j.error)) { srvOk = j.error !== 'unauthorized' && srvOk; srvErr = j.error; } return { error: j.error }; }
+            if (typeof j.score !== 'number') return { error: 'server' };
+            // The server's score/passed/missed/feedback are authoritative; the local alignment only colours the letters.
+            var r = QS.assess(j.hypothesis || '', tgt, typeof j.confidence === 'number' ? j.confidence : 1);
+            r.score = j.score; r.passed = !!j.passed; r.hypothesis = j.hypothesis || '';
+            if (Array.isArray(j.missed)) r.missed = j.missed;
+            if (j.feedback && j.feedback.kk) r.feedback = j.feedback;
             r.engine = 'server'; r.model = j.model; r.ms = j.ms;
             return r;
           });
@@ -102,7 +139,11 @@
   }
   var ERR = {
     silence: 'Не слышу тебя. Скажи громче и ближе к телефону.', denied: 'Нет доступа к микрофону. Разреши его в настройках приложения.',
-    timeout: 'Сервер голоса не ответил.', server: 'Сервер голоса вернул ошибку.', nomic: 'Микрофон не настроен.', busy: 'Подожди секунду…', android: 'Распознавание речи на телефоне недоступно.'
+    timeout: 'Сервер голоса не ответил. Можно пропустить задание.', server: 'Сервер голоса вернул ошибку. Можно пропустить задание.',
+    network: 'Нет связи с сервером голоса. Можно пропустить задание.', stt_unavailable: 'Распознавание временно недоступно. Можно пропустить задание.',
+    unauthorized: 'Сервер не принял ключ. Проверь адрес в профиле.', rate_limited: 'Слишком много попыток подряд. Подожди минуту или пропусти.',
+    bad_audio: 'Запись не получилась. Попробуй ещё раз.', bad_target: 'Эту фразу нельзя проверить. Пропусти задание.',
+    nomic: 'Микрофон не настроен.', busy: 'Подожди секунду…', android: 'Распознавание речи на телефоне недоступно.'
   };
   function errText(e) { return ERR[e] || 'Не получилось распознать речь. Попробуй ещё раз.'; }
 
@@ -134,7 +175,12 @@
           listen(s.kk, function (lv) { mic.style.setProperty('--lv', lv.toFixed(2)); }).then(function (r) {
             if (!document.body.contains(el)) return;
             mic.classList.remove('on'); tries++;
-            if (r.error) { qs('#vhint', el).textContent = errText(r.error); A.sfx.bad(); return; }
+            if (r.error) {
+              qs('#vhint', el).textContent = errText(r.error); A.sfx.bad();
+              // never block the lesson: after a technical failure the skip link becomes a real button
+              if (r.error !== 'silence' && r.error !== 'busy') qs('#vskip', el).className = 'btn ghost';
+              return;
+            }
             if (!best || r.score > best.score) best = r;
             qs('#vres', el).innerHTML = resultHtml(best);
             qs('#vhint', el).textContent = best.passed ? 'Можно ещё раз — или жми «Тексеру».' : tries >= 3 ? 'Жми «Тексеру» и идём дальше.' : 'Попробуй ещё раз!';
@@ -154,10 +200,12 @@
   /* ---------- profile panel ---------- */
   function panel() {
     var eng = engine(), st = S();
-    var status = !st.micOn ? '⏸ выключено' : eng === 'server' ? '✅ сервер QazaqVerse' + (srvInfo && srvInfo.model ? ' (' + esc(srvInfo.model) + ')' : '') : eng === 'android' ? '✅ распознавание телефона (kk-KZ)' : '❌ нет распознавания';
-    return '<h2>Дауыс · оценка произношения</h2><div class="panel" style="display:flex;flex-direction:column;gap:12px"><b>🎙️ Микрофон: ' + status + '</b>' +
-      '<p class="muted" style="margin:0">Задания «Айт!» и голосовой ввод в аркадах включаются, когда есть распознавание речи: сервер QazaqVerse Voice (Whisper для казахского, запускается на компьютере в той же сети Wi-Fi) или распознавание самого телефона. Без него всё работает бабблами и свайпами.</p>' +
-      '<input id="vurl" class="name" inputmode="url" placeholder="http://192.168.1.10:8765" value="' + esc(st.sttUrl) + '" autocomplete="off">' +
+    var status = !st.micOn ? '⏸ выключено' : eng === 'server' ? '✅ сервер QazaqVerse Voice' + (srvInfo && srvInfo.model ? ' (' + esc(srvInfo.model) + ')' : '') : eng === 'android' ? '✅ распознавание телефона (kk-KZ)' : '❌ нет распознавания';
+    var srvLine = !base() ? '' : '<p class="muted" style="margin:0"><span>Сервер:</span> <span>' + esc(shownBase()) + '</span> — <span>' + (srvOk ? 'на связи' : srvErr ? esc(errText(srvErr)) : 'проверяю…') + '</span></p>';
+    return '<h2>Дауыс · оценка произношения</h2><div class="panel" style="display:flex;flex-direction:column;gap:12px"><b>🎙️ Микрофон: ' + status + '</b>' + srvLine +
+      '<p class="muted" style="margin:0">Задания «Айт!» и голосовой ввод в аркадах включаются, когда есть распознавание речи: сервер QazaqVerse Voice (казахский Whisper, через интернет) или распознавание самого телефона. Без него всё работает бабблами и свайпами. Вставь адрес сервера вместе с ключом одной строкой — его выдаёт владелец сервиса.</p>' +
+      '<input id="vurl" class="name" type="url" inputmode="url" spellcheck="false" placeholder="https://…:8443/k/КЛЮЧ" value="' + esc(st.sttUrl) + '" autocomplete="off">' +
+      '<p class="muted" style="margin:0;font-size:var(--fs-1)">🔒 Запись голоса отправляется на сервер только для оценки и там не хранится.</p>' +
       '<div class="fc-btns"><button class="btn ghost" id="vtest">Проверить сервер</button><button class="btn ghost" id="vtoggle">' + (st.micOn ? 'Выключить микрофон' : 'Включить микрофон') + '</button></div>' +
       (ready() ? '<button class="btn gold" id="vtry">🎙️ Проба: «Сәлем, досым!»</button><div id="vtryres"></div>' : '') + '</div>';
   }
@@ -165,7 +213,9 @@
     var u = qs('#vurl'); if (!u) return;
     qs('#vtest').onclick = function () {
       S().sttUrl = u.value.trim(); A.save(); A.toast('Проверяю сервер…');
-      ping().then(function (ok) { A.toast(ok ? '✅ Сервер голоса на связи' : '❌ Сервер не отвечает. Проверь адрес и Wi-Fi.'); A.refresh(); });
+      if (u.value.trim() && !/^https?:\/\//i.test(u.value.trim())) { A.toast('Адрес должен начинаться с https://'); return; }
+      coolUntil = 0;
+      ping().then(function (ok) { A.toast(ok ? '✅ Сервер голоса на связи' : '❌ ' + errText(srvErr || 'network')); A.refresh(); });
     };
     qs('#vtoggle').onclick = function () { S().micOn = !S().micOn; A.save(); A.refresh(); };
     var t = qs('#vtry');
@@ -175,10 +225,21 @@
     };
   }
 
+  /* ---------- /tts: only for text that is not bundled (dynamic phrases). Lessons stay offline. ---------- */
+  function ttsUrl(text, voice) {
+    var t = String(text || '').trim();
+    if (!t || t.length > 400 || !srvOk || !base() || Date.now() < coolUntil) return null;
+    var vs = (srvInfo && srvInfo.voices) || ['iseke', 'issai'], v = vs.indexOf(voice) >= 0 ? voice : vs.indexOf('iseke') >= 0 ? 'iseke' : vs[0];
+    // issai speaker 2 at 0.87 speed = the bundled narrator, so remote and bundled phrases sound alike
+    return base() + '/tts?voice=' + encodeURIComponent(v) + (v === 'issai' ? '&speaker=2&speed=0.87' : '') + '&fmt=mp3&text=' + encodeURIComponent(t);
+  }
+  var prevResume = window.qResume;
+  window.qResume = function () { if (base()) ping(); if (prevResume) prevResume(); };
+
   window.Q.ext.voiceReady = ready;
   window.Q.ext.exSpeak = exSpeak;
   window.Q.ext.voicePanel = panel;
   window.Q.ext.bindVoicePanel = bindPanel;
-  window.QVOICE = { listen: listen, ready: ready, engine: engine, ping: ping, resultHtml: resultHtml, errText: errText, stop: function () { if (record.stop) record.stop(); } };
+  window.QVOICE = { listen: listen, ready: ready, engine: engine, ping: ping, ttsUrl: ttsUrl, resultHtml: resultHtml, errText: errText, stop: function () { if (record.stop) record.stop(); } };
   if (S().sttUrl) ping();
 })();

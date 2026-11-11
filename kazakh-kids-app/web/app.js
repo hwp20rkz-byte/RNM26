@@ -137,7 +137,8 @@
       if (S.voice !== 'issai' && AUD_ISEKE[k]) return 'audio-iseke/' + k;
       return AUD[k] ? 'audio/' + k : null;
     },
-    has: function (text) { return !!TTS.file(text) || sysKk(); },
+    remote: function (text) { return window.QVOICE && window.QVOICE.ttsUrl ? window.QVOICE.ttsUrl(text, S.voice || 'iseke') : null; },
+    has: function (text) { return !!TTS.file(text) || sysKk() || !!TTS.remote(text); },
     ok: function () { return Object.keys(AUD).length > 0 || sysKk(); },
     speak: function (text, quiet) {
       var k = TTS.file(text);
@@ -150,6 +151,17 @@
         return;
       }
       (window.qMissing = window.qMissing || []).push(text);
+      // not bundled: the voice server's /tts (cached by the WebView forever), then the phone's own TTS
+      var u = TTS.remote(text);
+      if (u) {
+        try {
+          if (curAudio) curAudio.pause();
+          curAudio = new Audio(u);
+          curAudio.onerror = function () { if (sysKk()) { try { window.Android.speak(text); } catch (e) { /* ignore */ } } };
+          var pr = curAudio.play(); if (pr && pr.catch) pr.catch(function () { /* autoplay blocked */ });
+        } catch (e) { /* ignore */ }
+        return;
+      }
       if (sysKk()) { try { window.Android.speak(text); } catch (e) { /* ignore */ } return; }
       if (!quiet) toast('🔇 Для этой фразы нет озвучки');
     }
@@ -932,10 +944,10 @@
       '<div class="panel" style="display:flex;flex-direction:column;gap:16px">' +
       '<button class="btn ghost" id="snd">' + (S.sound ? '🔔 Звуки: включены' : '🔕 Звуки: выключены') + '</button>' +
       '<div><b>🗣️ Казахская озвучка: ' + (nAud ? '✅ встроена (' + nAud + ' фраз)' : sysKk() ? '✅ голос телефона' : '❌ нет') + '</b>' +
-      '<p class="muted" style="margin:8px 0 0">Голос — модель KazakhTTS (ISSAI, Назарбаев Университет), лицензия CC BY 4.0, синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
+      '<p class="muted" style="margin:8px 0 0">Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
       (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
-      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.0 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
+      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.2 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
   }
   function bindMe() {
     var nm = qs('#nm');

@@ -102,9 +102,33 @@ window.QUI_EN = {
     'Микрофон не настроен.': 'The microphone is not set up.', 'Подожди секунду…': 'Wait a second…',
     'Распознавание речи на телефоне недоступно.': 'Speech recognition is not available on this phone.',
     'Не получилось распознать речь. Попробуй ещё раз.': 'Could not recognise the speech. Try again.',
-    '🎙️ Слушаю…': '🎙️ Listening…', '🎙️ Айту · сказать вслух (×2)': '🎙️ Айту · say it aloud (×2)'
+    '🎙️ Слушаю…': '🎙️ Listening…', '🎙️ Айту · сказать вслух (×2)': '🎙️ Айту · say it aloud (×2)',
+    'Задания «Айт!» и голосовой ввод в аркадах включаются, когда есть распознавание речи: сервер QazaqVerse Voice (казахский Whisper, через интернет) или распознавание самого телефона. Без него всё работает бабблами и свайпами. Вставь адрес сервера вместе с ключом одной строкой — его выдаёт владелец сервиса.': '«Айт!» tasks and voice input in the arcades turn on when speech recognition is available: the QazaqVerse Voice server (Kazakh Whisper, over the internet) or the phone’s own recogniser. Without it everything works with bubbles and swipes. Paste the server address together with the key as one line — the service owner gives it to you.',
+    '🔒 Запись голоса отправляется на сервер только для оценки и там не хранится.': '🔒 The voice recording is sent to the server only for scoring and is not stored there.',
+    'https://…:8443/k/КЛЮЧ': 'https://…:8443/k/KEY', 'Сервер:': 'Server:', 'на связи': 'online', 'проверяю…': 'checking…',
+    'Адрес должен начинаться с https://': 'The address must start with https://',
+    'Сервер голоса не ответил. Можно пропустить задание.': 'The voice server did not answer. You can skip this task.',
+    'Сервер голоса вернул ошибку. Можно пропустить задание.': 'The voice server returned an error. You can skip this task.',
+    'Нет связи с сервером голоса. Можно пропустить задание.': 'No connection to the voice server. You can skip this task.',
+    'Распознавание временно недоступно. Можно пропустить задание.': 'Speech recognition is temporarily unavailable. You can skip this task.',
+    'Сервер не принял ключ. Проверь адрес в профиле.': 'The server did not accept the key. Check the address in your profile.',
+    'Слишком много попыток подряд. Подожди минуту или пропусти.': 'Too many attempts in a row. Wait a minute or skip.',
+    'Запись не получилась. Попробуй ещё раз.': 'The recording did not work. Try again.',
+    'Эту фразу нельзя проверить. Пропусти задание.': 'This phrase cannot be checked. Skip the task.',
+    'Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.': 'Voices: ISSAI KazakhTTS2 (CC BY 4.0) and ISEKE (Piper), synthesised with Piper. Works offline on any phone, including Huawei.',
+    'QazaqVerse: Tíl Quest · v3.2 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.': 'QazaqVerse: Tíl Quest · v3.2 · school topics for grades 1–3 plus real-life Kazakh.',
+    // textbook track
+    'Дауыс — голос диктора': 'Дауыс — narrator voice',
+    'Оқулық ойындары · по темам учебника': 'Оқулық ойындары · games for the textbook topics',
+    'Мұғалім парағы · для учителя': 'Мұғалім парағы · for the teacher',
+    'Баға · оценка': 'Баға · mark',
+    'Баға: 85–100% «5», 65–84% «4», 40–64% «3», <40% «2» — по доле заданий, выполненных с первой попытки.': 'Баға: 85–100% «5», 65–84% «4», 40–64% «3», <40% «2» — by the share of tasks done right on the first try.',
+    '🔒 Сначала пройди урок — игра закрепляет его материал': '🔒 Finish the lesson first — the game practises its material'
   },
   rx: [
+    [/^(🎮 .+) — откроется после урока$/, '$1 — opens after the lesson'],
+    [/^(🎮 .+) · закрепим!$/, '$1 · let’s practise!'],
+    [/^14 заданий по модулю · оценка 2–5 · \+30(.*)$/, '14 tasks from the module · mark 2–5 · +30$1'],
     [/^Что значит «(.+)»\?$/, 'What does “$1” mean?'],
     [/^Как по-казахски «(.+)»\?$/, 'How do you say “$1” in Kazakh?'],
     [/^(\d+)-деңгей · уровень (\d+)$/, '$1-деңгей · level $2'],
@@ -152,7 +176,7 @@ window.QUI_EN = {
     [/^🎙️ (\d+)% — ещё раз$/, '🎙️ $1% — try again']
   ],
   frag: [
-    [' · комбо ×', ' · combo ×'], [' ч ', ' h '], [' мин', ' min'], ['⏸ выключено', '⏸ off'], ['✅ сервер QazaqVerse', '✅ QazaqVerse server'],
+    [' · комбо ×', ' · combo ×'], [' ч ', ' h '], [/(\d) мин(?![А-Яа-яЁёӘәІіҢңҒғҮүҰұҚқӨөҺһ])/g, '$1 min'],   // never touch the Kazakh «минут» ['⏸ выключено', '⏸ off'], ['✅ сервер QazaqVerse', '✅ QazaqVerse server'],
     ['✅ распознавание телефона (kk-KZ)', "✅ the phone's recogniser (kk-KZ)"], ['❌ нет распознавания', '❌ no speech recognition'],
     ['✅ голос телефона', "✅ the phone's voice"], ['❌ нет', '❌ none']
   ]

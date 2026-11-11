@@ -8,7 +8,11 @@
   var miss = window.qUntranslated = {};
 
   function frags(t) {
-    for (var i = 0; i < DICT.frag.length; i++) if (t.indexOf(DICT.frag[i][0]) >= 0) t = t.split(DICT.frag[i][0]).join(DICT.frag[i][1]);
+    for (var i = 0; i < DICT.frag.length; i++) {
+      var f = DICT.frag[i];
+      if (f[0] instanceof RegExp) t = t.replace(f[0], f[1]);
+      else if (t.indexOf(f[0]) >= 0) t = t.split(f[0]).join(f[1]);
+    }
     return t;
   }
   function translate(s) {
