@@ -3,3 +3,4 @@ build/
 node_modules/
 suite/dist/
 voice_studio/takes/
+__pycache__/
