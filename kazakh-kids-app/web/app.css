@@ -746,3 +746,4 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .suite-card b { display: block; font-size: var(--fs-3); }
 .suite-card small { color: hsl(188 90% 80%); }
 .suite-card.wheel { background: linear-gradient(120deg, hsl(37 91% 40%), hsl(356 80% 48%) 55%, hsl(271 67% 40%)); }
+.wh-level { display: block; margin: var(--s-2) auto 0; min-height: 44px; padding: 0 var(--s-3); border-radius: 99px; font-weight: 800; font-size: var(--fs-1); background: var(--ink-50); border: 2px solid var(--ink-100); color: var(--ink-800); }

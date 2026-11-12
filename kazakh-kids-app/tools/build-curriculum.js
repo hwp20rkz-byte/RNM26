@@ -65,6 +65,9 @@ Object.values(C.dialogues).forEach((d) => {
   if (!ends) err('dialogue ' + d.id, 'no end node');
 });
 C.riddles.forEach((r, k) => { need(r, ['answer', 'clue', 'ru', 'en', 'src'], 'riddle#' + k); if (r.answer !== r.answer.toUpperCase()) err('riddle#' + k, 'answer must be upper case'); });
+C.riddles.forEach((r, k) => { if (['easy', 'textbook'].indexOf(r.level) < 0) err('riddle#' + k, 'level must be easy or textbook'); });
+['easy', 'textbook'].forEach((lv) => { if (C.riddles.filter((r) => r.level === lv).length < 3) err('riddles', 'need ≥3 riddles of level ' + lv); });
+if (new Set(C.riddles.map((r) => r.answer)).size !== C.riddles.length) err('riddles', 'duplicate answers');
 const cont = new Set(C.room.containers.map((c) => c.id));
 C.room.items.forEach((x) => { if (!cont.has(x.to)) err('room item ' + x.id, 'unknown container ' + x.to); });
 C.workshop.forEach((b) => b.tiers.forEach((t) => optsHave(t, 'workshop ' + b.id + '/' + t.id)));

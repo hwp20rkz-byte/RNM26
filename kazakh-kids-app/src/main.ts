@@ -2,7 +2,7 @@
 import { LessonEngine, ADVICE, markOf, nextStreak, comboMultiplier } from './engine/LessonEngine';
 import { registerExercises } from './exercises';
 import { renderDialogue, DialogueEngine } from './dialogue/BranchingDialogue';
-import { runTilKeremeti, RiddleBoard } from './games/TilKeremeti3D';
+import { runTilKeremeti, RiddleBoard, defaultLevel, LEVELS, type RiddleLevel } from './games/TilKeremeti3D';
 import { runWorkshop } from './games/ArchitectWorkshop3D';
 import { runRoom } from './games/GoodDeedsRoom3D';
 import { ssml, elevenLabsRequest, voiceDesignPrompt, PERSONAS } from './voice/audioMap';
@@ -16,7 +16,12 @@ window.QGAMES = window.QGAMES || {};
 Object.entries(C.topicGames).forEach(([id, g]) => {
   if (g.type === 'dialogue') window.QGAMES[id] = (api: GameApi) => renderDialogue(api, id, C.dialogues[g.dialogue]);
   if (g.type === '3d') {
-    if (g.scene === 'wheel') window.QGAMES[id] = (api: GameApi) => runTilKeremeti(api, id, C.riddles);
+    if (g.scene === 'wheel') window.QGAMES[id] = (api: GameApi) => {
+      const grades = (window.Q.api.D as unknown as { GRADES: { textbook?: boolean }[] }).GRADES;
+      const textbookGrade = grades.findIndex((x) => x.textbook) + 1, grade = Number(api.S.grade) || 1;
+      const saved = api.S.wheelLevel as RiddleLevel | undefined;
+      runTilKeremeti(api, id, C.riddles, saved && LEVELS.includes(saved) ? saved : defaultLevel(grade, textbookGrade));
+    };
     if (g.scene === 'workshop') window.QGAMES[id] = (api: GameApi) => runWorkshop(api, id, C.workshop);
     if (g.scene === 'room') window.QGAMES[id] = (api: GameApi) => runRoom(api, id, C.room);
   }

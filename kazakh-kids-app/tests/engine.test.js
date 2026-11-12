@@ -88,4 +88,14 @@ const TK = load('src/games/TilKeremeti3D.ts');
   q.solve(); assert.ok(q.solved);
   C.riddles.forEach((r) => assert.ok(/^[А-ЯӘІҢҒҮҰҚӨҺЁ -]+$/.test(r.answer), r.answer));
 }
-console.log('engine: LessonEngine, DialogueEngine, RiddleBoard — all assertions passed');
+// riddle levels: grade 1–2 → easy, the textbook track → textbook, other tracks → all
+{
+  assert.strictEqual(TK.defaultLevel(1, 5), 'easy'); assert.strictEqual(TK.defaultLevel(2, 5), 'easy');
+  assert.strictEqual(TK.defaultLevel(5, 5), 'textbook'); assert.strictEqual(TK.defaultLevel(3, 5), 'mixed'); assert.strictEqual(TK.defaultLevel(4, 5), 'mixed');
+  const easy = TK.riddlePool(C.riddles, 'easy'), book = TK.riddlePool(C.riddles, 'textbook');
+  assert.ok(easy.length >= 15 && book.length >= 10); assert.strictEqual(easy.length + book.length, C.riddles.length);
+  assert.ok(easy.every((r) => r.level === 'easy' && /сынып сөздігі/.test(r.src)));
+  assert.strictEqual(TK.riddlePool(C.riddles, 'mixed').length, C.riddles.length);
+  easy.forEach((r) => { const b = new TK.RiddleBoard(r); assert.ok(b.hidden() >= 2, r.answer); assert.ok(!r.clue.toUpperCase().split(/[^А-ЯӘІҢҒҮҰҚӨҺЁ]+/).includes(r.answer), 'clue gives away ' + r.answer); });
+}
+console.log('engine: LessonEngine, DialogueEngine, RiddleBoard, riddle levels — all assertions passed');

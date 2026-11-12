@@ -48,15 +48,38 @@ export class RiddleBoard {
   solve(): void { this.open.fill(true); }
 }
 
-export function runTilKeremeti(api: GameApi, gameId: string, riddles: Riddle[]): void {
+export type RiddleLevel = 'easy' | 'textbook' | 'mixed';
+export const LEVELS: RiddleLevel[] = ['easy', 'textbook', 'mixed'];
+const LEVEL_LABEL: Record<RiddleLevel, { kk: string; ru: string; en: string }> = {
+  easy: { kk: 'Жеңіл', ru: '1–2 класс', en: 'grades 1–2' },
+  textbook: { kk: 'Оқулық', ru: 'учебник 3 кл.', en: 'textbook G3' },
+  mixed: { kk: 'Аралас', ru: 'все загадки', en: 'all riddles' }
+};
+/** Grades 1–2 → easy riddles, the «Оқулық» track → textbook riddles, anything else → both. */
+export function defaultLevel(grade: number, textbookGrade: number): RiddleLevel {
+  return grade <= 2 ? 'easy' : grade === textbookGrade ? 'textbook' : 'mixed';
+}
+export function riddlePool(all: Riddle[], level: RiddleLevel): Riddle[] {
+  return level === 'mixed' ? all.slice() : all.filter((r) => r.level === level);
+}
+
+export function runTilKeremeti(api: GameApi, gameId: string, all: Riddle[], level: RiddleLevel = 'mixed'): void {
   const en = api.lang() === 'en', esc = api.esc;
+  const riddles = riddlePool(all, level);
   const pool = api.shuffle(riddles.slice()), ROUNDS = 3, MAXH = 3;
+  let alive = true;                                   // false once the player switches level (old timers must not act)
   let round = 0, hearts = MAXH, score = 0, firstTry = 0, solvedCount = 0, value = 0, mult = 1, spinning = false, board: RiddleBoard;
   let roundMiss = false;
   const body = api.frame('Тіл Кереметі', '<div class="wh-stage" id="whs"></div><div class="wh-host" id="whh"></div><div class="wh-clue" id="whc"></div><div class="wh-board" id="whb"></div>' +
+    '<button class="wh-level" id="wlvl" title="' + (en ? 'Change difficulty' : 'Сменить уровень') + '">' + (level === 'easy' ? '🙂 ' : level === 'textbook' ? '🎓 ' : '🔀 ') + esc(LEVEL_LABEL[level].kk) + ' · ' + esc(en ? LEVEL_LABEL[level].en : LEVEL_LABEL[level].ru) + ' ⇄</button>' +
     '<div class="wh-ctrl"><button class="btn gold" id="wspin">🎡 ' + (en ? 'Spin' : 'Айналдыр') + '</button><button class="btn ghost" id="wsolve">💡 ' + (en ? 'I know the word' : 'Сөзді білемін') + '</button></div><div class="wh-keys" id="whk"></div>');
   const host = api.qs('#whh', body)!, clue = api.qs('#whc', body)!, boardEl = api.qs('#whb', body)!, keys = api.qs('#whk', body)!;
   const spinBtn = api.qs('#wspin', body) as HTMLButtonElement, solveBtn = api.qs('#wsolve', body) as HTMLButtonElement;
+  api.qs('#wlvl', body)!.onclick = () => {
+    const next = LEVELS[(LEVELS.indexOf(level) + 1) % LEVELS.length];
+    alive = false; api.S.wheelLevel = next; api.sfx.tap();
+    runTilKeremeti(api, gameId, all, next);
+  };
 
   // 3D wheel (2D fallback: a spinning CSS disc with the same sectors)
   const st = stageIn(api.qs('#whs', body)!, { camPos: [0, 3.2, 7.4], camLook: [0, 1.2, 0], fov: 40 });
@@ -170,9 +193,10 @@ export function runTilKeremeti(api: GameApi, gameId: string, riddles: Riddle[]):
     say('solved'); api.confetti();
     if (S && window.QV3D) window.QV3D.sparks(S, 0, 2.5, 0.5, 0xffc93c, 30);
     setTimeout(() => api.TTS.speak(board.riddle.answer.toLowerCase(), true), 1400);
-    round++; setTimeout(startRound, 3200);
+    round++; setTimeout(() => { if (alive) startRound(); }, 3200);
   }
   function finish(): void {
+    if (!alive) return;
     say('bye');
     finishTopic(api, gameId, firstTry, ROUNDS, {
       score: solvedCount, scoreText: solvedCount + ' / ' + ROUNDS + ' · ' + score + ' ұпай', coins: Math.round(score / 100) + solvedCount * 5, xp: Math.min(15, 4 * solvedCount),

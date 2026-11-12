@@ -57,7 +57,8 @@ export interface Choice extends Bi { kk: string; next: string; ok: boolean; xp?:
 export interface DNode extends Bi { who: PersonaId; kk: string; next?: string; choices?: Choice[]; end?: boolean; anim?: string }
 export interface Dialogue { id: string; kk: string; ru: string; en: string; scene: 'bus' | 'baiterek'; start: string; nodes: Record<string, DNode> }
 
-export interface Riddle extends Bi { answer: string; clue: string; src: string }
+/** easy — 1–2 grade vocabulary; textbook — modules 2 and 4 of the 3rd-grade textbook. */
+export interface Riddle extends Bi { answer: string; clue: string; src: string; level: 'easy' | 'textbook' }
 export interface RoomItem extends Bi { id: string; kk: string; e: string; to: string; say: string }
 export interface Container extends Bi { id: string; kk: string; e: string }
 export interface Tier extends Bi { id: string; kk: string; q: string; ans: string; opts: string[] }

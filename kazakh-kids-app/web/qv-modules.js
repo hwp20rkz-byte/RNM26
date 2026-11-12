@@ -1101,14 +1101,35 @@
       this.open.fill(true);
     }
   };
-  function runTilKeremeti(api, gameId, riddles) {
+  var LEVELS = ["easy", "textbook", "mixed"];
+  var LEVEL_LABEL = {
+    easy: { kk: "\u0416\u0435\u04A3\u0456\u043B", ru: "1\u20132 \u043A\u043B\u0430\u0441\u0441", en: "grades 1\u20132" },
+    textbook: { kk: "\u041E\u049B\u0443\u043B\u044B\u049B", ru: "\u0443\u0447\u0435\u0431\u043D\u0438\u043A 3 \u043A\u043B.", en: "textbook G3" },
+    mixed: { kk: "\u0410\u0440\u0430\u043B\u0430\u0441", ru: "\u0432\u0441\u0435 \u0437\u0430\u0433\u0430\u0434\u043A\u0438", en: "all riddles" }
+  };
+  function defaultLevel(grade, textbookGrade) {
+    return grade <= 2 ? "easy" : grade === textbookGrade ? "textbook" : "mixed";
+  }
+  function riddlePool(all, level) {
+    return level === "mixed" ? all.slice() : all.filter((r) => r.level === level);
+  }
+  function runTilKeremeti(api, gameId, all, level = "mixed") {
     const en = api.lang() === "en", esc = api.esc;
+    const riddles = riddlePool(all, level);
     const pool = api.shuffle(riddles.slice()), ROUNDS = 3, MAXH = 3;
+    let alive = true;
     let round = 0, hearts = MAXH, score = 0, firstTry = 0, solvedCount = 0, value = 0, mult = 1, spinning = false, board;
     let roundMiss = false;
-    const body = api.frame("\u0422\u0456\u043B \u041A\u0435\u0440\u0435\u043C\u0435\u0442\u0456", '<div class="wh-stage" id="whs"></div><div class="wh-host" id="whh"></div><div class="wh-clue" id="whc"></div><div class="wh-board" id="whb"></div><div class="wh-ctrl"><button class="btn gold" id="wspin">\u{1F3A1} ' + (en ? "Spin" : "\u0410\u0439\u043D\u0430\u043B\u0434\u044B\u0440") + '</button><button class="btn ghost" id="wsolve">\u{1F4A1} ' + (en ? "I know the word" : "\u0421\u04E9\u0437\u0434\u0456 \u0431\u0456\u043B\u0435\u043C\u0456\u043D") + '</button></div><div class="wh-keys" id="whk"></div>');
+    const body = api.frame("\u0422\u0456\u043B \u041A\u0435\u0440\u0435\u043C\u0435\u0442\u0456", '<div class="wh-stage" id="whs"></div><div class="wh-host" id="whh"></div><div class="wh-clue" id="whc"></div><div class="wh-board" id="whb"></div><button class="wh-level" id="wlvl" title="' + (en ? "Change difficulty" : "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0443\u0440\u043E\u0432\u0435\u043D\u044C") + '">' + (level === "easy" ? "\u{1F642} " : level === "textbook" ? "\u{1F393} " : "\u{1F500} ") + esc(LEVEL_LABEL[level].kk) + " \xB7 " + esc(en ? LEVEL_LABEL[level].en : LEVEL_LABEL[level].ru) + ' \u21C4</button><div class="wh-ctrl"><button class="btn gold" id="wspin">\u{1F3A1} ' + (en ? "Spin" : "\u0410\u0439\u043D\u0430\u043B\u0434\u044B\u0440") + '</button><button class="btn ghost" id="wsolve">\u{1F4A1} ' + (en ? "I know the word" : "\u0421\u04E9\u0437\u0434\u0456 \u0431\u0456\u043B\u0435\u043C\u0456\u043D") + '</button></div><div class="wh-keys" id="whk"></div>');
     const host = api.qs("#whh", body), clue = api.qs("#whc", body), boardEl = api.qs("#whb", body), keys = api.qs("#whk", body);
     const spinBtn = api.qs("#wspin", body), solveBtn = api.qs("#wsolve", body);
+    api.qs("#wlvl", body).onclick = () => {
+      const next = LEVELS[(LEVELS.indexOf(level) + 1) % LEVELS.length];
+      alive = false;
+      api.S.wheelLevel = next;
+      api.sfx.tap();
+      runTilKeremeti(api, gameId, all, next);
+    };
     const st = stageIn(api.qs("#whs", body), { camPos: [0, 3.2, 7.4], camLook: [0, 1.2, 0], fov: 40 });
     let wheel = null, ata = null, S = null;
     let angle = 0, speed = 0, onStop = null;
@@ -1316,9 +1337,12 @@
       if (S && window.QV3D) window.QV3D.sparks(S, 0, 2.5, 0.5, 16763196, 30);
       setTimeout(() => api.TTS.speak(board.riddle.answer.toLowerCase(), true), 1400);
       round++;
-      setTimeout(startRound, 3200);
+      setTimeout(() => {
+        if (alive) startRound();
+      }, 3200);
     }
     function finish() {
+      if (!alive) return;
       say("bye");
       finishTopic(api, gameId, firstTry, ROUNDS, {
         score: solvedCount,
@@ -1592,7 +1616,12 @@
   Object.entries(C.topicGames).forEach(([id, g]) => {
     if (g.type === "dialogue") window.QGAMES[id] = (api) => renderDialogue(api, id, C.dialogues[g.dialogue]);
     if (g.type === "3d") {
-      if (g.scene === "wheel") window.QGAMES[id] = (api) => runTilKeremeti(api, id, C.riddles);
+      if (g.scene === "wheel") window.QGAMES[id] = (api) => {
+        const grades = window.Q.api.D.GRADES;
+        const textbookGrade = grades.findIndex((x) => x.textbook) + 1, grade = Number(api.S.grade) || 1;
+        const saved = api.S.wheelLevel;
+        runTilKeremeti(api, id, C.riddles, saved && LEVELS.includes(saved) ? saved : defaultLevel(grade, textbookGrade));
+      };
       if (g.scene === "workshop") window.QGAMES[id] = (api) => runWorkshop(api, id, C.workshop);
       if (g.scene === "room") window.QGAMES[id] = (api) => runRoom(api, id, C.room);
     }
