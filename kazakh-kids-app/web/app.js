@@ -725,6 +725,7 @@
     if (tab === 'games') bindGames();
     if (tab === 'shop') bindShop();
     if (tab === 'me') bindMe();
+    if (tab === 'dict') X('bindDict');
     if (!S.onboarded) onboarding(); else flushRewards();
   }
 
@@ -787,7 +788,9 @@
   }
 
   /* ---------- dictionary ---------- */
-  function dictPage() {
+  // «Сөздік» tab: web/phrasebook.js replaces it with the phrasebook / grammar / proverbs hub and embeds this list
+  function dictPage() { return window.Q.ext.dictPage ? window.Q.ext.dictPage() : lessonDict(); }
+  function lessonDict() {
     var gi = gIdx();
     var html = '<div class="page">' + gradeSwitch() + '<p class="muted">Нажми 🔊, чтобы послушать слово.</p>';
     D.GRADES[gi].units.forEach(function (u) {
@@ -961,7 +964,7 @@
       '<p class="muted" style="margin:8px 0 0">Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
       (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
-      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.4 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.</p></div>';
+      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.5 · темы по программе «Қазақ тілі» для 1–3 классов, живая речь, разговорник и грамматика.</p></div>';
   }
   function bindMe() {
     var nm = qs('#nm');
@@ -1265,7 +1268,7 @@
       hero: W.hero, myHero: myHero, heroInfo: heroInfo, addXp: addXp, addReward: addReward, levelCheck: levelCheck, checkAch: checkAch, flushRewards: flushRewards,
       refresh: refresh, renderHome: renderHome, buy: buy, openChest: openChest, league: league, xpBoost: xpBoost, today: today, startGame: startGame, bumpStreak: bumpStreak,
       setTab: function (t) { tab = t; }, setView: function (v) { view = v; }, app: $app, selectOne: selectOne, markCards: markCards, spk: spk, bindSpeak: bindSpeak,
-      prompt: prompt, mascot: mascot, allSentences: function () { return ALLSENT; }, gradeLessons: function (gi) { return GALL[gi]; }, gIdx: gIdx
+      prompt: prompt, mascot: mascot, lessonDict: lessonDict, gradeSwitch: gradeSwitch, allSentences: function () { return ALLSENT; }, gradeLessons: function (gi) { return GALL[gi]; }, gIdx: gIdx
     },
     boot: function () {
       if (window.QTEST) {

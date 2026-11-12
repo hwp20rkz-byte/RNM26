@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: kazakh-kids-app/package-lock.json
       - run: npm ci
       - run: npm run build          # validates curriculum.json, strict tsc, esbuild bundle
-      - run: npm test               # score / auction / LessonEngine / dialogue / riddle tests
+      - run: npm test               # score / auction / LessonEngine / dialogue / riddle / grammar (1206 forms) tests
       - name: Generated files are committed
         run: git diff --exit-code -- web/curriculum.js web/qv-modules.js
 

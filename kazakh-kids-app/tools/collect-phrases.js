@@ -98,4 +98,25 @@ try {
   m.exports.TRANSLATIONS.forEach((w) => add(w.kk));
 } catch (e) { process.stderr.write('suite pairs skipped: ' + e.message + '\n'); }
 
+// «Сөздік» hub (web/phrasebook-data.js + web/grammar-core.js): phrases, dialogues, proverbs, idioms,
+// twisters, thematic words, and every form the grammar tables can show (spoken exactly as displayed)
+{
+  require(path.join(web, 'phrasebook-data.js'));
+  const P = window.QPHRASE, G = require(path.join(web, 'grammar-core.js'));
+  P.topics.forEach((t) => { t.phrases.forEach((x) => add(x.kk)); (t.dialog || []).forEach((l) => add(l.kk)); });
+  P.proverbs.forEach((x) => add(x.kk)); P.idioms.forEach((x) => add(x.kk)); P.twisters.forEach((x) => add(x.kk));
+  P.vocab.forEach((v) => v.words.forEach((w) => add(w.kk)));
+  const g = P.gram;
+  g.sounds.forEach((x) => add(x.w)); g.postp.forEach((x) => add(x.ex)); g.order.forEach((x) => add(x.kk)); g.qwords.forEach((x) => add(x.kk));
+  g.compare.forEach((x) => add(x.f)); g.compareEx.forEach((x) => add(x.kk));
+  ['он бір', 'жиырма бес', 'жүз он'].forEach((x) => add(x));
+  const nouns = G.NOUNS.map((n) => n.kk);
+  ['бала', 'мектеп', 'кітап', 'үй', 'дәптер', 'гүл', 'қалам', 'қыз', 'ағаш'].concat(nouns).forEach((w) => add(G.plural(w)));
+  nouns.concat(['мен', 'сен', 'сіз', 'ол', 'біз', 'олар']).forEach((w) => G.CASES.forEach((c) => add(G.caseForm(w, c))));
+  nouns.forEach((w) => { G.POSS_PERSONS.forEach((p) => add(G.POSS_LABEL[p] + ' ' + G.possessive(w, p))); add('Бұл ' + w + ' ' + G.question(w) + '?'); });
+  g.personWords.forEach((x) => G.PERSONS.forEach((p) => add(G.PERSON_KK[p] + ' ' + x.kk + G.personSuffix(x.kk, p))));
+  G.VERBS.forEach((v) => { G.TENSES.forEach((t) => ['men', 'sen', 'siz', 'ol', 'biz'].forEach((p) => add(G.PERSON_KK[p] + ' ' + G.conj(v.kk, t, p)))); add('Менің ' + G.wish(v.kk)); });
+  G.NUMBERS.forEach((n) => { add(n); add(G.ordinal(n)); });
+}
+
 process.stdout.write(JSON.stringify([...out.values()], null, 0));

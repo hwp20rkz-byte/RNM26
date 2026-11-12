@@ -115,7 +115,7 @@ window.QUI_EN = {
     'Запись не получилась. Попробуй ещё раз.': 'The recording did not work. Try again.',
     'Эту фразу нельзя проверить. Пропусти задание.': 'This phrase cannot be checked. Skip the task.',
     'Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.': 'Voices: ISSAI KazakhTTS2 (CC BY 4.0) and ISEKE (Piper), synthesised with Piper. Works offline on any phone, including Huawei.',
-    'QazaqVerse: Tíl Quest · v3.4 · темы по программе «Қазақ тілі» для 1–3 классов и живая речь.': 'QazaqVerse: Tíl Quest · v3.4 · school topics for grades 1–3 plus real-life Kazakh.',
+    'QazaqVerse: Tíl Quest · v3.5 · темы по программе «Қазақ тілі» для 1–3 классов, живая речь, разговорник и грамматика.': 'QazaqVerse: Tíl Quest · v3.5 · school topics for grades 1–3, real-life Kazakh, phrasebook and grammar.',
     // textbook track
     'Дауыс — голос диктора': 'Дауыс — narrator voice',
     'Оқулық ойындары · по темам учебника': 'Оқулық ойындары · games for the textbook topics',
