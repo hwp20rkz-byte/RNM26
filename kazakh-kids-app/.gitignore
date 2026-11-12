@@ -2,3 +2,4 @@ build/
 *.idsig
 node_modules/
 suite/dist/
+voice_studio/takes/

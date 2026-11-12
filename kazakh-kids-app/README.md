@@ -78,6 +78,47 @@
 **Голос.** Все 3636 казахских слов и фраз озвучены внутри APK, работают без интернета на любом телефоне.
 Оценка произношения (задание «Айт!») включается, если есть распознавание речи — см. ниже.
 
+## Студия голосов героев (бесплатные открытые модели)
+
+`tools/voice-studio.py` придумывает героям **новые голоса** и озвучивает ими их реплики: кастинг → прослушивание →
+выбор → рендер. Бесплатно работают публичные Spaces на Hugging Face (через `gradio_client`); тот же код умеет
+локальный GPU и платный Freedom Speech.
+
+| Движок | Что это | Цена | Казахский |
+|---|---|---|---|
+| `omnivoice-space` | [k2-fsa/OmniVoice](https://huggingface.co/spaces/k2-fsa/OmniVoice): voice design по атрибутам + клонирование | бесплатно (ZeroGPU; бесплатный `HF_TOKEN` даёт больше квоты) | да, 1537 ч в обучении |
+| `omnivoice-local` | та же модель на своей видеокарте (`pip install torch omnivoice`) | своё железо | да |
+| `qwen-space` (`--via`) | [Qwen3-TTS VoiceDesign](https://huggingface.co/spaces/Qwen/Qwen3-TTS): тембр по свободному описанию | бесплатно | нет — только придумывает тембр (по-русски), говорит потом OmniVoice |
+| `freedomspeech` | `/api/voice-design`, `/api/voice-clone` | платно, `FS_API_KEY` | да |
+
+```bash
+pip install -r tools/voice_studio/requirements.txt             # numpy, gradio_client (+ ffmpeg)
+export HF_TOKEN=...                                             # необязательно: бесплатный аккаунт HF, больше GPU-квоты
+python3 tools/voice-studio.py cast /tmp/phrases.json            # кастинг-лист: 12 героев, атрибуты, диапазон F0, число реплик
+python3 tools/voice-studio.py probe                             # какие эндпоинты Space отдаёт сегодня
+python3 tools/voice-studio.py audition --heroes ALIBEK,ATA --takes 3            # 3 дубля: как задумано / на тон ниже / выше
+python3 tools/voice-studio.py audition --heroes K1 --via qwen-space             # тембр по описанию → казахский через OmniVoice
+xdg-open voice_studio/audition.html                             # плееры, баллы, команда pick под каждым дублем
+python3 tools/voice-studio.py pick ALIBEK 2
+python3 tools/voice-studio.py render /tmp/phrases.json --heroes ALIBEK --limit 5  # послушать, потом без --limit
+```
+
+- **Кастинг** — `tools/voice_studio/cast.json`: для каждого героя атрибуты OmniVoice (проверяются по словарю модели),
+  текстовый бриф для Qwen3, целевой диапазон высоты голоса, темп, казахская и русская фразы-образцы.
+- **Контроль качества** без нейросетей (`tools/voice_studio/qa.py`): медианная высота голоса против кастинга
+  (ловит «ребёнка», который вышел взрослым), громкость, клиппинг, темп речи, доля озвученных кадров; при рендере —
+  ещё грубое сравнение тембра с эталоном. Реплика, не прошедшая проверку, перегенерируется один раз, остальные
+  попадают в `voice_studio/render-report.csv` на прослушивание.
+- Рендер заменяет `web/audio/<ключ>.mp3` только у выбранного героя; диктор и другие герои не трогаются.
+  Повторный запуск пропускает готовое; новый эталон (`pick`) переозвучивает реплики героя.
+- Квота бесплатного GPU кончилась — инструмент останавливается с подсказкой и продолжает с того же места.
+- Тесты без сети: `python3 tests/voice_studio_test.py` (адаптеры Spaces и Freedom Speech на фейковых клиентах,
+  весь цикл audition → pick → render).
+
+Лицензии: код OmniVoice и Qwen3-TTS — Apache-2.0; **лицензию весов OmniVoice проверьте на карточке модели** перед
+релизом (в открытых источниках встречаются разные сведения). Facebook MMS-TTS (`mms-tts-kaz`) — CC-BY-NC, для
+коммерческого APK не подходит. Клонирование — только своих синтетических голосов или с согласия человека.
+
 ## Голоса Freedom Speech (Томирис, Таймас, клоны)
 
 `tools/make-audio-fs.mjs` озвучивает фразы игры через API [Freedom Speech](https://freedomspeech.kz/docs) (npm `freedomspeech`)
@@ -159,7 +200,7 @@ web/            игра (чистый JS, открывается и в брау
   auction-core.js, score-core.js   чистая логика, покрыта тестами
 backend/        Python: VAD + STT + оценка, HTTP-сервер, матрица голосов OmniVoice
 blueprints/     AuctionController.luau — порт автомата аукциона для Roblox
-tools/          генерация озвучки и иконок
+tools/          генерация озвучки и иконок; voice-studio.py + voice_studio/ — студия голосов героев
 tests/          npm test (ядро, движок уроков, грамматика) · node tests/phrasebook.e2e.js
 android/        оболочка WebView и мост (вибрация, микрофон, распознавание речи)
 ```

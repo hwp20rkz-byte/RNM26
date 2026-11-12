@@ -35,6 +35,7 @@ jobs:
       - run: npm test               # score / auction / LessonEngine / dialogue / riddle / grammar (1206 forms) tests
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: npm run test:voice-packs   # tools/make-audio-fs.mjs against a local Freedom Speech mock (no key, no network)
+      - run: pip install numpy && python3 tests/voice_studio_test.py   # hero voice studio: QA maths, Space adapters, audition → render
       - name: Generated files are committed
         run: git diff --exit-code -- web/curriculum.js web/qv-modules.js
 
