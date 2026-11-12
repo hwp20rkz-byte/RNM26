@@ -26,6 +26,11 @@
 Методическое пособие: [`methodology/metodika-3-klass.docx`](methodology/metodika-3-klass.docx)
 (поурочные разработки, дескрипторы, СОР); собирается из данных игры: `node tools/make-methodology.js`.
 
+**Тестовый APK для проверки:** [`dist/qazaqsha-oyna-test.apk`](dist/qazaqsha-oyna-test.apk) — «Test QazaqVerse»,
+отдельный пакет `kz.qazaqsha.oyna.test` (ставится рядом с обычной игрой, прогресс раздельный). Открыты все уроки
+всех треков, все тематические игры, мини-игры и герои; 99 сердец; в уроке кнопка «⏭ TEST» засчитывает задание;
+вверху метка TEST. Сборка: `TEST=1 ./build.sh`. В обычном APK файла `test-mode.js` нет — блокировки работают.
+
 ## Что внутри
 
 **Обучение — 93 урока, 16 типов заданий**

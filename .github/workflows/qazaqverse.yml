@@ -86,3 +86,10 @@ jobs:
           name: qazaqsha-oyna-apk
           path: kazakh-kids-app/dist/qazaqsha-oyna.apk
           retention-days: 14
+      - name: Test build (everything unlocked, separate package «Test QazaqVerse»)
+        run: TEST=1 ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qazaqsha-oyna-test-apk
+          path: kazakh-kids-app/dist/qazaqsha-oyna-test.apk
+          retention-days: 14

@@ -15,6 +15,11 @@ KS_PASS=${KS_PASS:-qazaqsha-oyna}
 
 BUILD=build
 OUT=dist/qazaqsha-oyna.apk
+# TEST=1 ./build.sh → «Test QazaqVerse»: separate package (installs next to the real app), every lesson,
+# task and game unlocked, 99 hearts, a «⏭ TEST» skip button and a TEST badge (web/test-mode.js flag).
+TEST=${TEST:-0}
+PACKAGE=kz.qazaqsha.oyna
+if [ "$TEST" = 1 ]; then OUT=dist/qazaqsha-oyna-test.apk; VERSION_NAME="$VERSION_NAME-test"; PACKAGE=kz.qazaqsha.oyna.test; fi
 # remove only our own build directory (fixed relative path)
 rm -rf -- "./$BUILD"
 mkdir -p "$BUILD/gen" "$BUILD/classes" "$BUILD/assets" dist
@@ -35,8 +40,16 @@ else
   echo "warning: suite/dist is missing — building the APK without the 3D hall (run: cd suite && npm ci && npm run build)"
 fi
 
+# 1c. test flag and test resources (app name «Test QazaqVerse»)
+RES=android/res
+if [ "$TEST" = 1 ]; then
+  printf 'window.QTEST = true;\n' > "$BUILD/assets/test-mode.js"
+  cp -r android/res "$BUILD/res" && RES="$BUILD/res"
+  sed -i 's#<string name="app_name">[^<]*</string>#<string name="app_name">Test QazaqVerse</string>#' "$RES/values/strings.xml"
+fi
+
 # 2. R.java
-aapt package -f -m -J "$BUILD/gen" -M android/AndroidManifest.xml -S android/res -I "$ANDROID_JAR"
+aapt package -f -m -J "$BUILD/gen" -M android/AndroidManifest.xml -S "$RES" -I "$ANDROID_JAR"
 
 # 3. Java -> classes -> classes.dex
 javac -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$ANDROID_JAR" -classpath "$ANDROID_JAR" \
@@ -44,7 +57,8 @@ javac -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$ANDROID_JAR" 
 "$DX" --dex --min-sdk-version=21 --output="$BUILD/classes.dex" "$BUILD/classes"
 
 # 4. Package resources + assets, add dex
-aapt package -f -M android/AndroidManifest.xml -S android/res -A "$BUILD/assets" -I "$ANDROID_JAR" \
+aapt package -f -M android/AndroidManifest.xml -S "$RES" -A "$BUILD/assets" -I "$ANDROID_JAR" \
+  --rename-manifest-package "$PACKAGE" \
   --min-sdk-version 21 --target-sdk-version 34 \
   --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
   -0 arsc -F "$BUILD/unsigned.apk"

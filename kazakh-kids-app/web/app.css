@@ -747,3 +747,8 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .suite-card small { color: hsl(188 90% 80%); }
 .suite-card.wheel { background: linear-gradient(120deg, hsl(37 91% 40%), hsl(356 80% 48%) 55%, hsl(271 67% 40%)); }
 .wh-level { display: block; margin: var(--s-2) auto 0; min-height: 44px; padding: 0 var(--s-3); border-radius: 99px; font-weight: 800; font-size: var(--fs-1); background: var(--ink-50); border: 2px solid var(--ink-100); color: var(--ink-800); }
+
+/* TEST build only (window.QTEST): visible marker and a skip button for QA */
+.test-badge { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; padding: 2px 10px; border-radius: 99px;
+  background: hsl(356 85% 55%); color: #fff; font: 900 12px/1.4 Nunito, sans-serif; letter-spacing: .12em; box-shadow: 0 2px 8px hsl(356 85% 30% / .4); }
+.test-skip { min-height: 44px; padding: 0 var(--s-2); border-radius: var(--r-1); background: hsl(356 85% 55%); color: #fff; font-weight: 900; font-size: var(--fs-1); }

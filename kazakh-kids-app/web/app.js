@@ -65,6 +65,12 @@
     if (fresh) d.heroSel = 'batyr';
     W.HEROES.forEach(function (h) { if (!h.price && d.heroes.indexOf(h.id) < 0) d.heroes.push(h.id); });
     if (!d.eq) d.eq = { skin: '', pet: '', trail: '' };
+    // TEST build (window.QTEST from test-mode.js, only in the «Test» APK): every hero and mini-game owned, coins to try the shop
+    if (window.QTEST) {
+      W.HEROES.forEach(function (h) { if (d.heroes.indexOf(h.id) < 0) d.heroes.push(h.id); });
+      W.GAMES.forEach(function (g) { if (d.games.indexOf(g.id) < 0) d.games.push(g.id); });
+      d.coins = Math.max(d.coins || 0, 99999);
+    }
     // A streak freeze covers one missed day.
     if (d.lastDay && d.lastDay !== today() && d.lastDay !== yesterday()) {
       if (d.freeze > 0 && d.lastDay === daysAgo(2)) { d.freeze--; d.lastDay = yesterday(); } else d.streak = 0;
@@ -88,7 +94,7 @@
   var ALLWORDS = uniqBy([].concat.apply([], CONTENT.map(function (l) { return l.words || []; })), function (w) { return w.kk; });
   var ALLSENT = [].concat.apply([], CONTENT.map(function (l) { return l.sentences || []; }));
   function gIdx() { return Math.min(D.GRADES.length - 1, Math.max(0, (S.grade || 1) - 1)); }
-  function unlocked(l) { var list = GALL[l.unit.grade], i = list.indexOf(l); return i === 0 || !!S.done[list[i - 1].id]; }
+  function unlocked(l) { if (window.QTEST) return true; var list = GALL[l.unit.grade], i = list.indexOf(l); return i === 0 || !!S.done[list[i - 1].id]; }
   function currentLesson(gi) { var list = GALL[gi]; for (var i = 0; i < list.length; i++) if (!S.done[list[i].id]) return list[i]; return null; }
   function gradeWords(gi) {
     var done = GALL[gi].filter(function (l) { return S.done[l.id] && !l.review; });
@@ -803,7 +809,7 @@
     tb.units.forEach(function (u) {
       u.lessons.forEach(function (l, i) {
         var g = l.game && D.TOPIC_GAMES[l.game]; if (!g) return;
-        var open = !!S.done[l.id] || !!g.free, best = S.topic[l.game];   // free: open without the lesson (Тіл Кереметі)
+        var open = !!S.done[l.id] || !!g.free || !!window.QTEST, best = S.topic[l.game];   // free: open without the lesson (Тіл Кереметі)
         h += '<button class="tg-row' + (open ? '' : ' locked') + '" data-tg="' + l.game + '" data-tl="' + l.id + '"><span class="e">' + (open ? g.icon : '🔒') + '</span><span><b>' + esc(g.kk) + '</b><small>' + esc(u.module + '.' + (i + 1) + ' ' + l.kk) + '</small></span>' +
           (best != null ? '<span class="pill ok">' + best + '%</span>' : open ? '<span class="pill">▶</span>' : '') + '</button>';
       });
@@ -850,7 +856,7 @@
     qsa('[data-tg]').forEach(function (b) {
       b.onclick = function () {
         var tgCfg = D.TOPIC_GAMES[b.getAttribute('data-tg')];
-        if (!S.done[b.getAttribute('data-tl')] && !(tgCfg && tgCfg.free)) { sfx.bad(); toast('🔒 Сначала пройди урок — игра закрепляет его материал'); return; }
+        if (!S.done[b.getAttribute('data-tl')] && !(tgCfg && tgCfg.free) && !window.QTEST) { sfx.bad(); toast('🔒 Сначала пройди урок — игра закрепляет его материал'); return; }
         sfx.tap(); startGame(b.getAttribute('data-tg'));
       };
     });
@@ -1005,7 +1011,7 @@
       if (lesson.review) exs = genLesson(contentOf((lesson.unit.module ? lesson.unit.lessons : GALL[lesson.unit.grade]).filter(function (l) { return !l.review; })), lesson.assess ? 14 : 12, { noIntro: true });
       else exs = genLesson(lesson, 10);
     }
-    var boss = lesson.boss, hearts = boss ? boss.hearts : HEARTS + S.bonusHearts;
+    var boss = lesson.boss, hearts = window.QTEST ? 99 : boss ? boss.hearts : HEARTS + S.bonusHearts;
     if (!boss) S.bonusHearts = 0;
     save();
     exs.forEach(function (e, i) { e._id = 't' + i; });
@@ -1028,7 +1034,8 @@
     view = 'lesson';
     var pct = Math.round(L.good / L.total * 100);
     $app.innerHTML = '<div class="lesson"><div class="l-top"><button class="x" id="lx" aria-label="Выйти">✕</button>' +
-      '<div class="bar"><i style="width:' + pct + '%"></i></div>' + ((L.combo || 0) >= 3 ? '<span class="stat fire">🔥' + L.combo + (L.mult > 1 ? ' ×' + L.mult : '') + '</span>' : '') + (L.eng && L.eng.timed ? '<span class="stat timer" id="ltimer">⏱</span>' : '') + '<span class="stat heart"><span class="ico">❤️</span>' + L.hearts + '</span></div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' + ((L.combo || 0) >= 3 ? '<span class="stat fire">🔥' + L.combo + (L.mult > 1 ? ' ×' + L.mult : '') + '</span>' : '') + (L.eng && L.eng.timed ? '<span class="stat timer" id="ltimer">⏱</span>' : '') + '<span class="stat heart"><span class="ico">❤️</span>' + L.hearts + '</span>' +
+      (window.QTEST ? '<button class="test-skip" id="tskip" aria-label="Test: skip task">⏭ TEST</button>' : '') + '</div>' +
       '<div class="l-body" id="lb"></div><div class="l-foot" id="lf"><button class="btn ok" id="lc" disabled>Тексеру</button></div></div>';
     var ex = L.q[L.i], lb = qs('#lb'), lc = qs('#lc');
     qs('#lx').onclick = confirmExit;
@@ -1039,6 +1046,8 @@
     if (ex.noCheck) qs('#lf').style.display = 'none';
     ex.render(lb, ctx);
     lc.onclick = function () { feedback(ex.check(), ex); };
+    var sk = qs('#tskip');   // TEST build: count the current task as solved
+    if (sk) sk.onclick = function () { feedback({ ok: true, ans: 'TEST: задание пропущено · task skipped' }, ex); };
   }
   function feedback(r, ex) {
     if (r.silent) { L.i++; return renderLesson(); }
@@ -1258,6 +1267,12 @@
       setTab: function (t) { tab = t; }, setView: function (v) { view = v; }, app: $app, selectOne: selectOne, markCards: markCards, spk: spk, bindSpeak: bindSpeak,
       prompt: prompt, mascot: mascot, allSentences: function () { return ALLSENT; }, gradeLessons: function (gi) { return GALL[gi]; }, gIdx: gIdx
     },
-    boot: function () { renderHome(); }
+    boot: function () {
+      if (window.QTEST) {
+        document.title = 'Test · ' + document.title;
+        var tb = document.createElement('div'); tb.className = 'test-badge'; tb.textContent = 'TEST'; tb.setAttribute('aria-hidden', 'true'); document.body.appendChild(tb);
+      }
+      renderHome();
+    }
   };
 })();
