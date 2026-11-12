@@ -141,8 +141,15 @@
   var TTS = {
     // Narrator voice: ISEKE (default) or ISSAI; character lines and anything ISEKE lacks fall back to ISSAI.
     // A Freedom Speech pack covers the narrator lines; anything it lacks (character lines) falls back to ISSAI.
-    file: function (text) {
+    // `who` (persona tag): a character line — its own take first (speaker-qualified key when two personas share a
+    // sentence), and never a narrator pack, so Әнел or Баян апай keep their voice whichever narrator is chosen.
+    file: function (text, who) {
       var k = D.audioKey(text), v = S.voice || 'iseke', pk = PACKS[v];
+      if (who && who !== 'NARR') {
+        var q = D.audioKey(text + ' @' + who);
+        if (AUD[q]) return 'audio/' + q;
+        if (AUD[k]) return 'audio/' + k;
+      }
       if (pk && pk.keys && pk.keys[k]) return 'audio-' + v + '/' + k;
       if (v === 'iseke' && AUD_ISEKE[k]) return 'audio-iseke/' + k;
       return AUD[k] ? 'audio/' + k : null;
@@ -154,8 +161,8 @@
     remote: function (text) { return window.QVOICE && window.QVOICE.ttsUrl ? window.QVOICE.ttsUrl(text, S.voice || 'iseke') : null; },
     has: function (text) { return !!TTS.file(text) || sysKk() || !!TTS.remote(text); },
     ok: function () { return Object.keys(AUD).length > 0 || sysKk(); },
-    speak: function (text, quiet) {
-      var k = TTS.file(text);
+    speak: function (text, quiet, who) {
+      var k = TTS.file(text, who);
       if (k) {
         try {
           if (curAudio) curAudio.pause();
@@ -220,9 +227,9 @@
     if (isColorGlyph(e)) return '<span class="swatch" style="background:' + esc(e.slice(2)) + '"></span>';
     return isTextGlyph(e) ? '<span class="num">' + esc(e) + '</span>' : '<span class="em">' + esc(e) + '</span>';
   }
-  function spk(text, cls) { return '<button class="spk ' + (cls || '') + '" data-say="' + esc(text) + '" aria-label="Тыңдау — прослушать">🔊</button>'; }
+  function spk(text, cls, who) { return '<button class="spk ' + (cls || '') + '" data-say="' + esc(text) + '"' + (who ? ' data-who="' + esc(who) + '"' : '') + ' aria-label="Тыңдау — прослушать">🔊</button>'; }
   function prompt(text, kk) { return '<div class="prompt">' + mascot('happy') + '<div class="say">' + (kk ? spk(text) : '') + '<span>' + esc(text) + '</span></div></div>'; }
-  function bindSpeak(el) { qsa('[data-say]', el).forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); TTS.speak(b.getAttribute('data-say')); }; }); }
+  function bindSpeak(el) { qsa('[data-say]', el).forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); TTS.speak(b.getAttribute('data-say'), false, b.getAttribute('data-who') || undefined); }; }); }
   function autoSay(text) { if (TTS.has(text)) setTimeout(function () { TTS.speak(text, true); }, 250); }
   function selectOne(el, onPick) {
     var cards = qsa('.card', el);

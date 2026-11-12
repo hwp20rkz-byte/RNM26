@@ -2,7 +2,7 @@
 import type { QV3DApi } from '../types/app';
 import type { Group } from 'three';
 
-export type CharId = 'ALIBEK' | 'ANEL' | 'ZHALKAU' | 'ZHALKAU_TIDY' | 'ATA' | 'AZHE' | 'ARCH';
+export type CharId = 'ALIBEK' | 'ANEL' | 'ZHALKAU' | 'ZHALKAU_TIDY' | 'ATA' | 'AZHE' | 'ARCH' | 'APAI';
 
 export function makeCharacter(V: QV3DApi, id: CharId): Group {
   const { eye, smile, blush } = V.face;
@@ -57,6 +57,19 @@ export function makeCharacter(V: QV3DApi, id: CharId): Group {
       const bag = V.box(0.5, 0.45, 0.25, 0x6b4a2a, 0, -1.25, 0.15);
       (P as unknown as { armR: Group }).armR.add(bag);
       g.userData.bag = bag;
+      return g;
+    }
+    case 'APAI': {                                                                     // Баян апай, the class teacher
+      const g = V.humanoid({ skin: 0xe9b892, hair: 0x3a2418, top: 0x16756a, sleeve: 0x16756a, pants: 0x2b2230, shoes: 0x2b2230,
+        face: (c) => {
+          eye(c, 42, 58, 12, '#2a1b12'); eye(c, 86, 58, 12, '#2a1b12');
+          c.strokeStyle = '#7a4a1a'; c.lineWidth = 3; c.beginPath(); c.arc(42, 58, 17, 0, 7); c.moveTo(103, 58); c.arc(86, 58, 17, 0, 7); c.stroke();   // round glasses
+          smile(c, 88, 14, false);
+        } });
+      const P = g.userData.parts as { head: Group; armL: Group };
+      P.head.add(V.ball(0.32, 0x3a2418, 0, 0.35, -0.62));                                // hair bun
+      P.armL.add(V.box(0.5, 0.62, 0.12, 0xd02f3a, 0, -1.2, 0.22));                        // the class book
+      g.add(V.box(0.12, 0.12, 0.05, V.glow(0xffc93c), 0.3, 1.85, 0.32));                  // brooch
       return g;
     }
     case 'ARCH': {

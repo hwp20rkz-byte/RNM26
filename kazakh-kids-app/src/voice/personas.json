@@ -1,5 +1,5 @@
 {
-  "_comment": "Voice personas of modules 2 and 4. `piper` = the offline stand-in actually bundled in the APK (ISSAI KazakhTTS2 speakers + pitch/tempo in ffmpeg, see tools/make-audio.py). `azure` / `elevenlabs` = production specs for a cloud re-voicing; they are not used by the build. APAI renders with the narrator voice (tag NARR: ISEKE or ISSAI, chosen in the profile).",
+  "_comment": "Voice personas of modules 2 and 4. `piper` = the offline stand-in actually bundled in the APK (ISSAI KazakhTTS2 speakers + pitch/tempo in ffmpeg, see tools/make-audio.py). `azure` / `elevenlabs` = production specs for a cloud re-voicing; they are not used by the build. Every persona, Баян апай included, has its own voice; `roles` says who speaks which game text (read by tools/collect-phrases.js and the games). When two personas say the same sentence, the later one gets a speaker-qualified audio key (text + \" @TAG\").",
   "personas": {
     "ALIBEK": {
       "name": "Әлібек",
@@ -156,7 +156,10 @@
         "emotion": "neutral, reassuring"
       },
       "piper": {
-        "tag": "NARR"
+        "speaker": 3,
+        "lengthScale": 1.05,
+        "pitchSt": 1.0,
+        "filter": ""
       },
       "azure": {
         "voice": "kk-KZ-AigulNeural",
@@ -228,6 +231,20 @@
     "APAI": {
       "where": "Оны қайда қоямыз?",
       "pick": "Қай ғимаратты саламыз?"
+    },
+    "ANEL": {
+      "blueprint": "Мен сызбаны оқимын, сен құрастыр!"
     }
+  },
+  "roles": {
+    "_comment": "Who speaks which game text. Dialogue nodes carry their own `who`; LINES are spoken by their key.",
+    "riddle.clue": "APAI",
+    "workshop.question": "ANEL",
+    "workshop.done": {
+      "baiterek": "ANEL",
+      "khanshatyr": "ANEL",
+      "sarai": "ALIBEK"
+    },
+    "room.item": "ZHALKAU"
   }
 }

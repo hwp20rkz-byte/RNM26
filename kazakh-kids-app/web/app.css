@@ -820,3 +820,8 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .ph-result .btn { width: 100%; }
 @media (min-width: 720px) { .ph-grid { grid-template-columns: repeat(4, 1fr); } .ph-opts { display: grid; grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ph-say { transition: none; } .ph-say.now { transform: none; } }
+
+/* persona name in front of a game line (audioMap.personaLine): name · 🔊 · text on one line, wrapping on phones */
+.pline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); margin: 0; }
+.pline.center { justify-content: center; }
+.pline .who { color: var(--sky-600); font-weight: 900; }

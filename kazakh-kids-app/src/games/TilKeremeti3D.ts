@@ -6,7 +6,7 @@
  * for reliable recognition, so letters are tapped). */
 import type { Riddle } from '../data/types';
 import type { GameApi, Stage3D } from '../types/app';
-import { LINES } from '../voice/audioMap';
+import { LINES, PERSONAS, ROLES, audioTag } from '../voice/audioMap';
 import { makeCharacter } from './characters';
 import { finishTopic, heartsHtml, stageIn } from './shell';
 
@@ -83,7 +83,8 @@ export function runTilKeremeti(api: GameApi, gameId: string, all: Riddle[], leve
 
   // 3D wheel (2D fallback: a spinning CSS disc with the same sectors)
   const st = stageIn(api.qs('#whs', body)!, { camPos: [0, 3.2, 7.4], camLook: [0, 1.2, 0], fov: 40 });
-  let wheel: import('three').Group | null = null, ata: import('three').Group | null = null, S: Stage3D | null = null;
+  let wheel: import('three').Group | null = null, ata: import('three').Group | null = null, apai: import('three').Group | null = null, S: Stage3D | null = null;
+  const READER = ROLES['riddle.clue'];          // Баян апай reads the riddle aloud, Ата hosts the wheel
   let angle = 0, speed = 0, onStop: ((s: Sector) => void) | null = null;
   if (st) {
     const { V } = st; S = st.S; const T = V.THREE;
@@ -104,6 +105,7 @@ export function runTilKeremeti(api: GameApi, gameId: string, all: Riddle[], leve
     S.add(wheel);
     const ptr = new T.Mesh(new T.ConeGeometry(0.22, 0.6, 4), V.glow(0xff4d5e)); ptr.rotation.x = Math.PI; S.add(ptr, 0, 1.4 + 2.2 * Math.sin(0.9) + 0.45, -2.2 * Math.cos(0.9));
     ata = S.add(makeCharacter(V, 'ATA'), 2.75, 0, 1.4); ata.scale.setScalar(0.55); ata.rotation.y = -0.6;
+    apai = S.add(makeCharacter(V, 'APAI'), -2.75, 0, 1.4); apai.scale.setScalar(0.55); apai.rotation.y = 0.6;   // Баян апай reads the riddles
     S.onTick((t, dt) => {
       if (!wheel) return;
       if (speed > 0) {
@@ -122,7 +124,7 @@ export function runTilKeremeti(api: GameApi, gameId: string, all: Riddle[], leve
 
   function say(key: keyof typeof LINES.ATA): void {
     const t = LINES.ATA[key];
-    host.innerHTML = '<b>Ата:</b> ' + esc(t); api.TTS.speak(t, true);
+    host.innerHTML = '<b>Ата:</b> ' + esc(t); api.TTS.speak(t, true, 'ATA');
     if (S && ata && window.QV3D) window.QV3D.play(ata, key === 'no' ? 'idle' : 'bata');
   }
   function drawBoard(): void {
@@ -138,11 +140,11 @@ export function runTilKeremeti(api: GameApi, gameId: string, all: Riddle[], leve
   function startRound(): void {
     if (round >= ROUNDS || hearts <= 0 || round >= pool.length) return finish();
     board = new RiddleBoard(pool[round]); roundMiss = false; value = 0;
-    clue.innerHTML = '<p class="kk"><button class="spk sm" data-say="' + esc(board.riddle.clue) + '">🔊</button> ' + esc(board.riddle.clue) + '</p><p class="tr">' + esc(en ? board.riddle.en : board.riddle.ru) + '</p><small class="muted">📖 ' + esc(board.riddle.src) + '</small>';
-    api.qsa('[data-say]', clue).forEach((b) => { b.onclick = () => api.TTS.speak(b.getAttribute('data-say')!); });
+    clue.innerHTML = '<p class="pline kk center"><b class="who">' + esc(PERSONAS[READER].name) + ':</b> <button class="spk sm" data-say="' + esc(board.riddle.clue) + '" data-who="' + audioTag(READER) + '">🔊</button> ' + esc(board.riddle.clue) + '</p><p class="tr">' + esc(en ? board.riddle.en : board.riddle.ru) + '</p><small class="muted">📖 ' + esc(board.riddle.src) + '</small>';
+    api.qsa('[data-say]', clue).forEach((b) => { b.onclick = () => api.TTS.speak(b.getAttribute('data-say')!, false, b.dataset.who); });
     drawBoard(); drawKeys(false); spinBtn.disabled = false;
     say(round === 0 ? 'hello' : 'spin');
-    setTimeout(() => api.TTS.speak(board.riddle.clue, true), 2200);
+    setTimeout(() => { api.TTS.speak(board.riddle.clue, true, audioTag(READER)); if (S && apai && window.QV3D) window.QV3D.play(apai, 'bata'); }, 2200);
   }
 
   spinBtn.onclick = () => {

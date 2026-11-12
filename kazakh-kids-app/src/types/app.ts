@@ -6,7 +6,8 @@ export interface ExerciseCtx { ready(on: boolean): void; done(res: CheckResult):
 export interface CheckResult { ok?: boolean; ans?: string; tr?: string; say?: string; why?: string; neutral?: boolean; silent?: boolean; title?: string }
 export interface Exercise { render(root: HTMLElement, ctx: ExerciseCtx): void; check(): CheckResult; kind?: string; noCheck?: boolean; free?: boolean }
 
-export interface TTSApi { speak(text: string, quiet?: boolean): void; has(text: string): boolean }
+/** `who` = persona voice tag (ANEL, APAI, …): picks that persona's take when several personas say the same text. */
+export interface TTSApi { speak(text: string, quiet?: boolean, who?: string): void; has(text: string): boolean }
 export interface AppState {
   coins: number; xp: number; voice?: string; topic: Record<string, number>; done: Record<string, number>; lang?: string;
   [k: string]: unknown;
@@ -21,7 +22,7 @@ export interface AppApi {
   TTS: TTSApi; toast(msg: string): void;
   sheet(html: string): void; closeSheet(): void; confetti(): void; vibrate(ms: number): void;
   selectOne(el: HTMLElement, onPick: (i: number) => void): void; markCards(el: HTMLElement, right: number, chosen: number): void;
-  spk(text: string, cls?: string): string; bindSpeak(el: HTMLElement): void; mascot(mood: string): string;
+  spk(text: string, cls?: string, who?: string): string; bindSpeak(el: HTMLElement): void; mascot(mood: string): string;
 }
 /** The API handed to every mini-game by startGame() in web/app.js. */
 export interface GameApi {

@@ -17,9 +17,16 @@ export interface Persona {
 }
 
 export const PERSONAS = data.personas as Record<PersonaId, Persona>;
-export const LINES = data.lines as Record<'ATA' | 'ZHALKAU' | 'ALIBEK' | 'APAI', Record<string, string>>;
+export const LINES = data.lines as Record<'ATA' | 'ZHALKAU' | 'ALIBEK' | 'APAI' | 'ANEL', Record<string, string>>;
+/** Who speaks which game text (riddle clues, blueprint questions, finale lines, room items). */
+export const ROLES = data.roles as { 'riddle.clue': PersonaId; 'workshop.question': PersonaId; 'workshop.done': Record<string, PersonaId>; 'room.item': PersonaId };
 
-/** Voice tag used by tools/make-audio.py for a persona (APAI shares the narrator tag). */
+/** A speaking line in the games: the persona's name in bold, the text, and a 🔊 that plays that persona's take. */
+export function personaLine(esc: (s: string) => string, id: PersonaId, text: string, cls = 'kk center'): string {
+  return '<p class="pline ' + cls + '"><b class="who">' + esc(PERSONAS[id].name) + ':</b> <button class="spk sm" data-say="' + esc(text) + '" data-who="' + audioTag(id) + '">🔊</button> ' + esc(text) + '</p>';
+}
+
+/** Voice tag used by tools/make-audio.py for a persona (its own id unless personas.json maps it to another tag). */
 export function audioTag(id: PersonaId): string { return PERSONAS[id].piper.tag || id; }
 
 function xmlEscape(s: string): string {

@@ -4,7 +4,7 @@
  * available, a 🎙️ button that lets the child SAY the right answer for bonus XP. */
 import type { Choice, Dialogue, DNode, PersonaId } from '../data/types';
 import type { GameApi } from '../types/app';
-import { PERSONAS } from '../voice/audioMap';
+import { PERSONAS, audioTag } from '../voice/audioMap';
 import { makeCharacter, type CharId } from '../games/characters';
 import { fullBuilding } from '../games/buildings';
 import { finishTopic, heartsHtml, stageIn } from '../games/shell';
@@ -94,17 +94,17 @@ export function renderDialogue(api: GameApi, gameId: string, d: Dialogue): void 
     const n = E.current;
     api.stat(heartsHtml(E.hearts, E.maxHearts) + ' · ⭐ ' + Math.round(E.xp));
     animate(n);
-    api.TTS.speak(n.kk, true);
-    let h = '<div class="dlg-line"><b class="dlg-who">' + esc(who(n.who)) + '</b><p class="kk"><button class="spk sm" data-say="' + esc(n.kk) + '">🔊</button> ' + esc(n.kk) + '</p><p class="tr">' + esc(en ? n.en : n.ru) + '</p></div>';
+    api.TTS.speak(n.kk, true, audioTag(n.who));
+    let h = '<div class="dlg-line"><b class="dlg-who">' + esc(who(n.who)) + '</b><p class="kk"><button class="spk sm" data-say="' + esc(n.kk) + '" data-who="' + audioTag(n.who) + '">🔊</button> ' + esc(n.kk) + '</p><p class="tr">' + esc(en ? n.en : n.ru) + '</p></div>';
     if (n.choices) {
       const voice = window.QVOICE && window.QVOICE.ready();
       h += '<div class="dlg-choices">' + n.choices.map((c, i) =>
         '<div class="dlg-ch"><button class="card" data-c="' + i + '"><span class="kk">' + esc(c.kk) + '</span><small>' + esc(en ? c.en : c.ru) + '</small></button>' +
-        '<button class="spk sm" data-say="' + esc(c.kk) + '">🔊</button>' + (voice && c.speak ? '<button class="spk sm mic-s" data-mic="' + i + '" title="Айт">🎙️</button>' : '') + '</div>').join('') + '</div>' +
+        '<button class="spk sm" data-say="' + esc(c.kk) + '" data-who="ALIBEK">🔊</button>' + (voice && c.speak ? '<button class="spk sm mic-s" data-mic="' + i + '" title="Айт">🎙️</button>' : '') + '</div>').join('') + '</div>' +
         (voice ? '<p class="muted center">' + esc(en ? '🎙️ Say the answer aloud for +5 XP' : '🎙️ Скажи ответ вслух — получишь +5 XP') + '</p>' : '');
     } else h += '<button class="btn ok" id="dnext">' + (n.end ? 'Аяқтау · ' + (en ? 'finish' : 'завершить') : 'Жалғастыру') + '</button>';
     box.innerHTML = h;
-    api.qsa('[data-say]', box).forEach((b) => { b.onclick = (e) => { e.stopPropagation(); api.TTS.speak(b.getAttribute('data-say')!); }; });
+    api.qsa('[data-say]', box).forEach((b) => { b.onclick = (e) => { e.stopPropagation(); api.TTS.speak(b.getAttribute('data-say')!, false, b.dataset.who); }; });
     const nx = api.qs('#dnext', box);
     if (nx) nx.onclick = () => { api.sfx.tap(); if (n.end) return finish(); E.advance(); show(); };
     api.qsa('[data-c]', box).forEach((b) => { b.onclick = () => pick(+b.getAttribute('data-c')!, 0); });
@@ -124,7 +124,7 @@ export function renderDialogue(api: GameApi, gameId: string, d: Dialogue): void 
 
   function pick(i: number, bonus: number): void {
     const n = E.current, c = n.choices![i], r = E.choose(i, bonus);
-    if (r.ok) { api.sfx.ok(); api.TTS.speak(c.kk, true); show(); return; }
+    if (r.ok) { api.sfx.ok(); api.TTS.speak(c.kk, true, 'ALIBEK'); show(); return; }
     api.sfx.bad(); api.vibrate(40);
     if (st && actors.ZHALKAU && d.scene === 'bus') st.V.play(actors.ZHALKAU, 'idle');
     box.innerHTML = '<div class="dlg-line bad"><b>💔 ' + esc(c.kk) + '</b><p class="why">💡 ' + esc(r.why ? (en ? r.why.en : r.why.ru) : '') + '</p></div>' +

@@ -5,7 +5,7 @@
 import type { Container, RoomItem } from '../data/types';
 import type { GameApi } from '../types/app';
 import type { Group, Object3D } from 'three';
-import { LINES } from '../voice/audioMap';
+import { LINES, ROLES, audioTag, personaLine } from '../voice/audioMap';
 import { makeCharacter } from './characters';
 import { finishTopic, heartsHtml, stageIn, tween } from './shell';
 
@@ -53,8 +53,12 @@ export function runRoom(api: GameApi, gameId: string, room: RoomData): void {
     S.onTick((t) => { const cur = items[i]; if (cur && props[cur.id] && !busy) props[cur.id].position.y = 0.3 + Math.abs(Math.sin(t * 4)) * 0.35; });
   }
 
-  api.TTS.speak(room.start, true);
-  panel.innerHTML = '<p class="kk"><b>Жалқаубек:</b> ' + esc(room.start) + '</p><p class="kk"><b>Әлібек:</b> ' + esc(LINES.ALIBEK.room) + '</p><button class="btn ok" id="rgo">' + (en ? 'Let’s tidy up!' : 'Жинайық!') + '</button>';
+  const OWNER = ROLES['room.item'];                 // Жалқаубек says where his things go — it is his room
+  function bindSay(): void { api.qsa('[data-say]', panel).forEach((b) => { b.onclick = () => api.TTS.speak(b.getAttribute('data-say')!, false, b.dataset.who); }); }
+  api.TTS.speak(room.start, true, 'ZHALKAU');
+  setTimeout(() => api.TTS.speak(LINES.ALIBEK.room, true, 'ALIBEK'), 2000);
+  panel.innerHTML = personaLine(esc, 'ZHALKAU', room.start, 'kk') + personaLine(esc, 'ALIBEK', LINES.ALIBEK.room, 'kk') + '<button class="btn ok" id="rgo">' + (en ? 'Let’s tidy up!' : 'Жинайық!') + '</button>';
+  bindSay();
   api.qs('#rgo', panel)!.onclick = () => { api.sfx.tap(); ask(); };
 
   function ask(): void {
@@ -63,19 +67,21 @@ export function runRoom(api: GameApi, gameId: string, room: RoomData): void {
     api.stat(heartsHtml(hearts, 3) + ' · 🧹 ' + i + '/' + items.length);
     meter.style.width = Math.round(i / items.length * 100) + '%';
     panel.innerHTML = '<p class="kk center"><span class="rm-e">' + esc(x.e) + '</span> <b>' + esc(x.kk) + '</b> <button class="spk sm" data-say="' + esc(x.kk) + '">🔊</button></p>' +
-      '<p class="center"><b>' + esc(LINES.APAI.where) + '</b></p>' +
+      personaLine(esc, 'APAI', LINES.APAI.where) +
       '<div class="rm-cont">' + room.containers.map((c) => '<button class="card" data-c="' + c.id + '"><span>' + esc(c.e) + '</span><b>' + esc(c.kk) + '</b><small>' + esc(api.tr(c)) + '</small></button>').join('') + '</div>';
-    api.qsa('[data-say]', panel).forEach((b) => { b.onclick = () => api.TTS.speak(b.getAttribute('data-say')!); });
+    bindSay();
     api.TTS.speak(x.kk, true);
+    if (i === 0) setTimeout(() => api.TTS.speak(LINES.APAI.where, true, audioTag('APAI')), 1200);   // Баян апай asks once
     api.qsa('[data-c]', panel).forEach((el) => {
       el.onclick = () => {
         if (busy) return;
         const to = el.getAttribute('data-c');
         if (to === x.to) {
           busy = true; el.classList.add('right'); api.sfx.ok(); if (!missed) firstTry++;
-          api.TTS.speak(x.say, true);
-          panel.insertAdjacentHTML('afterbegin', '<p class="rm-say kk">✅ ' + esc(x.say) + '<br><small class="tr">' + esc(en ? x.en : x.ru) + '</small></p>');
-          fly(x, () => { i++; if (i === Math.ceil(items.length / 2)) api.TTS.speak(LINES.ZHALKAU.mid, true); setTimeout(ask, 900); });
+          api.TTS.speak(x.say, true, audioTag(OWNER));
+          panel.insertAdjacentHTML('afterbegin', '<div class="rm-say">✅ ' + personaLine(esc, OWNER, x.say, 'kk') + '<small class="tr">' + esc(en ? x.en : x.ru) + '</small></div>');
+          bindSay();
+          fly(x, () => { i++; if (i === Math.ceil(items.length / 2)) api.TTS.speak(LINES.ZHALKAU.mid, true, 'ZHALKAU'); setTimeout(ask, 900); });
         } else {
           el.classList.add('wrong', 'shake'); api.sfx.bad(); api.vibrate(40); missed = true; hearts--;
           const good = room.containers.find((c) => c.id === x.to)!;
@@ -94,12 +100,12 @@ export function runRoom(api: GameApi, gameId: string, room: RoomData): void {
   function done(failed?: boolean): void {
     meter.style.width = failed ? meter.style.width : '100%';
     if (!failed) {
-      api.TTS.speak(room.end, true); api.confetti();
+      api.TTS.speak(room.end, true, 'ZHALKAU'); api.confetti();
       if (st && zh && window.QV3D) {                       // Жалқаубек becomes ұқыпты
         const { V, S } = st, p = zh.position.clone(); S.remove(zh);
         zh = S.add(makeCharacter(V, 'ZHALKAU_TIDY'), p.x, 0, p.z); zh.scale.setScalar(0.6); V.play(zh, 'cheer'); V.sparks(S, p.x, 2, p.z, 0x7dff5a, 30);
       }
-      panel.innerHTML = '<p class="kk center"><b>Жалқаубек:</b> ' + esc(room.end) + '</p>';
+      panel.innerHTML = personaLine(esc, 'ZHALKAU', room.end); bindSay();
     }
     setTimeout(() => finishTopic(api, gameId, firstTry, items.length, {
       title: failed ? 'Тағы жаттық!' : firstTry === items.length ? 'Керемет! Мінсіз!' : 'Жарайсың!',

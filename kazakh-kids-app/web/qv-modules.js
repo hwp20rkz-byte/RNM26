@@ -336,7 +336,7 @@
 
   // src/voice/personas.json
   var personas_default = {
-    _comment: "Voice personas of modules 2 and 4. `piper` = the offline stand-in actually bundled in the APK (ISSAI KazakhTTS2 speakers + pitch/tempo in ffmpeg, see tools/make-audio.py). `azure` / `elevenlabs` = production specs for a cloud re-voicing; they are not used by the build. APAI renders with the narrator voice (tag NARR: ISEKE or ISSAI, chosen in the profile).",
+    _comment: 'Voice personas of modules 2 and 4. `piper` = the offline stand-in actually bundled in the APK (ISSAI KazakhTTS2 speakers + pitch/tempo in ffmpeg, see tools/make-audio.py). `azure` / `elevenlabs` = production specs for a cloud re-voicing; they are not used by the build. Every persona, \u0411\u0430\u044F\u043D \u0430\u043F\u0430\u0439 included, has its own voice; `roles` says who speaks which game text (read by tools/collect-phrases.js and the games). When two personas say the same sentence, the later one gets a speaker-qualified audio key (text + " @TAG").',
     personas: {
       ALIBEK: {
         name: "\u04D8\u043B\u0456\u0431\u0435\u043A",
@@ -493,7 +493,10 @@
           emotion: "neutral, reassuring"
         },
         piper: {
-          tag: "NARR"
+          speaker: 3,
+          lengthScale: 1.05,
+          pitchSt: 1,
+          filter: ""
         },
         azure: {
           voice: "kk-KZ-AigulNeural",
@@ -565,13 +568,34 @@
       APAI: {
         where: "\u041E\u043D\u044B \u049B\u0430\u0439\u0434\u0430 \u049B\u043E\u044F\u043C\u044B\u0437?",
         pick: "\u049A\u0430\u0439 \u0493\u0438\u043C\u0430\u0440\u0430\u0442\u0442\u044B \u0441\u0430\u043B\u0430\u043C\u044B\u0437?"
+      },
+      ANEL: {
+        blueprint: "\u041C\u0435\u043D \u0441\u044B\u0437\u0431\u0430\u043D\u044B \u043E\u049B\u0438\u043C\u044B\u043D, \u0441\u0435\u043D \u049B\u04B1\u0440\u0430\u0441\u0442\u044B\u0440!"
       }
+    },
+    roles: {
+      _comment: "Who speaks which game text. Dialogue nodes carry their own `who`; LINES are spoken by their key.",
+      "riddle.clue": "APAI",
+      "workshop.question": "ANEL",
+      "workshop.done": {
+        baiterek: "ANEL",
+        khanshatyr: "ANEL",
+        sarai: "ALIBEK"
+      },
+      "room.item": "ZHALKAU"
     }
   };
 
   // src/voice/audioMap.ts
   var PERSONAS = personas_default.personas;
   var LINES = personas_default.lines;
+  var ROLES = personas_default.roles;
+  function personaLine(esc, id, text, cls = "kk center") {
+    return '<p class="pline ' + cls + '"><b class="who">' + esc(PERSONAS[id].name) + ':</b> <button class="spk sm" data-say="' + esc(text) + '" data-who="' + audioTag(id) + '">\u{1F50A}</button> ' + esc(text) + "</p>";
+  }
+  function audioTag(id) {
+    return PERSONAS[id].piper.tag || id;
+  }
   function xmlEscape(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
@@ -716,6 +740,33 @@
         const bag = V.box(0.5, 0.45, 0.25, 7031338, 0, -1.25, 0.15);
         P.armR.add(bag);
         g.userData.bag = bag;
+        return g;
+      }
+      case "APAI": {
+        const g = V.humanoid({
+          skin: 15317138,
+          hair: 3810328,
+          top: 1471850,
+          sleeve: 1471850,
+          pants: 2826800,
+          shoes: 2826800,
+          face: (c) => {
+            eye(c, 42, 58, 12, "#2a1b12");
+            eye(c, 86, 58, 12, "#2a1b12");
+            c.strokeStyle = "#7a4a1a";
+            c.lineWidth = 3;
+            c.beginPath();
+            c.arc(42, 58, 17, 0, 7);
+            c.moveTo(103, 58);
+            c.arc(86, 58, 17, 0, 7);
+            c.stroke();
+            smile(c, 88, 14, false);
+          }
+        });
+        const P = g.userData.parts;
+        P.head.add(V.ball(0.32, 3810328, 0, 0.35, -0.62));
+        P.armL.add(V.box(0.5, 0.62, 0.12, 13643578, 0, -1.2, 0.22));
+        g.add(V.box(0.12, 0.12, 0.05, V.glow(16763196), 0.3, 1.85, 0.32));
         return g;
       }
       case "ARCH": {
@@ -980,17 +1031,17 @@
       const n = E.current;
       api.stat(heartsHtml(E.hearts, E.maxHearts) + " \xB7 \u2B50 " + Math.round(E.xp));
       animate(n);
-      api.TTS.speak(n.kk, true);
-      let h = '<div class="dlg-line"><b class="dlg-who">' + esc(who(n.who)) + '</b><p class="kk"><button class="spk sm" data-say="' + esc(n.kk) + '">\u{1F50A}</button> ' + esc(n.kk) + '</p><p class="tr">' + esc(en ? n.en : n.ru) + "</p></div>";
+      api.TTS.speak(n.kk, true, audioTag(n.who));
+      let h = '<div class="dlg-line"><b class="dlg-who">' + esc(who(n.who)) + '</b><p class="kk"><button class="spk sm" data-say="' + esc(n.kk) + '" data-who="' + audioTag(n.who) + '">\u{1F50A}</button> ' + esc(n.kk) + '</p><p class="tr">' + esc(en ? n.en : n.ru) + "</p></div>";
       if (n.choices) {
         const voice = window.QVOICE && window.QVOICE.ready();
-        h += '<div class="dlg-choices">' + n.choices.map((c, i) => '<div class="dlg-ch"><button class="card" data-c="' + i + '"><span class="kk">' + esc(c.kk) + "</span><small>" + esc(en ? c.en : c.ru) + '</small></button><button class="spk sm" data-say="' + esc(c.kk) + '">\u{1F50A}</button>' + (voice && c.speak ? '<button class="spk sm mic-s" data-mic="' + i + '" title="\u0410\u0439\u0442">\u{1F399}\uFE0F</button>' : "") + "</div>").join("") + "</div>" + (voice ? '<p class="muted center">' + esc(en ? "\u{1F399}\uFE0F Say the answer aloud for +5 XP" : "\u{1F399}\uFE0F \u0421\u043A\u0430\u0436\u0438 \u043E\u0442\u0432\u0435\u0442 \u0432\u0441\u043B\u0443\u0445 \u2014 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C +5 XP") + "</p>" : "");
+        h += '<div class="dlg-choices">' + n.choices.map((c, i) => '<div class="dlg-ch"><button class="card" data-c="' + i + '"><span class="kk">' + esc(c.kk) + "</span><small>" + esc(en ? c.en : c.ru) + '</small></button><button class="spk sm" data-say="' + esc(c.kk) + '" data-who="ALIBEK">\u{1F50A}</button>' + (voice && c.speak ? '<button class="spk sm mic-s" data-mic="' + i + '" title="\u0410\u0439\u0442">\u{1F399}\uFE0F</button>' : "") + "</div>").join("") + "</div>" + (voice ? '<p class="muted center">' + esc(en ? "\u{1F399}\uFE0F Say the answer aloud for +5 XP" : "\u{1F399}\uFE0F \u0421\u043A\u0430\u0436\u0438 \u043E\u0442\u0432\u0435\u0442 \u0432\u0441\u043B\u0443\u0445 \u2014 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C +5 XP") + "</p>" : "");
       } else h += '<button class="btn ok" id="dnext">' + (n.end ? "\u0410\u044F\u049B\u0442\u0430\u0443 \xB7 " + (en ? "finish" : "\u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C") : "\u0416\u0430\u043B\u0493\u0430\u0441\u0442\u044B\u0440\u0443") + "</button>";
       box.innerHTML = h;
       api.qsa("[data-say]", box).forEach((b) => {
         b.onclick = (e) => {
           e.stopPropagation();
-          api.TTS.speak(b.getAttribute("data-say"));
+          api.TTS.speak(b.getAttribute("data-say"), false, b.dataset.who);
         };
       });
       const nx = api.qs("#dnext", box);
@@ -1024,7 +1075,7 @@
       const n = E.current, c = n.choices[i], r = E.choose(i, bonus);
       if (r.ok) {
         api.sfx.ok();
-        api.TTS.speak(c.kk, true);
+        api.TTS.speak(c.kk, true, "ALIBEK");
         show();
         return;
       }
@@ -1131,7 +1182,8 @@
       runTilKeremeti(api, gameId, all, next);
     };
     const st = stageIn(api.qs("#whs", body), { camPos: [0, 3.2, 7.4], camLook: [0, 1.2, 0], fov: 40 });
-    let wheel = null, ata = null, S = null;
+    let wheel = null, ata = null, apai = null, S = null;
+    const READER = ROLES["riddle.clue"];
     let angle = 0, speed = 0, onStop = null;
     if (st) {
       const { V } = st;
@@ -1168,6 +1220,9 @@
       ata = S.add(makeCharacter(V, "ATA"), 2.75, 0, 1.4);
       ata.scale.setScalar(0.55);
       ata.rotation.y = -0.6;
+      apai = S.add(makeCharacter(V, "APAI"), -2.75, 0, 1.4);
+      apai.scale.setScalar(0.55);
+      apai.rotation.y = 0.6;
       S.onTick((t, dt) => {
         if (!wheel) return;
         if (speed > 0) {
@@ -1189,7 +1244,7 @@
     function say(key) {
       const t = LINES.ATA[key];
       host.innerHTML = "<b>\u0410\u0442\u0430:</b> " + esc(t);
-      api.TTS.speak(t, true);
+      api.TTS.speak(t, true, "ATA");
       if (S && ata && window.QV3D) window.QV3D.play(ata, key === "no" ? "idle" : "bata");
     }
     function drawBoard() {
@@ -1207,15 +1262,18 @@
       board = new RiddleBoard(pool[round]);
       roundMiss = false;
       value = 0;
-      clue.innerHTML = '<p class="kk"><button class="spk sm" data-say="' + esc(board.riddle.clue) + '">\u{1F50A}</button> ' + esc(board.riddle.clue) + '</p><p class="tr">' + esc(en ? board.riddle.en : board.riddle.ru) + '</p><small class="muted">\u{1F4D6} ' + esc(board.riddle.src) + "</small>";
+      clue.innerHTML = '<p class="pline kk center"><b class="who">' + esc(PERSONAS[READER].name) + ':</b> <button class="spk sm" data-say="' + esc(board.riddle.clue) + '" data-who="' + audioTag(READER) + '">\u{1F50A}</button> ' + esc(board.riddle.clue) + '</p><p class="tr">' + esc(en ? board.riddle.en : board.riddle.ru) + '</p><small class="muted">\u{1F4D6} ' + esc(board.riddle.src) + "</small>";
       api.qsa("[data-say]", clue).forEach((b) => {
-        b.onclick = () => api.TTS.speak(b.getAttribute("data-say"));
+        b.onclick = () => api.TTS.speak(b.getAttribute("data-say"), false, b.dataset.who);
       });
       drawBoard();
       drawKeys(false);
       spinBtn.disabled = false;
       say(round === 0 ? "hello" : "spin");
-      setTimeout(() => api.TTS.speak(board.riddle.clue, true), 2200);
+      setTimeout(() => {
+        api.TTS.speak(board.riddle.clue, true, audioTag(READER));
+        if (S && apai && window.QV3D) window.QV3D.play(apai, "bata");
+      }, 2200);
     }
     spinBtn.onclick = () => {
       if (spinning) return;
@@ -1368,15 +1426,23 @@
       S.add(V.box(24, 0.2, 24, 14673650, 0, -0.1, 0));
       const ali = S.add(makeCharacter(V, "ALIBEK"), -4.2, 0, 3);
       ali.rotation.y = 0.5;
+      const anel = S.add(makeCharacter(V, "ANEL"), 4.2, 0, 3);
+      anel.rotation.y = -0.5;
       S.onTick((t) => {
         if (built) built.rotation.y = t * 0.25;
         if (ghost) ghost.rotation.y = t * 0.25;
       });
     }
+    const ASKER = ROLES["workshop.question"];
+    function bindSay() {
+      api.qsa("[data-say]", panel).forEach((b) => {
+        b.onclick = () => api.TTS.speak(b.getAttribute("data-say"), false, b.dataset.who);
+      });
+    }
     function choose() {
       api.stat("");
-      panel.innerHTML = '<p class="kk center"><b>' + esc(LINES.APAI.pick) + '</b></p><div class="cards list">' + blueprints.map((b, i) => '<button class="card" data-b="' + i + '"><span class="idx">' + (i + 1) + "</span><span><b>" + esc(b.kk) + "</b><small> \xB7 " + esc(b.city) + " \xB7 " + esc(api.tr(b)) + "</small></span></button>").join("") + "</div>";
-      api.TTS.speak(LINES.APAI.pick, true);
+      panel.innerHTML = personaLine(esc, "APAI", LINES.APAI.pick) + '<div class="cards list">' + blueprints.map((b, i) => '<button class="card" data-b="' + i + '"><span class="idx">' + (i + 1) + "</span><span><b>" + esc(b.kk) + "</b><small> \xB7 " + esc(b.city) + " \xB7 " + esc(api.tr(b)) + "</small></span></button>").join("") + "</div>";
+      api.TTS.speak(LINES.APAI.pick, true, audioTag("APAI"));
       api.qsa("[data-b]", panel).forEach((el) => {
         el.onclick = () => {
           api.sfx.tap();
@@ -1399,18 +1465,19 @@
         built = V.group();
         S.add(built);
       }
-      api.TTS.speak(LINES.ALIBEK.workshop, true);
-      ask();
+      panel.innerHTML = personaLine(esc, "ALIBEK", LINES.ALIBEK.workshop) + personaLine(esc, "ANEL", LINES.ANEL.blueprint);
+      bindSay();
+      api.TTS.speak(LINES.ALIBEK.workshop, true, "ALIBEK");
+      setTimeout(() => api.TTS.speak(LINES.ANEL.blueprint, true, audioTag("ANEL")), 1900);
+      setTimeout(ask, 4200);
       function ask() {
         if (i >= bp.tiers.length) return done();
         const t = bp.tiers[i], opts = api.shuffle(t.opts);
         missed = false;
         api.stat(heartsHtml(hearts, 3) + " \xB7 \u{1F3D7}\uFE0F " + i + "/" + bp.tiers.length);
-        panel.innerHTML = '<p class="muted center">' + esc(bp.kk) + " \xB7 " + esc(t.kk) + " \u2014 " + esc(api.tr(t)) + '</p><p class="kk center"><button class="spk sm" data-say="' + esc(t.q) + '">\u{1F50A}</button> <b>' + esc(t.q) + '</b></p><div class="cards list">' + opts.map((o, k) => '<button class="card" data-o="' + k + '"><span class="idx">' + (k + 1) + "</span><span>" + esc(o) + "</span></button>").join("") + "</div>";
-        api.qsa("[data-say]", panel).forEach((b) => {
-          b.onclick = () => api.TTS.speak(b.getAttribute("data-say"));
-        });
-        api.TTS.speak(t.q, true);
+        panel.innerHTML = '<p class="muted center">' + esc(bp.kk) + " \xB7 " + esc(t.kk) + " \u2014 " + esc(api.tr(t)) + "</p>" + personaLine(esc, ASKER, t.q) + '<div class="cards list">' + opts.map((o, k) => '<button class="card" data-o="' + k + '"><span class="idx">' + (k + 1) + "</span><span>" + esc(o) + "</span></button>").join("") + "</div>";
+        bindSay();
+        api.TTS.speak(t.q, true, audioTag(ASKER));
         api.qsa("[data-o]", panel).forEach((el) => {
           el.onclick = () => {
             const o = opts[+el.getAttribute("data-o")];
@@ -1449,10 +1516,12 @@
         });
       }
       function done(failed) {
+        const by = ROLES["workshop.done"][bp.id] || "ALIBEK";
         if (!failed) {
-          api.TTS.speak(bp.done, true);
+          api.TTS.speak(bp.done, true, audioTag(by));
           api.confetti();
-          panel.innerHTML = '<p class="kk center"><b>' + esc(bp.done) + "</b></p>";
+          panel.innerHTML = personaLine(esc, by, bp.done);
+          bindSay();
         }
         setTimeout(() => finishTopic(api, gameId, firstTry, bp.tiers.length, {
           title: failed ? "\u0422\u0430\u0493\u044B \u0436\u0430\u0442\u0442\u044B\u049B!" : firstTry === bp.tiers.length ? "\u041A\u0435\u0440\u0435\u043C\u0435\u0442! \u041C\u0456\u043D\u0441\u0456\u0437!" : "\u0416\u0430\u0440\u0430\u0439\u0441\u044B\u04A3!",
@@ -1528,8 +1597,16 @@
         if (cur && props[cur.id] && !busy) props[cur.id].position.y = 0.3 + Math.abs(Math.sin(t * 4)) * 0.35;
       });
     }
-    api.TTS.speak(room.start, true);
-    panel.innerHTML = '<p class="kk"><b>\u0416\u0430\u043B\u049B\u0430\u0443\u0431\u0435\u043A:</b> ' + esc(room.start) + '</p><p class="kk"><b>\u04D8\u043B\u0456\u0431\u0435\u043A:</b> ' + esc(LINES.ALIBEK.room) + '</p><button class="btn ok" id="rgo">' + (en ? "Let\u2019s tidy up!" : "\u0416\u0438\u043D\u0430\u0439\u044B\u049B!") + "</button>";
+    const OWNER = ROLES["room.item"];
+    function bindSay() {
+      api.qsa("[data-say]", panel).forEach((b) => {
+        b.onclick = () => api.TTS.speak(b.getAttribute("data-say"), false, b.dataset.who);
+      });
+    }
+    api.TTS.speak(room.start, true, "ZHALKAU");
+    setTimeout(() => api.TTS.speak(LINES.ALIBEK.room, true, "ALIBEK"), 2e3);
+    panel.innerHTML = personaLine(esc, "ZHALKAU", room.start, "kk") + personaLine(esc, "ALIBEK", LINES.ALIBEK.room, "kk") + '<button class="btn ok" id="rgo">' + (en ? "Let\u2019s tidy up!" : "\u0416\u0438\u043D\u0430\u0439\u044B\u049B!") + "</button>";
+    bindSay();
     api.qs("#rgo", panel).onclick = () => {
       api.sfx.tap();
       ask();
@@ -1541,11 +1618,10 @@
       busy = false;
       api.stat(heartsHtml(hearts, 3) + " \xB7 \u{1F9F9} " + i + "/" + items.length);
       meter.style.width = Math.round(i / items.length * 100) + "%";
-      panel.innerHTML = '<p class="kk center"><span class="rm-e">' + esc(x.e) + "</span> <b>" + esc(x.kk) + '</b> <button class="spk sm" data-say="' + esc(x.kk) + '">\u{1F50A}</button></p><p class="center"><b>' + esc(LINES.APAI.where) + '</b></p><div class="rm-cont">' + room.containers.map((c) => '<button class="card" data-c="' + c.id + '"><span>' + esc(c.e) + "</span><b>" + esc(c.kk) + "</b><small>" + esc(api.tr(c)) + "</small></button>").join("") + "</div>";
-      api.qsa("[data-say]", panel).forEach((b) => {
-        b.onclick = () => api.TTS.speak(b.getAttribute("data-say"));
-      });
+      panel.innerHTML = '<p class="kk center"><span class="rm-e">' + esc(x.e) + "</span> <b>" + esc(x.kk) + '</b> <button class="spk sm" data-say="' + esc(x.kk) + '">\u{1F50A}</button></p>' + personaLine(esc, "APAI", LINES.APAI.where) + '<div class="rm-cont">' + room.containers.map((c) => '<button class="card" data-c="' + c.id + '"><span>' + esc(c.e) + "</span><b>" + esc(c.kk) + "</b><small>" + esc(api.tr(c)) + "</small></button>").join("") + "</div>";
+      bindSay();
       api.TTS.speak(x.kk, true);
+      if (i === 0) setTimeout(() => api.TTS.speak(LINES.APAI.where, true, audioTag("APAI")), 1200);
       api.qsa("[data-c]", panel).forEach((el) => {
         el.onclick = () => {
           if (busy) return;
@@ -1555,11 +1631,12 @@
             el.classList.add("right");
             api.sfx.ok();
             if (!missed) firstTry++;
-            api.TTS.speak(x.say, true);
-            panel.insertAdjacentHTML("afterbegin", '<p class="rm-say kk">\u2705 ' + esc(x.say) + '<br><small class="tr">' + esc(en ? x.en : x.ru) + "</small></p>");
+            api.TTS.speak(x.say, true, audioTag(OWNER));
+            panel.insertAdjacentHTML("afterbegin", '<div class="rm-say">\u2705 ' + personaLine(esc, OWNER, x.say, "kk") + '<small class="tr">' + esc(en ? x.en : x.ru) + "</small></div>");
+            bindSay();
             fly(x, () => {
               i++;
-              if (i === Math.ceil(items.length / 2)) api.TTS.speak(LINES.ZHALKAU.mid, true);
+              if (i === Math.ceil(items.length / 2)) api.TTS.speak(LINES.ZHALKAU.mid, true, "ZHALKAU");
               setTimeout(ask, 900);
             });
           } else {
@@ -1589,7 +1666,7 @@
     function done(failed) {
       meter.style.width = failed ? meter.style.width : "100%";
       if (!failed) {
-        api.TTS.speak(room.end, true);
+        api.TTS.speak(room.end, true, "ZHALKAU");
         api.confetti();
         if (st && zh && window.QV3D) {
           const { V, S } = st, p = zh.position.clone();
@@ -1599,7 +1676,8 @@
           V.play(zh, "cheer");
           V.sparks(S, p.x, 2, p.z, 8257370, 30);
         }
-        panel.innerHTML = '<p class="kk center"><b>\u0416\u0430\u043B\u049B\u0430\u0443\u0431\u0435\u043A:</b> ' + esc(room.end) + "</p>";
+        panel.innerHTML = personaLine(esc, "ZHALKAU", room.end);
+        bindSay();
       }
       setTimeout(() => finishTopic(api, gameId, firstTry, items.length, {
         title: failed ? "\u0422\u0430\u0493\u044B \u0436\u0430\u0442\u0442\u044B\u049B!" : firstTry === items.length ? "\u041A\u0435\u0440\u0435\u043C\u0435\u0442! \u041C\u0456\u043D\u0441\u0456\u0437!" : "\u0416\u0430\u0440\u0430\u0439\u0441\u044B\u04A3!",

@@ -25,15 +25,32 @@ function sentence(s) { add(s); tokens(s).forEach((t) => add(t.toLowerCase())); }
 
 const LOC_VERBS = ['тұрамын', 'мектепке барамын', 'ұйықтаймын', 'түскі ас ішемін', 'шахмат ойнаймын', 'үйге келемін'];
 
+/** A persona line. If another persona already owns the same sentence, this one gets its own file under the
+ *  speaker-qualified key audioKey(text + ' @' + TAG); the game asks for it with TTS.speak(text, quiet, TAG). */
+function addAs(t, voice) {
+  if (!t) return;
+  t = String(t).replace(/^—\s*/, '').replace(/\s+/g, ' ').trim();
+  const k = D.audioKey(t), cur = out.get(k);
+  if (!cur) return add(t, voice);
+  if (cur.voice === voice) return;
+  const q = D.audioKey(t + ' @' + voice);
+  if (!out.has(q)) out.set(q, { key: q, text: t, voice });
+}
+
 // character lines first, so they keep their own voice even if a narrator phrase has the same text
-Object.keys(W.LINES).forEach((who) => Object.values(W.LINES[who]).forEach((l) => add(l.kk, W.LINE_VOICE[who])));
+Object.keys(W.LINES).forEach((who) => Object.values(W.LINES[who]).forEach((l) => addAs(l.kk, W.LINE_VOICE[who])));
 // modules 2 & 4: persona lines (dialogues; the player's answers are Әлібек's), game host lines
 Object.values(C.dialogues).forEach((d) => Object.values(d.nodes).forEach((n) => {
-  add(n.kk, tagOf(n.who));
-  (n.choices || []).forEach((c) => add(c.kk, 'ALIBEK'));
+  addAs(n.kk, tagOf(n.who));
+  (n.choices || []).forEach((c) => addAs(c.kk, 'ALIBEK'));
 }));
-Object.entries(VOICES.lines).forEach(([who, lines]) => Object.values(lines).forEach((t) => add(t, tagOf(who))));
-add(C.room.start, 'ZHALKAU'); add(C.room.end, 'ZHALKAU');
+Object.entries(VOICES.lines).forEach(([who, lines]) => Object.values(lines).forEach((t) => addAs(t, tagOf(who))));
+addAs(C.room.start, 'ZHALKAU'); addAs(C.room.end, 'ZHALKAU');
+// who reads which game text (src/voice/personas.json → roles): riddles, blueprint questions, finale lines, room items
+const R = VOICES.roles;
+C.riddles.forEach((r) => addAs(r.clue, tagOf(R['riddle.clue'])));
+C.workshop.forEach((b) => { b.tiers.forEach((t) => addAs(t.q, tagOf(R['workshop.question']))); addAs(b.done, tagOf(R['workshop.done'][b.id] || 'ALIBEK')); });
+C.room.items.forEach((x) => addAs(x.say, tagOf(R['room.item'])));
 
 D.GRADES.forEach((g) => g.units.forEach((u) => u.lessons.forEach((l) => {
   (l.words || []).forEach((w) => add(w.kk));
