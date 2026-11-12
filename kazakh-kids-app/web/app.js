@@ -134,14 +134,22 @@
 
   /* ---------- Kazakh voice: bundled recordings first, then the phone's TTS ---------- */
   var AUD = window.QAUDIO || {}, AUD_ISEKE = window.QAUDIO_ISEKE || {};
+  // extra narrator voices made by tools/make-audio-fs.mjs (Freedom Speech: Томирис, Таймас, clones…)
+  var PACKS = window.QAUDIO_PACKS || {};
   var curAudio = null;
   function sysKk() { try { return !!(window.Android && window.Android.ttsState && window.Android.ttsState() === 'kk'); } catch (e) { return false; } }
   var TTS = {
     // Narrator voice: ISEKE (default) or ISSAI; character lines and anything ISEKE lacks fall back to ISSAI.
+    // A Freedom Speech pack covers the narrator lines; anything it lacks (character lines) falls back to ISSAI.
     file: function (text) {
-      var k = D.audioKey(text);
-      if (S.voice !== 'issai' && AUD_ISEKE[k]) return 'audio-iseke/' + k;
+      var k = D.audioKey(text), v = S.voice || 'iseke', pk = PACKS[v];
+      if (pk && pk.keys && pk.keys[k]) return 'audio-' + v + '/' + k;
+      if (v === 'iseke' && AUD_ISEKE[k]) return 'audio-iseke/' + k;
       return AUD[k] ? 'audio/' + k : null;
+    },
+    voices: function () {
+      return [['iseke', '🎙️ ISEKE'], ['issai', '🎙️ ISSAI']].concat(Object.keys(PACKS).filter(function (id) { return /^[a-z0-9_-]+$/.test(id); })
+        .map(function (id) { return [id, (PACKS[id].gender === 'm' ? '🧑 ' : '👩 ') + (PACKS[id].label || id)]; }));
     },
     remote: function (text) { return window.QVOICE && window.QVOICE.ttsUrl ? window.QVOICE.ttsUrl(text, S.voice || 'iseke') : null; },
     has: function (text) { return !!TTS.file(text) || sysKk() || !!TTS.remote(text); },
@@ -946,7 +954,7 @@
       '<label class="muted" for="nm">Атың кім? — Как тебя зовут?</label><input id="nm" class="name" maxlength="24" value="' + esc(S.name) + '" placeholder="Например, Айгерім" autocomplete="off">' +
       '<label class="muted">Нешінші сынып? — В каком ты классе?</label>' + gradeSwitch() +
       '<label class="muted">Оқу режимі — режим обучения</label>' + langSwitch() +
-      '<label class="muted">Дауыс — голос диктора</label><div class="seg two">' + [['iseke', '🎙️ ISEKE'], ['issai', '🎙️ ISSAI']].map(function (v) { return '<button data-voice="' + v[0] + '" class="' + ((S.voice || 'iseke') === v[0] ? 'on' : '') + '">' + v[1] + '</button>'; }).join('') + '</div>' +
+      '<label class="muted">Дауыс — голос диктора</label><div class="seg" style="grid-template-columns:repeat(' + Math.min(TTS.voices().length, 4) + ',1fr)">' + TTS.voices().map(function (v) { return '<button data-voice="' + v[0] + '" class="' + ((PACKS[S.voice] ? S.voice : S.voice === 'issai' ? 'issai' : 'iseke') === v[0] ? 'on' : '') + '">' + esc(v[1]) + '</button>'; }).join('') + '</div>' +
       '<div class="kpis">' +
       '<div class="kpi"><span class="ico">⚡</span><div><b>' + S.xp + '</b><span>Шежіре XP</span></div></div>' +
       '<div class="kpi"><span class="ico">🪙</span><div><b>' + S.coins + '</b><span>алтын асық</span></div></div>' +

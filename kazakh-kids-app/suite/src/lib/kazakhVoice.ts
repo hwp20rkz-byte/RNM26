@@ -4,11 +4,16 @@
  * On the web the base comes from VITE_TTS_BASE; when a phrase has no recording nothing is played.
  */
 const BASE: string = (import.meta.env.VITE_TTS_BASE as string | undefined) ?? '../audio/';
-/** The main game's narrator choice: ISEKE (default) has its own folder; ISSAI covers everything. */
-function bases(): string[] {
+/**
+ * The main game's narrator choice: ISEKE (default) and Freedom Speech packs (Томирис, Таймас… from
+ * tools/make-audio-fs.mjs) have their own folders; ISSAI (audio/) covers everything and is the fallback.
+ */
+export function bases(voice?: string): string[] {
   try {
-    const v = (JSON.parse(window.localStorage.getItem('qazaqsha-oyna-v1') || '{}') as { voice?: string }).voice;
-    return v === 'issai' ? [BASE] : [BASE.replace(/audio\/$/, 'audio-iseke/'), BASE];
+    const v = voice ?? (JSON.parse(window.localStorage.getItem('qazaqsha-oyna-v1') || '{}') as { voice?: string }).voice;
+    if (v === 'issai') return [BASE];
+    if (v && v !== 'iseke' && /^[a-z0-9_-]{2,24}$/.test(v)) return [BASE.replace(/audio\/$/, 'audio-' + v + '/'), BASE];
+    return [BASE.replace(/audio\/$/, 'audio-iseke/'), BASE];
   } catch { return [BASE]; }
 }
 

@@ -30,6 +30,8 @@ if [ -d node_modules ]; then npm run -s build; fi
 # 1. Web game -> assets (only what the app needs)
 cp web/*.html web/*.css web/*.js "$BUILD/assets/"
 cp -r web/fonts web/audio web/audio-iseke web/vendor "$BUILD/assets/"
+# voice packs from tools/make-audio-fs.mjs (web/audio-<id>/ with a manifest.json) ride along automatically
+for d in web/audio-*/; do [ -f "$d/manifest.json" ] && cp -r "${d%/}" "$BUILD/assets/"; done
 
 # 1b. 3D suite (React 19 + R3F, suite/) -> assets/suite; opened from the games tab
 if [ -d suite/node_modules ]; then (cd suite && npm run -s build && npm run -s budget); fi

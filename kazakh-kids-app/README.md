@@ -78,6 +78,36 @@
 **Голос.** Все 3636 казахских слов и фраз озвучены внутри APK, работают без интернета на любом телефоне.
 Оценка произношения (задание «Айт!») включается, если есть распознавание речи — см. ниже.
 
+## Голоса Freedom Speech (Томирис, Таймас, клоны)
+
+`tools/make-audio-fs.mjs` озвучивает фразы игры через API [Freedom Speech](https://freedomspeech.kz/docs) (npm `freedomspeech`)
+**на компьютере разработчика**: ключ остаётся у вас, в APK попадают обычные mp3, игра работает офлайн.
+Готовый пакет сам появляется в «Мен → Дауыс» рядом с ISEKE и ISSAI; фраз, которых в пакете нет, озвучит ISSAI.
+
+```bash
+node tools/collect-phrases.js > /tmp/phrases.json
+export FS_API_KEY=...                                             # кабинет console.freedomspeech.kz; в репозиторий не класть
+npm run audio:fs -- /tmp/phrases.json --voice tomiris --limit 20  # сначала послушать 20 файлов в web/audio-tomiris/
+npm run audio:fs -- /tmp/phrases.json --voice tomiris --verify    # весь пакет + обратное распознавание → verify.csv
+npm run audio:fs -- /tmp/phrases.json --voice taymas              # мужской голос
+npm run audio:fs -- /tmp/phrases.json --voice tomiris --pack tomiris-cast --label "Томирис + герои" --cast
+npm run audio:fs -- --list-voices                                 # каталог голосов (когда его опубликуют на api-адресе)
+npm run audio:fs -- /tmp/phrases.json --clone apai.wav --pack apai --label "Баян апай" --base-url <адрес с /api/voice-clone>
+```
+
+| Режим | Что делает |
+|---|---|
+| по умолчанию | только реплики диктора (как пакет ISEKE); герои сохраняют свои голоса ISSAI |
+| `--cast` | ещё и реплики героев: девочки и бабушки → tomiris с эмоцией (Әнел, Айсұлу — `happy`), мальчики и деды → taymas; старшие говорят `<slower>` |
+| `--transport http` | `POST /v1/audio/speech` вместо WebSocket (по умолчанию поток `/ws/tts`, модель `freedomspeech`; `--model freedomspeech-flash` быстрее) |
+| `--verify` | каждый новый файл распознаётся обратно, похожесть < 0,80 — в `verify.csv` на прослушивание |
+| `--clone` | клон голоса по записи **только с согласия его владельца** (например, учитель записывает 15 секунд) |
+
+Запуск можно прервать: повторный пропускает готовые файлы. 429 и сбои сервиса повторяются с паузой; 401/402 останавливают
+сразу. `--prune` удаляет файлы фраз, которых больше нет. Тест без сети и ключа: `npm run test:voice-packs` (локальный мок API).
+Перед релизом проверьте в оферте Freedom Speech право распространять сгенерированное аудио в приложении — лицензия MIT
+относится только к коду SDK.
+
 ## Оценка произношения
 
 Телефон сам большую модель распознавания не потянет, поэтому уровней три:
@@ -125,6 +155,7 @@ web/            игра (чистый JS, открывается и в брау
   grammar-core.js        казахская морфология (падежи, тәуелдік, жіктік, времена глагола)
   phrasebook-data.js     разговорник, диалоги, пословицы, фразеологизмы, тематический словарь
   phrasebook.js          вкладка «Сөздік»: справочник, поиск, тренажёры
+  audio-packs.js         список голосовых пакетов (генерирует tools/make-audio-fs.mjs), сами пакеты — web/audio-<id>/
   auction-core.js, score-core.js   чистая логика, покрыта тестами
 backend/        Python: VAD + STT + оценка, HTTP-сервер, матрица голосов OmniVoice
 blueprints/     AuctionController.luau — порт автомата аукциона для Roblox
