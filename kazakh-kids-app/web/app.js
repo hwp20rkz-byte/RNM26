@@ -803,7 +803,7 @@
     tb.units.forEach(function (u) {
       u.lessons.forEach(function (l, i) {
         var g = l.game && D.TOPIC_GAMES[l.game]; if (!g) return;
-        var open = !!S.done[l.id], best = S.topic[l.game];
+        var open = !!S.done[l.id] || !!g.free, best = S.topic[l.game];   // free: open without the lesson (Тіл Кереметі)
         h += '<button class="tg-row' + (open ? '' : ' locked') + '" data-tg="' + l.game + '" data-tl="' + l.id + '"><span class="e">' + (open ? g.icon : '🔒') + '</span><span><b>' + esc(g.kk) + '</b><small>' + esc(u.module + '.' + (i + 1) + ' ' + l.kk) + '</small></span>' +
           (best != null ? '<span class="pill ok">' + best + '%</span>' : open ? '<span class="pill">▶</span>' : '') + '</button>';
       });
@@ -816,6 +816,7 @@
     var gi = gIdx();
     var html = '<div class="page">' + X('gamesTop') + gradeSwitch() +
       '<div class="hero" style="margin:0">' + myHero('wow') + '<div><h1>Ойындар</h1><p>Слова раздела «' + esc(D.GRADES[gi].kk) + '». Играй и зарабатывай 🪙</p></div></div>' +
+      (D.TOPIC_GAMES.tg3d_wheel ? '<button class="suite-card wheel" id="wheel3d"><span class="em">🎡</span><span><b>Тіл Кереметі</b><small>Колесо загадок — угадай слово по буквам</small></span>' + (S.topic.tg3d_wheel != null ? '<span class="pill ok">' + S.topic.tg3d_wheel + '%</span>' : '<span class="pill ok">▶</span>') + '</button>' : '') +
       (window.QSUITE ? '<button class="suite-card" id="suite3d"><span class="em">🔮</span><span><b>3D-зал · Неостепь</b><small>Септік тотемі — 7 падежей и жіктік в 3D</small></span><span class="pill ok">β</span></button>' : '') +
       '<div class="game-grid">';
     W.GAMES.forEach(function (g) {
@@ -844,10 +845,12 @@
       };
     });
     qsa('[data-p]').forEach(function (b) { b.onclick = function () { sfx.tap(); startPractice(b.getAttribute('data-p')); }; });
+    var wh = qs('#wheel3d'); if (wh) wh.onclick = function () { sfx.tap(); startGame('tg3d_wheel'); };
     var s3 = qs('#suite3d'); if (s3) s3.onclick = function () { sfx.tap(); save(); window.location.href = 'suite/index.html#/games/totem-cases'; };
     qsa('[data-tg]').forEach(function (b) {
       b.onclick = function () {
-        if (!S.done[b.getAttribute('data-tl')]) { sfx.bad(); toast('🔒 Сначала пройди урок — игра закрепляет его материал'); return; }
+        var tgCfg = D.TOPIC_GAMES[b.getAttribute('data-tg')];
+        if (!S.done[b.getAttribute('data-tl')] && !(tgCfg && tgCfg.free)) { sfx.bad(); toast('🔒 Сначала пройди урок — игра закрепляет его материал'); return; }
         sfx.tap(); startGame(b.getAttribute('data-tg'));
       };
     });

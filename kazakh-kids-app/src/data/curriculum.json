@@ -812,7 +812,7 @@
         { "a": "Райымбек кесенесі", "ae": "🕌", "b": "сырты аппақ", "be": "⚪" }
       ]
     },
-    "tg3d_wheel": { "type": "3d", "scene": "wheel", "kk": "Тіл Кереметі", "ru": "Колесо загадок (3D)", "en": "Wheel of Riddles (3D)", "icon": "🎡" }
+    "tg3d_wheel": { "type": "3d", "scene": "wheel", "free": true, "kk": "Тіл Кереметі", "ru": "Колесо загадок (3D)", "en": "Wheel of Riddles (3D)", "icon": "🎡" }
   },
   "dialogues": {
     "bus": {

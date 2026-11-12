@@ -50,7 +50,7 @@ export type TopicGame =
   | { type: 'sort'; kk: string; ru: string; en: string; icon: string; bins: { id: string; kk: string; e: string }[]; items: SortItem[]; showWord?: boolean; wide?: boolean; plural?: Record<string, string> }
   | { type: 'pairs'; kk: string; ru: string; en: string; icon: string; pairs: { a: string; ae: string; b: string; be: string }[]; iconsLeft?: boolean }
   | { type: 'seq'; kk: string; ru: string; en: string; icon: string; items: [string, string, string][]; chunk?: number }
-  | { type: '3d'; kk: string; ru: string; en: string; icon: string; scene: 'wheel' | 'workshop' | 'room' }
+  | { type: '3d'; kk: string; ru: string; en: string; icon: string; scene: 'wheel' | 'workshop' | 'room'; /** open without finishing its lesson */ free?: boolean }
   | { type: 'dialogue'; kk: string; ru: string; en: string; icon: string; dialogue: string };
 
 export interface Choice extends Bi { kk: string; next: string; ok: boolean; xp?: number; why?: Bi; speak?: boolean }
