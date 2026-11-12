@@ -9,17 +9,17 @@ build and the Android APK (opened from the main game's *Games* tab, served from 
 |---|---|---|
 | **Септік тотемі** (`TotemCases3D`) | 7 cases + personal endings | ✅ playable, tested |
 | Сөйлем экспресі (`HyperloopBuilder3D`) | SOV word order | designed, next sprint |
-| Ұшқыр монолиттер (`FloatingMonoliths3D`) | pairs / antonyms | designed, next sprint |
+| **Ұшқыр монолиттер** (`FloatingMonoliths3D`) | antonyms · KZ↔RU/EN · memory | ✅ playable, tested |
 | Әріп кубтары (`VoxelAnagram3D`) | Ә І Ң Ғ Ү Ұ Қ Ө Һ | designed, next sprint |
 | Бәйтерек қорғаны (`BaiterekDefense3D`) | speed translation | designed, next sprint |
 
 ```bash
 npm ci            # .npmrc sets legacy-peer-deps (npm 10 crashes on vitest 4's optional peers)
 npm run dev       # Vite dev server with HMR
-npm test          # 37 unit tests: morphology vs corpus, distractor property test, reducers, stores
+npm test          # 48 unit tests: morphology vs corpus, distractor property test, pair rounds, reducers, stores
 npm run build     # tsc --noEmit → vite build (single IIFE) → postbuild (file:// safe)
 npm run budget    # size gate: JS ≤ 4.2 MB raw / 1.45 MB gzip, CSS ≤ 60 KB
-npm run e2e       # Playwright: full round on phone + desktop viewports, real drag & tap on the canvas
+npm run e2e       # Playwright: Totem on phone + desktop, real drag & tap; Monoliths in all 3 modes, real clicks on 3D
 ```
 
 ## Architecture
@@ -91,5 +91,5 @@ shown after a mistake («мүсін + ді: последний звук «н» �
 
 - Frame rate was verified only in headless Chromium with a software GPU; real-device profiling on a low-end
   Android phone is the next step before raising the default tier.
-- The four other games are designed (see the hub cards) but not built; they reuse the canvas, particles,
-  sound engine, stores and grammar engine above.
+- Three games are designed (see the hub cards) but not built yet: Сөйлем экспресі, Әріп кубтары,
+  Бәйтерек қорғаны; they reuse the canvas, particles, sound engine, stores and grammar engine above.

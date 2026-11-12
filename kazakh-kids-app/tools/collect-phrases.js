@@ -88,5 +88,14 @@ try {
   new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
   [...m.exports.CASE_SENTENCES, ...m.exports.PERSON_SENTENCES].forEach((x) => add(x.before + x.root + x.ending + x.after));
 } catch (e) { process.stderr.write('suite corpus skipped: ' + e.message + '\n'); }
+// 3D suite: «Ұшқыр монолиттер» antonym pairs (each word and the pair, spoken after a match)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/pairsCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  m.exports.ANTONYMS.forEach((p) => { add(p.a); add(p.b); add(p.a + ' ' + p.b); });
+  m.exports.TRANSLATIONS.forEach((w) => add(w.kk));
+} catch (e) { process.stderr.write('suite pairs skipped: ' + e.message + '\n'); }
 
 process.stdout.write(JSON.stringify([...out.values()], null, 0));
