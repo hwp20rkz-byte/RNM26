@@ -1,0 +1,33 @@
+{
+ "id": "tomiris",
+ "label": "Томирис",
+ "by": "Freedom Speech",
+ "gender": "f",
+ "voice": "tomiris",
+ "model": "freedomspeech",
+ "transport": "http",
+ "cast": false,
+ "generated": "2026-11-13",
+ "keys": [
+  "130qo1n",
+  "13xewca",
+  "14elrwj",
+  "16cc25x",
+  "17owcet",
+  "1anpvx1",
+  "1iroswb",
+  "1ogpn5b",
+  "1qc8k84",
+  "1uzp0ur",
+  "464vbf",
+  "5pk180",
+  "63qo05",
+  "66tuwe",
+  "etzhyd",
+  "h8eve6",
+  "ouaxbc",
+  "p4jcga",
+  "ps68wv",
+  "x53eyx"
+ ]
+}
