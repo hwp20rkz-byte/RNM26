@@ -1,0 +1,7 @@
+{
+  "_comment": "Hero voices from the Freedom Speech catalog (tools/make-audio-fs.mjs --heroes). Picked by measured pitch against tools/voice_studio/cast.json: the catalog has no child voices, so Әнел uses the highest female voice raised 3 semitones (≈ 258 → 307 Hz, inside a 10-year-old's 230–390 Hz). Re-cast by editing a line and rerunning: only that hero is re-rendered.",
+  "cast": {
+    "APAI": { "voice": "meiramgul_tales_kz", "pitchSt": 0, "why": "storyteller voice, median 183 Hz — a calm teacher (target 160–250 Hz)" },
+    "ANEL": { "voice": "assel_call_center_kz", "pitchSt": 3, "why": "brightest female voice, 258 Hz + 3 st ≈ 307 Hz — a 10-year-old girl (target 230–390 Hz)" }
+  }
+}

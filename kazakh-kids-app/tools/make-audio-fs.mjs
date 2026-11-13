@@ -33,7 +33,8 @@ const WEB = join(ROOT, 'web');
 /* ------------------------------------------------------------------ options */
 const HELP = `usage: make-audio-fs.mjs <phrases.json> [--voice tomiris|taymas|<catalog id>] [--pack <id>] [--label <name>]
   [--cast] [--model freedomspeech|freedomspeech-flash] [--transport stream|http] [--clone <ref audio>]
-  [--limit N] [--verify] [--prune] [--dry-run] [--base-url <url>] [--list-voices]`;
+  [--limit N] [--verify] [--prune] [--dry-run] [--base-url <url>] [--list-voices]
+  [--heroes <cast.json>]   hero lines in catalog voices, written over web/audio/<key>.mp3 (see tools/voice_studio/fs-cast.json)`;
 export function parseArgs(argv) {
   const o = { voice: 'tomiris', transport: 'stream', model: 'freedomspeech', cast: false, verify: false, prune: false, dry: false, limit: Infinity, list: false };
   const rest = [];
@@ -53,6 +54,7 @@ export function parseArgs(argv) {
       case '--prune': o.prune = true; break;
       case '--dry-run': o.dry = true; break;
       case '--list-voices': o.list = true; break;
+      case '--heroes': o.heroes = v(); break;
       case '-h': case '--help': o.help = true; break;
       default: if (a.startsWith('--')) throw new Error('unknown option ' + a); rest.push(a);
     }
@@ -90,10 +92,16 @@ export function textFor(text, line) { return line.slower ? '<slower>' + text + '
 
 /* ------------------------------------------------------------------ helpers */
 const TRIM = 'silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse';
-function encode(wavBytes, dst) {
+function encode(wavBytes, dst, pitchSt = 0) {
   const tmp = join(tmpdir(), 'fs-' + process.pid + '-' + Math.random().toString(36).slice(2) + '.wav');
   writeFileSync(tmp, wavBytes);
-  const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', tmp, '-af', TRIM + ',loudnorm=I=-16:TP=-1.5', '-ac', '1', '-ar', '22050', '-b:a', '32k', dst]);
+  const chain = [TRIM];
+  if (Math.abs(pitchSt) > 0.01) {                 // same pitch shaping as tools/make-audio.py (tempo kept)
+    const rate = Buffer.from(wavBytes).readUInt32LE(24) || 24000, k = 2 ** (pitchSt / 12);
+    chain.push(`asetrate=${Math.round(rate * k)},aresample=${rate},atempo=${(1 / k).toFixed(5)}`);
+  }
+  chain.push('loudnorm=I=-16:TP=-1.5');
+  const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', tmp, '-af', chain.join(','), '-ac', '1', '-ar', '22050', '-b:a', '32k', dst]);
   rmSync(tmp, { force: true });
   if (r.status !== 0) throw new Error('ffmpeg: ' + String(r.stderr || r.error));
 }
@@ -140,6 +148,7 @@ export async function run(argv, env = process.env, log = console.log) {
 
   const all = JSON.parse(readFileSync(o.phrases, 'utf8'));
   const web = env.QV_WEB_DIR || WEB;      // tests point this at a temp copy
+  if (o.heroes) return runHeroes(o, all, web, client, log, env);
   const out = join(web, 'audio-' + o.pack);
   mkdirSync(out, { recursive: true });
   const ref = o.clone ? readFileSync(o.clone) : null;
@@ -206,6 +215,60 @@ export async function run(argv, env = process.env, log = console.log) {
   }
   const packs = writePacksIndex(web);
   log(`done: ${made} new, ${failed} failed, ${keys.length} in pack «${o.pack}»; packs: ${Object.keys(packs).join(', ') || '—'}`);
+  return failed ? 1 : 0;
+}
+
+/**
+ * Hero mode: every line whose voice tag is in the cast file is spoken by that catalog voice (optionally pitch-
+ * shifted, e.g. to make an adult voice sound like a 10-year-old) and replaces web/audio/<key>.mp3 — the file the
+ * game plays for that hero whichever narrator is chosen. web/audio/heroes-fs.json records what was rendered with
+ * which voice, so reruns skip done lines and a changed cast re-renders only that hero.
+ */
+async function runHeroes(o, all, web, client, log, env) {
+  const cast = JSON.parse(readFileSync(o.heroes, 'utf8')).cast;
+  const out = join(web, 'audio'), logPath = join(out, 'heroes-fs.json');
+  mkdirSync(out, { recursive: true });
+  const done = existsSync(logPath) ? JSON.parse(readFileSync(logPath, 'utf8')) : {};
+  const sig = (c) => c.voice + '|' + (c.pitchSt || 0) + '|' + (c.emotion || '') + '|' + (c.slower ? 1 : 0);
+  const wanted = all.filter((p) => cast[p.voice]);
+  const todo = wanted.filter((p) => !done[p.key] || done[p.key].sig !== sig(cast[p.voice])).slice(0, o.limit);
+  log(`heroes ${Object.keys(cast).join(', ')}: ${wanted.length} lines, ${todo.length} to synthesise` + (o.dry ? ' (dry run)' : ''));
+  if (o.dry) { todo.slice(0, 10).forEach((p) => log('  ' + p.voice + '  ' + p.text)); return 0; }
+  const verify = [];
+  let made = 0, failed = 0;
+  for (const p of todo) {
+    const c = cast[p.voice], text = c.slower ? '<slower>' + p.text + '</slower>' : p.text;
+    let ok = false;
+    for (let attempt = 0; attempt < 5 && !ok; attempt++) {
+      try {
+        const wav = await client.speak(text, { voice: c.voice, language: 'kk', emotion: c.emotion });
+        if (!wav || wav.length < 1000) throw Object.assign(new Error('empty audio'), { status: 502 });
+        encode(wav, join(out, p.key + '.mp3'), c.pitchSt || 0);
+        if (o.verify) {
+          const t = await client.transcribe(wav, { language: 'kk', prettify: false, filename: p.key + '.wav' });
+          verify.push([p.key, p.voice, similarity(p.text, t.text).toFixed(2), p.text, t.text]);
+        }
+        done[p.key] = { tag: p.voice, voice: c.voice, sig: sig(c) };
+        ok = true; made++;
+      } catch (e) {
+        if (e instanceof AuthenticationError || (e instanceof FreedomSpeechError && e.status === 402)) {
+          writeFileSync(logPath, JSON.stringify(done, null, 0));
+          throw new Error((e.status === 402 ? 'payment required (402)' : 'key rejected (401)') + ' — stopped after ' + made + ' lines; rerun resumes');
+        }
+        const wait = e && e.status === 429 ? 15000 * (attempt + 1) : 1000 * 2 ** attempt;
+        log(`  retry ${attempt + 1}/5 «${p.text.slice(0, 40)}»: ${(e && e.status) || ''} ${e && e.message} — waiting ${wait / 1000}s`);
+        await sleep(env.FS_RETRY_SCALE ? wait * +env.FS_RETRY_SCALE : wait);
+      }
+    }
+    if (!ok) failed++;
+  }
+  writeFileSync(logPath, JSON.stringify(done, null, 0) + '\n');
+  if (verify.length) {
+    const csv = ['key,hero,similarity,text,heard'].concat(verify.sort((a, b) => a[2] - b[2]).map((r) => r.map((x) => '"' + String(x).replace(/"/g, '""') + '"').join(',')));
+    writeFileSync(join(web, '..', 'voice_studio', 'heroes-fs-verify.csv'), csv.join('\n') + '\n');
+    log(`verify: ${verify.length} checked, ${verify.filter((r) => +r[2] < 0.8).length} below 0.80`);
+  }
+  log(`done: ${made} hero lines, ${failed} failed`);
   return failed ? 1 : 0;
 }
 
