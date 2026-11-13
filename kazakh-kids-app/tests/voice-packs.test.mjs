@@ -30,7 +30,7 @@ assert.throws(() => parseArgs(['p.json', '--clone', 'x.wav']), /needs --pack/); 
 const mock = await startMock();
 const web = mkdtempSync(join(tmpdir(), 'qv-packs-'));
 const phrases = join(web, 'phrases.json');
-const P = [['Сәлем!', 'NARR'], ['Қайырлы таң!', 'NARR'], ['Бұл 429 сынақ', 'NARR'], ['boom сөйлем', 'NARR'], ['Мен Батырмын!', 'M1'], ['Өркенің өссін!', 'AZHE']]
+const P = [['Сәлем!', 'NARR'], ['Қайырлы таң!', 'NARR'], ['Бұл 429 сынақ', 'NARR'], ['boom сөйлем', 'NARR'], ['Мен Батырмын!', 'M1'], ['Өркенің өссін!', 'AZHE'], ['⚽', 'NARR']]
   .map(([text, voice]) => ({ key: key(text), text, voice }));
 writeFileSync(phrases, JSON.stringify(P));
 const logs = [], log = (s) => logs.push(s);

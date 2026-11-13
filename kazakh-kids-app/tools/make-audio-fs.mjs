@@ -153,7 +153,8 @@ export async function run(argv, env = process.env, log = console.log) {
   mkdirSync(out, { recursive: true });
   const ref = o.clone ? readFileSync(o.clone) : null;
   const wanted = [];
-  for (const p of all) { const line = castLine(p.voice, o); if (line) wanted.push({ ...p, line }); }
+  // a line with no letters (an emoji card such as ⚽) has nothing to say: the service answers 502 to it
+  for (const p of all) { const line = castLine(p.voice, o); if (line && /\p{L}/u.test(p.text)) wanted.push({ ...p, line }); }
   const missing = wanted.filter((p) => !existsSync(join(out, p.key + '.mp3'))), todo = missing.slice(0, o.limit);
   log(`pack «${o.pack}»: ${wanted.length} phrases, ${wanted.length - missing.length} ready, ${todo.length} to synthesise` + (o.dry ? ' (dry run)' : ''));
   if (o.dry) { todo.slice(0, 10).forEach((p) => log('  ' + p.key + '  ' + JSON.stringify(p.line) + '  ' + textFor(p.text, p.line))); return 0; }
