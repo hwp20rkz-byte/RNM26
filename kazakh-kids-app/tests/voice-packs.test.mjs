@@ -67,6 +67,15 @@ try {
   ok(existsSync(join(web, 'audio-cast', 'verify.csv')) && mock.log.asr === 6, 'every new file was transcribed back');
   ok(Object.keys(JSON.parse(readFileSync(join(web, 'audio-packs.js'), 'utf8').replace(/^[\s\S]*?= /, '').replace(/;\s*$/, ''))).sort().join() === 'cast,tomiris', 'index merges every pack');
 
+  // 3b) verify.csv accumulates across runs (a killed run keeps its checks): a second --verify run in 2 steps
+  const vcsv = join(web, 'audio-vv', 'verify.csv'), vargs = [phrases, '--voice', 'tomiris', '--pack', 'vv', '--transport', 'http', '--verify', '--base-url', mock.url];
+  await run([...vargs, '--limit', '2'], env, log);
+  const rows1 = readFileSync(vcsv, 'utf8').trim().split('\n').length - 1;
+  await run(vargs, env, log);
+  const rows2 = readFileSync(vcsv, 'utf8').trim().split('\n').length - 1;
+  ok(rows1 === 2 && rows2 === 4, 'verify.csv keeps earlier rows: ' + rows1 + ' → ' + rows2);
+  ok(JSON.parse(readFileSync(join(web, 'audio-vv', 'manifest.json'), 'utf8')).keys.length === 4, 'manifest covers both runs');
+
   // 4) a bad key stops at once with a clear message and keeps what was made
   await assert.rejects(run([phrases, '--voice', 'tomiris', '--pack', 'bad', '--transport', 'http', '--base-url', mock.url], { ...env, FS_API_KEY: 'nope' }, log), /key rejected \(401\)/); checks++;
   await assert.rejects(run([phrases, '--voice', 'tomiris'], { QV_WEB_DIR: web }, log), /FS_API_KEY is not set/); checks++;

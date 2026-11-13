@@ -169,7 +169,23 @@ export async function run(argv, env = process.env, log = console.log) {
     return pcm16ToWav(concatBytes(chunks), stream.sampleRate || 24000);
   }
 
-  const verify = [];
+  // Manifest and verify.csv are flushed every 50 files, so a run that is killed keeps what it made and checked.
+  const keep = new Set(wanted.map((p) => p.key)), csvPath = join(out, 'verify.csv');
+  const verify = new Map(readVerifyCsv(csvPath).filter((r) => keep.has(r[0])).map((r) => [r[0], r]));
+  const label = o.label || (o.pack === 'tomiris' ? 'Томирис' : o.pack === 'taymas' ? 'Таймас' : o.pack);
+  function flush() {
+    const keys = readdirSync(out).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).filter((k) => keep.has(k)).sort();
+    writeFileSync(join(out, 'manifest.json'), JSON.stringify({
+      id: o.pack, label, by: 'Freedom Speech' + (o.clone ? ' (voice clone)' : ''), gender: o.voice === 'taymas' ? 'm' : 'f',
+      voice: o.clone ? 'clone' : o.voice, model: o.model, transport: o.transport, cast: o.cast, generated: new Date().toISOString().slice(0, 10), keys
+    }, null, 1) + '\n');
+    if (verify.size) {
+      const rows = [...verify.values()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
+      const csv = ['key,similarity,text,heard'].concat(rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')));
+      writeFileSync(csvPath, csv.join('\n') + '\n');
+    }
+    return keys;
+  }
   let made = 0, failed = 0;
   for (const p of todo) {
     let ok = false;
@@ -180,7 +196,7 @@ export async function run(argv, env = process.env, log = console.log) {
         encode(wav, join(out, p.key + '.mp3'));
         if (o.verify) {
           const t = await client.transcribe(wav, { language: 'kk', prettify: false, filename: p.key + '.wav' });
-          verify.push([p.key, similarity(p.text, t.text).toFixed(2), p.text, t.text]);
+          verify.set(p.key, [p.key, similarity(p.text, t.text).toFixed(2), p.text, t.text]);
         }
         ok = true; made++;
       } catch (e) {
@@ -195,27 +211,27 @@ export async function run(argv, env = process.env, log = console.log) {
       }
     }
     if (!ok) failed++;
-    if (made && made % 50 === 0) log(`  ${made} / ${todo.length}`);
+    if (made && made % 50 === 0) { log(`  ${made} / ${todo.length}`); flush(); }
   }
   if (stream) stream.close();
 
-  const keep = new Set(wanted.map((p) => p.key));
   if (o.prune) for (const f of readdirSync(out)) if (f.endsWith('.mp3') && !keep.has(f.slice(0, -4))) rmSync(join(out, f));
-  const keys = readdirSync(out).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).filter((k) => keep.has(k)).sort();
-  const label = o.label || (o.pack === 'tomiris' ? 'Томирис' : o.pack === 'taymas' ? 'Таймас' : o.pack);
-  writeFileSync(join(out, 'manifest.json'), JSON.stringify({
-    id: o.pack, label, by: 'Freedom Speech' + (o.clone ? ' (voice clone)' : ''), gender: o.voice === 'taymas' ? 'm' : 'f',
-    voice: o.clone ? 'clone' : o.voice, model: o.model, transport: o.transport, cast: o.cast, generated: new Date().toISOString().slice(0, 10), keys
-  }, null, 1) + '\n');
-  if (verify.length) {
-    const csv = ['key,similarity,text,heard'].concat(verify.sort((a, b) => a[1] - b[1]).map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')));
-    writeFileSync(join(out, 'verify.csv'), csv.join('\n') + '\n');
-    const low = verify.filter((r) => +r[1] < 0.8).length;
-    log(`verify: ${verify.length} checked, ${low} below 0.80 similarity → ${join(out, 'verify.csv')}`);
+  const keys = flush();
+  if (verify.size) {
+    const low = [...verify.values()].filter((r) => +r[1] < 0.8).length;
+    log(`verify: ${verify.size} checked, ${low} below 0.80 similarity → ${join(out, 'verify.csv')}`);
   }
   const packs = writePacksIndex(web);
   log(`done: ${made} new, ${failed} failed, ${keys.length} in pack «${o.pack}»; packs: ${Object.keys(packs).join(', ') || '—'}`);
   return failed ? 1 : 0;
+}
+
+/** Parse a verify.csv written by flush() back into rows (quoted CSV, "" escapes). */
+function readVerifyCsv(path) {
+  if (!existsSync(path)) return [];
+  return readFileSync(path, 'utf8').split('\n').slice(1).filter(Boolean)
+    .map((line) => [...line.matchAll(/"((?:[^"]|"")*)"/g)].map((m) => m[1].replace(/""/g, '"')))
+    .filter((r) => r.length === 4);
 }
 
 /**
@@ -234,7 +250,23 @@ async function runHeroes(o, all, web, client, log, env) {
   const todo = wanted.filter((p) => !done[p.key] || done[p.key].sig !== sig(cast[p.voice])).slice(0, o.limit);
   log(`heroes ${Object.keys(cast).join(', ')}: ${wanted.length} lines, ${todo.length} to synthesise` + (o.dry ? ' (dry run)' : ''));
   if (o.dry) { todo.slice(0, 10).forEach((p) => log('  ' + p.voice + '  ' + p.text)); return 0; }
-  const verify = [];
+  // Manifest and verify.csv are flushed every 50 files, so a run that is killed keeps what it made and checked.
+  const keep = new Set(wanted.map((p) => p.key)), csvPath = join(out, 'verify.csv');
+  const verify = new Map(readVerifyCsv(csvPath).filter((r) => keep.has(r[0])).map((r) => [r[0], r]));
+  const label = o.label || (o.pack === 'tomiris' ? 'Томирис' : o.pack === 'taymas' ? 'Таймас' : o.pack);
+  function flush() {
+    const keys = readdirSync(out).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).filter((k) => keep.has(k)).sort();
+    writeFileSync(join(out, 'manifest.json'), JSON.stringify({
+      id: o.pack, label, by: 'Freedom Speech' + (o.clone ? ' (voice clone)' : ''), gender: o.voice === 'taymas' ? 'm' : 'f',
+      voice: o.clone ? 'clone' : o.voice, model: o.model, transport: o.transport, cast: o.cast, generated: new Date().toISOString().slice(0, 10), keys
+    }, null, 1) + '\n');
+    if (verify.size) {
+      const rows = [...verify.values()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
+      const csv = ['key,similarity,text,heard'].concat(rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')));
+      writeFileSync(csvPath, csv.join('\n') + '\n');
+    }
+    return keys;
+  }
   let made = 0, failed = 0;
   for (const p of todo) {
     const c = cast[p.voice], text = c.slower ? '<slower>' + p.text + '</slower>' : p.text;
