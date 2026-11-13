@@ -143,6 +143,15 @@ try {
   g.personWords.forEach((x) => G.PERSONS.forEach((p) => add(G.PERSON_KK[p] + ' ' + x.kk + G.personSuffix(x.kk, p))));
   G.VERBS.forEach((v) => { G.TENSES.forEach((t) => ['men', 'sen', 'siz', 'ol', 'biz'].forEach((p) => add(G.PERSON_KK[p] + ' ' + G.conj(v.kk, t, p)))); add('Менің ' + G.wish(v.kk)); });
   G.NUMBERS.forEach((n) => { add(n); add(G.ordinal(n)); });
+  // sprint 2: imperative, «can», demonstratives, «Маған … ұнайды», classroom commands (cards and trainers)
+  G.VERBS.forEach((v) => {
+    G.IMP_PERSONS.forEach((p) => add(G.imperative(v.kk, p)));
+    add(G.imperativeNeg(v.kk, 'sen')); add(G.imperativeNeg(v.kk, 'siz'));
+    ['men', 'sen', 'siz', 'ol', 'biz'].forEach((p) => { add(G.PERSON_KK[p] + ' ' + G.ability(v.kk, p)); add(G.PERSON_KK[p] + ' ' + G.ability(v.kk, p, true)); });
+  });
+  g.demo.forEach((x) => { add(x.kk); add(x.ex); });
+  g.likeWho.forEach((w) => { add(w.kk); add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1)); g.likeThings.forEach((t) => add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1) + ' ' + t.kk + ' ұнайды.')); });
+  g.likeEx.forEach((x) => add(x.kk)); g.commands.forEach((x) => add(x.kk));
 }
 
 process.stdout.write(JSON.stringify([...out.values()], null, 0));

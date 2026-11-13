@@ -124,13 +124,15 @@
 
   /* ---------------- verbs ---------------- */
   // stem → present (-а/-е/-й), past (-ды/-ты), continuous (-ып жатыр), negation (-ма/-ба/-па), wish (-ғым келеді)
+  /** п, к, қ at the end of a stem become б, г, ғ before a vowel: жап → жаба-, шық → шығыңыз, төк → төгіңіз. */
+  function voiced(stem) { var f = last(stem); return VOICE[f] ? stem.slice(0, -1) + VOICE[f] : stem; }
   function presentBase(stem) {
     if (finalClass(stem) === 'vowel') {
       var f = last(stem);
       if (f === 'ы' || f === 'і') return stem.slice(0, -1) + 'и';     // оқы + й → оқи-
       return stem + 'й';                                                // ойна + й → ойнай-
     }
-    return stem + pick(stem, 'а', 'е');                                 // бар → бара-
+    return voiced(stem) + pick(stem, 'а', 'е');                         // бар → бара-, жап → жаба-
   }
   var PRESENT_END = { men: ['мын', 'мін'], sen: ['сың', 'сің'], siz: ['сыз', 'сіз'], ol: ['ды', 'ді'], biz: ['мыз', 'міз'] };
   function present(stem, p) { var e = PRESENT_END[p]; return presentBase(stem) + pick(stem, e[0], e[1]); }
@@ -146,6 +148,23 @@
   var ZHATYR = { men: 'жатырмын', sen: 'жатырсың', siz: 'жатырсыз', ol: 'жатыр', biz: 'жатырмыз' };
   function continuous(stem, p) { return converb(stem) + ' ' + ZHATYR[p]; }
   function wish(stem) { return stem + (finalClass(stem) === 'voiceless' ? pick(stem, 'қы', 'кі') : pick(stem, 'ғы', 'гі')) + 'м келеді'; }
+  /* imperative (бұйрық рай): сен — the bare stem; сіз -(ы)ңыз; сендер -(ы)ңдар; сіздер -(ы)ңыздар; біз «let's» -йық/-айық */
+  var IMP_PERSONS = ['sen', 'siz', 'sender', 'sizder', 'biz'];
+  var IMP_KK = { sen: 'Сен', siz: 'Сіз', sender: 'Сендер', sizder: 'Сіздер', biz: 'Біз' };
+  function impPolite(stem) { return finalClass(stem) === 'vowel' ? stem + pick(stem, 'ңыз', 'ңіз') : voiced(stem) + pick(stem, 'ыңыз', 'іңіз'); }
+  function imperative(stem, p) {
+    switch (p) {
+      case 'sen': return stem;                                                                  // оқы! жаз! жап!
+      case 'siz': return impPolite(stem);                                                       // оқыңыз, жазыңыз, жабыңыз
+      case 'sender': return finalClass(stem) === 'vowel' ? stem + pick(stem, 'ңдар', 'ңдер') : voiced(stem) + pick(stem, 'ыңдар', 'іңдер');
+      case 'sizder': return impPolite(stem) + pick(stem, 'дар', 'дер');                         // оқыңыздар
+      case 'biz': { var b = presentBase(stem); return b + (/[йи]$/.test(b) ? pick(stem, 'ық', 'ік') : pick(stem, 'йық', 'йік')); } // барайық, ойнайық, оқиық
+    }
+  }
+  /** Negative command: жазба! оқыма! айтпа! — polite: жазбаңыз. */
+  function imperativeNeg(stem, p) { var n = negStem(stem); return p === 'siz' ? n + pick(stem, 'ңыз', 'ңіз') : p === 'sender' ? n + pick(stem, 'ңдар', 'ңдер') : n; }
+  /** «Can / be able to»: converb -а/-е/-й + ал- : жүзе аламын, оқи аламын; негатив жүзе алмаймын. */
+  function ability(stem, p, neg) { return presentBase(stem) + ' ' + (neg ? presentNeg('ал', p) : present('ал', p)); }
   var TENSES = ['present', 'presentNeg', 'past', 'pastNeg', 'continuous'];
   function conj(stem, tense, p) { return { present: present, presentNeg: presentNeg, past: past, pastNeg: pastNeg, continuous: continuous }[tense](stem, p); }
 
@@ -195,6 +214,7 @@
     PERSONS: PERSONS, PERSON_KK: PERSON_KK, personSuffix: personSuffix, question: question,
     presentBase: presentBase, present: present, presentNeg: presentNeg, past: past, pastNeg: pastNeg, continuous: continuous, wish: wish,
     negStem: negStem, converb: converb, TENSES: TENSES, conj: conj, ordinal: ordinal, why: why,
+    voiced: voiced, IMP_PERSONS: IMP_PERSONS, IMP_KK: IMP_KK, imperative: imperative, imperativeNeg: imperativeNeg, ability: ability,
     NOUNS: NOUNS, VERBS: VERBS, NUMBERS: NUMBERS, FLEETING: FLEETING
   };
   root.QGRAM = G;

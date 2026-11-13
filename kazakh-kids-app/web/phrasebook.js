@@ -153,6 +153,36 @@
       var w = G.wish(v);
       return h + formRow(L('Хочу', 'I want to'), v, w, 'Менің ' + w);
     } },
+    { id: 'imp', icon: '📣', kk: 'Бұйрық рай', ru: 'Команды: сделай! сделайте!', en: 'Commands: do it!', train: 'g_imp', body: function () {
+      var v = V.verb;
+      var h = rule('Команда другу — это <b>сама основа</b> глагола: оқы! жаз! Старшим и учителю — вежливо: <b>-ыңыз / -іңіз</b> (оқыңыз, жазыңыз). Классу — <b>-ыңдар / -іңдер</b>. «Давай!» — -айық / -йық: ойнайық! Перед гласной п, к, қ звучат как б, г, ғ: жап → жабыңыз. «Не делай» — отрицание: жазба!',
+        'A command to a friend is the <b>bare verb stem</b>: оқы! жаз! To elders and teachers — polite <b>-ыңыз / -іңіз</b> (оқыңыз). To a class — <b>-ыңдар / -іңдер</b>. «Let\'s!» — -айық / -йық: ойнайық! Before a vowel п, к, қ turn into б, г, ғ: жап → жабыңыз. «Don\'t» — negation: жазба!');
+      h += chips('verb', G.VERBS.map(function (x) { return [x.kk, x.kk + ' · ' + tx(x)]; }), v);
+      h += G.IMP_PERSONS.map(function (p) { var f = G.imperative(v, p); return formRow(G.IMP_KK[p], v, f, f); }).join('');
+      h += formRow(L('Сен — не надо', 'Сен — don\'t'), v, G.imperativeNeg(v, 'sen')) + formRow(L('Сіз — не надо', 'Сіз — don\'t'), v, G.imperativeNeg(v, 'siz'));
+      h += '<h3>' + esc(L('Учитель говорит', 'The teacher says')) + '</h3>' + P.gram.commands.slice(0, 6).map(function (c) { return row(c.kk, tx(c), '', c.e); }).join('');
+      return h + trainBtn('teacher', L('Мұғалім айтады — слушай и выполни', 'Мұғалім айтады — listen and act'));
+    } },
+    { id: 'can', icon: '💪', kk: 'Мен … аламын', ru: '«Могу, умею»: -а / -е / -й алу', en: '«I can»: -а / -е / -й алу', train: 'g_can', body: function () {
+      var v = V.verb;
+      var h = rule('«Могу / умею» = глагол на <b>-а / -е / -й</b> + <b>аламын</b>: жүзе аламын — я умею плавать, оқи аламын — я умею читать (оқы → оқи). «Не могу» — <b>алмаймын</b>.',
+        '«I can» = the verb with <b>-а / -е / -й</b> + <b>аламын</b>: жүзе аламын — I can swim, оқи аламын — I can read (оқы → оқи). «I can\'t» — <b>алмаймын</b>.');
+      h += chips('verb', G.VERBS.map(function (x) { return [x.kk, x.kk + ' · ' + tx(x)]; }), v);
+      h += P5.map(function (p) { var f = G.ability(v, p); return formRow(G.PERSON_KK[p], v, f, G.PERSON_KK[p] + ' ' + f); }).join('');
+      var n = G.ability(v, 'men', true);
+      return h + formRow(L('Мен — не могу', 'Мен — can\'t'), v, n, 'Мен ' + n);
+    } },
+    { id: 'demo', icon: '👉', kk: 'Бұл, мынау, анау', ru: 'Это, вот это, вон то', en: 'This, this one, that', train: 'g_demo', body: function () {
+      return rule('<b>Бұл</b> — это (рядом). <b>Мынау</b> — вот это (показываю рукой). <b>Анау</b> — вон то (далеко). <b>Сол</b> — тот, о котором говорили. <b>Осы</b> — этот самый. Перед предметом — короче: <b>мына</b> кітап, <b>ана</b> үй.',
+        '<b>Бұл</b> — this (near). <b>Мынау</b> — this one (pointing). <b>Анау</b> — that one over there. <b>Сол</b> — that one we talked about. <b>Осы</b> — this very one. Before a noun they are shorter: <b>мына</b> кітап, <b>ана</b> үй.') +
+        P.gram.demo.map(function (d) { return row(d.ex, d.kk + ' — ' + tx(d) + ' · ' + L(d.exru, d.exen)); }).join('');
+    } },
+    { id: 'like', icon: '❤️', kk: 'Маған … ұнайды', ru: '«Мне нравится»', en: '«I like»', train: 'g_like', body: function () {
+      return rule('«Мне нравится» по-казахски — <b>Маған</b> … ұнайды: тот, кому нравится, стоит в дательном падеже (кімге?). <b>«Мен ұнайды» — ошибка.</b> «Не нравится» — ұнамайды. Вопрос: Саған не ұнайды?',
+        '«I like» in Kazakh is <b>Маған</b> … ұнайды: the one who likes goes into the dative case (кімге? — to whom?). <b>«Мен ұнайды» is wrong.</b> «Don\'t like» — ұнамайды. Question: Саған не ұнайды?') +
+        P.gram.likeWho.map(function (w) { return row(w.kk, w.p + ' → ' + w.kk + ' · ' + tx(w)); }).join('') +
+        '<h3>' + esc(L('Примеры', 'Examples')) + '</h3>' + P.gram.likeEx.map(function (x) { return row(x.kk, tx(x)); }).join('');
+    } },
     { id: 'question', icon: '❓', kk: 'Сұраулық шылау', ru: 'Вопрос: ма/ме, ба/бе, па/пе', en: 'Yes/no question: ма/ме, ба/бе, па/пе', train: 'g_question', body: function () {
       return rule('Вопрос «да или нет?» делает частица, которая пишется <b>отдельно</b>: после гласных и л, р, й, у — ма/ме; после м, н, ң, ж, з — ба/бе; после глухих — па/пе.',
         'A yes/no question is made by a particle written <b>separately</b>: after vowels and л, р, й, у — ма/ме; after м, н, ң, ж, з — ба/бе; after voiceless — па/пе.') +
@@ -322,6 +352,39 @@
         return mcq(G.PERSON_KK[p] + ' + ' + v.kk + ' (' + tx(v) + ')', TENSE[t][0] + ' · ' + L(TENSE[t][1], TENSE[t][2]), null, a, api.shuffle(uniq(wrong.filter(function (x) { return x !== a; }))).slice(0, 3), G.PERSON_KK[p] + ' ' + a);
       });
     }
+  };
+  var cap = function (w) { return w.charAt(0).toUpperCase() + w.slice(1); };
+  GEN.g_imp = function () {
+    var ps = ['sen', 'siz', 'sender'];
+    return api.shuffle(G.VERBS).slice(0, 8).map(function (v) {
+      var p = ps[api.rnd(3)], a = G.imperative(v.kk, p);
+      var wrong = ps.filter(function (x) { return x !== p; }).map(function (x) { return G.imperative(v.kk, x); }).concat([G.present(v.kk, p === 'siz' ? 'siz' : 'sen')]);
+      return mcq(G.IMP_KK[p] + ' + ' + v.kk + ' (' + tx(v) + ')', L('Скажи команду', 'Give the command'), null, a, wrong, G.IMP_KK[p] + ': ' + a + '!');
+    });
+  };
+  GEN.g_can = function () {
+    return api.shuffle(G.VERBS).slice(0, 8).map(function (v) {
+      var p = P5[api.rnd(5)], neg = api.rnd(3) === 0, a = G.ability(v.kk, p, neg);
+      var wrong = [G.ability(v.kk, p, !neg), v.kk + ' ' + (neg ? G.presentNeg('ал', p) : G.present('ал', p))].concat(P5.filter(function (x) { return x !== p; }).slice(0, 2).map(function (x) { return G.ability(v.kk, x, neg); }));
+      var q = mcq(G.PERSON_KK[p] + ' + ' + v.kk + ' (' + tx(v) + ')', neg ? L('Не могу / не умею', 'Can\'t') : L('Могу / умею', 'Can'), null, a, uniq(wrong.filter(function (x) { return x !== a; })), G.PERSON_KK[p] + ' ' + a);
+      q.after = G.PERSON_KK[p] + ' ' + a; return q;
+    });
+  };
+  GEN.g_demo = function () {
+    var D = P.gram.demo;
+    return api.shuffle(D).map(function (d) { return mcq(tx(d), L('Какое слово?', 'Which word?'), null, d.kk, pickN(D, 3, [d]).map(function (x) { return x.kk; }), d.ex); });
+  };
+  GEN.g_like = function () {
+    var W = P.gram.likeWho.slice(0, 5), T = P.gram.likeThings;
+    return api.shuffle(W.concat(W)).slice(0, 8).map(function (w) {
+      var t = T[api.rnd(T.length)], a = cap(w.kk), say = a + ' ' + t.kk + ' ұнайды.';
+      var q = mcq('… ' + t.e + ' ' + t.kk + ' ұнайды.', L('Кому нравится? — ', 'Who likes it? — ') + tx(w), null, a, [cap(w.p)].concat(pickN(W, 2, [w]).map(function (x) { return cap(x.kk); })), say);
+      q.after = say; return q;
+    });
+  };
+  GEN.teacher = function () {
+    var C = P.gram.commands, act = function (c) { return c.e + ' ' + tx(c); };
+    return api.shuffle(C).slice(0, 8).map(function (c) { var q = mcq('🔊', L('Слушай учителя и выбери действие', 'Listen to the teacher and pick the action'), c.kk, act(c), pickN(C, 3, [c]).map(act), c.kk + ' — ' + tx(c)); q.after = c.kk; return q; });
   };
   function genFor(key) {
     if (key.indexOf('t_') === 0) return GEN.topic(key.slice(2));

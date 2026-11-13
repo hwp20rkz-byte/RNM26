@@ -15,7 +15,7 @@ async function run(lang, viewport) {
   for (let i = 0; i < 6 && await p.$('#rok'); i++) { await p.click('#rok'); await p.waitForTimeout(120); }
   await p.click('[data-tab=dict]'); await p.waitForTimeout(200);
   assert(await p.$$eval('.ph-tabs button', (x) => x.length) === 5, lang + ': 5 sub-tabs');
-  assert(await p.$$eval('[data-topic]', (x) => x.length) === 16, lang + ': 16 phrasebook topics');
+  assert(await p.$$eval('[data-topic]', (x) => x.length) === 17, lang + ': 17 phrasebook topics');
   if (OUT) await p.screenshot({ path: `${OUT}/ph-${lang}-topics.png` });
 
   // a topic with a dialogue, then its quiz played to the end
@@ -43,11 +43,14 @@ async function run(lang, viewport) {
   await p.click('[data-ph=gram]'); await p.waitForTimeout(150);
   const cards = await p.$$eval('[data-card]', (x) => x.map((b) => b.dataset.card));
   for (const c of cards) { await p.click(`[data-card="${c}"]`); await p.waitForTimeout(40); }
-  assert(cards.length === 13 && (await p.$$eval('.ph-card.open', (x) => x.length)) === 13, lang + ': 13 grammar cards open');
+  assert(cards.length === 17 && (await p.$$eval('.ph-card.open', (x) => x.length)) === 17, lang + ': 17 grammar cards open');
   await p.click('[data-noun="мектеп"]'); await p.waitForTimeout(60);
   assert((await p.$$eval('.ph-f', (x) => x.map((e) => e.textContent))).includes('мектебім'), lang + ': possessive table shows мектебім');
   await p.click('[data-verb="оқы"]'); await p.click('[data-tense="past"]'); await p.waitForTimeout(60);
   assert((await p.$$eval('.ph-f', (x) => x.map((e) => e.textContent))).includes('оқыдым'), lang + ': verb table shows оқыдым');
+  const forms = await p.$$eval('.ph-f', (x) => x.map((e) => e.textContent));
+  assert(forms.includes('оқыңыз') && forms.includes('оқиық') && forms.includes('оқи аламын'), lang + ': imperative and «can» tables show оқыңыз, оқиық, оқи аламын');
+  assert((await p.$eval('#phmain', (e) => e.textContent)).includes('Мен ұнайды'), lang + ': the «Маған … ұнайды» card warns about «Мен ұнайды»');
   const gm = await p.evaluate(() => [...document.querySelectorAll('#phmain [data-say]')].map((b) => b.dataset.say).filter((t) => !window.Q.api.TTS.file(t)));
   assert(gm.length === 0, lang + ': every grammar form on screen has audio' + (gm.length ? ' — missing: ' + gm.slice(0, 8).join(' | ') : ''));
   if (OUT) await p.screenshot({ path: `${OUT}/ph-${lang}-grammar.png` });
