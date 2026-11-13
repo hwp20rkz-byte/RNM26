@@ -115,6 +115,15 @@ try {
   m.exports.TRANSLATIONS.forEach((w) => add(w.kk));
 } catch (e) { process.stderr.write('suite pairs skipped: ' + e.message + '\n'); }
 
+// 3D suite: «Сөйлем экспресі» sentences (spoken when the train departs), every word pod and every decoy (spoken on tap)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/sentenceCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  Object.values(m.exports.SENTENCES).forEach((list) => list.forEach((x) => { add(x.kk); x.words.forEach((w) => add(w.toLowerCase())); if (x.decoy) add(x.decoy); }));
+} catch (e) { process.stderr.write('suite sentences skipped: ' + e.message + '\n'); }
+
 // «Сөздік» hub (web/phrasebook-data.js + web/grammar-core.js): phrases, dialogues, proverbs, idioms,
 // twisters, thematic words, and every form the grammar tables can show (spoken exactly as displayed)
 {
