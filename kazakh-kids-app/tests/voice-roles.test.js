@@ -44,9 +44,15 @@ eq(byKey.get(key(shared + ' @ANEL')).text, shared, 'qualified entries synthesise
 const counts = phrases.reduce((m, p) => (m[p.voice] = (m[p.voice] || 0) + 1, m), {});
 assert.ok(counts.ANEL >= 15 && counts.APAI >= 30, 'both heroines speak: ' + JSON.stringify({ ANEL: counts.ANEL, APAI: counts.APAI })); n++;
 
-// audio: every line has a file; narrator packs hold no persona line
-const missing = phrases.filter((p) => !AUD[p.key] || !fs.existsSync(path.join(ROOT, 'web/audio', p.key + '.mp3')));
-assert.deepStrictEqual(missing.map((p) => p.text), [], 'every phrase has bundled audio'); n++;
+// audio (ISSAI retired 13.11.2026): a narrator line has an ISEKE file, a character line a Freedom Speech file in audio/
+const has = (dir, k) => fs.existsSync(path.join(ROOT, 'web', dir, k + '.mp3'));
+const missing = phrases.filter((p) => (p.voice === 'NARR' ? !ISEKE[p.key] || !has('audio-iseke', p.key) : !AUD[p.key] || !has('audio', p.key)));
+assert.deepStrictEqual(missing.map((p) => p.voice + ': ' + p.text), [], 'every phrase has bundled audio'); n++;
+const heroLog = JSON.parse(fs.readFileSync(path.join(ROOT, 'web/audio/heroes-fs.json'), 'utf8'));
+const notFs = phrases.filter((p) => p.voice !== 'NARR' && !heroLog[p.key]);
+assert.deepStrictEqual(notFs.map((p) => p.voice + ': ' + p.text), [], 'every character line is a Freedom Speech take'); n++;
+const issai = Object.keys(AUD).filter((k) => !heroLog[k]);
+assert.deepStrictEqual(issai, [], 'audio/ holds no narrator (ISSAI) file'); n++;
 const leaked = phrases.filter((p) => p.voice !== 'NARR' && ISEKE[p.key]);
 assert.deepStrictEqual(leaked.map((p) => p.voice + ': ' + p.text), [], 'ISEKE (narrator) pack holds no persona line'); n++;
 console.log('voice roles: ' + n + ' checks passed (ANEL ' + counts.ANEL + ' lines, APAI ' + counts.APAI + ' lines)');
