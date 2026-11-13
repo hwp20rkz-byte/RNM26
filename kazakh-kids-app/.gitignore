@@ -2,5 +2,6 @@ build/
 *.idsig
 node_modules/
 suite/dist/
-voice_studio/takes/
+voice_studio/*
+!voice_studio/bank/
 __pycache__/
