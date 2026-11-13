@@ -349,7 +349,7 @@ input.name:focus { outline: none; border-color: var(--sky-300); }
 .ach { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
 .ach .a { border: 2px solid var(--ink-100); border-radius: var(--r-2); padding: var(--s-2); display: flex; flex-direction: column; gap: 2px; background: var(--ink-50); color: var(--ink-400); }
 .ach .a .i { font-size: 28px; filter: grayscale(1); opacity: .5; }
-.ach .a span:not(.i) { font-size: 12px; font-weight: 700; } .ach .a i { font-style: normal; font-size: 12px; }
+.ach .a span:not(.i) { font-size: 12px; font-weight: 700; } .ach .a i { font-style: normal; font-size: var(--fs-1); }
 .ach .a.on { background: var(--sun-100); border-color: var(--sun-300); color: var(--ink-800); }
 .ach .a.on .i { filter: none; opacity: 1; }
 
@@ -623,7 +623,7 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .quest { display: flex; align-items: center; gap: var(--s-2); }
 .quest .qi { font-size: 26px; width: 36px; text-align: center; flex: none; }
 .quest .qt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.quest .qt b { font-size: var(--fs-1); } .quest .qt .muted { font-size: 12px; }
+.quest .qt b { font-size: var(--fs-1); } .quest .qt .muted { font-size: var(--fs-1); }
 .quest .pill { margin: 0; }
 .quest.claimed { opacity: .55; }
 .q-claim { width: auto; min-height: 44px; padding: 0 var(--s-2); font-size: 13px; letter-spacing: 0; flex: none; }
@@ -679,7 +679,7 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .tg-ctrl .btn { min-height: 52px; font-size: var(--fs-4); padding: 0; }
 .tg-list { display: flex; flex-direction: column; gap: var(--s-2); }
 .tg-row { display: flex; align-items: center; gap: var(--s-3); text-align: left; padding: var(--s-2) var(--s-3); border: 2px solid var(--ink-100); border-radius: var(--r-2); background: var(--ink-0); box-shadow: 0 3px 0 var(--ink-100); min-height: 56px; }
-.tg-row > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; } .tg-row small { color: var(--ink-400); font-size: 12px; }
+.tg-row > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; } .tg-row small { color: var(--ink-400); font-size: var(--fs-1); }
 .tg-row .e { font-size: 28px; } .tg-row.locked { background: var(--ink-50); color: var(--ink-400); }
 .grade-card { display: flex; gap: var(--s-3); align-items: center; width: 100%; border: 2px solid var(--ink-100); border-radius: var(--r-2); padding: var(--s-3); text-align: left; }
 .grade-card .mark { flex: none; width: 84px; height: 84px; border-radius: 50%; background: var(--c); color: var(--ink-0); display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -734,7 +734,7 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .rm-cont { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
 .rm-cont .card { min-height: 72px; flex-direction: column; gap: 2px; }
 .rm-cont .card span { font-size: 26px; }
-.rm-cont .card small { color: var(--ink-400); font-size: 12px; }
+.rm-cont .card small { color: var(--ink-400); font-size: var(--fs-1); }
 .rm-e { font-size: 36px; }
 .rm-say { background: var(--ok-bg); border-radius: var(--r-1); padding: var(--s-1) var(--s-2); margin: 0; }
 @media (prefers-reduced-motion: reduce) { .stat.timer.low { animation: none; } .rm-meter i { transition: none; } }
@@ -780,7 +780,7 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .ph-say { position: relative; max-width: 86%; display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) var(--s-6) var(--s-2) var(--s-3); border-radius: var(--r-2); background: var(--sky-50); border: 2px solid var(--sky-100); transition: transform .2s, border-color .2s; }
 .ph-say.r { align-self: flex-end; background: var(--sun-100); border-color: var(--sun-300); }
 .ph-say.now { border-color: var(--sky-500); transform: scale(1.02); }
-.ph-say small { font-weight: 900; color: var(--ink-600); font-size: 12px; }
+.ph-say small { font-weight: 900; color: var(--ink-600); font-size: var(--fs-1); }
 .ph-say span { color: var(--ink-600); font-size: var(--fs-1); }
 .ph-say .spk { position: absolute; right: var(--s-1); top: var(--s-1); }
 .ph-train { display: flex; align-items: center; justify-content: center; gap: var(--s-2); }
@@ -831,3 +831,20 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .rd-tale { display: grid; gap: var(--s-1); margin: var(--s-2) 0; }
 .rd-line { border-radius: var(--r-1); transition: background-color .2s; }
 .rd-line.now .ph-row { background: var(--sun-100); border-color: var(--sun-300); }
+
+/* «Мұғалім айтады» arcade */
+.sim-stage { text-align: center; padding: var(--s-2); }
+.sim-who { display: flex; align-items: center; justify-content: center; gap: var(--s-1); min-height: 64px; }
+.sim-who .hero, .sim-who svg { width: 56px; height: 56px; }
+.sim-apai { font-size: 48px; line-height: 1; }
+.sim-say { font-size: var(--fs-3); font-weight: 900; margin: var(--s-1) 0; min-height: 2.6em; }
+.sim-timer { height: 10px; border-radius: 6px; background: var(--ink-100); overflow: hidden; }
+.sim-timer i { display: block; height: 100%; background: var(--sun-500); transform-origin: left center; }
+.sim-judge { min-height: 1.6em; font-weight: 900; margin-top: var(--s-1); }
+.sim-judge.ok { color: var(--ok-d); } .sim-judge.bad { color: var(--bad-d); }
+.sim-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-1); padding: var(--s-2) var(--s-1); }
+.sim-act { min-height: 88px; border-radius: var(--r-2); background: var(--ink-100); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 900; }
+.sim-act span { font-size: 32px; line-height: 1; } .sim-act small { font-weight: 600; color: var(--ink-600); font-size: var(--fs-1); }
+.sim-act.ok { background: var(--sun-100); outline: 3px solid var(--sun-500); } .sim-act.bad { background: var(--bad-bg); outline: 3px solid var(--bad); }
+@media (max-width: 360px) { .sim-grid { grid-template-columns: repeat(2, 1fr); } }
+.sim-act b { font-size: var(--fs-1); line-height: 1.15; padding: 0 2px; text-align: center; letter-spacing: -0.01em; }

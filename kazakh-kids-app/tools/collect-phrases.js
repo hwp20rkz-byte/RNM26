@@ -45,6 +45,10 @@ Object.values(C.dialogues).forEach((d) => Object.values(d.nodes).forEach((n) => 
   (n.choices || []).forEach((c) => addAs(c.kk, 'ALIBEK'));
 }));
 Object.entries(VOICES.lines).forEach(([who, lines]) => Object.values(lines).forEach((t) => addAs(t, tagOf(who))));
+// «Мұғалім айтады» arcade: Баян апай's real commands, Әже-Bot's traps, intro / win / lose (hero voices)
+{ const SM = require(path.join(web, 'simon-core.js'));
+  SM.ACTIONS.forEach((a) => { addAs(SM.line({ action: a, real: true }), 'APAI'); addAs(SM.line({ action: a, real: false }), 'E4'); });
+  Object.values(SM.LINES).forEach((l) => addAs(l.kk, l.who)); }
 addAs(C.room.start, 'ZHALKAU'); addAs(C.room.end, 'ZHALKAU');
 // who reads which game text (src/voice/personas.json → roles): riddles, blueprint questions, finale lines, room items
 const R = VOICES.roles;

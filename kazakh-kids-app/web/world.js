@@ -217,7 +217,8 @@
     { id: 'bazaar', icon: '🛒', kk: 'Көк Базар Rush', ru: 'Торгуйся на базаре Алматы', en: 'Haggle at the Almaty bazaar', host: 'batyr', hue: 'gold' },
     { id: 'drift', icon: '🛵', kk: 'Аул Cyber-Drift', ru: 'Доставка на электро-тулпаре', en: 'Delivery on an electric tulpar', host: 'tayson', hue: 'teal' },
     { id: 'dastarkhan', icon: '🫖', kk: 'Дастархан Master', ru: 'Встречай почётных гостей', en: 'Host your honoured guests', host: 'azhe', hue: 'red' },
-    { id: 'aitys', icon: '🎤', kk: 'Айтыс Beat Battle', ru: 'Ритм-дуэль на сцене юрты', en: 'Rhythm duel on the yurt stage', host: 'aisulu', hue: 'purple' }
+    { id: 'aitys', icon: '🎤', kk: 'Айтыс Beat Battle', ru: 'Ритм-дуэль на сцене юрты', en: 'Rhythm duel on the yurt stage', host: 'aisulu', hue: 'purple' },
+    { id: 'simon', icon: '📣', kk: 'Мұғалім айтады', ru: 'Апай сказала — делай, робот — замри!', en: 'Apai says — do it, the robot says — freeze!', host: 'azhe', hue: 'teal' }
   ];
 
   /* ---------- character lines: kk + translation; voiced with the hero's voice tag ---------- */

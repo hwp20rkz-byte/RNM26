@@ -90,6 +90,7 @@ try {
   code = await run([phrases, '--heroes', castFile, '--transport', 'http', '--verify', '--base-url', mock.url], env, log);
   const heroLog = JSON.parse(readFileSync(join(web, 'audio', 'heroes-fs.json'), 'utf8'));
   ok(code === 0 && Object.keys(heroLog).length === 2 && heroLog[key('Мен Батырмын!')].voice === 'taymas', 'hero lines rendered and logged: ' + logs.join(' | '));
+  ok(readFileSync(join(web, 'audio', 'index.js'), 'utf8').includes(key('Мен Батырмын!')), 'audio/index.js lists the new hero takes (the game plays only what it lists)');
   ok(existsSync(join(web, 'audio', key('Өркенің өссін!') + '.mp3')) && !logs.some((l) => /retry/.test(l)), 'hero files written with --verify and no retries');
   const speakBefore = mock.log.speak.length;
   await run([phrases, '--heroes', castFile, '--transport', 'http', '--base-url', mock.url], env, log);

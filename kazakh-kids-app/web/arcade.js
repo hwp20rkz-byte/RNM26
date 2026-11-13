@@ -455,6 +455,61 @@
     });
   };
 
+  /* ============================================================ Мұғалім айтады (Simon says) */
+  // Logic: web/simon-core.js. Баян апай's commands start with «Мұғалім айтады:» — do them; Әже-Bot says the same
+  // command without the prefix — don't move. Voices: APAI and E4 hero takes (Freedom Speech).
+  ARC.simon = function (api) {
+    var SM = window.QSIMON, cmds = SM.buildRound(), st = SM.initial(), over = false, t0 = 0, raf = 0, tick = 0, cur = null, busy = false;
+    api.frame('Мұғалім айтады', '<div class="sim-stage"><div class="sim-who" id="simwho"></div><p class="sim-say" lang="kk" id="simsay"></p><div class="sim-timer"><i id="simtm"></i></div><p class="sim-judge" id="simj"></p></div>' +
+      '<div class="sim-grid">' + SM.ACTIONS.map(function (a) { return '<button class="sim-act" data-act="' + a.id + '"><span>' + a.e + '</span><b lang="kk">' + api.esc(SM.command(a).replace('!', '')) + '</b><small>' + api.esc(L(api, a)) + '</small></button>'; }).join('') + '</div>');
+    api.onLeave(function () { over = true; cancelAnimationFrame(raf); clearInterval(tick); });
+    function hud() { api.stat('❤️'.repeat(Math.max(0, st.lives)) + ' · ⭐ ' + st.score + (st.combo > 2 ? ' · 🔥×' + st.combo : '') + ' · ' + Math.min(st.i + 1, SM.ROUND) + '/' + SM.ROUND); }
+    function who(real) { api.qs('#simwho').innerHTML = real ? '<span class="sim-apai" aria-hidden="true">👩‍🏫</span><b>Баян апай</b>' : W.hero('azhe', 'wow') + '<b>Әже-Bot 3000</b>'; }
+    function show() {
+      if (over) return;
+      cur = cmds[st.i]; busy = false; who(cur.real);
+      var text = SM.line(cur); api.qs('#simsay').textContent = text; api.qs('#simj').textContent = ''; api.qs('#simj').className = 'sim-judge';
+      api.qsa('.sim-act').forEach(function (b) { b.classList.remove('ok', 'bad'); });
+      api.TTS.speak(text, true, cur.real ? 'APAI' : 'E4');
+      t0 = performance.now(); clearInterval(tick); tick = setInterval(function () { api.sfx.tap(); }, 600);
+      loop();
+    }
+    function loop() {
+      if (over || busy) return;
+      var left = 1 - (performance.now() - t0) / 1000 / SM.windowFor(st.i), bar = api.qs('#simtm');
+      if (bar) bar.style.transform = 'scaleX(' + Math.max(0, left).toFixed(3) + ')';
+      if (left <= 0) return answer(null);
+      raf = requestAnimationFrame(loop);
+    }
+    var SAY = { hit: ['Дұрыс!', 'ok'], held: ['Қозғалмадың — дұрыс!', 'ok'], fooled: ['Әже-Bot алдады!', 'bad'], late: ['Кешіктің!', 'bad'], wrong: ['Басқа қимыл!', 'bad'] };
+    function answer(id) {
+      if (over || busy || !cur) return;
+      busy = true; cancelAnimationFrame(raf); clearInterval(tick);
+      var out = SM.resolve(cur, id), j = api.qs('#simj'), good = SAY[out][1] === 'ok';
+      j.textContent = SAY[out][0] + (out === 'fooled' ? ' · ' + (api.lang() === 'en' ? 'no «Мұғалім айтады» — stay still' : 'не было «Мұғалім айтады» — замри') : '');
+      j.className = 'sim-judge ' + SAY[out][1];
+      if (id) { var b = api.qs('[data-act="' + id + '"]'); if (b) b.classList.add(good ? 'ok' : 'bad'); }
+      if (out === 'late' || out === 'wrong') { var r = api.qs('[data-act="' + cur.action.id + '"]'); if (r) r.classList.add('ok'); }
+      if (good) api.sfx.ok(); else { api.sfx.bad(); api.vibrate(40); }
+      st = SM.step(st, out); hud();
+      if (st.over) return setTimeout(end, 900);
+      setTimeout(show, good ? 800 : 1300);
+    }
+    function end() {
+      over = true; var l = SM.LINES[st.won ? 'win' : 'lose']; api.TTS.speak(l.kk, true, l.who);
+      api.end({ arcade: true, title: l.kk, score: st.score, scoreText: st.score + ' ⭐ · ' + (st.hits + st.held) + '/' + SM.ROUND, win: st.won,
+        coins: Math.min(40, Math.floor((st.hits + st.held) * 1.5)), xp: Math.min(15, Math.floor((st.hits + st.held) / 2)),
+        sub: (api.lang() === 'en' ? 'Commands done: ' : 'Команды выполнены: ') + st.hits + (api.lang() === 'en' ? ' · traps dodged: ' : ' · ловушки разгаданы: ') + st.held + (st.best >= 5 ? ' · 🔥×' + st.best : '') });
+    }
+    api.qsa('.sim-act').forEach(function (b) { b.onclick = function () { answer(b.getAttribute('data-act')); }; });
+    if (/[?&]e2e\b/.test(location.search)) window.__simon = function () { return { i: st.i, lives: st.lives, over: over, busy: busy, cmd: cur && { id: cur.action.id, real: cur.real } }; };
+    hud();
+    var l = SM.LINES.intro, body = api.qs('#gb'), ov = document.createElement('div'); ov.className = 'arc-intro';
+    ov.innerHTML = W.hero('azhe', 'wow') + '<h2>Мұғалім айтады</h2><p class="kk">«' + api.esc(l.kk) + '»</p><p class="muted">' + api.esc(L(api, l)) + '</p><p>' + api.esc(api.lang() === 'en' ? 'Баян апай gives commands that start with «Мұғалім айтады» — tap the action fast. Әже-Bot says commands without it — that’s a trap: don’t tap!' : 'Баян апай даёт команды со словами «Мұғалім айтады» — быстро нажми действие. Әже-Bot говорит без этих слов — это ловушка: ничего не нажимай!') + '</p><button class="btn gold" id="arcgo">Бастау ▶</button>';
+    body.appendChild(ov); api.TTS.speak(l.kk, true, l.who);
+    api.qs('#arcgo').onclick = function () { api.sfx.tap(); ov.remove(); setTimeout(show, 400); };
+  };
+
   window.QARCADE = ARC;
   window.QARCADE_DATA = { VERSES: VERSES, CMD: CMD, RESPECT: RESPECT, GOODS: GOODS, NEEDS: NEEDS,
     SELLER: ['Сәлеметсіз бе! Келіңіз!', 'Әрине, бал татиды!', 'Рақмет! Тағы келіңіз!', 'Жарайды!', 'Түсіріп беріңізші!', 'Бұл тым қымбат', 'Келістік!', 'Қолма-қол ма, аударым ба?', 'Аударыммен төлеймін', 'Тәтті ме өзі?', 'Жеттік, осы жерде қалдырыңыз'] };

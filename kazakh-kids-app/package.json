@@ -7,7 +7,7 @@
     "build:data": "node tools/build-curriculum.js",
     "build:ts": "tsc --noEmit -p tsconfig.json && esbuild src/main.ts --bundle --format=iife --target=es2017 --outfile=web/qv-modules.js --legal-comments=none",
     "build": "npm run build:data && npm run build:ts",
-    "test": "node tests/score.test.js && node tests/auction.test.js && node tests/engine.test.js && node tests/grammar.test.js && node tests/voice-roles.test.js",
+    "test": "node tests/score.test.js && node tests/auction.test.js && node tests/engine.test.js && node tests/grammar.test.js && node tests/voice-roles.test.js && node tests/simon.test.js",
     "test:voice-packs": "node tests/voice-packs.test.mjs",
     "audio:fs": "node tools/make-audio-fs.mjs",
     "apk": "npm run build && ./build.sh",
