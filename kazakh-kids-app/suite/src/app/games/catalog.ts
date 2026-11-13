@@ -16,7 +16,7 @@ export const GAMES: GameCard[] = [
   { id: 'anagram', kk: 'Әріп кубтары', ru: 'Кубики-буквы', en: 'Letter Cubes', icon: '🧊', ready: true,
     pillar: { ru: 'Ә І Ң Ғ Ү Ұ Қ Ө Һ', en: 'Ә І Ң Ғ Ү Ұ Қ Ө Һ' },
     mechanic: { ru: 'Кубики-буквы в низкой гравитации; ловушка — русская буква-двойник', en: 'Letter cubes in low gravity; the trap is the Russian look-alike' } },
-  { id: 'baiterek', kk: 'Бәйтерек қорғаны', ru: 'Защита Байтерека', en: 'Baiterek Defense', icon: '🌳', ready: false,
-    pillar: { ru: 'Скоростной перевод, комбо', en: 'Speed translation, combos' },
-    mechanic: { ru: 'Лексические метеориты, кинетические лучи', en: 'Lexical meteors, kinetic beams' } }
+  { id: 'baiterek', kk: 'Бәйтерек қорғаны', ru: 'Защита Байтерека', en: 'Baiterek Defense', icon: '🌳', ready: true,
+    pillar: { ru: 'Быстрый перевод: картинки и слова', en: 'Quick translation: pictures and words' },
+    mechanic: { ru: 'Метеориты падают на Бәйтерек — назови по-казахски', en: 'Meteors fall on Baiterek — name them in Kazakh' } }
 ];

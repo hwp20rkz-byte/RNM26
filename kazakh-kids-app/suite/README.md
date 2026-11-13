@@ -11,15 +11,15 @@ build and the Android APK (opened from the main game's *Games* tab, served from 
 | **Сөйлем экспресі** (`HyperloopBuilder3D`) | SOV word order · imperative (teacher, doctor) | ✅ playable, tested |
 | **Ұшқыр монолиттер** (`FloatingMonoliths3D`) | antonyms · KZ↔RU/EN · memory | ✅ playable, tested |
 | **Әріп кубтары** (`VoxelAnagram3D`) | Ә І Ң Ғ Ү Ұ Қ Ө Һ vs the Russian look-alikes | ✅ playable, tested |
-| Бәйтерек қорғаны (`BaiterekDefense3D`) | speed translation | designed, next sprint |
+| **Бәйтерек қорғаны** (`BaiterekDefense3D`) | quick recall: pictures (grades 1–2) and words (3–4) | ✅ playable, tested |
 
 ```bash
 npm ci            # .npmrc sets legacy-peer-deps (npm 10 crashes on vitest 4's optional peers)
 npm run dev       # Vite dev server with HMR
-npm test          # 70 unit tests: morphology vs corpus, distractor property test, pair rounds, reducers, stores
+npm test          # 76 unit tests: morphology vs corpus, distractor property test, pair rounds, reducers, stores
 npm run build     # tsc --noEmit → vite build (single IIFE) → postbuild (file:// safe)
 npm run budget    # size gate: JS ≤ 4.2 MB raw / 1.45 MB gzip, CSS ≤ 60 KB
-npm run e2e       # Playwright: Totem on phone + desktop, real drag & tap; Monoliths, Sentence Express and Letter Cubes in all modes, real clicks on 3D
+npm run e2e       # Playwright: Totem on phone + desktop, real drag & tap; Monoliths, Sentence Express, Letter Cubes and Baiterek Defense in all modes, real clicks on 3D
 ```
 
 ## Architecture
@@ -91,5 +91,4 @@ shown after a mistake («мүсін + ді: последний звук «н» �
 
 - Frame rate was verified only in headless Chromium with a software GPU; real-device profiling on a low-end
   Android phone is the next step before raising the default tier.
-- One game is not built yet: Бәйтерек қорғаны (sprint 5) — only a one-line mechanic in `catalog.ts` so far;
-  the plan is in `../methodology/dev-plan.md`.
+- All five games are playable; the plan for what comes next is in `../methodology/dev-plan.md`.
