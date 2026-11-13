@@ -92,7 +92,11 @@ class GradioSpace:
                 from gradio_client import Client
             except ImportError as e:  # pragma: no cover - environment dependent
                 raise EngineError("pip install gradio_client  (free public Spaces are called through it)") from e
-            client = Client(space, hf_token=token or os.environ.get("HF_TOKEN"), verbose=False)
+            tok = token or os.environ.get("HF_TOKEN")
+            try:                                   # gradio_client ≥ 2 renamed hf_token → token
+                client = Client(space, token=tok, verbose=False)
+            except TypeError:
+                client = Client(space, hf_token=tok, verbose=False)
         self.client = client
         self._api = None
 

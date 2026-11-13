@@ -101,7 +101,8 @@ def cmd_probe(a, log=print):
     for name, ep in sorted(sp.endpoints().items()):
         log(name)
         for p in ep.get("parameters", []):
-            log(f"   - {p.get('parameter_name') or '?'}: {p.get('label')}  ({(p.get('python_type') or {}).get('type', '')})"
+            typ = str((p.get('python_type') or {}).get('type', ''))
+            log(f"   - {p.get('parameter_name') or '?'}: {p.get('label')}  ({typ if len(typ) < 120 else typ[:110] + ' …]'})"
                 + (f" default={p.get('parameter_default')!r}" if p.get("parameter_has_default") else ""))
     return 0
 

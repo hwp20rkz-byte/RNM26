@@ -81,6 +81,15 @@ class QA(unittest.TestCase):
         self.assertGreater(timbre_similarity(a, b), timbre_similarity(a, c))
 
 
+class AudioIO(unittest.TestCase):
+    def test_int_stereo_is_scaled(self):
+        from voice_studio.audio import to_float
+        x = (voice(200) * 32767).astype(np.int16)
+        y = to_float(np.stack([x, x], axis=1))
+        self.assertLess(np.max(np.abs(y)), 1.0001)
+        self.assertGreater(np.max(np.abs(y)), 0.2)
+
+
 class Cast(unittest.TestCase):
     def test_sheet(self):
         heroes = VS.load_cast()

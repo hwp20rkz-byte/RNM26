@@ -17,10 +17,10 @@ TRIM = ("silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
 
 def to_float(a: np.ndarray) -> np.ndarray:
     a = np.asarray(a)
+    if a.dtype.kind in "iu":                       # scale before mixing channels (mean() would drop the int dtype)
+        a = a.astype(np.float32) / float(np.iinfo(a.dtype).max)
     if a.ndim > 1:
         a = a.mean(axis=1) if a.shape[1] <= 8 else a.mean(axis=0)
-    if a.dtype.kind in "iu":
-        return a.astype(np.float32) / float(np.iinfo(a.dtype).max)
     return a.astype(np.float32)
 
 
