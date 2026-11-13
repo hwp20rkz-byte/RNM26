@@ -15,7 +15,7 @@ async function run(lang, viewport) {
   for (let i = 0; i < 6 && await p.$('#rok'); i++) { await p.click('#rok'); await p.waitForTimeout(120); }
   await p.click('[data-tab=dict]'); await p.waitForTimeout(200);
   assert(await p.$$eval('.ph-tabs button', (x) => x.length) === 5, lang + ': 5 sub-tabs');
-  assert(await p.$$eval('[data-topic]', (x) => x.length) === 17, lang + ': 17 phrasebook topics');
+  assert(await p.$$eval('[data-topic]', (x) => x.length) === 21, lang + ': 21 phrasebook topics');
   if (OUT) await p.screenshot({ path: `${OUT}/ph-${lang}-topics.png` });
 
   // a topic with a dialogue, then its quiz played to the end
@@ -95,7 +95,7 @@ async function run(lang, viewport) {
 
   // proverbs + game, idioms
   await p.click('[data-ph=prov]'); await p.waitForTimeout(150);
-  assert((await p.$$eval('.ph-prov', (x) => x.length)) === 48, lang + ': 48 proverbs');
+  assert((await p.$$eval('.ph-prov', (x) => x.length)) === 62, lang + ': 62 proverbs');
   await p.click('[data-theme=bilim]'); await p.waitForTimeout(60);
   assert((await p.$$eval('.ph-prov', (x) => x.length)) === 8, lang + ': knowledge filter');
   await p.click('[data-train=proverbs]'); await p.waitForTimeout(80);
