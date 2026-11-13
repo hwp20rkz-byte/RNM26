@@ -13,9 +13,9 @@ export const GAMES: GameCard[] = [
   { id: 'monoliths', kk: 'Ұшқыр монолиттер', ru: 'Парящие монолиты', en: 'Floating Monoliths', icon: '🗿', ready: true,
     pillar: { ru: 'Антонимы · перевод · память', en: 'Antonyms · translation · memory' },
     mechanic: { ru: 'Кварцевые монолиты, левитация, золотой лазерный мост, звёздная пыль', en: 'Quartz monoliths, levitation, golden laser bridge, stardust' } },
-  { id: 'anagram', kk: 'Әріп кубтары', ru: 'Воксельная анаграмма', en: 'Voxel Anagram', icon: '🧊', ready: false,
+  { id: 'anagram', kk: 'Әріп кубтары', ru: 'Кубики-буквы', en: 'Letter Cubes', icon: '🧊', ready: true,
     pillar: { ru: 'Ә І Ң Ғ Ү Ұ Қ Ө Һ', en: 'Ә І Ң Ғ Ү Ұ Қ Ө Һ' },
-    mechanic: { ru: 'Кубы-буквы в низкой гравитации, преломление света', en: 'Letter cubes in low gravity, light refraction' } },
+    mechanic: { ru: 'Кубики-буквы в низкой гравитации; ловушка — русская буква-двойник', en: 'Letter cubes in low gravity; the trap is the Russian look-alike' } },
   { id: 'baiterek', kk: 'Бәйтерек қорғаны', ru: 'Защита Байтерека', en: 'Baiterek Defense', icon: '🌳', ready: false,
     pillar: { ru: 'Скоростной перевод, комбо', en: 'Speed translation, combos' },
     mechanic: { ru: 'Лексические метеориты, кинетические лучи', en: 'Lexical meteors, kinetic beams' } }

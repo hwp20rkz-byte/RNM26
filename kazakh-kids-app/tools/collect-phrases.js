@@ -124,6 +124,15 @@ try {
   Object.values(m.exports.SENTENCES).forEach((list) => list.forEach((x) => { add(x.kk); x.words.forEach((w) => add(w.toLowerCase())); if (x.decoy) add(x.decoy); }));
 } catch (e) { process.stderr.write('suite sentences skipped: ' + e.message + '\n'); }
 
+// 3D suite: «Әріп кубтары» words (spoken when the word is complete)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/letterCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  m.exports.LETTER_WORDS.forEach((w) => add(w.kk));
+} catch (e) { process.stderr.write('suite letter words skipped: ' + e.message + '\n'); }
+
 // «Сөздік» hub (web/phrasebook-data.js + web/grammar-core.js): phrases, dialogues, proverbs, idioms,
 // twisters, thematic words, and every form the grammar tables can show (spoken exactly as displayed)
 {
