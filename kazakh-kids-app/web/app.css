@@ -825,3 +825,9 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .pline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); margin: 0; }
 .pline.center { justify-content: center; }
 .pline .who { color: var(--sky-600); font-weight: 900; }
+
+/* reading corner */
+.ph-readbtn { width: 100%; margin: 0 0 var(--s-2); min-height: 56px; }
+.rd-tale { display: grid; gap: var(--s-1); margin: var(--s-2) 0; }
+.rd-line { border-radius: var(--r-1); transition: background-color .2s; }
+.rd-line.now .ph-row { background: var(--sun-100); border-color: var(--sun-300); }

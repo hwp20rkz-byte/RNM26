@@ -158,4 +158,15 @@ for (const [v, w] of Object.entries(IMP)) {
 eq(G.ability('жүз', 'sen'), 'жүзе аласың', 'can, sen'); eq(G.ability('оқы', 'ol', true), 'оқи алмайды', 'cannot, ol');
 // voicing before a vowel now reaches the present tense too (жап → жабамын, not *жапамын)
 eq(G.present('жап', 'men'), 'жабамын', 'present жап'); eq(G.present('шық', 'ol'), 'шығады', 'present шық'); eq(G.present('айт', 'men'), 'айтамын', 'т is not voiced');
+
+// reading corner: 10 tales, every line translated, 3 questions each with a unique right answer
+global.window = global.window || {}; require('../web/reading-data.js');
+const RD = window.QREAD;
+eq(RD.length, 10, 'ten tales');
+for (const t of RD) {
+  assert.ok(t.lines.length >= 7 && t.lines.length <= 9, t.id + ' has 7–9 lines'); n++;
+  for (const l of t.lines) { assert.ok(l.kk && l.ru && l.en, 'line ' + t.id); assert.ok(!/[a-z]/i.test(l.kk), 'no Latin in ' + l.kk); n++; }
+  eq(t.qs.length, 3, t.id + ' questions');
+  for (const q of t.qs) { assert.ok(q.kk.endsWith('?') && q.ru && q.en, 'question ' + q.kk); assert.ok(!q.w.includes(q.a) && q.w[0] !== q.w[1], 'answers distinct: ' + q.kk); n++; }
+}
 console.log('grammar + phrasebook: ' + n + ' checks passed');

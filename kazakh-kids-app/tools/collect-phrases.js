@@ -161,6 +161,11 @@ try {
   g.demo.forEach((x) => { add(x.kk); add(x.ex); });
   g.likeWho.forEach((w) => { add(w.kk); add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1)); g.likeThings.forEach((t) => add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1) + ' ' + t.kk + ' ұнайды.')); });
   g.likeEx.forEach((x) => add(x.kk)); g.commands.forEach((x) => add(x.kk));
+  // sprint 4: clock phrases (Сағат неше?) and the reading corner (web/reading-data.js): every line, question and answer
+  const HOURS = G.NUMBERS.concat(['он бір', 'он екі']);
+  HOURS.forEach((h, i) => { const nx = HOURS[(i + 1) % 12]; ['Сағат ' + h + '.', 'Сағат ' + G.caseForm(h, 'shygys') + ' ширек өтті.', 'Сағат ' + h + ' жарым.', 'Сағат ' + G.caseForm(nx, 'barys') + ' ширек қалды.'].forEach((x) => add(x)); });
+  require(path.join(web, 'reading-data.js'));
+  window.QREAD.forEach((t) => { t.lines.forEach((l) => add(l.kk)); t.qs.forEach((q) => { add(q.kk); add(q.a); }); });
 }
 
 process.stdout.write(JSON.stringify([...out.values()], null, 0));

@@ -11,7 +11,7 @@
   function S() { return api.state(); }
   function st() { var s = S(); s.phrase = s.phrase || { best: {} }; return s.phrase; }
 
-  var V = { topic: null, vtopic: null, wview: 'topics', theme: 'all', open: {}, noun: 'кітап', verb: 'оқы', tense: 'present', pw: 'оқушы', pron: 'мен', q: null };
+  var V = { read: null, hour: 'бес', topic: null, vtopic: null, wview: 'topics', theme: 'all', open: {}, noun: 'кітап', verb: 'оқы', tense: 'present', pw: 'оқушы', pron: 'мен', q: null };
   var TABS = [
     ['phrase', '💬', 'Тілашар', 'Разговорник', 'Phrasebook'], ['gram', '🧩', 'Грамматика', 'Грамматика', 'Grammar'],
     ['words', '📖', 'Сөздік', 'Словарь', 'Dictionary'], ['prov', '📜', 'Мақалдар', 'Пословицы', 'Proverbs'],
@@ -50,13 +50,13 @@
     var h = '<div class="page ph"><div class="ph-tabs" role="tablist">' + TABS.map(function (t) {
       return '<button role="tab" aria-selected="' + (t[0] === s) + '" class="' + (t[0] === s ? 'on' : '') + '" data-ph="' + t[0] + '"><span>' + t[1] + '</span>' + esc(t[2]) + '<small>' + esc(L(t[3], t[4])) + '</small></button>';
     }).join('') + '</div><div id="phmain">';
-    h += s === 'gram' ? gramHtml() : s === 'words' ? wordsHtml() : s === 'prov' ? provHtml() : s === 'idiom' ? idiomHtml() : V.topic ? topicHtml() : topicsHtml();
+    h += s === 'gram' ? gramHtml() : s === 'words' ? wordsHtml() : s === 'prov' ? provHtml() : s === 'idiom' ? idiomHtml() : V.read ? readHtml() : V.topic ? topicHtml() : topicsHtml();
     return h + '</div></div>';
   }
 
   /* ------------------------------------------------------------ phrasebook */
   function topicsHtml() {
-    return '<p class="muted">' + esc(L('Готовые фразы для школы, улицы, магазина и дома. Нажми тему, слушай и повторяй вслух.', 'Ready phrases for school, the street, the shop and home. Open a topic, listen and repeat aloud.')) + '</p>' +
+    return (RD.length ? '<button class="btn gold ph-readbtn" data-readlist>📚 ' + esc(L('Оқу бұрышы — ' + RD.length + ' сказок: читай и слушай', 'Оқу бұрышы — ' + RD.length + ' tales to read and hear')) + '</button>' : '') + '<p class="muted">' + esc(L('Готовые фразы для школы, улицы, магазина и дома. Нажми тему, слушай и повторяй вслух.', 'Ready phrases for school, the street, the shop and home. Open a topic, listen and repeat aloud.')) + '</p>' +
       '<div class="ph-grid">' + P.topics.map(function (t) {
         return '<button class="ph-tile" data-topic="' + t.id + '"><span class="e">' + t.icon + '</span><b>' + esc(t.kk) + '</b><small>' + esc(tx(t)) + '</small>' +
           '<em>' + t.phrases.length + (t.dialog ? ' · 🗨️' : '') + '</em>' + bestPill('t_' + t.id) + '</button>';
@@ -85,6 +85,34 @@
       var l = t.dialog[i++];
       api.TTS.speak(l.kk, true);
       dlgTimer = setTimeout(next, 900 + l.kk.length * 85);
+    })();
+  }
+
+  /* ------------------------------------------------------------ reading corner (web/reading-data.js) */
+  var RD = window.QREAD || [];
+  function readHtml() {
+    if (V.read === 'list') {
+      return back('rdback', L('Разговорник', 'Phrasebook')) + '<h2>📚 Оқу бұрышы</h2><p class="muted">' + esc(L('Народные сказки и басни, пересказанные простыми словами. Слушай по фразе, читай вслух, отвечай на вопросы.', 'Folk tales and fables retold in simple words. Listen line by line, read aloud, answer the questions.')) + '</p>' +
+        '<div class="ph-grid">' + RD.map(function (t) {
+          return '<button class="ph-tile" data-tale="' + t.id + '"><span class="e">' + t.e + '</span><b>' + esc(t.kk) + '</b><small>' + esc(tx(t)) + '</small><em>' + t.lines.length + ' · ❓' + t.qs.length + '</em>' + bestPill('r_' + t.id) + '</button>';
+        }).join('') + '</div>';
+    }
+    var t = RD.filter(function (x) { return x.id === V.read; })[0];
+    return back('rdback', L('Все сказки', 'All tales')) + '<h2>' + t.e + ' ' + esc(t.kk) + ' · <span class="muted" style="font-size:inherit">' + esc(tx(t)) + '</span></h2>' +
+      '<button class="btn ghost" id="rplay">▶ ' + esc(L('Слушать всю сказку', 'Play the whole tale')) + '</button><div class="rd-tale">' +
+      t.lines.map(function (l, i) { return '<div class="rd-line" data-rl="' + i + '">' + row(l.kk, tx(l)) + '</div>'; }).join('') + '</div>' +
+      trainBtn('r_' + t.id, L('Вопросы по сказке', 'Questions about the tale'));
+  }
+  var rdTimer = null;
+  function playTale(t) {
+    clearTimeout(rdTimer);
+    var i = 0;
+    (function next() {
+      api.qsa('.rd-line').forEach(function (e) { e.classList.toggle('now', +e.getAttribute('data-rl') === i); });
+      if (i >= t.lines.length || !api.qs('.rd-line')) return;
+      var l = t.lines[i++];
+      api.TTS.speak(l.kk, true);
+      rdTimer = setTimeout(next, 1100 + l.kk.length * 80);
     })();
   }
 
@@ -199,6 +227,12 @@
         'Ordinals: after a vowel -ншы/-нші, after a consonant -ыншы/-інші: алты → алтыншы, бес → бесінші. Compound numbers are written apart: он бір (11), жиырма бес (25).') +
         G.NUMBERS.map(function (n, i) { return formRow(String(i + 1), n, G.ordinal(n)); }).join('') +
         row('он бір', '11') + row('жиырма бес', '25') + row('жүз он', '110');
+    } },
+    { id: 'clock', icon: '🕔', kk: 'Сағат неше?', ru: 'Который час: жарты, ширек', en: 'What time is it: half, quarter', train: 'g_clock', body: function () {
+      return rule('<b>Сағат бес.</b> — 5:00. <b>Жарты</b> — половина: сағат бес жарым — 5:30. <b>Ширек</b> — четверть: «от пяти прошла четверть» — сағат бес<b>тен</b> ширек өтті (5:15); «до шести осталась четверть» — сағат алты<b>ға</b> ширек қалды (5:45).',
+        '<b>Сағат бес.</b> — 5:00. <b>Жарты</b> — half: сағат бес жарым — 5:30. <b>Ширек</b> — a quarter: «a quarter has passed from five» — сағат бес<b>тен</b> ширек өтті (5:15); «a quarter is left to six» — сағат алты<b>ға</b> ширек қалды (5:45).') +
+        chips('hour', HOURS.map(function (h, i) { return [h, (i + 1) + ' · ' + h]; }), V.hour) +
+        clockRows(V.hour).map(function (r) { return row(r[1], r[0]); }).join('');
     } },
     { id: 'postp', icon: '🔗', kk: 'Септеуліктер', ru: 'Послелоги: для, после, вместе с…', en: 'Postpositions: for, after, with…', body: function () {
       return rule('Казахские «предлоги» стоят <b>после</b> слова и требуют своего падежа.', 'Kazakh «prepositions» come <b>after</b> the word and need their own case.') +
@@ -386,8 +420,26 @@
     var C = P.gram.commands, act = function (c) { return c.e + ' ' + tx(c); };
     return api.shuffle(C).slice(0, 8).map(function (c) { var q = mcq('🔊', L('Слушай учителя и выбери действие', 'Listen to the teacher and pick the action'), c.kk, act(c), pickN(C, 3, [c]).map(act), c.kk + ' — ' + tx(c)); q.after = c.kk; return q; });
   };
+  var HOURS = G.NUMBERS.concat(['он бір', 'он екі']);
+  function clockRows(h) {
+    var i = HOURS.indexOf(h), n = i + 1, next = HOURS[(i + 1) % 12];
+    return [[n + ':00', 'Сағат ' + h + '.'], [n + ':15', 'Сағат ' + G.caseForm(h, 'shygys') + ' ширек өтті.'],
+      [n + ':30', 'Сағат ' + h + ' жарым.'], [n + ':45', 'Сағат ' + G.caseForm(next, 'barys') + ' ширек қалды.']];
+  }
+  GEN.g_clock = function () {
+    return api.shuffle(HOURS).slice(0, 8).map(function (h) {
+      var rows = clockRows(h), k = api.rnd(4), r = rows[k];
+      var q = mcq('🕐 ' + r[0], L('Как сказать по-казахски?', 'How do you say it in Kazakh?'), null, r[1], rows.filter(function (x, j) { return j !== k; }).map(function (x) { return x[1]; }), r[0] + ' — ' + r[1]);
+      q.after = r[1]; return q;
+    });
+  };
+  GEN.read = function (id) {
+    var t = RD.filter(function (x) { return x.id === id; })[0];
+    return t.qs.map(function (x) { var q = mcq(x.kk, tx(x), x.kk, x.a, x.w, t.e + ' ' + t.kk); q.after = x.a; return q; });
+  };
   function genFor(key) {
     if (key.indexOf('t_') === 0) return GEN.topic(key.slice(2));
+    if (key.indexOf('r_') === 0) return GEN.read(key.slice(2));
     if (key.indexOf('v_') === 0) return GEN.vocab(key.slice(2));
     return GEN[key]();
   }
@@ -434,8 +486,12 @@
   /* ------------------------------------------------------------ binding */
   function bind() {
     function on(sel, fn) { api.qsa(sel).forEach(function (b) { b.onclick = function () { api.sfx.tap(); fn(b); }; }); }
-    on('[data-ph]', function (b) { go(function () { S().phTab = b.getAttribute('data-ph'); V.topic = null; V.vtopic = null; }); });
+    on('[data-ph]', function (b) { go(function () { S().phTab = b.getAttribute('data-ph'); V.topic = null; V.vtopic = null; V.read = null; clearTimeout(rdTimer); }); });
     on('[data-topic]', function (b) { go(function () { V.topic = b.getAttribute('data-topic'); }); });
+    on('[data-readlist]', function () { go(function () { V.read = 'list'; }); });
+    on('[data-tale]', function (b) { go(function () { V.read = b.getAttribute('data-tale'); }); });
+    on('#rdback', function () { clearTimeout(rdTimer); go(function () { V.read = V.read === 'list' ? null : 'list'; }); });
+    on('[data-hour]', function (b) { keep(function () { V.hour = b.getAttribute('data-hour'); }); });
     on('#phback', function () { go(function () { V.topic = null; }); });
     on('#vback', function () { go(function () { V.vtopic = null; }); });
     on('[data-vt]', function (b) { go(function () { V.vtopic = b.getAttribute('data-vt'); }); });
@@ -450,6 +506,8 @@
     on('[data-train]', function (b) { startQuiz(b.getAttribute('data-train')); });
     // keep the selected chip of each picker in view (they scroll sideways on phones)
     api.qsa('.ph-chips').forEach(function (c) { var on = c.querySelector('.on'); if (on) c.scrollLeft = Math.max(0, on.offsetLeft - c.offsetLeft - 16); });
+    var rp = api.qs('#rplay');
+    if (rp) rp.onclick = function () { playTale(RD.filter(function (x) { return x.id === V.read; })[0]); };
     var dp = api.qs('#dplay');
     if (dp) dp.onclick = function () { playDialog(P.topics.filter(function (x) { return x.id === V.topic; })[0]); };
     var qi = api.qs('#phq');

@@ -39,11 +39,28 @@ async function run(lang, viewport) {
   assert(coins1 >= coins0, lang + ': coins never drop (' + coins0 + ' → ' + coins1 + ')');
   await p.click('#qb'); await p.waitForTimeout(150);
 
+  // reading corner: list → a tale → every line has audio → play → questions
+  if (await p.$('#phback')) { await p.click('#phback'); await p.waitForTimeout(120); }
+  await p.click('[data-readlist]'); await p.waitForTimeout(120);
+  assert(await p.$$eval('[data-tale]', (x) => x.length) === 10, lang + ': 10 tales in the reading corner');
+  await p.click('[data-tale="crane"]'); await p.waitForTimeout(120);
+  const rmiss = await p.evaluate(() => [...document.querySelectorAll('.rd-tale [data-say]')].map((b) => b.dataset.say).filter((t) => !window.Q.api.TTS.file(t)));
+  assert((await p.$$eval('.rd-line', (x) => x.length)) === 8 && rmiss.length === 0, lang + ': tale lines with audio' + (rmiss.length ? ' — missing: ' + rmiss.join(' | ') : ''));
+  await p.click('#rplay'); await p.waitForTimeout(300);
+  assert(!!(await p.$('.rd-line.now')), lang + ': playing highlights the current line');
+  if (OUT) await p.screenshot({ path: `${OUT}/ph-${lang}-tale.png` });
+  await p.click('[data-train="r_crane"]'); await p.waitForTimeout(100);
+  for (let i = 0; i < 3; i++) { await p.click('.ph-opt >> nth=0'); await p.waitForTimeout(60); await p.click('#qn'); await p.waitForTimeout(60); }
+  assert(!!(await p.$('.ph-result')), lang + ': three tale questions answered, result screen shown');
+  await p.click('#qb'); await p.waitForTimeout(120);
+  await p.click('#rdback'); await p.waitForTimeout(80); await p.click('#rdback'); await p.waitForTimeout(80);
+  assert(!!(await p.$('[data-readlist]')), lang + ': back to the topics');
+
   // grammar: open every card, change pickers, run every trainer one step
   await p.click('[data-ph=gram]'); await p.waitForTimeout(150);
   const cards = await p.$$eval('[data-card]', (x) => x.map((b) => b.dataset.card));
   for (const c of cards) { await p.click(`[data-card="${c}"]`); await p.waitForTimeout(40); }
-  assert(cards.length === 17 && (await p.$$eval('.ph-card.open', (x) => x.length)) === 17, lang + ': 17 grammar cards open');
+  assert(cards.length === 18 && (await p.$$eval('.ph-card.open', (x) => x.length)) === 18, lang + ': 18 grammar cards open');
   await p.click('[data-noun="мектеп"]'); await p.waitForTimeout(60);
   assert((await p.$$eval('.ph-f', (x) => x.map((e) => e.textContent))).includes('мектебім'), lang + ': possessive table shows мектебім');
   await p.click('[data-verb="оқы"]'); await p.click('[data-tense="past"]'); await p.waitForTimeout(60);
