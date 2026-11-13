@@ -76,6 +76,13 @@ try {
   ok(rows1 === 2 && rows2 === 4, 'verify.csv keeps earlier rows: ' + rows1 + ' → ' + rows2);
   ok(JSON.parse(readFileSync(join(web, 'audio-vv', 'manifest.json'), 'utf8')).keys.length === 4, 'manifest covers both runs');
 
+  // 3c) skip.json keeps a line this voice gets wrong out of the pack (and deletes its file)
+  writeFileSync(join(web, 'audio-vv', 'skip.json'), JSON.stringify({ [key('Сәлем!')]: 'test' }));
+  const asrBefore = mock.log.asr;
+  await run(vargs, env, log);
+  const vman = JSON.parse(readFileSync(join(web, 'audio-vv', 'manifest.json'), 'utf8'));
+  ok(vman.keys.length === 3 && !vman.keys.includes(key('Сәлем!')) && !existsSync(join(web, 'audio-vv', key('Сәлем!') + '.mp3')) && mock.log.asr === asrBefore, 'skip.json drops the line and does not re-render it');
+
   // 4) a bad key stops at once with a clear message and keeps what was made
   await assert.rejects(run([phrases, '--voice', 'tomiris', '--pack', 'bad', '--transport', 'http', '--base-url', mock.url], { ...env, FS_API_KEY: 'nope' }, log), /key rejected \(401\)/); checks++;
   await assert.rejects(run([phrases, '--voice', 'tomiris'], { QV_WEB_DIR: web }, log), /FS_API_KEY is not set/); checks++;

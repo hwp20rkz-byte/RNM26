@@ -154,7 +154,10 @@ export async function run(argv, env = process.env, log = console.log) {
   const ref = o.clone ? readFileSync(o.clone) : null;
   const wanted = [];
   // a line with no letters (an emoji card such as ⚽) has nothing to say: the service answers 502 to it
-  for (const p of all) { const line = castLine(p.voice, o); if (line && /\p{L}/u.test(p.text)) wanted.push({ ...p, line }); }
+  // skip.json: {"<key>": "<why>"} — lines this voice gets wrong every time (checked by ear or by --verify);
+  // they stay out of the pack, so the game plays them in the default narrator voice instead.
+  const skipPath = join(out, 'skip.json'), skip = existsSync(skipPath) ? JSON.parse(readFileSync(skipPath, 'utf8')) : {};
+  for (const p of all) { const line = castLine(p.voice, o); if (line && /\p{L}/u.test(p.text) && !(p.key in skip)) wanted.push({ ...p, line }); }
   const missing = wanted.filter((p) => !existsSync(join(out, p.key + '.mp3'))), todo = missing.slice(0, o.limit);
   log(`pack «${o.pack}»: ${wanted.length} phrases, ${wanted.length - missing.length} ready, ${todo.length} to synthesise` + (o.dry ? ' (dry run)' : ''));
   if (o.dry) { todo.slice(0, 10).forEach((p) => log('  ' + p.key + '  ' + JSON.stringify(p.line) + '  ' + textFor(p.text, p.line))); return 0; }
@@ -216,6 +219,7 @@ export async function run(argv, env = process.env, log = console.log) {
   }
   if (stream) stream.close();
 
+  for (const k of Object.keys(skip)) rmSync(join(out, k + '.mp3'), { force: true });
   if (o.prune) for (const f of readdirSync(out)) if (f.endsWith('.mp3') && !keep.has(f.slice(0, -4))) rmSync(join(out, f));
   const keys = flush();
   if (verify.size) {
