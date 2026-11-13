@@ -139,28 +139,30 @@
   var curAudio = null;
   function sysKk() { try { return !!(window.Android && window.Android.ttsState && window.Android.ttsState() === 'kk'); } catch (e) { return false; } }
   var TTS = {
-    // Narrator voice: ISEKE (default) or ISSAI; character lines and anything ISEKE lacks fall back to ISSAI.
-    // A Freedom Speech pack covers the narrator lines; anything it lacks (character lines) falls back to ISSAI.
+    // Narrator voice: ISEKE (default) or a Freedom Speech pack (Томирис…); a phrase a pack lacks plays in ISEKE.
+    // ISSAI was retired on 13.11.2026: audio/ now holds only the character lines (Freedom Speech catalog voices).
     // `who` (persona tag): a character line — its own take first (speaker-qualified key when two personas share a
-    // sentence), and never a narrator pack, so Әнел or Баян апай keep their voice whichever narrator is chosen.
+    // sentence), and never a narrator pack, so every hero keeps their voice whichever narrator is chosen.
     file: function (text, who) {
-      var k = D.audioKey(text), v = S.voice || 'iseke', pk = PACKS[v];
+      var k = D.audioKey(text), v = TTS.voice(), pk = PACKS[v];
       if (who && who !== 'NARR') {
         var q = D.audioKey(text + ' @' + who);
         if (AUD[q]) return 'audio/' + q;
         if (AUD[k]) return 'audio/' + k;
       }
       if (pk && pk.keys && pk.keys[k]) return 'audio-' + v + '/' + k;
-      if (v === 'iseke' && AUD_ISEKE[k]) return 'audio-iseke/' + k;
+      if (AUD_ISEKE[k]) return 'audio-iseke/' + k;
       return AUD[k] ? 'audio/' + k : null;
     },
+    /** The chosen narrator; the retired ISSAI (and any unknown id) reads as ISEKE. */
+    voice: function () { var v = S.voice; return v && v !== 'issai' && (v === 'iseke' || PACKS[v]) ? v : 'iseke'; },
     voices: function () {
-      return [['iseke', '🎙️ ISEKE'], ['issai', '🎙️ ISSAI']].concat(Object.keys(PACKS).filter(function (id) { return /^[a-z0-9_-]+$/.test(id); })
+      return [['iseke', '🎙️ ISEKE']].concat(Object.keys(PACKS).filter(function (id) { return /^[a-z0-9_-]+$/.test(id); })
         .map(function (id) { return [id, (PACKS[id].gender === 'm' ? '🧑 ' : '👩 ') + (PACKS[id].label || id)]; }));
     },
     remote: function (text) { return window.QVOICE && window.QVOICE.ttsUrl ? window.QVOICE.ttsUrl(text, S.voice || 'iseke') : null; },
     has: function (text) { return !!TTS.file(text) || sysKk() || !!TTS.remote(text); },
-    ok: function () { return Object.keys(AUD).length > 0 || sysKk(); },
+    ok: function () { return Object.keys(AUD_ISEKE).length > 0 || Object.keys(AUD).length > 0 || sysKk(); },
     speak: function (text, quiet, who) {
       var k = TTS.file(text, who);
       if (k) {
@@ -961,7 +963,7 @@
       '<label class="muted" for="nm">Атың кім? — Как тебя зовут?</label><input id="nm" class="name" maxlength="24" value="' + esc(S.name) + '" placeholder="Например, Айгерім" autocomplete="off">' +
       '<label class="muted">Нешінші сынып? — В каком ты классе?</label>' + gradeSwitch() +
       '<label class="muted">Оқу режимі — режим обучения</label>' + langSwitch() +
-      '<label class="muted">Дауыс — голос диктора</label><div class="seg" style="grid-template-columns:repeat(' + Math.min(TTS.voices().length, 4) + ',1fr)">' + TTS.voices().map(function (v) { return '<button data-voice="' + v[0] + '" class="' + ((PACKS[S.voice] ? S.voice : S.voice === 'issai' ? 'issai' : 'iseke') === v[0] ? 'on' : '') + '">' + esc(v[1]) + '</button>'; }).join('') + '</div>' +
+      '<label class="muted">Дауыс — голос диктора</label><div class="seg" style="grid-template-columns:repeat(' + Math.min(TTS.voices().length, 4) + ',1fr)">' + TTS.voices().map(function (v) { return '<button data-voice="' + v[0] + '" class="' + (TTS.voice() === v[0] ? 'on' : '') + '">' + esc(v[1]) + '</button>'; }).join('') + '</div>' +
       '<div class="kpis">' +
       '<div class="kpi"><span class="ico">⚡</span><div><b>' + S.xp + '</b><span>Шежіре XP</span></div></div>' +
       '<div class="kpi"><span class="ico">🪙</span><div><b>' + S.coins + '</b><span>алтын асық</span></div></div>' +
@@ -976,7 +978,7 @@
       '<div class="panel" style="display:flex;flex-direction:column;gap:16px">' +
       '<button class="btn ghost" id="snd">' + (S.sound ? '🔔 Звуки: включены' : '🔕 Звуки: выключены') + '</button>' +
       '<div><b>🗣️ Казахская озвучка: ' + (nAud ? '✅ встроена (' + nAud + ' фраз)' : sysKk() ? '✅ голос телефона' : '❌ нет') + '</b>' +
-      '<p class="muted" style="margin:8px 0 0">Озвучка: ISSAI KazakhTTS2 (CC BY 4.0) и ISEKE (Piper), синтез Piper. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
+      '<p class="muted" style="margin:8px 0 0">Озвучка: диктор — ISEKE (Piper) или голоса Freedom Speech, герои — голоса каталога Freedom Speech. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
       (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
       '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.5 · темы по программе «Қазақ тілі» для 1–3 классов, живая речь, разговорник и грамматика.</p></div>';

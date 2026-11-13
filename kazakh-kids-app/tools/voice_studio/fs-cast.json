@@ -1,7 +1,65 @@
 {
-  "_comment": "Hero voices from the Freedom Speech catalog (tools/make-audio-fs.mjs --heroes). Picked by measured pitch against tools/voice_studio/cast.json: the catalog has no child voices, so Әнел uses the highest female voice raised 3 semitones (≈ 258 → 307 Hz, inside a 10-year-old's 230–390 Hz). Re-cast by editing a line and rerunning: only that hero is re-rendered.",
+  "_comment": "Hero voices from the Freedom Speech catalog (tools/make-audio-fs.mjs --heroes) — since 13.11.2026 every character line; ISSAI is no longer used. Picked by measured median pitch of the catalog samples: the catalog has no child voices, so children use an adult voice raised a few semitones (boys ≈ 220–250 Hz, girls ≈ 250–310 Hz). Re-cast by editing a line and rerunning: only that hero is re-rendered.",
   "cast": {
-    "APAI": { "voice": "meiramgul_tales_kz", "pitchSt": 0, "why": "storyteller voice, median 183 Hz — a calm teacher (target 160–250 Hz)" },
-    "ANEL": { "voice": "assel_call_center_kz", "pitchSt": 3, "why": "brightest female voice, 258 Hz + 3 st ≈ 307 Hz — a 10-year-old girl (target 230–390 Hz)" }
+    "APAI": {
+      "voice": "meiramgul_tales_kz",
+      "pitchSt": 0,
+      "why": "storyteller voice, median 183 Hz — a calm teacher (target 160–250 Hz)"
+    },
+    "ANEL": {
+      "voice": "assel_call_center_kz",
+      "pitchSt": 3,
+      "why": "brightest female voice, 258 Hz + 3 st ≈ 307 Hz — a 10-year-old girl (target 230–390 Hz)"
+    },
+    "ALIBEK": {
+      "voice": "daniyar_kz",
+      "pitchSt": 4,
+      "why": "192 Hz + 4 st ≈ 242 Hz — a 10-year-old boy"
+    },
+    "ZHALKAU": {
+      "voice": "taymas",
+      "pitchSt": 6,
+      "why": "154 Hz + 6 st ≈ 218 Hz — a boy, a different timbre from Әлібек"
+    },
+    "ATA": {
+      "voice": "bauyrzhan_audiobook_kz",
+      "pitchSt": 0,
+      "why": "audiobook narrator, 105 Hz — a grandfather"
+    },
+    "AZHE": {
+      "voice": "guldana_audiobook_kz",
+      "pitchSt": -2,
+      "why": "audiobook narrator, 192 Hz − 2 st ≈ 171 Hz — a grandmother"
+    },
+    "ARCH": {
+      "voice": "kanat_lecture_kz",
+      "pitchSt": 0,
+      "why": "lecturer, 122 Hz — the foreign architect"
+    },
+    "M1": {
+      "voice": "arman_call_center_kz",
+      "pitchSt": 1,
+      "why": "128 Hz + 1 st — Батыр-X, a bright young man"
+    },
+    "T4": {
+      "voice": "anara_call_center_kz",
+      "pitchSt": 2,
+      "why": "239 Hz + 2 st ≈ 268 Hz — Айсұлу Neon, an upbeat teenage girl"
+    },
+    "K1": {
+      "voice": "didar_tales_kz",
+      "pitchSt": 5,
+      "why": "180 Hz + 5 st ≈ 240 Hz — Тайсон-Тайпақ, a boy"
+    },
+    "E4": {
+      "voice": "gaukhar_kz",
+      "pitchSt": -1,
+      "why": "170 Hz − 1 st ≈ 160 Hz — Әже-Bot 3000, warm"
+    },
+    "E1": {
+      "voice": "alikhan_kz",
+      "pitchSt": 0,
+      "why": "deepest voice, 102 Hz — the auction judge"
+    }
   }
 }

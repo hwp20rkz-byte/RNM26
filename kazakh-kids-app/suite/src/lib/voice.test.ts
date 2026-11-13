@@ -13,10 +13,10 @@ describe('audio key parity with the main game', () => {
 });
 
 describe('narrator folders follow the voice chosen in the main game', () => {
-  it('ISEKE by default, ISSAI alone, a Freedom Speech pack first then ISSAI', () => {
+  it('ISEKE by default; a Freedom Speech pack first, then ISEKE; the retired ISSAI reads as ISEKE', () => {
     expect(bases('iseke')).toEqual(['../audio-iseke/', '../audio/']);
-    expect(bases('issai')).toEqual(['../audio/']);
-    expect(bases('tomiris')).toEqual(['../audio-tomiris/', '../audio/']);
+    expect(bases('issai')).toEqual(['../audio-iseke/', '../audio/']);
+    expect(bases('tomiris')).toEqual(['../audio-tomiris/', '../audio-iseke/', '../audio/']);
     expect(bases('../evil')).toEqual(['../audio-iseke/', '../audio/']);   // ids are sanitised
   });
 });

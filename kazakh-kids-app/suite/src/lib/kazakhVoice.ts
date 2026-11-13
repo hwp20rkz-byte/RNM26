@@ -5,16 +5,17 @@
  */
 const BASE: string = (import.meta.env.VITE_TTS_BASE as string | undefined) ?? '../audio/';
 /**
- * The main game's narrator choice: ISEKE (default) and Freedom Speech packs (Томирис, Таймас… from
- * tools/make-audio-fs.mjs) have their own folders; ISSAI (audio/) covers everything and is the fallback.
+ * The main game's narrator choice: ISEKE (default) or a Freedom Speech pack (Томирис… from tools/make-audio-fs.mjs).
+ * A phrase the pack lacks plays in ISEKE; audio/ is the last resort (since 13.11.2026 it holds only character lines —
+ * ISSAI was retired, a stored «issai» choice reads as ISEKE).
  */
 export function bases(voice?: string): string[] {
+  const iseke = BASE.replace(/audio\/$/, 'audio-iseke/');
   try {
     const v = voice ?? (JSON.parse(window.localStorage.getItem('qazaqsha-oyna-v1') || '{}') as { voice?: string }).voice;
-    if (v === 'issai') return [BASE];
-    if (v && v !== 'iseke' && /^[a-z0-9_-]{2,24}$/.test(v)) return [BASE.replace(/audio\/$/, 'audio-' + v + '/'), BASE];
-    return [BASE.replace(/audio\/$/, 'audio-iseke/'), BASE];
-  } catch { return [BASE]; }
+    if (v && v !== 'iseke' && v !== 'issai' && /^[a-z0-9_-]{2,24}$/.test(v)) return [BASE.replace(/audio\/$/, 'audio-' + v + '/'), iseke, BASE];
+    return [iseke, BASE];
+  } catch { return [iseke, BASE]; }
 }
 
 /** Same FNV-1a key as web/data.js → QDATA.audioKey (must stay byte-identical). */

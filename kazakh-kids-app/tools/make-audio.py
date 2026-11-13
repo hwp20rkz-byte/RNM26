@@ -71,7 +71,12 @@ def main():
     ap.add_argument('--narrator', help='render only narrator phrases with this single-speaker Piper model (e.g. ISEKE) into --out')
     ap.add_argument('--out', default='audio', help='output folder inside web/ (default: audio)')
     ap.add_argument('--var', default='QAUDIO', help='global name written to <out>/index.js')
+    ap.add_argument('--allow-issai', action='store_true', help='render web/audio/ with ISSAI (retired 13.11.2026; would overwrite nothing but re-adds narrator files)')
     args = ap.parse_args()
+    if args.engine == 'piper' and not args.narrator and not args.allow_issai:
+        sys.exit('ISSAI is retired (13.11.2026): narrator lines are ISEKE (--narrator <iseke.onnx> --out audio-iseke --var QAUDIO_ISEKE),\n'
+                 'character lines are Freedom Speech catalog voices (node tools/make-audio-fs.mjs <phrases> --heroes tools/voice_studio/fs-cast.json).\n'
+                 'Pass --allow-issai only to bring the old voice back on purpose.')
 
     global OUT_DIR
     OUT_DIR = os.path.join(ROOT, 'web', args.out)

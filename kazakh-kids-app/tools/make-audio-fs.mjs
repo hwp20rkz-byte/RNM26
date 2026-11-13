@@ -255,23 +255,7 @@ async function runHeroes(o, all, web, client, log, env) {
   const todo = wanted.filter((p) => !done[p.key] || done[p.key].sig !== sig(cast[p.voice])).slice(0, o.limit);
   log(`heroes ${Object.keys(cast).join(', ')}: ${wanted.length} lines, ${todo.length} to synthesise` + (o.dry ? ' (dry run)' : ''));
   if (o.dry) { todo.slice(0, 10).forEach((p) => log('  ' + p.voice + '  ' + p.text)); return 0; }
-  // Manifest and verify.csv are flushed every 50 files, so a run that is killed keeps what it made and checked.
-  const keep = new Set(wanted.map((p) => p.key)), csvPath = join(out, 'verify.csv');
-  const verify = new Map(readVerifyCsv(csvPath).filter((r) => keep.has(r[0])).map((r) => [r[0], r]));
-  const label = o.label || (o.pack === 'tomiris' ? 'Томирис' : o.pack === 'taymas' ? 'Таймас' : o.pack);
-  function flush() {
-    const keys = readdirSync(out).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).filter((k) => keep.has(k)).sort();
-    writeFileSync(join(out, 'manifest.json'), JSON.stringify({
-      id: o.pack, label, by: 'Freedom Speech' + (o.clone ? ' (voice clone)' : ''), gender: o.voice === 'taymas' ? 'm' : 'f',
-      voice: o.clone ? 'clone' : o.voice, model: o.model, transport: o.transport, cast: o.cast, generated: new Date().toISOString().slice(0, 10), keys
-    }, null, 1) + '\n');
-    if (verify.size) {
-      const rows = [...verify.values()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
-      const csv = ['key,similarity,text,heard'].concat(rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')));
-      writeFileSync(csvPath, csv.join('\n') + '\n');
-    }
-    return keys;
-  }
+  const verify = [];
   let made = 0, failed = 0;
   for (const p of todo) {
     const c = cast[p.voice], text = c.slower ? '<slower>' + p.text + '</slower>' : p.text;
@@ -287,6 +271,7 @@ async function runHeroes(o, all, web, client, log, env) {
         }
         done[p.key] = { tag: p.voice, voice: c.voice, sig: sig(c) };
         ok = true; made++;
+        if (made % 10 === 0) writeFileSync(logPath, JSON.stringify(done, null, 0));   // a killed run keeps its progress
       } catch (e) {
         if (e instanceof AuthenticationError || (e instanceof FreedomSpeechError && e.status === 402)) {
           writeFileSync(logPath, JSON.stringify(done, null, 0));
@@ -302,6 +287,7 @@ async function runHeroes(o, all, web, client, log, env) {
   writeFileSync(logPath, JSON.stringify(done, null, 0) + '\n');
   if (verify.length) {
     const csv = ['key,hero,similarity,text,heard'].concat(verify.sort((a, b) => a[2] - b[2]).map((r) => r.map((x) => '"' + String(x).replace(/"/g, '""') + '"').join(',')));
+    mkdirSync(join(web, '..', 'voice_studio'), { recursive: true });
     writeFileSync(join(web, '..', 'voice_studio', 'heroes-fs-verify.csv'), csv.join('\n') + '\n');
     log(`verify: ${verify.length} checked, ${verify.filter((r) => +r[2] < 0.8).length} below 0.80`);
   }

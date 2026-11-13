@@ -83,6 +83,18 @@ try {
   const vman = JSON.parse(readFileSync(join(web, 'audio-vv', 'manifest.json'), 'utf8'));
   ok(vman.keys.length === 3 && !vman.keys.includes(key('Сәлем!')) && !existsSync(join(web, 'audio-vv', key('Сәлем!') + '.mp3')) && mock.log.asr === asrBefore, 'skip.json drops the line and does not re-render it');
 
+  // 3d) hero mode: cast tags are re-voiced into audio/<key>.mp3 with --verify, logged in heroes-fs.json, and a rerun skips them
+  const castFile = join(web, 'cast.json');
+  writeFileSync(castFile, JSON.stringify({ cast: { M1: { voice: 'taymas', pitchSt: 2 }, AZHE: { voice: 'tomiris', pitchSt: -1 } } }));
+  logs.length = 0;
+  code = await run([phrases, '--heroes', castFile, '--transport', 'http', '--verify', '--base-url', mock.url], env, log);
+  const heroLog = JSON.parse(readFileSync(join(web, 'audio', 'heroes-fs.json'), 'utf8'));
+  ok(code === 0 && Object.keys(heroLog).length === 2 && heroLog[key('Мен Батырмын!')].voice === 'taymas', 'hero lines rendered and logged: ' + logs.join(' | '));
+  ok(existsSync(join(web, 'audio', key('Өркенің өссін!') + '.mp3')) && !logs.some((l) => /retry/.test(l)), 'hero files written with --verify and no retries');
+  const speakBefore = mock.log.speak.length;
+  await run([phrases, '--heroes', castFile, '--transport', 'http', '--base-url', mock.url], env, log);
+  ok(mock.log.speak.length === speakBefore, 'a second hero run resumes: nothing re-rendered');
+
   // 4) a bad key stops at once with a clear message and keeps what was made
   await assert.rejects(run([phrases, '--voice', 'tomiris', '--pack', 'bad', '--transport', 'http', '--base-url', mock.url], { ...env, FS_API_KEY: 'nope' }, log), /key rejected \(401\)/); checks++;
   await assert.rejects(run([phrases, '--voice', 'tomiris'], { QV_WEB_DIR: web }, log), /FS_API_KEY is not set/); checks++;
