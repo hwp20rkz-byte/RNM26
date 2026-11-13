@@ -29,6 +29,7 @@ if [ -d node_modules ]; then npm run -s build; fi
 
 # 1. Web game -> assets (only what the app needs)
 cp web/*.html web/*.css web/*.js "$BUILD/assets/"
+[ "$TEST" = 1 ] || rm -f "$BUILD/assets/voice-lab.html" "$BUILD/assets/voice-lab.js"   # the voice lab ships in the TEST build only
 cp -r web/fonts web/audio web/audio-iseke web/vendor "$BUILD/assets/"
 # voice packs from tools/make-audio-fs.mjs (web/audio-<id>/ with a manifest.json) ride along automatically
 for d in web/audio-*/; do [ -f "$d/manifest.json" ] && cp -r "${d%/}" "$BUILD/assets/"; done
@@ -46,6 +47,8 @@ fi
 RES=android/res
 if [ "$TEST" = 1 ]; then
   printf 'window.QTEST = true;\n' > "$BUILD/assets/test-mode.js"
+  # voice lab (tools/make-voice-lab.mjs): every Freedom Speech voice, feature demos and tuning — TEST build only
+  if [ -f web/voice-lab/lab-data.js ]; then mkdir -p "$BUILD/assets/voice-lab" && cp web/voice-lab/*.mp3 web/voice-lab/lab-data.js "$BUILD/assets/voice-lab/"; fi
   cp -r android/res "$BUILD/res" && RES="$BUILD/res"
   sed -i 's#<string name="app_name">[^<]*</string>#<string name="app_name">Test QazaqVerse</string>#' "$RES/values/strings.xml"
 fi

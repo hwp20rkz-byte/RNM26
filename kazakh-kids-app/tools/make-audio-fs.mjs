@@ -92,7 +92,11 @@ export function textFor(text, line) { return line.slower ? '<slower>' + text + '
 
 /* ------------------------------------------------------------------ helpers */
 const TRIM = 'silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse';
-function encode(wavBytes, dst, pitchSt = 0) {
+/**
+ * wav → mp3. `pitchSt` shifts pitch with tempo kept; `tempo` (0.5–2) speeds up or slows down; `filter` is an extra
+ * ffmpeg chain from the voice lab (bass/treble, echo, phone…), see web/voice-lab.js → «ffmpeg для fs-cast.json».
+ */
+function encode(wavBytes, dst, pitchSt = 0, tempo = 1, filter = '') {
   const tmp = join(tmpdir(), 'fs-' + process.pid + '-' + Math.random().toString(36).slice(2) + '.wav');
   writeFileSync(tmp, wavBytes);
   const chain = [TRIM];
@@ -100,6 +104,8 @@ function encode(wavBytes, dst, pitchSt = 0) {
     const rate = Buffer.from(wavBytes).readUInt32LE(24) || 24000, k = 2 ** (pitchSt / 12);
     chain.push(`asetrate=${Math.round(rate * k)},aresample=${rate},atempo=${(1 / k).toFixed(5)}`);
   }
+  if (Math.abs(tempo - 1) > 0.005) chain.push(`atempo=${Math.min(2, Math.max(0.5, tempo)).toFixed(3)}`);
+  if (filter) { if (/[;\[\]]|amovie|movie=|\bsendcmd\b/.test(filter)) throw new Error('filter: only a plain audio filter chain is allowed'); chain.push(filter); }
   chain.push('loudnorm=I=-16:TP=-1.5');
   const r = spawnSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', tmp, '-af', chain.join(','), '-ac', '1', '-ar', '22050', '-b:a', '32k', dst]);
   rmSync(tmp, { force: true });
@@ -250,7 +256,7 @@ async function runHeroes(o, all, web, client, log, env) {
   const out = join(web, 'audio'), logPath = join(out, 'heroes-fs.json');
   mkdirSync(out, { recursive: true });
   const done = existsSync(logPath) ? JSON.parse(readFileSync(logPath, 'utf8')) : {};
-  const sig = (c) => c.voice + '|' + (c.pitchSt || 0) + '|' + (c.emotion || '') + '|' + (c.slower ? 1 : 0);
+  const sig = (c) => c.voice + '|' + (c.pitchSt || 0) + '|' + (c.emotion || '') + '|' + (c.slower ? 1 : 0) + (c.tempo && c.tempo !== 1 ? '|t' + c.tempo : '') + (c.filter ? '|f' + c.filter : '');
   const wanted = all.filter((p) => cast[p.voice]);
   const todo = wanted.filter((p) => !done[p.key] || done[p.key].sig !== sig(cast[p.voice])).slice(0, o.limit);
   log(`heroes ${Object.keys(cast).join(', ')}: ${wanted.length} lines, ${todo.length} to synthesise` + (o.dry ? ' (dry run)' : ''));
@@ -264,7 +270,7 @@ async function runHeroes(o, all, web, client, log, env) {
       try {
         const wav = await client.speak(text, { voice: c.voice, language: 'kk', emotion: c.emotion });
         if (!wav || wav.length < 1000) throw Object.assign(new Error('empty audio'), { status: 502 });
-        encode(wav, join(out, p.key + '.mp3'), c.pitchSt || 0);
+        encode(wav, join(out, p.key + '.mp3'), c.pitchSt || 0, c.tempo || 1, c.filter || '');
         if (o.verify) {
           const t = await client.transcribe(wav, { language: 'kk', prettify: false, filename: p.key + '.wav' });
           verify.push([p.key, p.voice, similarity(p.text, t.text).toFixed(2), p.text, t.text]);
