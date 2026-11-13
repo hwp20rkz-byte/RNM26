@@ -10,7 +10,8 @@
     "test": "node tests/score.test.js && node tests/auction.test.js && node tests/engine.test.js && node tests/grammar.test.js && node tests/voice-roles.test.js",
     "test:voice-packs": "node tests/voice-packs.test.mjs",
     "audio:fs": "node tools/make-audio-fs.mjs",
-    "apk": "npm run build && ./build.sh"
+    "apk": "npm run build && ./build.sh",
+    "test:voice-lab": "node tests/voice-lab.e2e.mjs"
   },
   "devDependencies": {
     "@types/three": "0.149.0",
