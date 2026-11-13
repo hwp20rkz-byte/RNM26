@@ -87,8 +87,12 @@
   var VOICE = { 'п': 'б', 'к': 'г', 'қ': 'ғ' };
   var POSS_PERSONS = ['men', 'sen', 'siz', 'ol', 'biz'];
   var POSS_LABEL = { men: 'менің', sen: 'сенің', siz: 'сіздің', ol: 'оның', biz: 'біздің' };
+  // Беглые гласные: the last narrow vowel drops before a vowel-initial ending — ауыз → аузым, мұрын → мұрны.
+  var FLEETING = { 'ауыз': 'ауз', 'мұрын': 'мұрн', 'орын': 'орн', 'ерін': 'ерн', 'қарын': 'қарн', 'мойын': 'мойн',
+    'халық': 'халқ', 'қойын': 'қойн', 'ұлық': 'ұлқ', 'бөрік': 'бөрк' };
   function possessive(w, p) {
     var v = finalClass(w) === 'vowel', b = harmony(w) === 'back';
+    if (FLEETING[w]) { var y0 = b ? 'ы' : 'і', st = FLEETING[w]; return st + { men: y0 + 'м', sen: y0 + 'ң', siz: y0 + 'ң' + y0 + 'з', ol: y0, biz: y0 + 'м' + y0 + 'з' }[p]; }
     var y = b ? 'ы' : 'і';
     if (v) return w + { men: 'м', sen: 'ң', siz: 'ң' + y + 'з', ol: 'с' + y, biz: 'м' + y + 'з' }[p];
     // a voiceless п к қ at the end becomes voiced before a vowel: кітап → кітабым, мектеп → мектебім
@@ -191,7 +195,7 @@
     PERSONS: PERSONS, PERSON_KK: PERSON_KK, personSuffix: personSuffix, question: question,
     presentBase: presentBase, present: present, presentNeg: presentNeg, past: past, pastNeg: pastNeg, continuous: continuous, wish: wish,
     negStem: negStem, converb: converb, TENSES: TENSES, conj: conj, ordinal: ordinal, why: why,
-    NOUNS: NOUNS, VERBS: VERBS, NUMBERS: NUMBERS
+    NOUNS: NOUNS, VERBS: VERBS, NUMBERS: NUMBERS, FLEETING: FLEETING
   };
   root.QGRAM = G;
   if (typeof module !== 'undefined' && module.exports) module.exports = G;
