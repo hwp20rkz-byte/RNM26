@@ -33,7 +33,7 @@ try {
   for (let i = 0; i < 6 && await p.$('#rok'); i++) { await p.click('#rok'); await p.waitForTimeout(100); }
   await p.click('[data-tab=me]'); await p.waitForTimeout(200);
   const labels = await p.$$eval('[data-voice]', (x) => x.map((e) => e.textContent));
-  ok(labels.length === 2 && labels[0].includes('ISEKE') && labels[1].includes('Тест-дауыс') && !labels.join().includes('ISSAI'), 'profile offers ISEKE and the pack, no ISSAI: ' + labels.join(' | '));
+  ok(labels[0].includes('ISEKE') && labels.some((l) => l.includes('Тест-дауыс')) && !labels.join().includes('ISSAI'), 'profile offers ISEKE and the packs, no ISSAI: ' + labels.join(' | '));
   ok(await p.$eval('[data-voice=iseke]', (e) => e.classList.contains('on')), 'a stored ISSAI choice shows as ISEKE');
   const path = (t) => p.evaluate((t) => window.Q.api.TTS.file(t), t);
   ok((await path(IN)) === 'audio-iseke/' + key(IN), 'the old ISSAI profile plays ISEKE');
