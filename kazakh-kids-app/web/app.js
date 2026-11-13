@@ -982,7 +982,7 @@
       '<p class="muted" style="margin:8px 0 0">Озвучка: диктор — ISEKE (Piper) или голоса Freedom Speech, герои — голоса каталога Freedom Speech. Работает без интернета на любом телефоне, включая Huawei.</p></div>' +
       (android ? '<button class="btn ghost" id="ttsset">⚙️ Системный синтез речи</button>' : '') + '</div>' +
       '<button class="btn ghost" id="reset" style="color:var(--bad-d)">Начать заново</button>' +
-      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.5 · темы по программе «Қазақ тілі» для 1–3 классов, живая речь, разговорник и грамматика.</p></div>';
+      '<p class="muted" style="text-align:center">QazaqVerse: Tíl Quest · v3.6 · темы по программе «Қазақ тілі» для 1–3 классов, живая речь, разговорник и грамматика.</p></div>';
   }
   function bindMe() {
     var nm = qs('#nm');

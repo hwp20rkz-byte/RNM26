@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_CODE=${VERSION_CODE:-8}
-VERSION_NAME=${VERSION_NAME:-3.5}
+VERSION_CODE=${VERSION_CODE:-9}
+VERSION_NAME=${VERSION_NAME:-3.6}
 SDK=${ANDROID_SDK:-/usr/lib/android-sdk}
 ANDROID_JAR="$SDK/platforms/android-23/android.jar"
 DX="$SDK/build-tools/debian/dx"
@@ -33,6 +33,8 @@ cp web/*.html web/*.css web/*.js "$BUILD/assets/"
 cp -r web/fonts web/audio web/audio-iseke web/vendor "$BUILD/assets/"
 # voice packs from tools/make-audio-fs.mjs (web/audio-<id>/ with a manifest.json) ride along automatically
 for d in web/audio-*/; do [ -f "$d/manifest.json" ] && cp -r "${d%/}" "$BUILD/assets/"; done
+# service files of the voice tools (recognition log, skip list, hero render log) stay out of the APK
+rm -f "$BUILD"/assets/audio-*/verify.csv "$BUILD"/assets/audio-*/skip.json "$BUILD/assets/audio/heroes-fs.json"
 
 # 1b. 3D suite (React 19 + R3F, suite/) -> assets/suite; opened from the games tab
 if [ -d suite/node_modules ]; then (cd suite && npm run -s build && npm run -s budget); fi
