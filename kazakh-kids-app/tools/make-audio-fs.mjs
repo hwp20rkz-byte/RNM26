@@ -20,6 +20,7 @@
  * stopped and resumed. --prune deletes files no longer in the phrase list. --verify transcribes each new
  * file back with the API's recogniser and writes web/audio-<pack>/verify.csv with the similarity.
  */
+import './load-env.mjs';            // FS_API_KEY from kazakh-kids-app/.env when it is not in the environment
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

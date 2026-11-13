@@ -9,6 +9,7 @@
  * Output: web/voice-lab/<id>.mp3 and web/voice-lab/lab-data.js (window.QVLAB): voices with measured median pitch,
  * feature demos with the API answer (ok / HTTP status), and what speech recognition heard back.
  */
+import './load-env.mjs';            // FS_API_KEY from kazakh-kids-app/.env when it is not in the environment
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
