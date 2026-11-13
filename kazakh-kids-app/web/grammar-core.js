@@ -165,6 +165,29 @@
   function imperativeNeg(stem, p) { var n = negStem(stem); return p === 'siz' ? n + pick(stem, 'ңыз', 'ңіз') : p === 'sender' ? n + pick(stem, 'ңдар', 'ңдер') : n; }
   /** «Can / be able to»: converb -а/-е/-й + ал- : жүзе аламын, оқи аламын; негатив жүзе алмаймын. */
   function ability(stem, p, neg) { return presentBase(stem) + ' ' + (neg ? presentNeg('ал', p) : present('ал', p)); }
+  /* infinitive and modal words: керек / қажет (need), -уға болады (may), -уы мүмкін (maybe) */
+  function infinitive(stem) { var f = last(stem); return (f === 'ы' || f === 'і') ? stem.slice(0, -1) + 'у' : stem + 'у'; }   // оқы → оқу
+  var DAT_PRON = { men: 'маған', sen: 'саған', siz: 'сізге', ol: 'оған', biz: 'бізге' };
+  function cap(w) { return w.charAt(0).toUpperCase() + w.slice(1); }
+  function need(stem, p) { return cap(DAT_PRON[p]) + ' ' + infinitive(stem) + ' керек'; }                // Маған оқу керек
+  function may(stem, neg, ask) { return caseForm(infinitive(stem), 'barys') + (ask ? ' бола ма?' : neg ? ' болмайды' : ' болады'); }
+  function maybe(stem, p) { return possessive(infinitive(stem), p) + ' мүмкін'; }                       // келуім мүмкін
+  /* «now» with an auxiliary verb: -ып + отыр (sitting), тұр (standing, steady), жүр (moving, these days), жатыр */
+  var AUX_END = { men: ['мын', 'мін'], sen: ['сың', 'сің'], siz: ['сыз', 'сіз'], ol: ['', ''], biz: ['мыз', 'міз'] };
+  function aux(stem, a, p) {
+    var e = AUX_END[p], cv = a === 'жатыр' ? converb(stem) : (finalClass(stem) === 'vowel' ? stem + 'п' : stem + pick(stem, 'ып', 'іп'));   // бара жатыр, but барып жүр
+    return cv + ' ' + a + pick(a, e[0], e[1]);
+  }
+  /* conditional -са / -се: барсам, келсек; negative бармасам */
+  function cond(stem, p, neg) {
+    var base = (neg ? negStem(stem) : stem) + pick(stem, 'са', 'се');
+    return base + { men: 'м', sen: 'ң', siz: pick(stem, 'ңыз', 'ңіз'), ol: '', biz: pick(stem, 'қ', 'к') }[p];
+  }
+  /* collective numerals: екеу, үшеу, алтау; «we two» екеуміз, «the two of them» екеуі */
+  function collective(n, p) {
+    var f = last(n), base = ((f === 'ы' || f === 'і') ? n.slice(0, -1) : n) + pick(n, 'ау', 'еу');
+    return p === 'biz' ? base + pick(n, 'мыз', 'міз') : p === 'ol' ? base + pick(n, 'ы', 'і') : base;
+  }
   var TENSES = ['present', 'presentNeg', 'past', 'pastNeg', 'continuous'];
   function conj(stem, tense, p) { return { present: present, presentNeg: presentNeg, past: past, pastNeg: pastNeg, continuous: continuous }[tense](stem, p); }
 
@@ -214,6 +237,7 @@
     PERSONS: PERSONS, PERSON_KK: PERSON_KK, personSuffix: personSuffix, question: question,
     presentBase: presentBase, present: present, presentNeg: presentNeg, past: past, pastNeg: pastNeg, continuous: continuous, wish: wish,
     negStem: negStem, converb: converb, TENSES: TENSES, conj: conj, ordinal: ordinal, why: why,
+    infinitive: infinitive, DAT_PRON: DAT_PRON, need: need, may: may, maybe: maybe, aux: aux, cond: cond, collective: collective,
     voiced: voiced, IMP_PERSONS: IMP_PERSONS, IMP_KK: IMP_KK, imperative: imperative, imperativeNeg: imperativeNeg, ability: ability,
     NOUNS: NOUNS, VERBS: VERBS, NUMBERS: NUMBERS, FLEETING: FLEETING
   };

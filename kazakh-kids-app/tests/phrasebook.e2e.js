@@ -60,7 +60,7 @@ async function run(lang, viewport) {
   await p.click('[data-ph=gram]'); await p.waitForTimeout(150);
   const cards = await p.$$eval('[data-card]', (x) => x.map((b) => b.dataset.card));
   for (const c of cards) { await p.click(`[data-card="${c}"]`); await p.waitForTimeout(40); }
-  assert(cards.length === 18 && (await p.$$eval('.ph-card.open', (x) => x.length)) === 18, lang + ': 18 grammar cards open');
+  assert(cards.length === 21 && (await p.$$eval('.ph-card.open', (x) => x.length)) === 21, lang + ': 21 grammar cards open');
   await p.click('[data-noun="мектеп"]'); await p.waitForTimeout(60);
   assert((await p.$$eval('.ph-f', (x) => x.map((e) => e.textContent))).includes('мектебім'), lang + ': possessive table shows мектебім');
   await p.click('[data-verb="оқы"]'); await p.click('[data-tense="past"]'); await p.waitForTimeout(60);

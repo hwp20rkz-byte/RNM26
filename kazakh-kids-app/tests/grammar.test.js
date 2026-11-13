@@ -169,4 +169,29 @@ for (const t of RD) {
   eq(t.qs.length, 3, t.id + ' questions');
   for (const q of t.qs) { assert.ok(q.kk.endsWith('?') && q.ru && q.en, 'question ' + q.kk); assert.ok(!q.w.includes(q.a) && q.w[0] !== q.w[1], 'answers distinct: ' + q.kk); n++; }
 }
+
+// master plan sprint 1 — expected forms written by hand (TDD: written before the engine)
+// infinitive -у and modal constructions: керек (need), -уға болады / болмайды (may / may not), -уы мүмкін (maybe)
+const INF = { 'оқы': 'оқу', 'жаз': 'жазу', 'ойна': 'ойнау', 'сөйле': 'сөйлеу', 'бар': 'бару', 'кел': 'келу', 'же': 'жеу', 'іш': 'ішу', 'тыңда': 'тыңдау', 'жүгір': 'жүгіру', 'кір': 'кіру', 'сұра': 'сұрау' };
+for (const [v, w] of Object.entries(INF)) eq(G.infinitive(v), w, 'infinitive ' + v);
+eq(G.need('оқы', 'men'), 'Маған оқу керек', 'need men'); eq(G.need('бар', 'sen'), 'Саған бару керек', 'need sen');
+eq(G.need('тыңда', 'siz'), 'Сізге тыңдау керек', 'need siz'); eq(G.need('ойна', 'ol'), 'Оған ойнау керек', 'need ol'); eq(G.need('жаз', 'biz'), 'Бізге жазу керек', 'need biz');
+eq(G.may('кір'), 'кіруге болады', 'may кір'); eq(G.may('ойна', true), 'ойнауға болмайды', 'may not ойна'); eq(G.may('сұра', false, true), 'сұрауға бола ма?', 'may I ask');
+eq(G.may('же', true), 'жеуге болмайды', 'may not же'); eq(G.may('оқы', false, true), 'оқуға бола ма?', 'may I read');
+eq(G.maybe('кел', 'men'), 'келуім мүмкін', 'maybe men'); eq(G.maybe('кел', 'ol'), 'келуі мүмкін', 'maybe ol'); eq(G.maybe('оқы', 'sen'), 'оқуың мүмкін', 'maybe sen'); eq(G.maybe('бар', 'biz'), 'баруымыз мүмкін', 'maybe biz');
+// auxiliary «now»: -ып + отыр (sitting), тұр (standing / steady), жүр (moving / these days), жатыр (general)
+eq(G.aux('оқы', 'отыр', 'men'), 'оқып отырмын', 'оқып отырмын'); eq(G.aux('оқы', 'отыр', 'ol'), 'оқып отыр', 'оқып отыр');
+eq(G.aux('күт', 'тұр', 'men'), 'күтіп тұрмын', 'күтіп тұрмын'); eq(G.aux('күт', 'тұр', 'sen'), 'күтіп тұрсың', 'күтіп тұрсың');
+eq(G.aux('жүгір', 'жүр', 'biz'), 'жүгіріп жүрміз', 'жүгіріп жүрміз'); eq(G.aux('ойна', 'жүр', 'siz'), 'ойнап жүрсіз', 'ойнап жүрсіз');
+eq(G.aux('ұйықта', 'жатыр', 'ol'), 'ұйықтап жатыр', 'ұйықтап жатыр'); eq(G.aux('жаз', 'отыр', 'siz'), 'жазып отырсыз', 'жазып отырсыз');
+eq(G.aux('бар', 'жатыр', 'men'), 'бара жатырмын', 'motion verbs keep -а'); eq(G.aux('бар', 'жүр', 'men'), 'барып жүрмін', 'бара only with жатыр'); eq(G.aux('кел', 'тұр', 'ol'), 'келіп тұр', 'келіп тұр'); eq(G.aux('кел', 'жатыр', 'ol'), 'келе жатыр', 'келе жатыр');
+// conditional -са / -се (+ personal endings), negative -маса
+const COND = { 'бар': ['барсам', 'барсаң', 'барсаңыз', 'барса', 'барсақ', 'бармасам'], 'кел': ['келсем', 'келсең', 'келсеңіз', 'келсе', 'келсек', 'келмесем'],
+  'оқы': ['оқысам', 'оқысаң', 'оқысаңыз', 'оқыса', 'оқысақ', 'оқымасам'], 'жаз': ['жазсам', 'жазсаң', 'жазсаңыз', 'жазса', 'жазсақ', 'жазбасам'],
+  'айт': ['айтсам', 'айтсаң', 'айтсаңыз', 'айтса', 'айтсақ', 'айтпасам'], 'же': ['жесем', 'жесең', 'жесеңіз', 'жесе', 'жесек', 'жемесем'] };
+for (const [v, w] of Object.entries(COND)) { ['men', 'sen', 'siz', 'ol', 'biz'].forEach((p, i) => eq(G.cond(v, p), w[i], 'cond ' + v + ' ' + p)); eq(G.cond(v, 'men', true), w[5], 'cond neg ' + v); }
+// collective numerals: екеу, үшеу …; «we two» екеуміз, «the two of them» екеуі
+const COLL = { 'екі': 'екеу', 'үш': 'үшеу', 'төрт': 'төртеу', 'бес': 'бесеу', 'алты': 'алтау', 'жеті': 'жетеу' };
+for (const [n0, w] of Object.entries(COLL)) eq(G.collective(n0), w, 'collective ' + n0);
+eq(G.collective('екі', 'biz'), 'екеуміз', 'екеуміз'); eq(G.collective('үш', 'biz'), 'үшеуміз', 'үшеуміз'); eq(G.collective('екі', 'ol'), 'екеуі', 'екеуі'); eq(G.collective('бес', 'ol'), 'бесеуі', 'бесеуі');
 console.log('grammar + phrasebook: ' + n + ' checks passed');

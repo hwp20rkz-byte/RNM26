@@ -161,6 +161,14 @@ try {
   g.demo.forEach((x) => { add(x.kk); add(x.ex); });
   g.likeWho.forEach((w) => { add(w.kk); add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1)); g.likeThings.forEach((t) => add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1) + ' ' + t.kk + ' ұнайды.')); });
   g.likeEx.forEach((x) => add(x.kk)); g.commands.forEach((x) => add(x.kk));
+  // master plan sprint 1: modal words, auxiliary «now», conditional, collective numerals (cards and trainers)
+  const P5 = ['men', 'sen', 'siz', 'ol', 'biz'];
+  G.VERBS.forEach((v) => {
+    P5.forEach((p) => { add(G.need(v.kk, p)); ['отыр', 'тұр', 'жүр', 'жатыр'].forEach((a) => add(G.PERSON_KK[p] + ' ' + G.aux(v.kk, a, p))); add(G.PERSON_KK[p] + ' ' + G.cond(v.kk, p)); });
+    add(G.infinitive(v.kk)); add(G.may(v.kk)); add(G.may(v.kk, true)); add(G.may(v.kk, false, true)); add(G.maybe(v.kk, 'men')); add('Мен ' + G.cond(v.kk, 'men', true));
+  });
+  ['екі', 'үш', 'төрт', 'бес', 'алты', 'жеті'].forEach((n) => add(G.collective(n))); add(G.collective('екі', 'biz')); add(G.collective('үш', 'ol'));
+  g.modalEx.concat(g.auxEx, g.condEx, g.collEx).forEach((x) => add(x.kk)); g.auxEx.forEach((x) => add(x.a));
   // sprint 4: clock phrases (Сағат неше?) and the reading corner (web/reading-data.js): every line, question and answer
   const HOURS = G.NUMBERS.concat(['он бір', 'он екі']);
   HOURS.forEach((h, i) => { const nx = HOURS[(i + 1) % 12]; ['Сағат ' + h + '.', 'Сағат ' + G.caseForm(h, 'shygys') + ' ширек өтті.', 'Сағат ' + h + ' жарым.', 'Сағат ' + G.caseForm(nx, 'barys') + ' ширек қалды.'].forEach((x) => add(x)); });

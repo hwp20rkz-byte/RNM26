@@ -11,7 +11,7 @@
   function S() { return api.state(); }
   function st() { var s = S(); s.phrase = s.phrase || { best: {} }; return s.phrase; }
 
-  var V = { read: null, hour: 'бес', topic: null, vtopic: null, wview: 'topics', theme: 'all', open: {}, noun: 'кітап', verb: 'оқы', tense: 'present', pw: 'оқушы', pron: 'мен', q: null };
+  var V = { read: null, hour: 'бес', aux: 'отыр', topic: null, vtopic: null, wview: 'topics', theme: 'all', open: {}, noun: 'кітап', verb: 'оқы', tense: 'present', pw: 'оқушы', pron: 'мен', q: null };
   var TABS = [
     ['phrase', '💬', 'Тілашар', 'Разговорник', 'Phrasebook'], ['gram', '🧩', 'Грамматика', 'Грамматика', 'Grammar'],
     ['words', '📖', 'Сөздік', 'Словарь', 'Dictionary'], ['prov', '📜', 'Мақалдар', 'Пословицы', 'Proverbs'],
@@ -200,6 +200,30 @@
       var n = G.ability(v, 'men', true);
       return h + formRow(L('Мен — не могу', 'Мен — can\'t'), v, n, 'Мен ' + n);
     } },
+    { id: 'modal', icon: '🎚️', kk: 'Керек, болады, мүмкін', ru: 'Нужно, можно, может быть', en: 'Need, may, maybe', train: 'g_modal', body: function () {
+      var v = V.verb, h = rule('<b>Нужно</b>: кому? (маған, саған…) + глагол на <b>-у</b> + <b>керек</b> (или <b>қажет</b>): Маған оқу керек. Оқы → оқу, бар → бару. <b>Можно / нельзя</b>: -уға / -уге <b>болады / болмайды</b>, вопрос — <b>бола ма?</b> (Кіруге бола ма?). <b>Может быть</b>: -уы мүмкін (келуі мүмкін).',
+        '<b>Need</b>: to whom? (маған, саған…) + verb in <b>-у</b> + <b>керек</b> (or <b>қажет</b>): Маған оқу керек. Оқы → оқу, бар → бару. <b>May / may not</b>: -уға / -уге <b>болады / болмайды</b>, question — <b>бола ма?</b> (Кіруге бола ма?). <b>Maybe</b>: -уы мүмкін (келуі мүмкін).');
+      h += chips('verb', G.VERBS.map(function (x) { return [x.kk, x.kk + ' · ' + tx(x)]; }), v);
+      h += P5.map(function (p) { var f = G.need(v, p); return formRow(G.PERSON_KK[p], v, f, f); }).join('');
+      h += formRow(L('можно', 'may'), v, G.may(v)) + formRow(L('нельзя', 'may not'), v, G.may(v, true)) + formRow(L('можно?', 'may I?'), v, G.may(v, false, true)) + formRow(L('может быть (я)', 'maybe (I)'), v, G.maybe(v, 'men'));
+      return h + '<h3>' + esc(L('Примеры', 'Examples')) + '</h3>' + P.gram.modalEx.map(function (x) { return row(x.kk, tx(x)); }).join('');
+    } },
+    { id: 'aux', icon: '🧘', kk: 'Отыр, тұр, жүр, жатыр', ru: '«Сейчас»: сидя, стоя, в движении', en: '«Now»: sitting, standing, on the move', train: 'g_aux', body: function () {
+      var v = V.verb, a = V.aux;
+      var h = rule('«Делаю сейчас» = глагол на <b>-ып / -іп / -п</b> + помощник, который показывает позу: <b>отыр</b> — сидя, <b>тұр</b> — стоя (или ровно, долго), <b>жүр</b> — в движении или «в эти дни», <b>жатыр</b> — лёжа или просто «сейчас». Оқып отырмын — я (сижу и) читаю.',
+        '«Doing now» = verb in <b>-ып / -іп / -п</b> + a helper that shows the posture: <b>отыр</b> — sitting, <b>тұр</b> — standing (or steady), <b>жүр</b> — on the move or «these days», <b>жатыр</b> — lying or simply «now». Оқып отырмын — I am (sitting and) reading.');
+      h += chips('verb', G.VERBS.map(function (x) { return [x.kk, x.kk + ' · ' + tx(x)]; }), v) + chips('aux', [['отыр', '🪑 отыр'], ['тұр', '🧍 тұр'], ['жүр', '🏃 жүр'], ['жатыр', '🛌 жатыр']], a);
+      h += P5.map(function (p) { var f = G.aux(v, a, p); return formRow(G.PERSON_KK[p], v, f, G.PERSON_KK[p] + ' ' + f); }).join('');
+      return h + '<h3>' + esc(L('Примеры', 'Examples')) + '</h3>' + P.gram.auxEx.map(function (x) { return row(x.kk, tx(x), '', x.e); }).join('');
+    } },
+    { id: 'cond', icon: '🔀', kk: '-са / -се: егер…', ru: '«Если»: барсам, келсең', en: '«If»: барсам, келсең', train: 'g_cond', body: function () {
+      var v = V.verb, h = rule('«Если» = основа глагола + <b>-са / -се</b> + окончание: бар<b>сам</b> (если я пойду), кел<b>сең</b>, оқы<b>сақ</b>. «Если не» — с отрицанием: бар<b>масам</b>. Часть с «если» стоит первой: Күн жылы болса, далаға шығамыз.',
+        '«If» = verb stem + <b>-са / -се</b> + ending: бар<b>сам</b> (if I go), кел<b>сең</b>, оқы<b>сақ</b>. «If not» — with negation: бар<b>масам</b>. The «if» part comes first: Күн жылы болса, далаға шығамыз.');
+      h += chips('verb', G.VERBS.map(function (x) { return [x.kk, x.kk + ' · ' + tx(x)]; }), v);
+      h += P5.map(function (p) { var f = G.cond(v, p); return formRow(G.PERSON_KK[p], v, f, G.PERSON_KK[p] + ' ' + f); }).join('');
+      var n = G.cond(v, 'men', true);
+      return h + formRow(L('Мен — если не', 'Мен — if not'), v, n, 'Мен ' + n) + '<h3>' + esc(L('Примеры', 'Examples')) + '</h3>' + P.gram.condEx.map(function (x) { return row(x.kk, tx(x)); }).join('');
+    } },
     { id: 'demo', icon: '👉', kk: 'Бұл, мынау, анау', ru: 'Это, вот это, вон то', en: 'This, this one, that', train: 'g_demo', body: function () {
       return rule('<b>Бұл</b> — это (рядом). <b>Мынау</b> — вот это (показываю рукой). <b>Анау</b> — вон то (далеко). <b>Сол</b> — тот, о котором говорили. <b>Осы</b> — этот самый. Перед предметом — короче: <b>мына</b> кітап, <b>ана</b> үй.',
         '<b>Бұл</b> — this (near). <b>Мынау</b> — this one (pointing). <b>Анау</b> — that one over there. <b>Сол</b> — that one we talked about. <b>Осы</b> — this very one. Before a noun they are shorter: <b>мына</b> кітап, <b>ана</b> үй.') +
@@ -226,7 +250,11 @@
       return rule('Порядковые: после гласной -ншы/-нші, после согласной -ыншы/-інші: алты → алтыншы, бес → бесінші. Составные числа пишутся раздельно: он бір (11), жиырма бес (25).',
         'Ordinals: after a vowel -ншы/-нші, after a consonant -ыншы/-інші: алты → алтыншы, бес → бесінші. Compound numbers are written apart: он бір (11), жиырма бес (25).') +
         G.NUMBERS.map(function (n, i) { return formRow(String(i + 1), n, G.ordinal(n)); }).join('') +
-        row('он бір', '11') + row('жиырма бес', '25') + row('жүз он', '110');
+        row('он бір', '11') + row('жиырма бес', '25') + row('жүз он', '110') +
+        '<h3>' + esc(L('Вдвоём, втроём: екеу, үшеу', 'Two of us, three of us: екеу, үшеу')) + '</h3>' +
+        ['екі', 'үш', 'төрт', 'бес', 'алты', 'жеті'].map(function (n) { return formRow(n, n, G.collective(n)); }).join('') +
+        formRow(L('мы вдвоём', 'we two'), 'екі', G.collective('екі', 'biz')) + formRow(L('они втроём', 'the three of them'), 'үш', G.collective('үш', 'ol')) +
+        P.gram.collEx.map(function (x) { return row(x.kk, tx(x)); }).join('');
     } },
     { id: 'clock', icon: '🕔', kk: 'Сағат неше?', ru: 'Который час: жарты, ширек', en: 'What time is it: half, quarter', train: 'g_clock', body: function () {
       return rule('<b>Сағат бес.</b> — 5:00. <b>Жарты</b> — половина: сағат бес жарым — 5:30. <b>Ширек</b> — четверть: «от пяти прошла четверть» — сағат бес<b>тен</b> ширек өтті (5:15); «до шести осталась четверть» — сағат алты<b>ға</b> ширек қалды (5:45).',
@@ -404,6 +432,30 @@
       q.after = G.PERSON_KK[p] + ' ' + a; return q;
     });
   };
+  GEN.g_modal = function () {
+    return api.shuffle(G.VERBS).slice(0, 8).map(function (v) {
+      var p = P5[api.rnd(5)], full = G.need(v.kk, p), a = G.infinitive(v.kk);
+      var q = mcq(full.replace(a, '…'), L('Нужно: ', 'Need to: ') + tx(v), null, a, [v.kk, G.present(v.kk, p), G.cond(v.kk, p)], full);
+      q.after = full; return q;
+    });
+  };
+  GEN.g_aux = function () {
+    var E = P.gram.auxEx;
+    return api.shuffle(E).map(function (x) {
+      var m = x.a.match(/^(отыр|тұр|жүр|жатыр)(.*)$/), end = m[2], opts = ['отыр', 'тұр', 'жүр', 'жатыр'].filter(function (o) { return o !== m[1] && !(m[1] !== 'жатыр' && o === 'жатыр'); });
+      var wrong = opts.map(function (o) { return o + (o === 'жүр' ? end.replace('ы', 'і') : end.replace('і', 'ы')); });
+      var q = mcq(x.e + ' ' + x.blank, L('Подсказка — поза на картинке', 'Hint: the posture in the picture') + ' · ' + tx(x), null, x.a, wrong, x.kk);
+      q.after = x.kk; return q;
+    });
+  };
+  GEN.g_cond = function () {
+    return api.shuffle(G.VERBS).slice(0, 8).map(function (v) {
+      var p = P5[api.rnd(5)], a = G.cond(v.kk, p);
+      var wrong = P5.filter(function (x) { return x !== p; }).slice(0, 2).map(function (x) { return G.cond(v.kk, x); }).concat([G.present(v.kk, p)]);
+      var q = mcq(G.PERSON_KK[p] + ' + ' + v.kk + ' (' + tx(v) + ')', L('Если…', 'If…'), null, a, uniq(wrong.filter(function (x) { return x !== a; })), G.PERSON_KK[p] + ' ' + a);
+      q.after = G.PERSON_KK[p] + ' ' + a; return q;
+    });
+  };
   GEN.g_demo = function () {
     var D = P.gram.demo;
     return api.shuffle(D).map(function (d) { return mcq(tx(d), L('Какое слово?', 'Which word?'), null, d.kk, pickN(D, 3, [d]).map(function (x) { return x.kk; }), d.ex); });
@@ -492,6 +544,7 @@
     on('[data-tale]', function (b) { go(function () { V.read = b.getAttribute('data-tale'); }); });
     on('#rdback', function () { clearTimeout(rdTimer); go(function () { V.read = V.read === 'list' ? null : 'list'; }); });
     on('[data-hour]', function (b) { keep(function () { V.hour = b.getAttribute('data-hour'); }); });
+    on('[data-aux]', function (b) { keep(function () { V.aux = b.getAttribute('data-aux'); }); });
     on('#phback', function () { go(function () { V.topic = null; }); });
     on('#vback', function () { go(function () { V.vtopic = null; }); });
     on('[data-vt]', function (b) { go(function () { V.vtopic = b.getAttribute('data-vt'); }); });

@@ -646,6 +646,21 @@
       R('Маған сүт ұнамайды.', 'Мне не нравится молоко.', 'I don\'t like milk.'), R('Сізге ән ұнай ма?', 'Вам нравится песня?', 'Do you like the song?')],
     likeThings: [R('футбол', 'футбол', 'football', { e: '⚽' }), R('балмұздақ', 'мороженое', 'ice cream', { e: '🍦' }), R('мультфильм', 'мультфильм', 'cartoon', { e: '📺' }),
       R('кітап', 'книга', 'book', { e: '📚' }), R('ән', 'песня', 'song', { e: '🎵' }), R('алма', 'яблоко', 'apple', { e: '🍎' })],
+    // master plan sprint 1: modal words, auxiliary «now», conditional, collective numerals (examples; forms come from the engine)
+    modalEx: [R('Маған қалам керек.', 'Мне нужна ручка.', 'I need a pen.'), R('Маған көмек қажет.', 'Мне нужна помощь.', 'I need help.'),
+      R('Сабаққа бару керек.', 'Нужно идти на урок.', 'We have to go to class.'), R('Кіруге бола ма?', 'Можно войти?', 'May I come in?'),
+      R('Мұнда ойнауға болмайды.', 'Здесь играть нельзя.', 'You may not play here.'), R('Ол бүгін келуі мүмкін.', 'Он, может быть, придёт сегодня.', 'He may come today.')],
+    auxEx: [R('Әжем кітап оқып отыр.', 'Бабушка (сидит и) читает книгу.', 'Grandma is (sitting and) reading a book.', { e: '🪑', a: 'отыр', blank: 'Әжем кітап оқып …' }),
+      R('Әкем аялдамада автобус күтіп тұр.', 'Папа (стоит и) ждёт автобус на остановке.', 'Dad is (standing and) waiting for the bus.', { e: '🚏', a: 'тұр', blank: 'Әкем аялдамада автобус күтіп …' }),
+      R('Інім аулада жүгіріп жүр.', 'Братишка бегает во дворе.', 'My little brother is running around the yard.', { e: '🏃', a: 'жүр', blank: 'Інім аулада жүгіріп …' }),
+      R('Мысық диванда ұйықтап жатыр.', 'Кошка (лежит и) спит на диване.', 'The cat is (lying and) sleeping on the sofa.', { e: '😴', a: 'жатыр', blank: 'Мысық диванда ұйықтап …' }),
+      R('Біз партада жазып отырмыз.', 'Мы (сидим за партой и) пишем.', 'We are (sitting at our desks and) writing.', { e: '✍️', a: 'отырмыз', blank: 'Біз партада жазып …' }),
+      R('Сатушы есік алдында күліп тұр.', 'Продавец (стоит у двери и) улыбается.', 'The shop assistant is (standing at the door and) smiling.', { e: '🧍', a: 'тұр', blank: 'Сатушы есік алдында күліп …' }),
+      R('Мен ағылшын тілін үйреніп жүрмін.', 'Я (в эти дни) учу английский.', 'I am learning English (these days).', { e: '📅', a: 'жүрмін', blank: 'Мен ағылшын тілін үйреніп …' })],
+    condEx: [R('Күн жылы болса, далаға шығамыз.', 'Если будет тепло, выйдем на улицу.', 'If it is warm, we will go outside.'),
+      R('Сабағыңды оқысаң, бес аласың.', 'Если выучишь урок, получишь пятёрку.', 'If you learn your lesson, you will get a five.'),
+      R('Уақытым болса, саған барамын.', 'Если будет время, приду к тебе.', 'If I have time, I will come to you.')],
+    collEx: [R('Біз екеуміз доспыз.', 'Мы вдвоём — друзья.', 'The two of us are friends.'), R('Олар үшеуі мектепке барды.', 'Они втроём пошли в школу.', 'The three of them went to school.')],
     // «Мұғалім айтады»: classroom and PE commands (сен form) with the action to pick
     commands: [
       R('Тұр!', 'Встань!', 'Stand up!', { e: '🧍' }), R('Отыр!', 'Сядь!', 'Sit down!', { e: '🪑' }), R('Секір!', 'Прыгай!', 'Jump!', { e: '🦘' }),
