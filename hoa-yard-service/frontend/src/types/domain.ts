@@ -36,7 +36,13 @@ export type ZoneType =
   | "GATE"
   | "STAIRS"
   | "SPORT"
-  | "PLAYGROUND";
+  | "PLAYGROUND"
+  // отдельные малые архитектурные формы — точечные объекты конструктора,
+  // не зоны обслуживания как таковые
+  | "BENCH"
+  | "TRASH_BIN"
+  | "TREE"
+  | "BUSH";
 
 export type GeometryType = "POLYGON" | "POINT" | "LINE";
 
