@@ -24,5 +24,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Близкое — перчаткой, далёкое — грави-лучом; «аламын» включает суперсилу', en: 'Near — the glove, far — the gravity beam; «аламын» powers the hero up' } },
   { id: 'city', kk: 'Қала квесті', ru: 'Квест по городу: вывески', en: 'City Quest', icon: '🏙️', ready: true,
     pillar: { ru: 'Вывески · Барыс септік: қайда? — дәріханаға', en: 'City signs · Dative: where to? — дәріханаға' },
-    mechanic: { ru: 'Прочитай вывеску и отправь Айсұлу на ховерборде; исправь вывески, которые перепутал Жалқаубек', en: 'Read the signs and send Айсұлу on her hoverboard; fix the signs Жалқаубек swapped' } }
+    mechanic: { ru: 'Прочитай вывеску и отправь Айсұлу на ховерборде; исправь вывески, которые перепутал Жалқаубек', en: 'Read the signs and send Айсұлу on her hoverboard; fix the signs Жалқаубек swapped' } },
+  { id: 'lego', kk: 'Лего-Сөз', ru: 'Лего-Сөз: окончания и позы', en: 'Word Lego', icon: '🧱', ready: true,
+    pillar: { ru: 'Тәуелдік и көптік: кітабым, аузым · отыр / тұр / жатыр / тастады', en: 'Possessive and plural: кітабым, аузым · отыр / тұр / жатыр / тастады' },
+    mechanic: { ru: 'Блок-окончание пристыковывается к корню, видно озвончение и выпадение гласной; аниматор поз героев', en: 'An ending block snaps onto the root, showing voicing and a dropped vowel; a pose animator for the heroes' } }
 ];

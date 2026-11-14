@@ -155,6 +155,17 @@ try {
   const C = m.exports;
   C.PLACES.forEach((p) => { add(p.hint.kk); add(C.goPhrase(p)); add(C.fixPhrase(p)); add(p.kk); });
 } catch (e) { process.stderr.write('suite city skipped: ' + e.message + '\n'); }
+// 3D suite: «Лего-Сөз» — «менің кітабым», «көп кітаптар» for every word, and every animator sentence for both heroes
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/lib/legoLogic.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  const L = m.exports, D = require('esbuild').buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/legoForms.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const d = { exports: {} }; new Function('module', 'exports', 'require', D.outputFiles[0].text)(d, d.exports, require);
+  d.exports.LEGO_NOUNS.forEach((n) => L.POSS_KEYS.forEach((k) => add(L.blockPhrase(n, k))));
+  d.exports.POSE_VERBS.forEach((v) => L.HEROES.forEach((h) => L.POSE_KEYS.forEach((k) => add(L.poseSentence(h.kk, v, k)))));
+} catch (e) { process.stderr.write('suite lego skipped: ' + e.message + '\n'); }
 
 // «Сөздік» hub (web/phrasebook-data.js + web/grammar-core.js): phrases, dialogues, proverbs, idioms,
 // twisters, thematic words, and every form the grammar tables can show (spoken exactly as displayed)

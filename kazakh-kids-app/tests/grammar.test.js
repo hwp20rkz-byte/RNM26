@@ -191,6 +191,10 @@ eq(G.need('тыңда', 'siz'), 'Сізге тыңдау керек', 'need siz'
 eq(G.may('кір'), 'кіруге болады', 'may кір'); eq(G.may('ойна', true), 'ойнауға болмайды', 'may not ойна'); eq(G.may('сұра', false, true), 'сұрауға бола ма?', 'may I ask');
 eq(G.may('же', true), 'жеуге болмайды', 'may not же'); eq(G.may('оқы', false, true), 'оқуға бола ма?', 'may I read');
 eq(G.maybe('кел', 'men'), 'келуім мүмкін', 'maybe men'); eq(G.maybe('кел', 'ol'), 'келуі мүмкін', 'maybe ol'); eq(G.maybe('оқы', 'sen'), 'оқуың мүмкін', 'maybe sen'); eq(G.maybe('бар', 'biz'), 'баруымыз мүмкін', 'maybe biz');
+// master plan sprint 3 — completed action «-ып тастады» (did it, finished it off); expected forms written by hand first
+eq(G.done('оқы', 'men'), 'оқып тастадым', 'done оқы men'); eq(G.done('жаз', 'ol'), 'жазып тастады', 'done жаз ol');
+eq(G.done('же', 'sen'), 'жеп тастадың', 'done же sen'); eq(G.done('іш', 'biz'), 'ішіп тастадық', 'done іш biz');
+eq(G.done('тыңда', 'siz'), 'тыңдап тастадыңыз', 'done тыңда siz'); eq(G.done('сал', 'ol'), 'салып тастады', 'done сал ol');
 // auxiliary «now»: -ып + отыр (sitting), тұр (standing / steady), жүр (moving / these days), жатыр (general)
 eq(G.aux('оқы', 'отыр', 'men'), 'оқып отырмын', 'оқып отырмын'); eq(G.aux('оқы', 'отыр', 'ol'), 'оқып отыр', 'оқып отыр');
 eq(G.aux('күт', 'тұр', 'men'), 'күтіп тұрмын', 'күтіп тұрмын'); eq(G.aux('күт', 'тұр', 'sen'), 'күтіп тұрсың', 'күтіп тұрсың');

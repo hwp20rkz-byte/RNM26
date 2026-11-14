@@ -45,7 +45,7 @@ export function BlockHero({ id, move = 'idle', talking = false, position = [0, 0
   useFrame(() => {
     const t = (performance.now() - t0) / 1000, level = talking ? speechLevel() : 0, P = pose(move, t, level);
     const g = parts.current;
-    if (root.current) { root.current.position.set(position[0], position[1] + P.root.y + (h.hover ? 0.35 : 0), position[2]); root.current.rotation.y = rotationY + P.root.rotY; }
+    if (root.current) { root.current.position.set(position[0], position[1] + P.root.y + (h.hover ? 0.35 : 0), position[2]); root.current.rotation.y = rotationY + P.root.rotY; root.current.rotation.z = P.root.rotZ ?? 0; }
     g.armL?.rotation.set(P.armL[0], P.armL[1], P.armL[2]); g.armR?.rotation.set(P.armR[0], P.armR[1], P.armR[2]);
     g.legL?.rotation.set(P.legL[0], P.legL[1], P.legL[2]); g.legR?.rotation.set(P.legR[0], P.legR[1], P.legR[2]);
     g.head?.rotation.set(P.head[0], P.head[1], P.head[2]);

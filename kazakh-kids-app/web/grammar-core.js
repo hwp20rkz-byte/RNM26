@@ -178,6 +178,10 @@
     var e = AUX_END[p], cv = a === 'жатыр' ? converb(stem) : (finalClass(stem) === 'vowel' ? stem + 'п' : stem + pick(stem, 'ып', 'іп'));   // бара жатыр, but барып жүр
     return cv + ' ' + a + pick(a, e[0], e[1]);
   }
+  /* completed action: -ып + тастады (оқып тастадым — I read it through, finished it) */
+  function done(stem, p) {
+    return (finalClass(stem) === 'vowel' ? stem + 'п' : stem + pick(stem, 'ып', 'іп')) + ' ' + past('таста', p);
+  }
   /* conditional -са / -се: барсам, келсек; negative бармасам */
   function cond(stem, p, neg) {
     var base = (neg ? negStem(stem) : stem) + pick(stem, 'са', 'се');
@@ -239,7 +243,7 @@
     negStem: negStem, converb: converb, TENSES: TENSES, conj: conj, ordinal: ordinal, why: why,
     infinitive: infinitive, DAT_PRON: DAT_PRON, need: need, may: may, maybe: maybe, aux: aux, cond: cond, collective: collective,
     voiced: voiced, IMP_PERSONS: IMP_PERSONS, IMP_KK: IMP_KK, imperative: imperative, imperativeNeg: imperativeNeg, ability: ability,
-    NOUNS: NOUNS, VERBS: VERBS, NUMBERS: NUMBERS, FLEETING: FLEETING
+    done: done, NOUNS: NOUNS, VERBS: VERBS, NUMBERS: NUMBERS, FLEETING: FLEETING
   };
   root.QGRAM = G;
   if (typeof module !== 'undefined' && module.exports) module.exports = G;

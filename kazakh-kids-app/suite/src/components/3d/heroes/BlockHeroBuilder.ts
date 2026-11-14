@@ -8,7 +8,7 @@
  */
 export type HeroId = 'batyr' | 'aisulu' | 'tayson' | 'azhebot' | 'apai' | 'anel' | 'alibek' | 'zhalkau';
 export type PartId = 'root' | 'torso' | 'head' | 'armL' | 'armR' | 'legL' | 'legR';
-export type Move = 'idle' | 'wave' | 'cheer' | 'jump360' | 'dombra' | 'punch' | 'levitate' | 'bata' | 'yawn' | 'power';
+export type Move = 'idle' | 'wave' | 'cheer' | 'jump360' | 'dombra' | 'punch' | 'levitate' | 'bata' | 'yawn' | 'power' | 'sit' | 'lie' | 'hold';
 type V3 = [number, number, number];
 
 export interface Piece { part: PartId; shape: 'box' | 'cyl' | 'ball'; size: number[]; pos: V3; rot?: V3; color: string; glow?: boolean; opacity?: number }
@@ -128,7 +128,7 @@ export const HEROES: Record<HeroId, HeroSpec> = {
 export const HERO_IDS = Object.keys(HEROES) as HeroId[];
 
 /** Pose of each part (rotation x / z of the pivots, root offset) for a move at time t (seconds) — pure, unit-tested. */
-export interface Pose { armL: V3; armR: V3; legL: V3; legR: V3; head: V3; root: { y: number; rotY: number } }
+export interface Pose { armL: V3; armR: V3; legL: V3; legR: V3; head: V3; root: { y: number; rotY: number; rotZ?: number } }
 export function pose(move: Move, t: number, talking = 0): Pose {
   const s = Math.sin, P: Pose = { armL: [s(t * 1.6) * 0.06, 0, 0.06], armR: [-s(t * 1.6) * 0.06, 0, -0.06], legL: [0, 0, 0], legR: [0, 0, 0], head: [talking * 0.12, s(t * 0.7) * 0.08, 0], root: { y: Math.abs(s(t * 2)) * 0.02, rotY: 0 } };
   switch (move) {
@@ -141,6 +141,11 @@ export function pose(move: Move, t: number, talking = 0): Pose {
     case 'bata': P.armL = [-1.3, 0, 0.4]; P.armR = [-1.3, 0, -0.4]; P.head = [0.25 + s(t * 2) * 0.08, 0, 0]; break;
     case 'yawn': P.armL = [0, 0, 2.9]; P.armR = [0, 0, -2.9]; P.head = [-0.35, 0, s(t) * 0.1]; break;
     case 'power': P.armL = [0, 0, 1.4 + s(t * 20) * 0.05]; P.armR = [0, 0, -1.4 - s(t * 20) * 0.05]; P.root.y = 0.25 + s(t * 3) * 0.08; break;
+    // «Аниматор» poses (оқып отыр / тұр / жатыр): both hands hold something in front
+    case 'hold': P.armL = [-1.15, 0, 0.25]; P.armR = [-1.15, 0, -0.25]; P.head = [0.3, s(t * 0.7) * 0.05, 0]; break;
+    case 'sit': P.legL = [-1.5, 0, 0.05]; P.legR = [-1.5, 0, -0.05]; P.root.y = -0.78; P.armL = [-1.0, 0, 0.25]; P.armR = [-1.0, 0, -0.25]; P.head = [0.3, 0, 0]; break;
+    // lying on the side, facing the camera, head to the left; raised by half the body width to rest on the ground
+    case 'lie': P.root.rotZ = Math.PI / 2; P.root.y = 0.62; P.armL = [-1.3, 0, 0]; P.armR = [-1.3, 0, 0]; P.head = [0, 0, -0.25]; P.legL = [0, 0, 0]; P.legR = [s(t * 2) * 0.15, 0, 0]; break;
     case 'idle': default: break;
   }
   return P;
