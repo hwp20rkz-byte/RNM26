@@ -346,8 +346,11 @@
     }
     function end() {
       if (over) return; over = true; T.stop(); clearTimeout(spawnT); clearInterval(tickT);
-      finish(api, 'azhe', { score: score, scoreText: served + ' 🍽️ · ' + score + ' ⭐', coins: Math.min(40, served * 3 + Math.floor(score / 50)), xp: Math.min(15, 3 + served), win: served >= 3 && hearts > 0,
-        sub: (api.lang() === 'en' ? 'Guests honoured: ' : 'Оказано уважения гостям: ') + served });
+      var won = served >= 3 && hearts > 0, petBonus = 0, PT = window.QPET;
+      // sprint 6: a won dinner also feeds the pet (once a day it brings +10 🪙)
+      if (won && PT && api.S.pet) { var fd = PT.feed(api.S.pet, window.QZHAL ? window.QZHAL.today() : new Date().toISOString().slice(0, 10)); api.S.pet = fd.st; petBonus = fd.bonus; }
+      finish(api, 'azhe', { score: score, scoreText: served + ' 🍽️ · ' + score + ' ⭐', coins: Math.min(40, served * 3 + Math.floor(score / 50)) + petBonus, xp: Math.min(15, 3 + served), win: won,
+        sub: (api.lang() === 'en' ? 'Guests honoured: ' : 'Оказано уважения гостям: ') + served + (petBonus ? (api.lang() === 'en' ? ' · your pet is fed: +10 🪙' : ' · питомец накормлен: +10 🪙') : '') });
     }
     intro(api, 'azhe', 'Дастархан Master', api.lang() === 'en' ? 'Guests are coming! Seat elders at the төр, greet everyone and answer each need with the right words before their patience runs out.' : 'Идут гости! Старших сажай на төр, всех приветствуй и на каждую просьбу отвечай нужными словами, пока хватает терпения.', function () {
       queue = api.shuffle(GUESTS).slice(0, 4);

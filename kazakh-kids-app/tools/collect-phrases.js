@@ -216,5 +216,10 @@ try {
   window.QARCADE_DATA && window.QARCADE_DATA.GOODS.forEach((g) => { const st = g.p >= 1000 ? 100 : 50; for (let k = -2; k <= 3; k++) add(window.QDATA.numToKk(g.p + k * st) + ' теңге'); });
   Z.THEMES.forEach((t) => Z.all(t.id).forEach((x) => add(x.right)));
 }
+// sprint 6: pet lines and «Көше тілі» pairs
+{
+  const PT = require(path.join(web, 'pets-core.js')); Object.values(PT.LINES).forEach((l) => add(l.kk));
+  global.self = global; require(path.join(web, 'street-data.js')); (global.QSTREET || []).forEach((x) => { add(x[0]); add(x[1]); });
+}
 
 process.stdout.write(JSON.stringify([...out.values()], null, 0));
