@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_CODE=${VERSION_CODE:-9}
-VERSION_NAME=${VERSION_NAME:-3.6}
+VERSION_CODE=${VERSION_CODE:-10}
+VERSION_NAME=${VERSION_NAME:-3.7}
 SDK=${ANDROID_SDK:-/usr/lib/android-sdk}
 ANDROID_JAR="$SDK/platforms/android-23/android.jar"
 DX="$SDK/build-tools/debian/dx"
