@@ -1,0 +1,3 @@
+numpy>=1.24
+gradio_client>=1.3   # free public Hugging Face Spaces (OmniVoice, Qwen3-TTS)
+# optional, local GPU: torch omnivoice

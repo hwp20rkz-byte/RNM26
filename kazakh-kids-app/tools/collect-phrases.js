@@ -1,0 +1,227 @@
+// Prints every Kazakh phrase the game can speak as JSON [{key, text, voice}].
+// voice = tag from the voice matrix (backend/qv_audio/voices.py); "NARR" is the lesson narrator.
+// Usage: node tools/collect-phrases.js > phrases.json
+const path = require('path');
+global.window = {};
+const web = path.resolve(__dirname, '../web');
+['data', 'grade1', 'grade2', 'grade3', 'life', 'textbook', 'grade4', 'curriculum', 'world'].forEach((f) => require(path.join(web, f + '.js')));
+const C = window.QCURRICULUM, VOICES = require('../src/voice/personas.json');
+const tagOf = (who) => (VOICES.personas[who] && VOICES.personas[who].piper.tag) || who;
+// arcade.js only needs a stub of the app API to expose its word lists
+window.Q = { api: { state: () => ({}) }, ext: {} };
+require(path.join(web, 'arcade.js'));
+const D = window.QDATA, W = window.QWORLD, ARC = window.QARCADE_DATA;
+
+const out = new Map();
+function add(t, voice) {
+  if (!t) return;
+  t = String(t).replace(/^—\s*/, '').replace(/\s+/g, ' ').trim();
+  if (!t) return;
+  const k = D.audioKey(t);
+  if (!out.has(k)) out.set(k, { key: k, text: t, voice: voice || 'NARR' });
+}
+function tokens(s) { return s.replace(/[.,!?;:«»"]/g, '').split(/\s+/).filter((t) => t && t !== '—' && t !== '–'); }
+function sentence(s) { add(s); tokens(s).forEach((t) => add(t.toLowerCase())); }
+
+const LOC_VERBS = ['тұрамын', 'мектепке барамын', 'ұйықтаймын', 'түскі ас ішемін', 'шахмат ойнаймын', 'үйге келемін'];
+
+/** A persona line. If another persona already owns the same sentence, this one gets its own file under the
+ *  speaker-qualified key audioKey(text + ' @' + TAG); the game asks for it with TTS.speak(text, quiet, TAG). */
+function addAs(t, voice) {
+  if (!t) return;
+  t = String(t).replace(/^—\s*/, '').replace(/\s+/g, ' ').trim();
+  const k = D.audioKey(t), cur = out.get(k);
+  if (!cur) return add(t, voice);
+  if (cur.voice === voice) return;
+  const q = D.audioKey(t + ' @' + voice);
+  if (!out.has(q)) out.set(q, { key: q, text: t, voice });
+}
+
+// character lines first, so they keep their own voice even if a narrator phrase has the same text
+Object.keys(W.LINES).forEach((who) => Object.values(W.LINES[who]).forEach((l) => addAs(l.kk, W.LINE_VOICE[who])));
+// modules 2 & 4: persona lines (dialogues; the player's answers are Әлібек's), game host lines
+Object.values(C.dialogues).forEach((d) => Object.values(d.nodes).forEach((n) => {
+  addAs(n.kk, tagOf(n.who));
+  (n.choices || []).forEach((c) => addAs(c.kk, 'ALIBEK'));
+}));
+Object.entries(VOICES.lines).forEach(([who, lines]) => Object.values(lines).forEach((t) => addAs(t, tagOf(who))));
+// «Мұғалім айтады» arcade: Баян апай's real commands, Әже-Bot's traps, intro / win / lose (hero voices)
+{ const SM = require(path.join(web, 'simon-core.js'));
+  SM.ACTIONS.forEach((a) => { addAs(SM.line({ action: a, real: true }), 'APAI'); addAs(SM.line({ action: a, real: false }), 'E4'); });
+  Object.values(SM.LINES).forEach((l) => addAs(l.kk, l.who)); }
+addAs(C.room.start, 'ZHALKAU'); addAs(C.room.end, 'ZHALKAU');
+// who reads which game text (src/voice/personas.json → roles): riddles, blueprint questions, finale lines, room items
+const R = VOICES.roles;
+C.riddles.forEach((r) => addAs(r.clue, tagOf(R['riddle.clue'])));
+C.workshop.forEach((b) => { b.tiers.forEach((t) => addAs(t.q, tagOf(R['workshop.question']))); addAs(b.done, tagOf(R['workshop.done'][b.id] || 'ALIBEK')); });
+C.room.items.forEach((x) => addAs(x.say, tagOf(R['room.item'])));
+
+D.GRADES.forEach((g) => g.units.forEach((u) => u.lessons.forEach((l) => {
+  (l.words || []).forEach((w) => add(w.kk));
+  (l.sentences || []).forEach((s) => sentence(s.kk));
+  (l.fills || []).forEach((f) => { add((f.pre + f.ans + f.post).replace(/—/g, ' ')); f.opts.forEach((o) => { if (o.length > 4) add(o); }); });
+  (l.order || []).forEach((o) => add(o.kk));
+})));
+for (let h = 1; h <= 12; h++) {
+  add(D.timeKk(h, 0)); add(D.timeKk(h, 30)); add(D.hourLoc(h));
+  LOC_VERBS.forEach((v) => add('Мен ' + D.hourLoc(h) + ' ' + v + '.'));
+}
+D.NUM_RANGES.forEach(([a, b, st]) => { for (let n = a; n <= b; n += st) add(D.numToKk(n)); });
+for (let n = 100; n <= 2000; n += 50) add(D.numToKk(n));
+
+// arcade
+ARC.SELLER.forEach(sentence);
+ARC.GOODS.forEach((g) => sentence(g.kk.charAt(0).toUpperCase() + g.kk.slice(1) + ' қанша тұрады?'));
+ARC.CMD.forEach((c) => add(c.kk));
+ARC.RESPECT.forEach(add);
+ARC.NEEDS.forEach((n) => add(n.kk));
+ARC.VERSES.forEach((v) => { sentence(v.a); sentence(v.b); });
+['кездескенше', 'қымбат', 'арзан', 'рақмет', 'қолма-қол', 'келістік', 'тәтті', 'ба'].forEach((t) => add(t));
+
+// textbook track: rules, poems, riddles + thematic games
+D.GRADES.forEach((g) => g.units.forEach((u) => u.lessons.forEach((l) => {
+  if (l.rule) add(l.rule);
+  if (l.poem) add(l.poem.kk.replace(/\n/g, ' '));
+})));
+Object.values(D.TOPIC_GAMES || {}).forEach((g) => {
+  (g.items || []).forEach((x) => add(Array.isArray(x) ? x[1] : x.kk));
+  Object.values(g.plural || {}).forEach((x) => add(x));
+  (g.pairs || []).forEach((p) => { add(p.a); add(p.b); add(g.say ? g.say(p) : p.a + ' ' + p.b); });   // topic-games.js speaks «a b» when there is no say()
+});
+for (let h = 1; h <= 12; h++) [0, 10, 15, 20, 30, 40, 45, 50].forEach((m) => add(D.clockPhrase(h, m)));
+// modules 2 & 4: new exercise kinds, riddles, 3D games (narrator voice)
+C.modules.forEach((m) => m.lessons.forEach((l) => {
+  (l.affixes || []).forEach((x) => add((x.person ? x.person + ' ' : '') + x.root + x.ans));
+  (l.busters || []).forEach((x) => add(x.ans));
+  (l.posts || []).forEach((x) => add(x.pre + x.ans + x.post));
+}));
+C.riddles.forEach((r) => { add(r.clue); add(r.answer.toLowerCase()); });
+C.room.items.forEach((x) => { add(x.kk); add(x.say); });
+C.room.containers.forEach((x) => add(x.kk));
+C.workshop.forEach((b) => { add(b.done); b.tiers.forEach((t) => { add(t.q); add(t.ans); }); });
+add('Сәлем! Мен сенің дауысыңмын.');
+
+// 3D suite (suite/src/data/kazakhGrammarCorpus.ts): every sentence with its correct ending, spoken after an answer
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/kazakhGrammarCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  [...m.exports.CASE_SENTENCES, ...m.exports.PERSON_SENTENCES].forEach((x) => add(x.before + x.root + x.ending + x.after));
+} catch (e) { process.stderr.write('suite corpus skipped: ' + e.message + '\n'); }
+// 3D suite: «Ұшқыр монолиттер» antonym pairs (each word and the pair, spoken after a match)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/pairsCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  m.exports.ANTONYMS.forEach((p) => { add(p.a); add(p.b); add(p.a + ' ' + p.b); });
+  m.exports.TRANSLATIONS.forEach((w) => add(w.kk));
+} catch (e) { process.stderr.write('suite pairs skipped: ' + e.message + '\n'); }
+
+// 3D suite: «Сөйлем экспресі» sentences (spoken when the train departs), every word pod and every decoy (spoken on tap)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/sentenceCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  Object.values(m.exports.SENTENCES).forEach((list) => list.forEach((x) => { add(x.kk); x.words.forEach((w) => add(w.toLowerCase())); if (x.decoy) add(x.decoy); }));
+} catch (e) { process.stderr.write('suite sentences skipped: ' + e.message + '\n'); }
+
+// 3D suite: «Әріп кубтары» words (spoken when the word is complete)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/letterCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  m.exports.LETTER_WORDS.forEach((w) => add(w.kk));
+} catch (e) { process.stderr.write('suite letter words skipped: ' + e.message + '\n'); }
+// 3D suite: «Грави-тир» — «Мынау/Анау — X.» for every object and «Мен … аламын / алмаймын.» (spoken after a hit)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/gravityCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  const C = m.exports;
+  C.RANGE_ITEMS.forEach((x) => { add(C.demoPhrase(true, x.kk)); add(C.demoPhrase(false, x.kk)); });
+  C.ABILITIES.forEach((a) => { add(C.canPhrase(a, true)); add(C.canPhrase(a, false)); });
+} catch (e) { process.stderr.write('suite gravity skipped: ' + e.message + '\n'); }
+// 3D suite: «Қала квесті» — the need (spoken at each task), «Дәріханаға барамын!», «Бұл — дәріхана.», every place word
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/cityCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  const C = m.exports;
+  C.PLACES.forEach((p) => { add(p.hint.kk); add(C.goPhrase(p)); add(C.fixPhrase(p)); add(p.kk); });
+} catch (e) { process.stderr.write('suite city skipped: ' + e.message + '\n'); }
+// 3D suite: «Лего-Сөз» — «менің кітабым», «көп кітаптар» for every word, and every animator sentence for both heroes
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/lib/legoLogic.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  const L = m.exports, D = require('esbuild').buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/legoForms.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const d = { exports: {} }; new Function('module', 'exports', 'require', D.outputFiles[0].text)(d, d.exports, require);
+  d.exports.LEGO_NOUNS.forEach((n) => L.POSS_KEYS.forEach((k) => add(L.blockPhrase(n, k))));
+  d.exports.POSE_VERBS.forEach((v) => L.HEROES.forEach((h) => L.POSE_KEYS.forEach((k) => add(L.poseSentence(h.kk, v, k)))));
+} catch (e) { process.stderr.write('suite lego skipped: ' + e.message + '\n'); }
+
+// «Сөздік» hub (web/phrasebook-data.js + web/grammar-core.js): phrases, dialogues, proverbs, idioms,
+// twisters, thematic words, and every form the grammar tables can show (spoken exactly as displayed)
+{
+  require(path.join(web, 'phrasebook-data.js'));
+  const P = window.QPHRASE, G = require(path.join(web, 'grammar-core.js'));
+  P.topics.forEach((t) => { t.phrases.forEach((x) => add(x.kk)); (t.dialog || []).forEach((l) => add(l.kk)); });
+  P.proverbs.forEach((x) => add(x.kk)); P.idioms.forEach((x) => add(x.kk)); P.twisters.forEach((x) => add(x.kk));
+  P.vocab.forEach((v) => v.words.forEach((w) => add(w.kk)));
+  const g = P.gram;
+  g.sounds.forEach((x) => add(x.w)); g.postp.forEach((x) => add(x.ex)); g.order.forEach((x) => add(x.kk)); g.qwords.forEach((x) => add(x.kk));
+  g.compare.forEach((x) => add(x.f)); g.compareEx.forEach((x) => add(x.kk));
+  ['он бір', 'жиырма бес', 'жүз он'].forEach((x) => add(x));
+  const nouns = G.NOUNS.map((n) => n.kk);
+  ['бала', 'мектеп', 'кітап', 'үй', 'дәптер', 'гүл', 'қалам', 'қыз', 'ағаш'].concat(nouns).forEach((w) => add(G.plural(w)));
+  nouns.concat(['мен', 'сен', 'сіз', 'ол', 'біз', 'олар']).forEach((w) => G.CASES.forEach((c) => add(G.caseForm(w, c))));
+  nouns.forEach((w) => { G.POSS_PERSONS.forEach((p) => add(G.POSS_LABEL[p] + ' ' + G.possessive(w, p))); add('Бұл ' + w + ' ' + G.question(w) + '?'); });
+  g.personWords.forEach((x) => G.PERSONS.forEach((p) => add(G.PERSON_KK[p] + ' ' + x.kk + G.personSuffix(x.kk, p))));
+  G.VERBS.forEach((v) => { G.TENSES.forEach((t) => ['men', 'sen', 'siz', 'ol', 'biz'].forEach((p) => add(G.PERSON_KK[p] + ' ' + G.conj(v.kk, t, p)))); add('Менің ' + G.wish(v.kk)); });
+  G.NUMBERS.forEach((n) => { add(n); add(G.ordinal(n)); });
+  // sprint 2: imperative, «can», demonstratives, «Маған … ұнайды», classroom commands (cards and trainers)
+  G.VERBS.forEach((v) => {
+    G.IMP_PERSONS.forEach((p) => add(G.imperative(v.kk, p)));
+    add(G.imperativeNeg(v.kk, 'sen')); add(G.imperativeNeg(v.kk, 'siz'));
+    ['men', 'sen', 'siz', 'ol', 'biz'].forEach((p) => { add(G.PERSON_KK[p] + ' ' + G.ability(v.kk, p)); add(G.PERSON_KK[p] + ' ' + G.ability(v.kk, p, true)); });
+  });
+  g.demo.forEach((x) => { add(x.kk); add(x.ex); });
+  g.likeWho.forEach((w) => { add(w.kk); add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1)); g.likeThings.forEach((t) => add(w.kk.charAt(0).toUpperCase() + w.kk.slice(1) + ' ' + t.kk + ' ұнайды.')); });
+  g.likeEx.forEach((x) => add(x.kk)); g.commands.forEach((x) => add(x.kk));
+  // master plan sprint 1: modal words, auxiliary «now», conditional, collective numerals (cards and trainers)
+  const P5 = ['men', 'sen', 'siz', 'ol', 'biz'];
+  G.VERBS.forEach((v) => {
+    P5.forEach((p) => { add(G.need(v.kk, p)); ['отыр', 'тұр', 'жүр', 'жатыр'].forEach((a) => add(G.PERSON_KK[p] + ' ' + G.aux(v.kk, a, p))); add(G.PERSON_KK[p] + ' ' + G.cond(v.kk, p)); });
+    add(G.infinitive(v.kk)); add(G.may(v.kk)); add(G.may(v.kk, true)); add(G.may(v.kk, false, true)); add(G.maybe(v.kk, 'men')); add('Мен ' + G.cond(v.kk, 'men', true));
+  });
+  ['екі', 'үш', 'төрт', 'бес', 'алты', 'жеті'].forEach((n) => add(G.collective(n))); add(G.collective('екі', 'biz')); add(G.collective('үш', 'ol'));
+  g.modalEx.concat(g.auxEx, g.condEx, g.collEx).forEach((x) => add(x.kk)); g.auxEx.forEach((x) => add(x.a));
+  // sprint 4: clock phrases (Сағат неше?) and the reading corner (web/reading-data.js): every line, question and answer
+  const HOURS = G.NUMBERS.concat(['он бір', 'он екі']);
+  HOURS.forEach((h, i) => { const nx = HOURS[(i + 1) % 12]; ['Сағат ' + h + '.', 'Сағат ' + G.caseForm(h, 'shygys') + ' ширек өтті.', 'Сағат ' + h + ' жарым.', 'Сағат ' + G.caseForm(nx, 'barys') + ' ширек қалды.'].forEach((x) => add(x)); });
+  require(path.join(web, 'reading-data.js'));
+  window.QREAD.forEach((t) => { t.lines.forEach((l) => add(l.kk)); t.qs.forEach((q) => { add(q.kk); add(q.a); }); if (t.fork) { add(t.fork.ask.kk); add(t.fork.a.kk); add(t.fork.b.kk); t.fork.b.lines.forEach((l) => add(l.kk)); } });
+}
+// sprint 4: proverb halves (Айтыс 2.0 rival lines, the proverb duel), bazaar duel prices, Жалқаубек's right forms
+{
+  const P = window.QPHRASE, Z = require(path.join(web, 'zhalkau-core.js'));
+  P.proverbs.forEach((x) => { if (x.a) add(x.a); if (x.b) add(x.b); });
+  window.QARCADE_DATA && window.QARCADE_DATA.GOODS.forEach((g) => { const st = g.p >= 1000 ? 100 : 50; for (let k = -2; k <= 3; k++) add(window.QDATA.numToKk(g.p + k * st) + ' теңге'); });
+  Z.THEMES.forEach((t) => Z.all(t.id).forEach((x) => add(x.right)));
+}
+// phase 2 «Мектеп»: number words 0–200, sums in тенге, prompts and labels of the maths topics
+{ global.self = global; const MK = require(path.join(web, 'mektep-core.js')); MK.voiceLines().forEach((x) => add(x)); }
+// sprint 6: pet lines and «Көше тілі» pairs
+{
+  const PT = require(path.join(web, 'pets-core.js')); Object.values(PT.LINES).forEach((l) => add(l.kk));
+  global.self = global; require(path.join(web, 'street-data.js')); (global.QSTREET || []).forEach((x) => { add(x[0]); add(x[1]); });
+}
+
+process.stdout.write(JSON.stringify([...out.values()], null, 0));

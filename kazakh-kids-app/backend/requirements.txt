@@ -1,0 +1,13 @@
+# Core (scoring, server, edge engines)
+numpy
+sherpa-onnx>=1.12        # whisper-onnx / dolphin / omnilingual engines and silero VAD
+
+# --engine hf  (the Kazakh Whisper fine-tune from the spec; GPU recommended)
+# torch
+# transformers>=4.44
+
+# TTS: character voices with OmniVoice (GPU recommended)
+# torch
+# torchaudio
+# omnivoice>=0.2
+# soundfile

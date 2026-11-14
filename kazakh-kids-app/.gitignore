@@ -1,0 +1,11 @@
+build/
+*.idsig
+node_modules/
+suite/dist/
+voice_studio/*
+!voice_studio/bank/
+__pycache__/
+
+# local keys (template is versioned)
+!.env.example
+.cache/

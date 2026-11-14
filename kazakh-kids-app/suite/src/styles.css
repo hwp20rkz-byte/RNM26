@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ tokens
+ * Neo-Steppe Solarpunk. Brand: turquoise (primary), solar gold (accent), obsidian (neutral, with
+ * tonal steps). Jade = success, coral = error — status only. Hyper-violet lives in the 3D lighting,
+ * not in UI chrome. 8-pt spacing (Tailwind's 4-px unit, even steps only). Five type sizes. */
+@theme {
+  --font-sans: "Nunito", system-ui, sans-serif;
+  --color-turq: hsl(188 100% 40%);
+  --color-turq-300: hsl(188 90% 70%);
+  --color-gold: hsl(37 91% 55%);
+  --color-gold-300: hsl(40 95% 75%);
+  --color-obsidian: hsl(222 39% 7%);
+  --color-obsidian-800: hsl(224 32% 12%);
+  --color-obsidian-700: hsl(226 26% 18%);
+  --color-mist: hsl(210 40% 92%);
+  --color-mist-dim: hsl(214 20% 70%);
+  --color-jade: hsl(160 100% 45%);
+  --color-coral: hsl(356 85% 64%);
+  --text-xs: 0.75rem;     /* 12 */
+  --text-sm: 0.875rem;    /* 14 */
+  --text-base: 1.0625rem; /* 17 */
+  --text-xl: 1.375rem;    /* 22 */
+  --text-3xl: 2rem;       /* 32 */
+  --radius-card: 1.25rem;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 200 1000; font-display: swap; src: url("./assets/fonts/nunito-cyrillic-ext-wght-normal.woff2") format("woff2"); unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F; }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 200 1000; font-display: swap; src: url("./assets/fonts/nunito-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 200 1000; font-display: swap; src: url("./assets/fonts/nunito-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body { background: var(--color-obsidian); color: var(--color-mist); font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--color-gold); outline-offset: 2px; }
+}
+
+@layer components {
+  /* glassmorphic holographic panel */
+  .holo {
+    background: linear-gradient(135deg, hsl(188 100% 40% / 0.14), hsl(222 39% 7% / 0.72) 45%, hsl(271 67% 47% / 0.14));
+    border: 1px solid hsl(188 90% 70% / 0.35);
+    box-shadow: 0 0 0 1px hsl(222 39% 7% / 0.6) inset, 0 8px 32px hsl(222 39% 3% / 0.55), 0 0 24px hsl(188 100% 40% / 0.18);
+    backdrop-filter: blur(14px) saturate(1.3);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  }
+  .chip {
+    min-height: 48px; min-width: 64px; padding: 0 16px; border-radius: 14px; font-weight: 900; font-size: var(--text-xl);
+    background: hsl(222 39% 7% / 0.6); border: 2px solid hsl(188 90% 70% / 0.45); color: var(--color-mist);
+    transition: transform 160ms var(--ease-spring), border-color 160ms, background 160ms;
+  }
+  .chip:active { transform: scale(0.94); }
+  .chip[aria-pressed="true"] { border-color: var(--color-gold); background: hsl(37 91% 55% / 0.18); }
+  .btn-solar {
+    min-height: 52px; padding: 0 24px; border-radius: 16px; font-weight: 900; font-size: var(--text-base); letter-spacing: 0.02em;
+    color: var(--color-obsidian); background: linear-gradient(180deg, var(--color-gold-300), var(--color-gold));
+    box-shadow: 0 4px 0 hsl(32 80% 38%), 0 0 24px hsl(37 91% 55% / 0.45);
+    transition: transform 140ms var(--ease-spring);
+  }
+  .btn-solar:active { transform: translateY(3px); box-shadow: 0 1px 0 hsl(32 80% 38%); }
+  .btn-ghost { min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid hsl(188 90% 70% / 0.3); background: hsl(222 39% 7% / 0.5); font-weight: 800; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+
+@keyframes rise { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 12px hsl(37 91% 55% / 0.35); } 50% { box-shadow: 0 0 28px hsl(37 91% 55% / 0.8); } }

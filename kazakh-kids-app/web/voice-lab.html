@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дауыс зертханасы</title>
+<style>
+  /* tokens: 2 fonts max (system UI + mono), 5 sizes, HSL palette, 8-pt spacing */
+  :root {
+    --bg: hsl(225 35% 9%); --surface: hsl(225 30% 14%); --surface-2: hsl(225 28% 19%); --line: hsl(225 22% 28%);
+    --text: hsl(220 30% 94%); --muted: hsl(220 15% 70%);
+    --primary: hsl(189 100% 42%); --accent: hsl(37 91% 55%); --ok: hsl(152 70% 45%); --bad: hsl(352 85% 64%);
+    --fs-1: 13px; --fs-2: 15px; --fs-3: 17px; --fs-4: 22px; --fs-5: 28px;
+    --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px; --r: 16px;
+    --font: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: var(--fs-2)/1.5 var(--font); }
+  header { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding: var(--s1) var(--s2); padding-top: max(var(--s1), env(safe-area-inset-top)); }
+  .bar { display: flex; align-items: center; gap: var(--s1); max-width: 960px; margin: 0 auto; }
+  h1 { font-size: var(--fs-4); margin: 0; flex: 1; }
+  h2 { font-size: var(--fs-3); margin: var(--s3) 0 var(--s1); }
+  main { max-width: 960px; margin: 0 auto; padding: var(--s2); padding-bottom: max(var(--s4), env(safe-area-inset-bottom)); }
+  button, select, input { font: inherit; color: inherit; }
+  .btn { min-height: 44px; min-width: 44px; padding: 0 var(--s2); border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--primary); border-color: transparent; color: hsl(225 35% 9%); font-weight: 800; }
+  .btn.on { background: var(--primary); color: hsl(225 35% 9%); font-weight: 800; }
+  .btn:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s1); max-width: 960px; margin: var(--s1) auto 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: var(--s2); margin-bottom: var(--s2); }
+  .grid { display: grid; gap: var(--s2); grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1); }
+  .muted { color: var(--muted); font-size: var(--fs-1); }
+  .tag { display: inline-block; padding: 2px var(--s1); border-radius: 8px; background: var(--surface-2); font-size: var(--fs-1); }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--accent); }
+  .name { font-size: var(--fs-3); font-weight: 800; }
+  .slider { display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: var(--s1); min-height: 44px; }
+  .slider input { width: 100%; height: 44px; accent-color: var(--primary); }
+  select { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); padding: 0 var(--s1); width: 100%; }
+  pre { font: var(--fs-1)/1.5 var(--mono); background: var(--surface-2); border-radius: 12px; padding: var(--s2); white-space: pre-wrap; word-break: break-word; margin: var(--s1) 0 0; }
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--s1); }
+  .presets .btn { text-align: left; padding: var(--s1) var(--s2); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="btn" href="index.html" aria-label="Назад в игру" style="display:grid;place-items:center;text-decoration:none">←</a>
+    <h1>🔬 Дауыс зертханасы</h1>
+    <span class="tag">TEST</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="btn on" data-tab="voices" role="tab">Голоса</button>
+    <button class="btn" data-tab="features" role="tab">Возможности</button>
+    <button class="btn" data-tab="tune" role="tab">Тюнинг</button>
+  </nav>
+</header>
+<main id="lab"></main>
+<script src="voice-lab/lab-data.js"></script>
+<script src="voice-lab.js"></script>
+</body>
+</html>
