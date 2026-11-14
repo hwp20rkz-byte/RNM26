@@ -14,13 +14,16 @@
   function say(api, host, name) { var l = W.LINES[host][name]; api.TTS.speak(l.kk, true); return l; }
   function neon(api) { api.qs('.game').classList.add('neon'); }
   // Intro card with the host; resolves when the player taps «Бастау».
-  function intro(api, host, title, how, start) {
+  // duo: optional id of the two-player mode («👥 Екеулеп» — a duel on one phone, sprint 4)
+  function intro(api, host, title, how, start, duo) {
     var l = W.LINES[host].intro, body = api.qs('#gb');
     var ov = document.createElement('div'); ov.className = 'arc-intro';
-    ov.innerHTML = W.hero(host, 'wow') + '<h2>' + api.esc(title) + '</h2><p class="kk">«' + api.esc(l.kk) + '»</p><p class="muted">' + api.esc(L(api, l)) + '</p><p>' + api.esc(how) + '</p><button class="btn gold" id="arcgo">Бастау ▶</button>';
+    ov.innerHTML = W.hero(host, 'wow') + '<h2>' + api.esc(title) + '</h2><p class="kk">«' + api.esc(l.kk) + '»</p><p class="muted">' + api.esc(L(api, l)) + '</p><p>' + api.esc(how) + '</p><button class="btn gold" id="arcgo">Бастау ▶</button>' +
+      (duo ? '<button class="btn ghost" id="arcduo">👥 Екеулеп · ' + api.esc(api.lang() === 'en' ? 'two players, one phone' : 'вдвоём на одном телефоне') + '</button>' : '');
     body.appendChild(ov);
     api.TTS.speak(l.kk, true);
     api.qs('#arcgo').onclick = function () { api.sfx.tap(); ov.remove(); start(); };
+    if (duo) api.qs('#arcduo').onclick = function () { api.sfx.tap(); window.Q.api.startGame(duo); };
   }
   function hostPop(api, host, name) {
     var l = say(api, host, name), el = api.qs('#gb'); if (!el) return;
@@ -151,7 +154,7 @@
     }
     intro(api, 'batyr', 'Көк Базар Rush', api.lang() === 'en' ? 'Buy food for your guests in 75 seconds: ask the price, catch it by ear, haggle and seal the deal. Build each phrase from bubbles.' : 'За 75 секунд закупи продукты для гостей: спроси цену, расслышь её, поторгуйся и ударь по рукам. Каждую фразу собирай из бабблов.', function () {
       T = countdown(api, 75, hud, end); deal();
-    });
+    }, 'duo-bazaar');
   };
 
   /* ============================================================ Аул Cyber-Drift */
@@ -371,7 +374,17 @@
   ARC.aitys = function (api) {
     var bpm = 96, beat = 60 / bpm, AC = null, over = false, raf = 0, sched = 0, score = 0, hype = 50, combo = 0, best = 0, hits = 0, total = 0;
     var words = [], rows = [], vi = 0, wi = 0, t0 = 0, nextBeat = 0, beatN = 0, LEAD = 2.6, HITY = 0.8;
-    var allWords = api.uniqBy([].concat.apply([], VERSES.map(function (v) { return (v.a + ' ' + v.b).split(' '); })), function (w) { return w.toLowerCase(); });
+    // Айтыс 2.0 (sprint 4): verses go in turn — a classic couplet, then a proverb (the rival sings the first half, you
+    // catch the punchline to the beat), then an idiom (whole); proverbs and idioms come from the «Сөздік» data
+    var PB = window.QPHRASE || { proverbs: [], idioms: [] };
+    var PUNCH = api.shuffle(PB.proverbs.filter(function (p) { return p.a && p.b && p.b.split(' ').length <= 6; })), IDI = api.shuffle(PB.idioms.filter(function (x) { return x.kk.split(' ').length <= 5; }));
+    function verse(k) {
+      var r = k % 3;
+      if (r === 1 && PUNCH.length) { var p = PUNCH[Math.floor(k / 3) % PUNCH.length]; return { rival: p.a, a: p.b, b: '', ru: p.ru, en: p.en, tag: '🥊 ' + (api.lang() === 'en' ? 'Punchline — finish the proverb!' : 'Панчлайн — закончи пословицу!') }; }
+      if (r === 2 && IDI.length) { var d = IDI[Math.floor(k / 3) % IDI.length]; return { a: d.kk, b: '', ru: d.ru, en: d.en, tag: '🎭 ' + (api.lang() === 'en' ? 'Idiom' : 'Фразеологизм') }; }
+      return VERSES[Math.floor(k / 3 + (r ? 1 : 0)) % VERSES.length];
+    }
+    var allWords = api.uniqBy([].concat.apply([], VERSES.map(function (v) { return (v.a + ' ' + v.b).split(' '); }).concat(PUNCH.map(function (p) { return p.b.split(' '); }), IDI.map(function (d) { return d.kk.split(' '); }))), function (w) { return w.toLowerCase(); });
     api.frame('Айтыс Beat Battle', '<div class="duel"><span>🎤 Сен</span><div class="duel-bar"><i id="hype"></i></div><span>Қарсылас 🤖</span></div>' +
       '<div class="verse" id="verse"></div><div class="lanes" id="lanes"><div class="hitline"></div></div><div class="judge" id="judge"></div>'); neon(api);
     api.onLeave(function () { over = true; cancelAnimationFrame(raf); closeAudio(); });
@@ -392,9 +405,11 @@
       }
     }
     function loadVerse() {
-      var v = VERSES[vi % VERSES.length]; words = (v.a + ' ' + v.b).split(' '); wi = 0;
-      var cut = v.a.split(' ').length;
-      api.qs('#verse').innerHTML = '<div class="v-kk">' + words.map(function (w, i) { return (i === cut ? '<br>' : '') + '<span data-w="' + i + '">' + api.esc(w) + '</span>'; }).join(' ') + '</div><small>' + api.esc(L(api, v)) + '</small>';
+      var v = verse(vi); words = (v.a + ' ' + v.b).trim().split(' '); wi = 0;
+      var cut = v.b ? v.a.split(' ').length : -1;
+      if (v.rival) api.TTS.speak(v.rival, true);
+      api.qs('#verse').innerHTML = (v.rival ? '<div class="v-rival">🤖 «' + api.esc(v.rival) + ' …»</div>' : '') + (v.tag ? '<div class="v-tag">' + v.tag + '</div>' : '') +
+        '<div class="v-kk">' + words.map(function (w, i) { return (i === cut ? '<br>' : '') + '<span data-w="' + i + '">' + api.esc(w) + '</span>'; }).join(' ') + '</div><small>' + api.esc(L(api, v)) + '</small>';
       for (var i = 0; i < words.length; i++) addRow(i, t0 + (i * 2 + 1) * beat);
       t0 += (words.length * 2 + 2) * beat;
     }
@@ -452,7 +467,7 @@
       AC = new (window.AudioContext || window.webkitAudioContext)();
       sched = AC.currentTime; nextBeat = AC.currentTime + 0.1; t0 = AC.currentTime + 1.2;
       loadVerse(); hud(); frame();
-    });
+    }, 'duo-aitys');
   };
 
   /* ============================================================ Мұғалім айтады (Simon says) */
@@ -510,6 +525,115 @@
     api.qs('#arcgo').onclick = function () { api.sfx.tap(); ov.remove(); setTimeout(show, 400); };
   };
 
+  /* ============================================================ «Екеулеп» — a duel for two on one phone (sprint 4) */
+  // Logic: web/duel-core.js. The top half is turned 180° for the player across the table; first right tap scores.
+  function duel(api, kind) {
+    var DU = window.QDUEL, PB = window.QPHRASE || { proverbs: [] }, en = api.lang() === 'en', over = false, T = null, s, sides, busy = false;
+    var host = kind === 'bazaar' ? 'batyr' : 'aisulu', title = (kind === 'bazaar' ? 'Көк Базар' : 'Айтыс') + ' · Екеулеп';
+    var qs = [];
+    if (kind === 'bazaar') {
+      for (var k = 0; k < DU.QUESTIONS; k++) {
+        var g = GOODS[api.rnd(GOODS.length)], step = g.p >= 1000 ? 100 : 50, price = g.p + (api.rnd(5) - 2) * step;
+        var opts = api.shuffle([price, price + step, Math.max(step, price - step * 2)].filter(function (x, i, a) { return a.indexOf(x) === i; }));
+        qs.push({ answer: String(price), options: opts.map(String), say: D.numToKk(price) + ' теңге', show: g.e + ' ' + g.kk, unit: ' ₸', full: D.numToKk(price) + ' теңге' });
+      }
+    } else {
+      var pv = api.shuffle(PB.proverbs.filter(function (p) { return p.a && p.b; }));
+      pv.slice(0, DU.QUESTIONS).forEach(function (p, i) {
+        var others = api.shuffle(pv.filter(function (x) { return x !== p && x.b !== p.b; })).slice(0, 2).map(function (x) { return x.b; });
+        qs.push({ answer: p.b, options: api.shuffle([p.b].concat(others)), say: p.a, show: '«' + p.a + ' …»', unit: '', full: p.kk });
+      });
+    }
+    s = DU.create(qs);
+    api.frame(title, '<div class="duo"><div class="duo-half top" id="duo1"></div><div class="duo-mid" id="duomid"></div><div class="duo-half" id="duo0"></div></div>'); neon(api);
+    api.onLeave(function () { over = true; if (T) T.stop(); });
+    function mid() { var m = api.qs('#duomid'); if (m) m.innerHTML = '<b class="p1">' + s.score[1] + '</b><span>⏱ ' + (T ? T.left() : DU.SECONDS) + ' · ' + Math.min(s.i + 1, s.qs.length) + '/' + s.qs.length + '</span><b class="p0">' + s.score[0] + '</b>'; }
+    function half(pl) {
+      var q = s.qs[s.i], el = api.qs('#duo' + pl); if (!el || !q) return;
+      var lk = s.locked[pl], res = s.last;
+      el.innerHTML = '<div class="duo-who">' + (pl ? '🔵' : '🟠') + ' ' + (pl ? (en ? 'Player 2' : 'Ойыншы 2') : (en ? 'Player 1' : 'Ойыншы 1')) + ' · <b>' + s.score[pl] + '</b></div>' +
+        '<div class="duo-q">' + api.esc(q.show) + ' <button class="duo-say" data-say="1" aria-label="🔊">🔊</button></div>' +
+        '<div class="duo-opts">' + sides[pl].map(function (o) {
+          var cls = res && (res.type === 'point' || res.type === 'nobody') && o === q.answer ? ' right' : res && res.type === 'point' && res.player === pl && o === q.answer ? ' right' : '';
+          return '<button class="duo-opt' + cls + (lk ? ' off' : '') + '" data-pl="' + pl + '" data-o="' + api.esc(o) + '"' + (lk ? ' disabled' : '') + '>' + api.esc(o + q.unit) + '</button>';
+        }).join('') + '</div>' + (res && res.type === 'point' ? '<div class="duo-res ' + (res.player === pl ? 'win' : 'lose') + '">' + (res.player === pl ? '✨ +1' : '⚡') + '</div>' : '');
+      api.qsa('.duo-opt', el).forEach(function (b) { b.onclick = function () { pick(+b.getAttribute('data-pl'), b.getAttribute('data-o')); }; });
+      api.qs('.duo-say', el).onclick = function () { api.TTS.speak(q.say, true); };
+    }
+    function draw() { half(0); half(1); mid(); }
+    function ask() { if (over) return; sides = DU.sides(s.qs[s.i], Math.random); draw(); api.TTS.speak(s.qs[s.i].say, true); }
+    function pick(pl, o) {
+      if (over || busy) return;
+      var n = DU.tap(s, pl, o); if (n === s) return; s = n;
+      if (s.last.type === 'wrong') { api.sfx.bad(); api.vibrate(40); draw(); return; }
+      busy = true;
+      if (s.last.type === 'point') { api.sfx.ok(); api.vibrate(20); api.TTS.speak(s.qs[s.i].full, true); } else api.sfx.bad();
+      draw();
+      setTimeout(function () { busy = false; if (over) return; if (s.done) return end(); s = DU.next(s); if (s.done) return end(); ask(); }, 1500);
+    }
+    function end() {
+      if (over) return; over = true; if (T) T.stop();
+      if (!s.done) s = DU.timeUp(s);
+      var w = s.winner, t = w === -1 ? 'Тең түсті!' : (w === 0 ? 'Бірінші ойыншы жеңді!' : 'Екінші ойыншы жеңді!');
+      say(api, host, 'win');
+      api.end({ arcade: true, title: t, score: Math.max(s.score[0], s.score[1]), scoreText: '🟠 ' + s.score[0] + ' : ' + s.score[1] + ' 🔵', coins: 6 + Math.max(s.score[0], s.score[1]), xp: 6,
+        sub: (w === -1 ? (en ? 'A draw — play the decider!' : 'Ничья — сыграйте решающий матч!') : (en ? 'Winner: player ' + (w + 1) : 'Победил игрок ' + (w + 1))) });
+    }
+    if (/[?&]e2e\b/.test(location.search)) window.__duel = function () { return { i: s.i, score: s.score.slice(), locked: s.locked.slice(), last: s.last && s.last.type, done: s.done || over, answer: s.qs[s.i] && s.qs[s.i].answer }; };
+    var ov = document.createElement('div'); ov.className = 'arc-intro';
+    ov.innerHTML = W.hero(host, 'wow') + '<h2>' + api.esc(title) + '</h2><p>' + api.esc(kind === 'bazaar'
+      ? (en ? 'Two buyers, one phone. Put the phone between you: the top half is the second player\'s. Listen to the price — whoever taps it first scores. A wrong tap freezes you until the next item. First to 8 or the leader after 90 seconds wins.' : 'Два покупателя, один телефон. Положите телефон между собой: верхняя половина — второго игрока. Слушайте цену — кто первым нажмёт верную, получает очко. Ошибся — ждёшь следующего товара. Побеждает тот, кто первым наберёт 8, или лидер через 90 секунд.')
+      : (en ? 'An aitys of proverbs for two. The first half of a proverb is sung — whoever finds the second half first scores. A wrong tap freezes you for this proverb. First to 8 or the leader after 90 seconds wins.' : 'Айтыс пословиц для двоих. Звучит начало пословицы — кто первым найдёт её конец, получает очко. Ошибся — пропускаешь эту пословицу. Побеждает тот, кто первым наберёт 8, или лидер через 90 секунд.')) +
+      '</p><button class="btn gold" id="arcgo">Бастау ▶</button>';
+    api.qs('#gb').appendChild(ov);
+    api.qs('#arcgo').onclick = function () { api.sfx.tap(); ov.remove(); T = countdown(api, DU.SECONDS, mid, end); ask(); };
+  }
+  ARC['duo-bazaar'] = function (api) { duel(api, 'bazaar'); };
+  ARC['duo-aitys'] = function (api) { duel(api, 'aitys'); };
+
+  /* ============================================================ Жалқаубек Live-Ops: «Қатені тап» (sprint 4) */
+  // Logic: web/zhalkau-core.js — the trick of the day is picked offline by the date. Only right forms are spoken.
+  ARC.zhalkau = function (api) {
+    var Z = window.QZHAL, day = Z.today(), ev = Z.daily(day), en = api.lang() === 'en', i = 0, score = 0, hits = 0, combo = 0, best = 0, over = false, T = null, busy = false;
+    var S = api.S, first = !(S.zhal && S.zhal.day === day);
+    api.frame('Қатені тап', '<div class="zh-head" id="zhh"></div><div class="zh-card" id="zhc"></div><div class="zh-btns"><button class="btn ok" id="zhok">✅ Дұрыс</button><button class="btn bad" id="zhbad">❌ Қате</button></div><div class="zh-fb" id="zhfb"></div>'); neon(api);
+    api.onLeave(function () { over = true; if (T) T.stop(); });
+    function hud() { api.stat('⏱ ' + (T ? T.left() : Z.SECONDS) + ' · ⭐ ' + score + (combo > 2 ? ' · 🔥×' + combo : '')); }
+    function show() {
+      if (over) return;
+      var it = ev.items[i]; busy = false;
+      api.qs('#zhh').innerHTML = '<span class="zh-face">😴</span><b>' + api.esc(ev.theme.kk) + '</b><small>' + (i + 1) + ' / ' + ev.items.length + '</small>';
+      api.qs('#zhc').innerHTML = '<div class="zh-word">' + api.esc(it.shown) + '</div>'; api.qs('#zhfb').innerHTML = '';
+      api.qsa('.zh-btns .btn').forEach(function (b) { b.disabled = false; });
+    }
+    function answer(saysOk) {
+      if (over || busy) return; busy = true;
+      var it = ev.items[i], good = saysOk === it.ok;
+      api.qsa('.zh-btns .btn').forEach(function (b) { b.disabled = true; });
+      if (good) { hits++; combo++; best = Math.max(best, combo); score += 10 + Math.min(combo - 1, 5) * 2; api.sfx.ok(); } else { combo = 0; api.sfx.bad(); api.vibrate(40); }
+      api.qs('#zhfb').innerHTML = '<div class="ph-fb ' + (good ? 'ok' : 'bad') + '"><b>' + (good ? 'Дұрыс!' : (en ? 'Not quite!' : 'Не так!')) + '</b> ' +
+        (it.ok ? api.esc(en ? 'This form is right.' : 'Эта форма верная.') : '<s>' + api.esc(it.shown) + '</s> → <b>' + api.esc(it.right) + '</b>') + '</div>';
+      api.TTS.speak(it.right, true);
+      hud();
+      setTimeout(function () { i++; if (i >= ev.items.length) end(); else show(); }, it.ok ? 900 : 1600);
+    }
+    function end() {
+      if (over) return; over = true; if (T) T.stop();
+      var bonus = first ? 15 : 0;
+      S.zhal = { day: day, best: Math.max(score, S.zhal && S.zhal.day === day ? S.zhal.best : 0) };
+      api.end({ arcade: true, title: hits >= 10 ? 'Жалқаубекті ұстадың!' : 'Жалқаубек қашып кетті…', score: score, scoreText: hits + '/' + ev.items.length + ' · ' + score + ' ⭐', coins: Math.min(40, hits * 2 + bonus), xp: Math.min(15, 4 + hits),
+        sub: (bonus ? (en ? 'Event of the day: +15 🪙 · ' : 'Событие дня: +15 🪙 · ') : '') + L(api, ev.theme.rule) });
+    }
+    api.qs('#zhok').onclick = function () { answer(true); };
+    api.qs('#zhbad').onclick = function () { answer(false); };
+    if (/[?&]e2e\b/.test(location.search)) window.__zhal = function () { return { i: i, score: score, hits: hits, over: over, ok: ev.items[i] && ev.items[i].ok, theme: ev.theme.id }; };
+    var ov = document.createElement('div'); ov.className = 'arc-intro';
+    ov.innerHTML = '<div class="zh-face big">😴</div><h2>' + api.esc(ev.theme.icon + ' ' + ev.theme.kk) + '</h2><p class="muted">' + api.esc(L(api, ev.theme)) + '</p><p>' + api.esc(L(api, ev.theme.rule)) + '</p><p>' +
+      api.esc(en ? 'Some of the 12 words are spoiled. «Дұрыс» — right, «Қате» — spoiled. 60 seconds!' : 'Часть из 12 слов испорчена. «Дұрыс» — верно, «Қате» — испорчено. 60 секунд!') + '</p><button class="btn gold" id="arcgo">Бастау ▶</button>';
+    api.qs('#gb').appendChild(ov);
+    api.qs('#arcgo').onclick = function () { api.sfx.tap(); ov.remove(); T = countdown(api, Z.SECONDS, hud, end); show(); hud(); };
+  };
+
   window.QARCADE = ARC;
   window.QARCADE_DATA = { VERSES: VERSES, CMD: CMD, RESPECT: RESPECT, GOODS: GOODS, NEEDS: NEEDS,
     SELLER: ['Сәлеметсіз бе! Келіңіз!', 'Әрине, бал татиды!', 'Рақмет! Тағы келіңіз!', 'Жарайды!', 'Түсіріп беріңізші!', 'Бұл тым қымбат', 'Келістік!', 'Қолма-қол ма, аударым ба?', 'Аударыммен төлеймін', 'Тәтті ме өзі?', 'Жеттік, осы жерде қалдырыңыз'] };
@@ -517,8 +641,13 @@
   /* ---------- arcade section at the top of the games tab ---------- */
   var A = window.Q.api;
   window.Q.ext.gamesTop = function () {
-    var st = A.state();
-    return '<h2 class="arc-h">Аркада · QazaqVerse</h2><div class="arc-grid">' + W.ARCADE.map(function (g) {
+    var st = A.state(), Z = window.QZHAL, zh = '';
+    if (Z) {
+      var day = Z.today(), ev = Z.daily(day), done = st.zhal && st.zhal.day === day;
+      zh = '<button class="zh-banner' + (done ? ' done' : '') + '" data-arc="zhalkau"><span class="zh-face">😴</span><span><b>' + A.esc(ev.theme.icon + ' ' + ev.theme.kk) + '</b><small>' +
+        A.esc(done ? (A.lang() === 'en' ? 'Done today ✓ · best ' + st.zhal.best + ' ⭐ · play again' : 'Сегодня пройдено ✓ · лучший ' + st.zhal.best + ' ⭐ · ещё раз') : (A.lang() === 'en' ? 'Event of the day · «Қатені тап» · 60 s · +15 🪙' : 'Событие дня · «Қатені тап» · 60 с · +15 🪙')) + '</small></span></button>';
+    }
+    return zh + '<h2 class="arc-h">Аркада · QazaqVerse</h2><div class="arc-grid">' + W.ARCADE.map(function (g) {
       var bestS = (st.arcade || {})[g.id];
       return '<button class="arc-card" data-arc="' + g.id + '" style="--uc:var(--u-' + g.hue + ');--ucd:var(--u-' + g.hue + '-d)">' + W.hero(g.host, 'happy') +
         '<span class="ai">' + g.icon + '</span><b>' + A.esc(g.kk) + '</b><small>' + A.esc(A.tr(g)) + '</small>' + (bestS ? '<i>🏅 ' + bestS + '</i>' : '<i>NEW</i>') + '</button>';

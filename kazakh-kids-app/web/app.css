@@ -865,3 +865,47 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .sim-act.ok { background: var(--sun-100); outline: 3px solid var(--sun-500); } .sim-act.bad { background: var(--bad-bg); outline: 3px solid var(--bad); }
 @media (max-width: 360px) { .sim-grid { grid-template-columns: repeat(2, 1fr); } }
 .sim-act b { font-size: var(--fs-1); line-height: 1.15; padding: 0 2px; text-align: center; letter-spacing: -0.01em; }
+
+/* Айтыс 2.0: the rival's half of a proverb and the verse kind */
+.v-rival { color: hsl(230 30% 76%); font-weight: 800; font-size: var(--fs-2); margin-bottom: var(--s-1); }
+.v-tag { display: inline-block; margin-bottom: var(--s-1); padding: 2px var(--s-2); border-radius: var(--r-1); background: var(--night-500); font-size: var(--fs-1); font-weight: 900; }
+
+/* «Екеулеп» — two players on one phone: the top half faces the player across the table */
+.duo { flex: 1; display: grid; grid-template-rows: 1fr auto 1fr; gap: var(--s-2); min-height: 0; }
+.duo-half { display: flex; flex-direction: column; justify-content: center; gap: var(--s-2); padding: var(--s-2); border-radius: var(--r-2); background: var(--night-800); border: 2px solid var(--u-orange); }
+.duo-half.top { transform: rotate(180deg); border-color: var(--sky-500); }
+.duo-who { font-size: var(--fs-1); font-weight: 900; color: hsl(230 30% 76%); }
+.duo-who b { color: var(--ink-0); font-size: var(--fs-2); }
+.duo-q { display: flex; align-items: center; justify-content: center; gap: var(--s-2); font-size: var(--fs-3); font-weight: 900; text-align: center; }
+.duo-say { min-width: 44px; min-height: 44px; border: 0; border-radius: 50%; background: var(--night-500); color: var(--ink-0); font-size: var(--fs-2); cursor: pointer; }
+.duo-opts { display: grid; gap: var(--s-2); }
+.duo-opt { min-height: 48px; padding: var(--s-1) var(--s-2); border: 2px solid var(--night-500); border-radius: var(--r-2); background: var(--night-700); color: var(--ink-0); font: inherit; font-weight: 800; font-size: var(--fs-2); cursor: pointer; }
+.duo-opt.off { opacity: .4; text-decoration: line-through; }
+.duo-opt.right { background: var(--ok); border-color: var(--ok-d); color: var(--ink-800); }
+.duo-res { text-align: center; font-weight: 900; font-size: var(--fs-3); }
+.duo-res.win { color: var(--neon-lime); }
+.duo-res.lose { color: hsl(230 30% 76%); }
+.duo-mid { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); padding: 0 var(--s-2); font-weight: 900; }
+.duo-mid b { font-size: var(--fs-4); }
+.duo-mid .p0 { color: var(--u-orange); }
+.duo-mid .p1 { color: var(--sky-300); }
+@media (min-width: 720px) { .duo-opts { grid-template-columns: repeat(3, 1fr); } }
+
+/* Жалқаубек — event of the day and the «Қатені тап» blitz */
+.zh-banner { display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 64px; margin: 0 0 var(--s-3); padding: var(--s-2) var(--s-3); text-align: left; font: inherit; color: var(--ink-800);
+  background: var(--sun-100); border: 2px solid var(--sun-500); border-radius: var(--r-2); box-shadow: var(--lip) var(--sun-600); cursor: pointer; }
+.zh-banner b { display: block; font-size: var(--fs-2); }
+.zh-banner small { color: var(--ink-600); }
+.zh-banner.done { background: var(--ink-50); border-color: var(--ink-200); box-shadow: var(--lip) var(--ink-200); }
+.zh-face { font-size: var(--fs-5); line-height: 1; }
+.zh-face.big { font-size: 72px; }
+.zh-head { display: flex; align-items: center; gap: var(--s-2); }
+.zh-head .zh-face { font-size: var(--fs-4); }
+.zh-head b { flex: 1; }
+.zh-card { display: grid; place-items: center; min-height: 140px; padding: var(--s-3); border-radius: var(--r-3); background: var(--night-700); border: 2px solid var(--night-500); }
+.zh-word { font-size: var(--fs-4); font-weight: 900; text-align: center; }
+.zh-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+.zh-btns .btn { min-height: 56px; }
+.zh-fb { min-height: 64px; }
+.zh-fb s { opacity: .7; }
+@media (hover: hover) { .zh-banner:hover { border-color: var(--sun-600); } .duo-opt:hover { border-color: var(--sky-300); } }

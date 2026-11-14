@@ -209,5 +209,12 @@ try {
   require(path.join(web, 'reading-data.js'));
   window.QREAD.forEach((t) => { t.lines.forEach((l) => add(l.kk)); t.qs.forEach((q) => { add(q.kk); add(q.a); }); if (t.fork) { add(t.fork.ask.kk); add(t.fork.a.kk); add(t.fork.b.kk); t.fork.b.lines.forEach((l) => add(l.kk)); } });
 }
+// sprint 4: proverb halves (Айтыс 2.0 rival lines, the proverb duel), bazaar duel prices, Жалқаубек's right forms
+{
+  const P = window.QPHRASE, Z = require(path.join(web, 'zhalkau-core.js'));
+  P.proverbs.forEach((x) => { if (x.a) add(x.a); if (x.b) add(x.b); });
+  window.QARCADE_DATA && window.QARCADE_DATA.GOODS.forEach((g) => { const st = g.p >= 1000 ? 100 : 50; for (let k = -2; k <= 3; k++) add(window.QDATA.numToKk(g.p + k * st) + ' теңге'); });
+  Z.THEMES.forEach((t) => Z.all(t.id).forEach((x) => add(x.right)));
+}
 
 process.stdout.write(JSON.stringify([...out.values()], null, 0));
