@@ -1026,3 +1026,11 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .mk-fb { min-height: 64px; }
 @media (min-width: 720px) { .mk-subj { grid-template-columns: repeat(4, 1fr); } }
 @media (hover: hover) { .mk-t:hover, .mk-o:hover { border-color: var(--sky-500); } }
+.mk-tens .flat { width: 56px; height: 56px; border-radius: 4px; background: var(--u-purple);
+  background-image: linear-gradient(var(--u-purple-d) 1px, transparent 1px), linear-gradient(90deg, var(--u-purple-d) 1px, transparent 1px); background-size: 5.6px 5.6px; }
+.mk-frac { width: 150px; height: 150px; }
+.mk-frac path { fill: var(--ink-0); stroke: var(--u-blue-d); stroke-width: 2; }
+.mk-frac path.on { fill: var(--u-blue); }
+.mk-good { font-size: 72px; line-height: 1; }
+.mk-good span { font-size: var(--fs-4); vertical-align: top; }
+.mk-ask.long { font-size: var(--fs-2); }

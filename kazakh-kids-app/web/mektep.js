@@ -18,6 +18,16 @@
     if (v.type === 'tens') return '<div class="mk-tens">' + new Array(v.t + 1).join('<i class="rod"></i>') + new Array(v.u + 1).join('<i class="one"></i>') + '</div>';
     if (v.type === 'expr') return '<div class="mk-expr">' + A.esc(v.text) + '</div>';
     if (v.type === 'shape') return '<svg class="mk-shape" viewBox="0 0 100 100" aria-hidden="true">' + SHAPE_SVG[v.id] + '</svg>';
+    if (v.type === 'good') return '<div class="mk-good">' + v.e + '<span>🧾</span></div>';
+    if (v.type === 'place') return '<div class="mk-tens">' + new Array(v.h + 1).join('<i class="flat"></i>') + new Array(v.t + 1).join('<i class="rod"></i>') + new Array(v.u + 1).join('<i class="one"></i>') + '</div>';
+    if (v.type === 'frac') {   // a circle cut into d equal slices, n of them shaded
+      var out = '<svg class="mk-frac" viewBox="-52 -52 104 104" aria-hidden="true">';
+      for (var k = 0; k < v.d; k++) {
+        var a0 = k / v.d * 2 * Math.PI - Math.PI / 2, a1 = (k + 1) / v.d * 2 * Math.PI - Math.PI / 2;
+        out += '<path class="' + (k < v.n ? 'on' : '') + '" d="M0 0 L' + (48 * Math.cos(a0)).toFixed(2) + ' ' + (48 * Math.sin(a0)).toFixed(2) + ' A48 48 0 ' + (a1 - a0 > Math.PI ? 1 : 0) + ' 1 ' + (48 * Math.cos(a1)).toFixed(2) + ' ' + (48 * Math.sin(a1)).toFixed(2) + ' Z"/>';
+      }
+      return out + '</svg>';
+    }
     if (v.type === 'coins') return '<div class="mk-coins">' + v.list.map(function (c) { return '<span class="c' + (c >= 100 ? ' big' : '') + '">' + c + '<small>₸</small></span>'; }).join('') + '</div>';
     return '';
   }
@@ -55,11 +65,11 @@
       var q = qs[i]; busy = false;
       api.stat((i + 1) + ' / ' + qs.length + ' · ✅ ' + right);
       api.qs('#mk').innerHTML = '<div class="mk-q"><small>' + A.esc(topic.kk) + '</small><div class="mk-vis">' + visual(q.visual) + '</div>' +
-        '<p class="mk-ask"><b>' + A.esc(q.kk) + '</b> <button class="mk-say" data-s="' + A.esc(q.kk) + '" aria-label="🔊">🔊</button><span class="muted">' + A.esc(T(q)) + '</span></p>' +
+        '<p class="mk-ask' + (q.kk.length > 40 ? ' long' : '') + '"><b>' + A.esc(q.kk) + '</b> ' + (A.TTS.file(q.kk) ? '<button class="mk-say" data-s="' + A.esc(q.kk) + '" aria-label="🔊">🔊</button>' : '') + '<span class="muted">' + A.esc(T(q)) + '</span></p>' +
         '<div class="mk-opts' + (q.options.length > 3 ? ' four' : '') + '">' + q.options.map(function (o) {
           return '<button class="mk-o" data-o="' + A.esc(o) + '">' + A.esc(o) + (q.labels ? '<small>' + A.esc(q.labels[o]) + '</small>' : '') + '</button>';
         }).join('') + '</div><div class="mk-fb" id="mkfb"></div></div>';
-      api.qs('.mk-say').onclick = function () { api.TTS.speak(q.kk, true); };
+      var sb = api.qs('.mk-say'); if (sb) sb.onclick = function () { api.TTS.speak(q.kk, true); };
       api.qsa('.mk-o').forEach(function (b) { b.onclick = function () { answer(b.getAttribute('data-o'), b); }; });
     }
     function answer(o, btn) {
@@ -67,7 +77,7 @@
       var q = qs[i], ok = o === q.answer;
       if (ok) { right++; api.sfx.ok(); btn.classList.add('right'); } else { api.sfx.bad(); api.vibrate(40); btn.classList.add('wrong'); api.qsa('.mk-o').forEach(function (b) { if (b.getAttribute('data-o') === q.answer) b.classList.add('right'); }); }
       api.qs('#mkfb').innerHTML = '<div class="ph-fb ' + (ok ? 'ok' : 'bad') + '"><b>' + (ok ? 'Дұрыс!' : (en() ? 'Answer: ' : 'Ответ: ') + A.esc(q.answer)) + '</b> ' + A.esc(q.full) + '</div>';
-      api.TTS.speak(q.say, true);
+      if (A.TTS.file(q.say)) api.TTS.speak(q.say, true);   // only recorded answers (three-digit numbers are shown, not spoken)
       setTimeout(function () { if (over) return; i++; if (i >= qs.length) end(); else show(); }, ok ? 1300 : 2200);
     }
     function end() {

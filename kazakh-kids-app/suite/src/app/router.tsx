@@ -21,7 +21,8 @@ const PAGES: Record<GameId, ComponentType> = {
   baiterek: lazy(() => import('./games/baiterek/page')),
   gravity: lazy(() => import('./games/gravity/page')),
   city: lazy(() => import('./games/city/page')),
-  lego: lazy(() => import('./games/lego/page'))
+  lego: lazy(() => import('./games/lego/page')),
+  sandar: lazy(() => import('./games/sandar/page'))
 };
 const Hub = lazy(() => import('./page'));
 const Heroes = lazy(() => import('./heroes/page'));

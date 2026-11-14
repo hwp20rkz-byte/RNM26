@@ -20,7 +20,7 @@ eq(M.exprSentence(8, '+', 5, 13), 'Сегіз қосу бес тең он үш.'
 eq(M.exprSentence(15, '−', 7, 8), 'Он бес алу жеті тең сегіз.', 'minus');
 eq(M.exprSentence(3, '×', 4, 12), 'Үш көбейту төрт тең он екі.', 'times');
 let seed = 11; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return seed / 2 ** 31; };
-const calc = (t) => { const m = /^(\d+) ([+−×]) (\d+)$/.exec(t); const a = +m[1], b = +m[3]; return m[2] === '+' ? a + b : m[2] === '−' ? a - b : a * b; };
+const calc = (t) => { const m = /^(\d+) ([+−×÷]) (\d+)$/.exec(t); const a = +m[1], b = +m[3]; return m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '÷' ? a / b : a * b; };
 for (const s of M.SUBJECTS) for (const t of s.topics) for (let k = 0; k < 30; k++) for (const q of M.round(t, rnd)) {
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ': distinct options with the answer'); n++;
   assert.ok(q.kk && q.ru && q.en && q.say && q.full && !/undefined|NaN/.test(q.full + q.say), t.id + ': texts ' + q.full); n++;
@@ -32,7 +32,27 @@ for (const s of M.SUBJECTS) for (const t of s.topics) for (let k = 0; k < 30; k+
   if (v.type === 'coins') eq(q.answer, String(v.list.reduce((a, b) => a + b, 0)), 'coins');
   if (t.gen === 'add20' && q.kk.includes('+')) { const [a, , b] = v.text.split(' ').map(Number); assert.ok(a + b > 10, 'add20 crosses ten: ' + v.text); n++; }
 }
+// grades 3–4 (hand-written expected texts, then the generators)
+eq(M.fractionKk(3, 4), 'төрттен үш', 'fraction 3/4'); eq(M.fractionKk(1, 2), 'екіден бір', 'fraction 1/2'); eq(M.fractionKk(5, 8), 'сегізден бес', 'fraction 5/8');
+eq(M.exprSentence(12, '÷', 3, 4), 'Он екі бөлу үш тең төрт.', 'division');
+eq(M.buyText({ e: '🍎', kk: 'алма' }, 120, 3, 'Әнел'), 'Бір алма — 120 теңге. Әнел 3 алма алды. Барлығы неше теңге?', 'shopping total');
+eq(M.changeText({ e: '📕', kk: 'кітап' }, 500, 320, 'Әлібек'), 'Әлібекте 500 теңге бар. Ол 320 теңгеге кітап алды. Қанша теңге қалды?', 'change');
+for (const t of M.SUBJECTS[0].topics.filter((x) => x.grade >= 3)) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  const v = q.visual;
+  if (t.gen === 'mul69') { const [a, , b] = v.text.split(' ').map(Number); eq(q.answer, String(a * b), 'mul ' + v.text); assert.ok(a >= 6 && a <= 9); }
+  if (t.gen === 'div') { const [a, , b] = v.text.split(' ').map(Number); assert.ok(a % b === 0, 'exact division ' + v.text); eq(q.answer, String(a / b), 'div ' + v.text); }
+  if (t.gen === 'frac') {
+    eq(q.answer, M.fractionKk(v.n, v.d), 'fraction picture ' + v.n + '/' + v.d); assert.ok(v.n < v.d);
+    // no distractor may be the same amount (2/4 and 1/2 are both right): compare values
+    const val = {}; for (const d of [2, 3, 4, 5, 6, 8]) for (let k = 1; k < d; k++) val[M.fractionKk(k, d)] = k / d;
+    assert.ok(q.options.filter((o) => Math.abs(val[o] - v.n / v.d) < 1e-9).length === 1, 'one right amount among ' + q.options.join(', ')); n++;
+  }
+  if (t.gen === 'shop') { const m = /— (\d+) теңге\. \S+ (\d+) /.exec(q.kk); const ch = /^\S+(?:да|де|та|те) (\d+) теңге бар\. Ол (\d+) теңгеге/.exec(q.kk);
+    if (m) eq(q.answer, String(+m[1] * +m[2]), 'shop total'); else eq(q.answer, String(+ch[1] - +ch[2]), 'change'); assert.ok(+q.answer % 10 === 0 && +q.answer <= 1000, 'round sums ≤ 1000'); }
+  if (t.gen === 'place') { eq(q.answer, String(v.h * 100 + v.t * 10 + v.u), 'place value'); }
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length, t.id + ' options'); n++;
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 8 && M.SUBJECTS.slice(1).every((s) => s.day >= 4), 'skeleton: 7 subjects, maths has 8 topics, the rest are planned'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(1).every((s) => s.day >= 4), 'skeleton: 7 subjects, maths has 13 topics (grades 1–4), the rest are planned'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');

@@ -32,10 +32,19 @@
     if (a === b) return wa + ' ' + G.caseForm(wb, 'barys') + ' тең.';
     return wa + ' ' + G.caseForm(wb, 'shygys') + ' ' + (a < b ? 'кем' : 'артық') + '.';
   }
-  var SIGN = { '+': 'қосу', '−': 'алу', '×': 'көбейту' };
+  var SIGN = { '+': 'қосу', '−': 'алу', '×': 'көбейту', '÷': 'бөлу' };
   /** «Сегіз қосу бес тең он үш.» */
   function exprSentence(a, op, b, c) { return cap(N(a)) + ' ' + SIGN[op] + ' ' + N(b) + ' тең ' + N(c) + '.'; }
 
+  /** Fractions read with the engine: 3/4 → «төрттен үш» (the denominator in the ablative). */
+  function fractionKk(n, d) { return G.caseForm(N(d), 'shygys') + ' ' + N(n); }
+  var GOODS4 = [{ kk: 'алма', e: '🍎' }, { kk: 'нан', e: '🍞' }, { kk: 'дәптер', e: '📒' }, { kk: 'қалам', e: '🖊️' }, { kk: 'кітап', e: '📕' }, { kk: 'доп', e: '⚽' }];
+  var KIDS = ['Әнел', 'Әлібек', 'Айсұлу', 'Тайсон'];
+  /** «Бір алма — 120 теңге. Әнел 3 алма алды. Барлығы неше теңге?» */
+  function buyText(g, price, k, who) { return 'Бір ' + g.kk + ' — ' + price + ' теңге. ' + who + ' ' + k + ' ' + g.kk + ' алды. Барлығы неше теңге?'; }
+  /** «Әлібекте 500 теңге бар. Ол 320 теңгеге кітап алды. Қанша теңге қалды?» (locative and dative from the engine) */
+  function changeText(g, have, price, who) { return G.caseForm(who, 'zhatys') + ' ' + have + ' теңге бар. Ол ' + G.caseForm(price + ' теңге', 'barys') + ' ' + g.kk + ' алды. Қанша теңге қалды?'; }
+  var FRAC_D = [2, 3, 4, 5, 6, 8];
   var GEN = {
     count: function (r) {
       var t = THINGS[rint(r, 0, THINGS.length - 1)], n = rint(r, 1, 20);
@@ -85,6 +94,40 @@
     }
   };
 
+  GEN.mul69 = function (r) {
+    var a = rint(r, 6, 9), b = rint(r, 2, 10), c = a * b;
+    return { kk: a + ' × ' + b + ' = ?', ru: 'Умножь', en: 'Multiply', visual: { type: 'expr', text: a + ' × ' + b }, answer: String(c),
+      options: shuffle([c, c + a, c - a].filter(function (x, i, s2) { return x > 0 && s2.indexOf(x) === i; }), r).map(String), say: N(c), full: exprSentence(a, '×', b, c) };
+  };
+  GEN.div = function (r) {
+    var b = rint(r, 2, 9), c = rint(r, 2, 10), a = b * c;
+    return { kk: a + ' ÷ ' + b + ' = ?', ru: 'Раздели', en: 'Divide', visual: { type: 'expr', text: a + ' ÷ ' + b }, answer: String(c),
+      options: near(c, r, 1, 12).map(String), say: N(c), full: exprSentence(a, '÷', b, c) };
+  };
+  GEN.frac = function (r) {
+    var d = FRAC_D[rint(r, 0, FRAC_D.length - 1)], n = rint(r, 1, d - 1), ans = fractionKk(n, d), opts = [ans];
+    // distractors must be a different amount: 1/2 is not «wrong» next to 2/4
+    for (var g = 0, vals = [n / d]; opts.length < 3 && g < 80; g++) { var d2 = FRAC_D[rint(r, 0, FRAC_D.length - 1)], n2 = rint(r, 1, d2 - 1), f = fractionKk(n2, d2);
+      if (opts.indexOf(f) < 0 && vals.every(function (x) { return Math.abs(x - n2 / d2) > 1e-9; })) { opts.push(f); vals.push(n2 / d2); } }
+    return { kk: 'Шеңбердің қанша бөлігі боялған?', ru: 'Какая часть круга закрашена?', en: 'What part of the circle is shaded?', visual: { type: 'frac', n: n, d: d },
+      answer: ans, options: shuffle(opts, r), say: ans, full: n + '/' + d + ' — ' + ans + '.' };
+  };
+  GEN.shop = function (r) {
+    var g = GOODS4[rint(r, 0, GOODS4.length - 1)], who = KIDS[rint(r, 0, KIDS.length - 1)], text, ans;
+    if (r() < 0.5) { var k = rint(r, 2, 4), price = rint(r, 5, Math.floor(1000 / k / 10)) * 10; ans = price * k; text = buyText(g, price, k, who); }
+    else { var have = [200, 500, 1000][rint(r, 0, 2)], p = rint(r, 5, have / 10 - 1) * 10; ans = have - p; text = changeText(g, have, p, who); }
+    var opts = shuffle([ans, ans + 10, Math.max(10, ans - 10), ans + 100].filter(function (x, i, s2) { return s2.indexOf(x) === i; }).slice(0, 3), r);
+    if (opts.indexOf(ans) < 0) opts[0] = ans;
+    return { kk: text, ru: 'Реши задачу', en: 'Solve the problem', visual: { type: 'good', e: g.e }, answer: String(ans), options: opts.map(String), say: N(ans) + ' теңге', full: cap(N(ans)) + ' теңге.' };
+  };
+  GEN.place = function (r) {
+    var h = rint(r, 1, 9), t = rint(r, 0, 9), u = rint(r, 0, 9), n = h * 100 + t * 10 + u;
+    return { kk: h + ' жүздік, ' + t + ' ондық, ' + u + ' бірлік. Бұл қай сан?', ru: h + ' сотен, ' + t + ' десятков, ' + u + ' единиц — какое это число?', en: h + ' hundreds, ' + t + ' tens, ' + u + ' ones — which number?',
+      visual: { type: 'place', h: h, t: t, u: u }, answer: String(n), options: (function () {   // the classic slip first: digits swapped (u·100 + t·10 + h), then near misses
+      var c = [u * 100 + t * 10 + h, n + 10, n - 10, n + 100, n - 100, n + 1, n - 1].filter(function (x) { return x >= 100 && x <= 999 && x !== n; });
+      var o = [n]; c.forEach(function (x) { if (o.length < 3 && o.indexOf(x) < 0) o.push(x); }); return shuffle(o, r).map(String); })(), say: N(n), full: cap(N(n)) + '.' };
+  };
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -95,7 +138,12 @@
       { id: 'm1compare', grade: 1, gen: 'compare', kk: 'Сандарды салыстыру', ru: 'Сравнение чисел', en: 'Comparing numbers' },
       { id: 'm2add100', grade: 2, gen: 'add100', kk: 'Қосу және азайту 100 көлемінде', ru: 'Сложение и вычитание до 100', en: 'Adding and taking away to 100' },
       { id: 'm2mul', grade: 2, gen: 'mul', kk: 'Көбейту кестесі (2–5)', ru: 'Таблица умножения (2–5)', en: 'Times tables (2–5)' },
-      { id: 'm2money', grade: 2, gen: 'money', kk: 'Ақша: теңге', ru: 'Деньги: тенге', en: 'Money: tenge' }
+      { id: 'm2money', grade: 2, gen: 'money', kk: 'Ақша: теңге', ru: 'Деньги: тенге', en: 'Money: tenge' },
+      { id: 'm3mul69', grade: 3, gen: 'mul69', kk: 'Көбейту кестесі (6–9)', ru: 'Таблица умножения (6–9)', en: 'Times tables (6–9)' },
+      { id: 'm3div', grade: 3, gen: 'div', kk: 'Бөлу', ru: 'Деление', en: 'Division' },
+      { id: 'm3frac', grade: 3, gen: 'frac', kk: 'Бөлшектер', ru: 'Доли и дроби', en: 'Fractions' },
+      { id: 'm4shop', grade: 4, gen: 'shop', kk: 'Базарда: есептер', ru: 'Задачи: покупки и сдача', en: 'Word problems: shopping' },
+      { id: 'm4place', grade: 4, gen: 'place', kk: 'Үш таңбалы сандар', ru: 'Трёхзначные числа', en: 'Three-digit numbers' }
     ] },
     { id: 'logic', icon: '🧩', kk: 'Логика', ru: 'Логика и алгоритмы', en: 'Logic', hue: 'purple', day: 4, topics: [] },
     { id: 'nature', icon: '🌿', kk: 'Жаратылыстану', ru: 'Естествознание', en: 'Science', hue: 'green', day: 5, topics: [] },
@@ -123,7 +171,11 @@
     THINGS.forEach(function (t) { out.push('Неше ' + t.kk + ' бар?'); });
     SHAPES.forEach(function (s) { out.push(s.kk); });
     ['кем', 'тең', 'артық', 'Барлығы неше теңге?', 'Бұл қандай пішін?'].forEach(function (x) { out.push(x); });
+    for (var m = 10; m <= 1000; m += 10) out.push(N(m) + ' теңге');             // shopping answers: round sums, change can be under 100
+    for (var hh = 200; hh <= 900; hh += 100) out.push(N(hh));
+    FRAC_D.forEach(function (d) { for (var nn = 1; nn < d; nn++) out.push(fractionKk(nn, d)); });
+    out.push('Шеңбердің қанша бөлігі боялған?');
     return out;
   }
-  return { SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

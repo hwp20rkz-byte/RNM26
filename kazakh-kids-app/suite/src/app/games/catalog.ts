@@ -27,5 +27,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Прочитай вывеску и отправь Айсұлу на ховерборде; исправь вывески, которые перепутал Жалқаубек', en: 'Read the signs and send Айсұлу on her hoverboard; fix the signs Жалқаубек swapped' } },
   { id: 'lego', kk: 'Лего-Сөз', ru: 'Лего-Сөз: окончания и позы', en: 'Word Lego', icon: '🧱', ready: true,
     pillar: { ru: 'Тәуелдік и көптік: кітабым, аузым · отыр / тұр / жатыр / тастады', en: 'Possessive and plural: кітабым, аузым · отыр / тұр / жатыр / тастады' },
-    mechanic: { ru: 'Блок-окончание пристыковывается к корню, видно озвончение и выпадение гласной; аниматор поз героев', en: 'An ending block snaps onto the root, showing voicing and a dropped vowel; a pose animator for the heroes' } }
+    mechanic: { ru: 'Блок-окончание пристыковывается к корню, видно озвончение и выпадение гласной; аниматор поз героев', en: 'An ending block snaps onto the root, showing voicing and a dropped vowel; a pose animator for the heroes' } },
+  { id: 'sandar', kk: 'Сандар қаласы', ru: 'Город чисел: десятки и единицы', en: 'Number City', icon: '🏙️', ready: true,
+    pillar: { ru: 'Мектеп · математика 1–2: ондықтар мен бірліктер, қосу', en: 'School · maths 1–2: tens and ones, adding' },
+    mechanic: { ru: 'Прочитай башни из десятков и единиц; при сложении десять кубиков складываются в новый десяток', en: 'Read towers of tens and ones; when adding, ten cubes stack into a new ten' } }
 ];

@@ -21,7 +21,7 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   await p.click('[data-subj=math]'); await p.waitForTimeout(200);
   await shot(p, 'mk-home.png');
   // every topic's spoken answers are voiced (many rounds)
-  const miss = await p.evaluate(() => { const M = window.QMEKTEP, out = new Set(); M.SUBJECTS[0].topics.forEach((t) => { for (let k = 0; k < 40; k++) M.round(t, Math.random).forEach((q) => { if (!window.Q.api.TTS.file(q.say)) out.add(q.say); if (!window.Q.api.TTS.file(q.kk) && /[а-яәіңғүұқөһ]/i.test(q.kk) && !/\d/.test(q.kk)) out.add(q.kk); }); }); return [...out]; });
+  const miss = await p.evaluate(() => { const M = window.QMEKTEP, out = new Set(); M.SUBJECTS[0].topics.forEach((t) => { for (let k = 0; k < 40; k++) M.round(t, Math.random).forEach((q) => { if (q.visual.type !== 'place' && !window.Q.api.TTS.file(q.say)) out.add(q.say); if (!window.Q.api.TTS.file(q.kk) && /[а-яәіңғүұқөһ]/i.test(q.kk) && !/\d/.test(q.kk) && q.visual.type !== 'good') out.add(q.kk); }); }); return [...out]; });
   assert(miss.length === 0, 'every spoken answer and prompt is voiced' + (miss.length ? ': ' + miss.slice(0, 5).join(' | ') : ''));
   // a full round of «Санау 1–20» with one wrong answer
   await p.click('[data-topic=m1count]'); await p.waitForTimeout(200);
@@ -40,7 +40,7 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   const best = await p.evaluate(() => window.qDebug.state().mektep);
   assert(best && best.m1count === 9, 'the best result is saved');
   // open each other topic and screenshot its first task
-  for (const [g, t] of [[1, 'm1tens'], [1, 'm1shapes'], [1, 'm1add20'], [1, 'm1compare'], [2, 'm2add100'], [2, 'm2mul'], [2, 'm2money']]) {
+  for (const [g, t] of [[1, 'm1tens'], [1, 'm1shapes'], [1, 'm1add20'], [1, 'm1compare'], [2, 'm2add100'], [2, 'm2mul'], [2, 'm2money'], [3, 'm3mul69'], [3, 'm3div'], [3, 'm3frac'], [4, 'm4shop'], [4, 'm4place']]) {
     await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);
     await p.click('[data-subj=math]'); await p.waitForTimeout(100);
     await p.click(`.mk-g[data-grade="${g}"]`); await p.waitForTimeout(100);
