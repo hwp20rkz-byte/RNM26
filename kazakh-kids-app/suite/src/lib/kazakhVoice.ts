@@ -60,7 +60,7 @@ export function speakKazakh(text: string): void {
     const key = audioKey(text), dirs = bases();
     const tryAt = (i: number) => {
       if (i >= dirs.length) return;                 // no recording for this phrase — stay silent
-      const a = new Audio(dirs[i] + key + '.mp3');
+      const a = new Audio(dirs[i] + key + '.' + ((window as unknown as { QAUDIO_EXT?: string }).QAUDIO_EXT || 'mp3'));   // ogg in an OPUS=1 build
       a.onerror = () => tryAt(i + 1);
       current = a; tap(a);
       void a.play().catch(() => undefined);

@@ -168,7 +168,7 @@
       if (k) {
         try {
           if (curAudio) curAudio.pause();
-          curAudio = new Audio(k + '.mp3');
+          curAudio = new Audio(k + '.' + (window.QAUDIO_EXT || 'mp3'));   // mp3, or ogg (Opus) in an OPUS=1 build
           var p = curAudio.play(); if (p && p.catch) p.catch(function () { /* autoplay blocked */ });
         } catch (e) { /* ignore */ }
         return;
@@ -726,6 +726,25 @@
   function gradeSwitch() {
     return '<div class="seg grades">' + D.GRADES.map(function (g) { return '<button data-grade="' + g.n + '" class="' + (S.grade === g.n ? 'on' : '') + '">' + g.kk + '</button>'; }).join('') + '</div>';
   }
+  /* TEST build: which audio format this WebView plays (the Opus experiment, 14.11) and a playback check */
+  function audioDiag() {
+    var a = document.createElement('audio'), ext = window.QAUDIO_EXT || 'mp3';
+    var cp = function (t) { try { return a.canPlayType(t) || '—'; } catch (e) { return '—'; } };
+    return '<div class="card" id="audiodiag" style="margin-top:8px"><b>🔊 Звук: ' + (ext === 'ogg' ? 'Opus (ogg)' : 'mp3') + '</b>' +
+      '<p class="muted" style="margin:4px 0">Opus: ' + cp('audio/ogg; codecs="opus"') + ' · mp3: ' + cp('audio/mpeg') + ' · ' + esc(navigator.userAgent.replace(/.*(Android [\d.]+).*(Chrome\/[\d]+).*/, '$1 · $2')) + '</p>' +
+      '<button class="btn ghost" id="audiotest">▶ Проверить звук</button><p id="audiores" class="muted" style="margin:4px 0"></p></div>';
+  }
+  function bindAudioDiag() {
+    var b = qs('#audiotest'); if (!b) return;
+    b.onclick = function () {
+      var k = TTS.file('Сәлем'), r = qs('#audiores'), t0 = Date.now();
+      if (!k) { r.textContent = 'нет записи «Сәлем»'; return; }
+      var au = new Audio(k + '.' + (window.QAUDIO_EXT || 'mp3'));
+      au.onplaying = function () { r.textContent = '✅ играет (' + (Date.now() - t0) + ' мс до звука)'; };
+      au.onerror = function () { r.textContent = '❌ ошибка воспроизведения: ' + (au.error ? au.error.code : '?'); };
+      var p = au.play(); if (p && p.catch) p.catch(function (e) { r.textContent = '❌ ' + e.name; });
+    };
+  }
   function langSwitch() {
     return '<div class="seg two">' + [['ru', 'Русский → Қазақша'], ['en', 'English → Қазақша']].map(function (l) { return '<button data-lang="' + l[0] + '" class="' + (lang() === l[0] ? 'on' : '') + '">' + l[1] + '</button>'; }).join('') + '</div>';
   }
@@ -965,6 +984,7 @@
       '<label class="muted">Нешінші сынып? — В каком ты классе?</label>' + gradeSwitch() +
       '<label class="muted">Оқу режимі — режим обучения</label>' + langSwitch() +
       '<label class="muted">Дауыс — голос диктора</label><div class="seg" style="grid-template-columns:repeat(' + Math.min(TTS.voices().length, 4) + ',1fr)">' + TTS.voices().map(function (v) { return '<button data-voice="' + v[0] + '" class="' + (TTS.voice() === v[0] ? 'on' : '') + '">' + esc(v[1]) + '</button>'; }).join('') + '</div>' +
+      (window.QTEST ? audioDiag() : '') +
       (window.QTEST && !/android_asset/.test(location.href) ? '<a class="btn" id="voicelab" href="voice-lab.html" style="display:block;text-align:center;margin-top:8px;text-decoration:none">🔬 Дауыс зертханасы — все голоса и тюнинг (TEST)</a>' : '') +
       '<div class="kpis">' +
       '<div class="kpi"><span class="ico">⚡</span><div><b>' + S.xp + '</b><span>Шежіре XP</span></div></div>' +
@@ -989,7 +1009,7 @@
     var nm = qs('#nm');
     nm.oninput = function () { S.name = nm.value.trim().slice(0, 24); save(); };
     qs('#snd').onclick = function () { S.sound = !S.sound; save(); sfx.tap(); refresh(); };
-    X('bindMe');
+    X('bindMe'); bindAudioDiag();
     var ts = qs('#ttsset'); if (ts) ts.onclick = function () { try { window.Android.openTtsSettings(); } catch (e) { /* ignore */ } };
     qs('#reset').onclick = function () {
       sheet(myHero('sad') + '<h3>Начать заново?</h3><p>Все очки, асыки, герои, наклейки, скины и уроки будут сброшены.</p>' +

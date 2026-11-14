@@ -20,6 +20,9 @@ OUT=dist/qazaqsha-oyna.apk
 TEST=${TEST:-0}
 PACKAGE=kz.qazaqsha.oyna
 if [ "$TEST" = 1 ]; then OUT=dist/qazaqsha-oyna-test.apk; VERSION_NAME="$VERSION_NAME-test"; PACKAGE=kz.qazaqsha.oyna.test; fi
+# OPUS=1 → speech in Ogg Opus instead of mp3 (owner's experiment 14.11: test on Android 5–7 before the release build)
+OPUS=${OPUS:-0}
+if [ "$OPUS" = 1 ]; then OUT="${OUT%.apk}-opus.apk"; VERSION_NAME="$VERSION_NAME-opus"; fi
 # remove only our own build directory (fixed relative path)
 rm -rf -- "./$BUILD"
 mkdir -p "$BUILD/gen" "$BUILD/classes" "$BUILD/assets" dist
@@ -43,6 +46,28 @@ if [ -f suite/dist/index.html ]; then
   printf 'window.QSUITE = true;\n' > "$BUILD/assets/suite/available.js"
 else
   echo "warning: suite/dist is missing — building the APK without the 3D hall (run: cd suite && npm ci && npm run build)"
+fi
+
+# 1b'. OPUS=1: every speech take → Ogg Opus 20 kbit/s mono (voice mode), only in the build copy — the repository keeps
+# mp3. Converted takes are cached in .cache/opus (same name, newer than the mp3 → reused). The players read the
+# extension from window.QAUDIO_EXT (assets/audio-format.js, loaded by the game and the 3D hall).
+if [ "$OPUS" = 1 ]; then
+  command -v ffmpeg >/dev/null || { echo "OPUS=1 needs ffmpeg with libopus"; exit 1; }
+  CACHE=.cache/opus
+  for d in "$BUILD"/assets/audio "$BUILD"/assets/audio-*; do
+    [ -d "$d" ] || continue
+    name=$(basename "$d"); mkdir -p "$CACHE/$name"
+    find "$d" -maxdepth 1 -name '*.mp3' -printf '%f\n' | sed 's/\.mp3$//' | \
+      xargs -P "$(nproc)" -I{} sh -c 'src="web/'"$name"'/{}.mp3"; dst="'"$CACHE/$name"'/{}.ogg";
+        [ -s "$dst" ] && [ "$dst" -nt "$src" ] || ffmpeg -nostdin -loglevel error -y -i "$src" -ac 1 -c:a libopus -b:a 20k -application voip "$dst"'
+    find "$d" -maxdepth 1 -name '*.mp3' -printf '%f\n' | sed 's/\.mp3$//' | while read -r k; do cp "$CACHE/$name/$k.ogg" "$d/$k.ogg"; rm "$d/$k.mp3"; done
+  done
+  printf "window.QAUDIO_EXT = 'ogg';\n" > "$BUILD/assets/audio-format.js"
+  cp "$BUILD/assets/audio-format.js" "$BUILD/assets/suite/audio-format.js" 2>/dev/null || true
+  sed -i 's#<script src="data.js"></script>#<script src="audio-format.js"></script>\n  <script src="data.js"></script>#' "$BUILD/assets/index.html"
+  [ -f "$BUILD/assets/suite/index.html" ] && sed -i 's#</head>#<script src="./audio-format.js"></script></head>#' "$BUILD/assets/suite/index.html"
+  left=$(find "$BUILD"/assets/audio* -name '*.mp3' | wc -l); [ "$left" = 0 ] || { echo "OPUS: $left mp3 left"; exit 1; }
+  echo "opus: $(find "$BUILD"/assets/audio* -name '*.ogg' | wc -l) takes, $(du -sh "$BUILD"/assets/audio* | awk '{s=s" "$1} END{print s}')"
 fi
 
 # 1c. test flag and test resources (app name «Test QazaqVerse»)
