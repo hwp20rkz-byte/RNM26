@@ -8,7 +8,7 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "build": "npm run typecheck && vite build && node scripts/postbuild.mjs",
+    "build": "npm run typecheck && vite build && node scripts/build-physics.mjs && node scripts/postbuild.mjs",
     "preview": "vite preview",
     "budget": "node scripts/budget.mjs",
     "e2e": "node tests/e2e/totem.e2e.cjs && node tests/e2e/totem.e2e.cjs \"\" 1280 720 && node tests/e2e/physics.e2e.cjs && node tests/e2e/monoliths.e2e.cjs && node tests/e2e/hyperloop.e2e.cjs && node tests/e2e/anagram.e2e.cjs && node tests/e2e/baiterek.e2e.cjs && node tests/e2e/gravity.e2e.cjs && node tests/e2e/city.e2e.cjs && node tests/e2e/lego.e2e.cjs"

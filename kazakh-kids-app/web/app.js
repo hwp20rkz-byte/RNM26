@@ -965,7 +965,7 @@
       '<label class="muted">Нешінші сынып? — В каком ты классе?</label>' + gradeSwitch() +
       '<label class="muted">Оқу режимі — режим обучения</label>' + langSwitch() +
       '<label class="muted">Дауыс — голос диктора</label><div class="seg" style="grid-template-columns:repeat(' + Math.min(TTS.voices().length, 4) + ',1fr)">' + TTS.voices().map(function (v) { return '<button data-voice="' + v[0] + '" class="' + (TTS.voice() === v[0] ? 'on' : '') + '">' + esc(v[1]) + '</button>'; }).join('') + '</div>' +
-      (window.QTEST ? '<a class="btn" id="voicelab" href="voice-lab.html" style="display:block;text-align:center;margin-top:8px;text-decoration:none">🔬 Дауыс зертханасы — все голоса и тюнинг (TEST)</a>' : '') +
+      (window.QTEST && !/android_asset/.test(location.href) ? '<a class="btn" id="voicelab" href="voice-lab.html" style="display:block;text-align:center;margin-top:8px;text-decoration:none">🔬 Дауыс зертханасы — все голоса и тюнинг (TEST)</a>' : '') +
       '<div class="kpis">' +
       '<div class="kpi"><span class="ico">⚡</span><div><b>' + S.xp + '</b><span>Шежіре XP</span></div></div>' +
       '<div class="kpi"><span class="ico">🪙</span><div><b>' + S.coins + '</b><span>алтын асық</span></div></div>' +

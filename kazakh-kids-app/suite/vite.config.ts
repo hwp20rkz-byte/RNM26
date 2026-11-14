@@ -13,6 +13,8 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
+  // Rapier (2 MB with its inlined WASM) is loaded only by the physics game: see src/lib/rapierLazy.ts
+  resolve: { alias: { '@dimforge/rapier3d-compat': decodeURIComponent(new URL('./src/lib/rapierLazy.ts', import.meta.url).pathname) } },
   server: { fs: { allow: ['..'] } },
   build: {
     outDir: 'dist',
