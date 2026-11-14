@@ -7,7 +7,7 @@ import { persist } from 'zustand/middleware';
 import type { Quality } from '../types/game.types';
 import { safeJSONStorage } from './safeStorage';
 
-export type GameId = 'totem-cases' | 'hyperloop' | 'monoliths' | 'anagram' | 'baiterek';
+export type GameId = 'totem-cases' | 'hyperloop' | 'monoliths' | 'anagram' | 'baiterek' | 'gravity';
 
 /** XP needed to reach level n+1 grows gently: 100, 150, 200, … */
 export const xpForLevel = (level: number): number => 100 + (level - 1) * 50;

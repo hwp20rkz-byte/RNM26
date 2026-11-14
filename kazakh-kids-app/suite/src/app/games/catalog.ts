@@ -18,5 +18,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Кубики-буквы в низкой гравитации; ловушка — русская буква-двойник', en: 'Letter cubes in low gravity; the trap is the Russian look-alike' } },
   { id: 'baiterek', kk: 'Бәйтерек қорғаны', ru: 'Защита Байтерека', en: 'Baiterek Defense', icon: '🌳', ready: true,
     pillar: { ru: 'Быстрый перевод: картинки и слова', en: 'Quick translation: pictures and words' },
-    mechanic: { ru: 'Метеориты падают на Бәйтерек — назови по-казахски', en: 'Meteors fall on Baiterek — name them in Kazakh' } }
+    mechanic: { ru: 'Метеориты падают на Бәйтерек — назови по-казахски', en: 'Meteors fall on Baiterek — name them in Kazakh' } },
+  { id: 'gravity', kk: 'Грави-тир', ru: 'Грави-тир: мынау, анау, аламын', en: 'Gravity Range', icon: '🧲', ready: true,
+    pillar: { ru: 'Мынау / анау · Мен … аламын', en: 'Мынау / анау · Мен … аламын' },
+    mechanic: { ru: 'Близкое — перчаткой, далёкое — грави-лучом; «аламын» включает суперсилу', en: 'Near — the glove, far — the gravity beam; «аламын» powers the hero up' } }
 ];

@@ -27,6 +27,33 @@ export function audioKey(t: string): string {
 }
 
 let current: HTMLAudioElement | null = null;
+
+/* ---------- lip-sync: how loud the current line is right now (0..1) ---------- */
+let ctx: AudioContext | null = null, analyser: AnalyserNode | null = null, buf: Uint8Array<ArrayBuffer> | null = null;
+function tap(a: HTMLAudioElement) {
+  try {
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    ctx = ctx ?? new AC();
+    if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 256; buf = new Uint8Array(new ArrayBuffer(analyser.fftSize)); analyser.connect(ctx.destination); }
+    ctx.createMediaElementSource(a).connect(analyser);
+    void ctx.resume?.();
+  } catch { /* no Web Audio: the envelope fallback below still moves the mouth */ }
+}
+export const isSpeaking = () => !!current && !current.paused && !current.ended;
+/** Loudness of the line being spoken: RMS from the analyser; when it reads silence (file:// in old WebViews) a
+ *  syllable-like envelope keeps the mouth moving while the audio plays. */
+export function speechLevel(): number {
+  if (!isSpeaking()) return 0;
+  if (analyser && buf) {
+    analyser.getByteTimeDomainData(buf);
+    let sum = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
+    const rms = Math.sqrt(sum / buf.length);
+    if (rms > 0.004) return Math.min(1, rms * 4);
+  }
+  const t = performance.now() / 1000;
+  return 0.25 + 0.55 * Math.abs(Math.sin(t * 11)) * (0.6 + 0.4 * Math.sin(t * 3.1));
+}
 export function speakKazakh(text: string): void {
   try {
     if (current) current.pause();
@@ -35,7 +62,7 @@ export function speakKazakh(text: string): void {
       if (i >= dirs.length) return;                 // no recording for this phrase — stay silent
       const a = new Audio(dirs[i] + key + '.mp3');
       a.onerror = () => tryAt(i + 1);
-      current = a;
+      current = a; tap(a);
       void a.play().catch(() => undefined);
     };
     tryAt(0);

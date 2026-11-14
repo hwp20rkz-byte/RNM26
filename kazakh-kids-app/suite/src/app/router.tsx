@@ -1,5 +1,5 @@
 /**
- * Tiny hash router: `#/` hub, `#/games/<id>` game pages. Hash routing works from file:// (the APK)
+ * Tiny hash router: `#/` hub, `#/games/<id>` game pages, `#/heroes` hero gallery. Hash routing works from file:// (the APK)
  * and from any static host without server rewrites.
  */
 import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
@@ -18,9 +18,11 @@ const PAGES: Record<GameId, ComponentType> = {
   hyperloop: lazy(() => import('./games/hyperloop/page')),
   monoliths: lazy(() => import('./games/monoliths/page')),
   anagram: lazy(() => import('./games/anagram/page')),
-  baiterek: lazy(() => import('./games/baiterek/page'))
+  baiterek: lazy(() => import('./games/baiterek/page')),
+  gravity: lazy(() => import('./games/gravity/page'))
 };
 const Hub = lazy(() => import('./page'));
+const Heroes = lazy(() => import('./heroes/page'));
 
 export function Router() {
   const path = useHashPath();
@@ -28,7 +30,7 @@ export function Router() {
   const Page = m && (PAGES as Record<string, ComponentType | undefined>)[m[1]];
   return (
     <Suspense fallback={<div className="grid h-full place-items-center text-turq-300">◌</div>}>
-      {Page ? <Page /> : <Hub />}
+      {Page ? <Page /> : path.startsWith('/heroes') ? <Heroes /> : <Hub />}
     </Suspense>
   );
 }

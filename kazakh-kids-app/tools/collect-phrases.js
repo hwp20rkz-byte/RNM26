@@ -136,6 +136,16 @@ try {
   new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
   m.exports.LETTER_WORDS.forEach((w) => add(w.kk));
 } catch (e) { process.stderr.write('suite letter words skipped: ' + e.message + '\n'); }
+// 3D suite: «Грави-тир» — «Мынау/Анау — X.» for every object and «Мен … аламын / алмаймын.» (spoken after a hit)
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/gravityCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  const C = m.exports;
+  C.RANGE_ITEMS.forEach((x) => { add(C.demoPhrase(true, x.kk)); add(C.demoPhrase(false, x.kk)); });
+  C.ABILITIES.forEach((a) => { add(C.canPhrase(a, true)); add(C.canPhrase(a, false)); });
+} catch (e) { process.stderr.write('suite gravity skipped: ' + e.message + '\n'); }
 
 // «Сөздік» hub (web/phrasebook-data.js + web/grammar-core.js): phrases, dialogues, proverbs, idioms,
 // twisters, thematic words, and every form the grammar tables can show (spoken exactly as displayed)

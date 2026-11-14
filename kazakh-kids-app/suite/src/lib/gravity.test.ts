@@ -1,3 +1,4 @@
+// @ts-expect-error -- Node builtin; @types/node is not installed in the suite
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { ABILITIES, RANGE_ITEMS, canPhrase, demoPhrase } from '../data/gravityCorpus';

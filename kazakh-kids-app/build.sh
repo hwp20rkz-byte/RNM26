@@ -49,6 +49,11 @@ fi
 RES=android/res
 if [ "$TEST" = 1 ]; then
   printf 'window.QTEST = true;\n' > "$BUILD/assets/test-mode.js"
+  # 3D hall: the same flag shows «⏭ TEST» (autoSolve) in every suite game (suite/src/lib/testMode.tsx)
+  if [ -f "$BUILD/assets/suite/index.html" ]; then
+    printf 'window.QTEST = true;\n' > "$BUILD/assets/suite/test-mode.js"
+    sed -i 's#</head>#<script src="./test-mode.js"></script></head>#' "$BUILD/assets/suite/index.html"
+  fi
   # voice lab (tools/make-voice-lab.mjs): every Freedom Speech voice, feature demos and tuning — TEST build only
   if [ -f web/voice-lab/lab-data.js ]; then mkdir -p "$BUILD/assets/voice-lab" && cp web/voice-lab/*.mp3 web/voice-lab/lab-data.js "$BUILD/assets/voice-lab/"; fi
   cp -r android/res "$BUILD/res" && RES="$BUILD/res"
