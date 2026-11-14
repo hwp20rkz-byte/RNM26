@@ -219,6 +219,7 @@
     { id: 'dastarkhan', icon: '🫖', kk: 'Дастархан Master', ru: 'Встречай почётных гостей', en: 'Host your honoured guests', host: 'azhe', hue: 'red' },
     { id: 'aitys', icon: '🎤', kk: 'Айтыс Beat Battle', ru: 'Ритм-дуэль на сцене юрты', en: 'Rhythm duel on the yurt stage', host: 'aisulu', hue: 'purple' },
     { id: 'simon', icon: '📣', kk: 'Мұғалім айтады', ru: 'Апай сказала — делай, робот — замри!', en: 'Apai says — do it, the robot says — freeze!', host: 'azhe', hue: 'teal' },
+    { id: 'blitz', icon: '⚡', kk: 'Жылдам аударма', ru: 'Перевод на скорость: 90 секунд', en: 'Speed translation: 90 seconds', host: 'tayson', hue: 'orange' },
     { id: 'teacher', icon: '👩‍🏫', kk: 'Мұғалім парағы', ru: 'Блиц на 5 минут для всего класса', en: '5-minute blitz for the whole class', host: 'batyr', hue: 'blue' }
   ];
 

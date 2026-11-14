@@ -684,6 +684,55 @@
     setup();
   };
 
+  /* ============================================================ «Жылдам аударма» — 90-second translation blitz */
+  // Logic: web/blitz-core.js. Words of all lessons; modes: Kazakh → translation, translation → Kazakh, listening.
+  ARC.blitz = function (api) {
+    var B = window.QBLITZ, en = api.lang() === 'en', mode = 'kk', words = [], q = null, i = 0, st = B.START, over = false, busy = false, T = null;
+    api.frame('Жылдам аударма', '<div class="bz" id="bz"></div>'); neon(api);
+    api.onLeave(function () { over = true; if (T) T.stop(); });
+    var total = window.qFast ? 16 : B.SECONDS;
+    function hud(left) {
+      var l = left != null ? left : T ? T.left() : total, h = api.qs('#bzhud'); api.stat('⚡ ' + st.score);
+      if (h) h.innerHTML = '<span>⏱ ' + Math.floor(l / 60) + ':' + String(l % 60).padStart(2, '0') + '</span><i class="bz-bar"><b style="width:' + Math.round(l / total * 100) + '%"></b></i><span class="bz-score">' + st.score + '</span><span>🔥 ' + st.streak + '</span>';
+    }
+    function show() {
+      if (over) return;
+      q = B.question(words, i++, mode, api.tr, Math.random); busy = false;
+      api.qs('#bz').innerHTML = '<div class="bz-hud" id="bzhud"></div><div class="bz-card"><small>' + api.esc(mode === 'tr' ? (en ? 'Find it in Kazakh' : 'Найди по-казахски') : mode === 'ear' ? (en ? 'Listen and find the translation' : 'Слушай и найди перевод') : (en ? 'Find the translation' : 'Найди перевод')) + '</small>' +
+        '<b>' + api.esc(q.prompt) + '</b>'   /* no picture: it would give the translation away */ + (mode === 'ear' ? '<button class="btn ghost" id="bzsay">🔊 ' + api.esc(en ? 'again' : 'ещё раз') + '</button>' : '') + '</div>' +
+        '<div class="bz-opts">' + q.options.map(function (o) { return '<button class="bz-o" data-o="' + api.esc(o) + '">' + api.esc(o) + '</button>'; }).join('') + '</div>';
+      hud();
+      if (mode === 'ear') { api.TTS.speak(q.say, true); api.qs('#bzsay').onclick = function () { api.TTS.speak(q.say, true); }; }
+      api.qsa('.bz-o').forEach(function (b) { b.onclick = function () { pick(b); }; });
+    }
+    function pick(b) {
+      if (busy || over) return; busy = true;
+      var ok = b.getAttribute('data-o') === q.answer; st = B.answer(st, ok);
+      b.classList.add(ok ? 'right' : 'wrong');
+      if (!ok) { api.qsa('.bz-o').forEach(function (x) { if (x.getAttribute('data-o') === q.answer) x.classList.add('show'); }); api.qs('.bz-card').classList.add('bad'); api.sfx.bad(); api.vibrate(40); }
+      else { api.sfx.ok(); if (st.streak === 10) hostPop(api, 'tayson', 'combo'); }
+      if (mode !== 'ear') api.TTS.speak(q.say, true);
+      hud(); setTimeout(show, ok ? 550 : 1100);
+    }
+    function end() {
+      if (over) return; over = true; if (T) T.stop();
+      var acc = st.right + st.wrong ? Math.round(st.right / (st.right + st.wrong) * 100) : 0;
+      api.end({ arcade: true, title: st.right >= 20 ? 'Керемет! Жылдамсың!' : st.right >= 10 ? 'Жарайсың!' : 'Тағы байқап көр!', score: st.score, scoreText: st.score + ' ⚡ · ' + st.right + ' ✓ · ' + acc + '%',
+        coins: Math.min(40, Math.floor(st.score / 15)), xp: Math.min(15, Math.floor(st.right / 2)),
+        sub: (en ? 'Right: ' : 'Верно: ') + st.right + (en ? ' · mistakes: ' : ' · ошибок: ') + st.wrong + ' · 🔥×' + st.best });
+    }
+    if (/[?&]e2e\b/.test(location.search)) window.__blitz = function () { return { score: st.score, streak: st.streak, right: st.right, wrong: st.wrong, answer: q && q.answer, busy: busy, over: over, n: words.length }; };
+    var ov = document.createElement('div'); ov.className = 'arc-intro';
+    ov.innerHTML = W.hero('tayson', 'wow') + '<h2>⚡ Жылдам аударма</h2><p>' + api.esc(en ? '90 seconds, as many words as you can. +10 for each right answer and more for a streak; a mistake is −5 and the streak starts again.' : '90 секунд — сколько успеешь. За верный ответ +10 и бонус за серию; ошибка — −5, серия начинается заново.') + '</p>' +
+      '<div class="bz-modes"><button class="btn gold" data-bz="kk">🇰🇿 → ' + api.esc(en ? 'translation' : 'перевод') + '</button><button class="btn ghost" data-bz="tr">' + api.esc(en ? 'translation' : 'перевод') + ' → 🇰🇿</button><button class="btn ghost" data-bz="ear">🎧 ' + api.esc(en ? 'by ear' : 'на слух') + '</button></div>';
+    api.qs('#gb').appendChild(ov);
+    api.qsa('[data-bz]').forEach(function (b) { b.onclick = function () {
+      api.sfx.tap(); mode = b.getAttribute('data-bz');
+      words = B.shuffle(B.pool(api.allWords, api.tr).filter(function (w) { return !!api.TTS.file(w.kk); }), Math.random);
+      ov.remove(); T = countdown(api, total, hud, end); show();
+    }; });
+  };
+
   window.QARCADE = ARC;
   window.QARCADE_DATA = { VERSES: VERSES, CMD: CMD, RESPECT: RESPECT, GOODS: GOODS, NEEDS: NEEDS,
     SELLER: ['Сәлеметсіз бе! Келіңіз!', 'Әрине, бал татиды!', 'Рақмет! Тағы келіңіз!', 'Жарайды!', 'Түсіріп беріңізші!', 'Бұл тым қымбат', 'Келістік!', 'Қолма-қол ма, аударым ба?', 'Аударыммен төлеймін', 'Тәтті ме өзі?', 'Жеттік, осы жерде қалдырыңыз'] };
