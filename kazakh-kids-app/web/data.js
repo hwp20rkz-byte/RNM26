@@ -18,14 +18,20 @@
   var UNITS_KK = ['', 'бір', 'екі', 'үш', 'төрт', 'бес', 'алты', 'жеті', 'сегіз', 'тоғыз'];
   var TENS_KK = ['', 'он', 'жиырма', 'отыз', 'қырық', 'елу', 'алпыс', 'жетпіс', 'сексен', 'тоқсан'];
 
-  function numToKk(n) {
-    if (n === 0) return 'нөл';
-    var out = [];
-    var th = Math.floor(n / 1000), h = Math.floor((n % 1000) / 100), t = Math.floor((n % 100) / 10), u = n % 10;
-    if (th) out.push(th === 1 ? 'мың' : UNITS_KK[th] + ' мың');
+  // 0 … 999 999 and «бір миллион» (phase 2 «Мектеп»: before, 10 000 and above gave «undefined мың»)
+  function below1000(n) {
+    var out = [], h = Math.floor(n / 100), t = Math.floor((n % 100) / 10), u = n % 10;
     if (h) out.push(h === 1 ? 'жүз' : UNITS_KK[h] + ' жүз');
     if (t) out.push(TENS_KK[t]);
     if (u) out.push(UNITS_KK[u]);
+    return out.join(' ');
+  }
+  function numToKk(n) {
+    if (n === 0) return 'нөл';
+    if (n === 1000000) return 'бір миллион';
+    var th = Math.floor(n / 1000), rest = n % 1000, out = [];
+    if (th) out.push(th === 1 ? 'мың' : below1000(th) + ' мың');
+    if (rest) out.push(below1000(rest));
     return out.join(' ');
   }
   function timeKk(h, m) { return 'Сағат ' + HOURS[h] + (m === 30 ? ' жарым' : ''); }

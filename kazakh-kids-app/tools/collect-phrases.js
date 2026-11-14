@@ -216,6 +216,8 @@ try {
   window.QARCADE_DATA && window.QARCADE_DATA.GOODS.forEach((g) => { const st = g.p >= 1000 ? 100 : 50; for (let k = -2; k <= 3; k++) add(window.QDATA.numToKk(g.p + k * st) + ' теңге'); });
   Z.THEMES.forEach((t) => Z.all(t.id).forEach((x) => add(x.right)));
 }
+// phase 2 «Мектеп»: number words 0–200, sums in тенге, prompts and labels of the maths topics
+{ global.self = global; const MK = require(path.join(web, 'mektep-core.js')); MK.voiceLines().forEach((x) => add(x)); }
 // sprint 6: pet lines and «Көше тілі» pairs
 {
   const PT = require(path.join(web, 'pets-core.js')); Object.values(PT.LINES).forEach((l) => add(l.kk));
