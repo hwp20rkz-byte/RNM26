@@ -97,20 +97,33 @@
           return '<button class="ph-tile" data-tale="' + t.id + '"><span class="e">' + t.e + '</span><b>' + esc(t.kk) + '</b><small>' + esc(tx(t)) + '</small><em>' + t.lines.length + ' · ❓' + t.qs.length + '</em>' + bestPill('r_' + t.id) + '</button>';
         }).join('') + '</div>';
     }
-    var t = RD.filter(function (x) { return x.id === V.read; })[0];
+    var t = RD.filter(function (x) { return x.id === V.read; })[0], f = t.fork, pick = V.forkTale === t.id ? V.fork : null;
+    var shown = taleLines(t), line = function (l, i) { return '<div class="rd-line" data-rl="' + i + '">' + row(l.kk, tx(l)) + '</div>'; };
+    var forkBox = !f ? '' : '<div class="rd-fork" id="rdfork"><div class="rd-ask"><span class="rd-tag">🔀 ' + esc(L('Развилка — выбирай!', 'A fork — you choose!')) + '</span>' + row(f.ask.kk, tx(f.ask)) + '</div><div class="rd-choices">' +
+      ['a', 'b'].map(function (k) { return '<button class="rd-choice' + (pick === k ? ' on' : '') + '" data-fork="' + k + '"' + (pick && pick !== k ? ' aria-pressed="false"' : '') + '><b>' + esc(f[k].kk) + '</b><small>' + esc(tx(f[k])) + '</small></button>'; }).join('') +
+      '</div><p class="muted rd-hint">' + esc(pick ? L('Можно вернуться и выбрать другой путь — у него свой конец.', 'You can go back and choose the other way — it has its own ending.') : L('Выбери за героя — от этого зависит конец сказки.', 'Choose for the hero — the ending depends on it.')) + '</p></div>';
+    var trunk = f ? f.at : t.lines.length;
     return back('rdback', L('Все сказки', 'All tales')) + '<h2>' + t.e + ' ' + esc(t.kk) + ' · <span class="muted" style="font-size:inherit">' + esc(tx(t)) + '</span></h2>' +
-      '<button class="btn ghost" id="rplay">▶ ' + esc(L('Слушать всю сказку', 'Play the whole tale')) + '</button><div class="rd-tale">' +
-      t.lines.map(function (l, i) { return '<div class="rd-line" data-rl="' + i + '">' + row(l.kk, tx(l)) + '</div>'; }).join('') + '</div>' +
+      '<button class="btn ghost" id="rplay">▶ ' + esc(pick || !f ? L('Слушать всю сказку', 'Play the whole tale') : L('Слушать начало', 'Play the beginning')) + '</button><div class="rd-tale">' +
+      shown.slice(0, trunk).map(line).join('') + forkBox +
+      (pick ? '<div class="rd-end rd-end-' + pick + '">' + shown.slice(trunk).map(function (l, i) { return line(l, trunk + i); }).join('') + '</div>' : '') + '</div>' +
+      (pick === 'b' ? '<p class="muted">' + esc(L('Это наш новый конец. Вопросы — по народной сказке (путь «' + f.a.kk + '»).', 'This is our new ending. The questions are about the folk tale (the «' + f.a.kk + '» way).')) + '</p>' : '') +
       trainBtn('r_' + t.id, L('Вопросы по сказке', 'Questions about the tale'));
+  }
+  /** Lines on screen: the trunk, then the chosen ending (A — the original, B — the new one); no choice yet — the trunk. */
+  function taleLines(t) {
+    var f = t.fork, pick = V.forkTale === t.id ? V.fork : null;
+    if (!f) return t.lines;
+    return t.lines.slice(0, f.at).concat(pick === 'a' ? t.lines.slice(f.at) : pick === 'b' ? f.b.lines : []);
   }
   var rdTimer = null;
   function playTale(t) {
     clearTimeout(rdTimer);
-    var i = 0;
+    var i = 0, lines = taleLines(t);
     (function next() {
       api.qsa('.rd-line').forEach(function (e) { e.classList.toggle('now', +e.getAttribute('data-rl') === i); });
-      if (i >= t.lines.length || !api.qs('.rd-line')) return;
-      var l = t.lines[i++];
+      if (i >= lines.length || !api.qs('.rd-line')) { var fk = api.qs('#rdfork'); if (fk && i >= lines.length && !(V.forkTale === t.id && V.fork)) fk.classList.add('now'); return; }
+      var l = lines[i++];
       api.TTS.speak(l.kk, true);
       rdTimer = setTimeout(next, 1100 + l.kk.length * 80);
     })();
@@ -542,6 +555,12 @@
     on('[data-topic]', function (b) { go(function () { V.topic = b.getAttribute('data-topic'); }); });
     on('[data-readlist]', function () { go(function () { V.read = 'list'; }); });
     on('[data-tale]', function (b) { go(function () { V.read = b.getAttribute('data-tale'); }); });
+    on('[data-fork]', function (b) {
+      var t = RD.filter(function (x) { return x.id === V.read; })[0], k = b.getAttribute('data-fork');
+      go(function () { V.forkTale = t.id; V.fork = k; });
+      api.TTS.speak(t.fork[k].kk, true);
+      var end = api.qs('.rd-end'); if (end) end.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
     on('#rdback', function () { clearTimeout(rdTimer); go(function () { V.read = V.read === 'list' ? null : 'list'; }); });
     on('[data-hour]', function (b) { keep(function () { V.hour = b.getAttribute('data-hour'); }); });
     on('[data-aux]', function (b) { keep(function () { V.aux = b.getAttribute('data-aux'); }); });

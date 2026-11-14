@@ -169,6 +169,18 @@ for (const t of RD) {
   eq(t.qs.length, 3, t.id + ' questions');
   for (const q of t.qs) { assert.ok(q.kk.endsWith('?') && q.ru && q.en, 'question ' + q.kk); assert.ok(!q.w.includes(q.a) && q.w[0] !== q.w[1], 'answers distinct: ' + q.kk); n++; }
 }
+// master plan sprint 2: every tale has a fork — a choice for the hero; A continues the original, B is a new ending
+// (2–4 lines, the last one is its moral); both choices and the question are translated and spoken
+for (const t of RD) {
+  const f = t.fork; assert.ok(f, t.id + ' has a fork'); n++;
+  assert.ok(f.at >= 2 && f.at <= t.lines.length - 2, t.id + ': the fork leaves a trunk and an original ending'); n++;
+  for (const x of [f.ask, f.a, f.b]) { assert.ok(x.kk && x.ru && x.en && !/[a-z]/i.test(x.kk), t.id + ': fork texts translated, no Latin'); n++; }
+  assert.ok(f.ask.kk.endsWith('?'), t.id + ': the fork asks a question'); assert.ok(f.a.kk !== f.b.kk, t.id + ': two different choices'); n++;
+  assert.ok(f.b.lines.length >= 2 && f.b.lines.length <= 4, t.id + ': ending B has 2–4 lines'); n++;
+  for (const l of f.b.lines) { assert.ok(l.kk && l.ru && l.en && !/[a-z]/i.test(l.kk) && /[.!?»]$/.test(l.kk), 'B line ' + l.kk); n++; }
+  const shown = t.lines.slice(f.at).map((l) => l.kk);
+  assert.ok(!f.b.lines.some((l) => shown.includes(l.kk) && l.kk !== t.lines[t.lines.length - 1].kk), t.id + ': ending B is new text'); n++;
+}
 
 // master plan sprint 1 — expected forms written by hand (TDD: written before the engine)
 // infinitive -у and modal constructions: керек (need), -уға болады / болмайды (may / may not), -уы мүмкін (maybe)

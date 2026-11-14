@@ -45,7 +45,14 @@ async function run(lang, viewport) {
   assert(await p.$$eval('[data-tale]', (x) => x.length) === 10, lang + ': 10 tales in the reading corner');
   await p.click('[data-tale="crane"]'); await p.waitForTimeout(120);
   const rmiss = await p.evaluate(() => [...document.querySelectorAll('.rd-tale [data-say]')].map((b) => b.dataset.say).filter((t) => !window.Q.api.TTS.file(t)));
-  assert((await p.$$eval('.rd-line', (x) => x.length)) === 8 && rmiss.length === 0, lang + ': tale lines with audio' + (rmiss.length ? ' — missing: ' + rmiss.join(' | ') : ''));
+  // fork (sprint 2): 4 trunk lines and a choice; A — the original ending (8 lines), B — the new one, all voiced
+  assert((await p.$$eval('.rd-line', (x) => x.length)) === 4 && !!(await p.$('[data-fork="a"]')) && rmiss.length === 0, lang + ': tale trunk with audio and a fork' + (rmiss.length ? ' — missing: ' + rmiss.join(' | ') : ''));
+  await p.click('[data-fork="b"]'); await p.waitForTimeout(150);
+  const bmiss = await p.evaluate(() => [...document.querySelectorAll('.rd-tale [data-say]')].map((b) => b.dataset.say).filter((t) => !window.Q.api.TTS.file(t)));
+  assert((await p.$$eval('.rd-end .rd-line', (x) => x.length)) === 4 && (await p.innerText('.rd-end')).includes('құмыраға салып берші') && bmiss.length === 0, lang + ': ending B shown and voiced' + (bmiss.length ? ' — missing: ' + bmiss.join(' | ') : ''));
+  if (OUT) await p.screenshot({ path: `${OUT}/ph-${lang}-fork-b.png` });
+  await p.click('[data-fork="a"]'); await p.waitForTimeout(150);
+  assert((await p.$$eval('.rd-line', (x) => x.length)) === 8 && (await p.innerText('.rd-end')).includes('тар құмыраға'), lang + ': ending A is the original tale (8 lines)');
   await p.click('#rplay'); await p.waitForTimeout(300);
   assert(!!(await p.$('.rd-line.now')), lang + ': playing highlights the current line');
   if (OUT) await p.screenshot({ path: `${OUT}/ph-${lang}-tale.png` });
@@ -95,9 +102,9 @@ async function run(lang, viewport) {
 
   // proverbs + game, idioms
   await p.click('[data-ph=prov]'); await p.waitForTimeout(150);
-  assert((await p.$$eval('.ph-prov', (x) => x.length)) === 62, lang + ': 62 proverbs');
+  assert((await p.$$eval('.ph-prov', (x) => x.length)) === 64, lang + ': 64 proverbs');
   await p.click('[data-theme=bilim]'); await p.waitForTimeout(60);
-  assert((await p.$$eval('.ph-prov', (x) => x.length)) === 8, lang + ': knowledge filter');
+  assert((await p.$$eval('.ph-prov', (x) => x.length)) === 9, lang + ': knowledge filter (9 proverbs)');
   await p.click('[data-train=proverbs]'); await p.waitForTimeout(80);
   assert((await p.$eval('.ph-q b', (e) => e.textContent)).endsWith('…'), lang + ': proverb game shows a first half');
   if (OUT) await p.screenshot({ path: `${OUT}/ph-${lang}-proverb.png` });

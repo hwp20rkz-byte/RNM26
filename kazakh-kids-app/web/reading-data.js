@@ -144,4 +144,77 @@
       ['Ертегінің соңында кім тоңып қалды?', 'Кто в конце сказки остался мёрзнуть?', 'Who was left freezing at the end?', 'бай', 'Алдар', 'екеуі де']
     ])
   ];
+
+  /* Forks (master plan, sprint 2): after `at` lines the child chooses for the hero. A — the original continues,
+   * B — a new ending written for this game (2–4 lines, the last one is its moral). The questions are about A. */
+  function L3(x) { return { kk: x[0], ru: x[1], en: x[2] }; }
+  var FORKS = {
+    crane: [4, ['Тырна енді не істейді?', 'Что теперь сделает журавль?', 'What will the crane do now?'],
+      ['Түлкіге сабақ береді', 'Проучит лису', 'Teach the fox a lesson'],
+      ['Түлкіге ашық айтады', 'Честно скажет лисе', 'Tell the fox honestly'], [
+        ['Тырна түлкіге: «Маған тамақты құмыраға салып берші», — деді.', 'Журавль сказал лисе: «Положи мне еду в кувшин, пожалуйста».', 'The crane said to the fox: «Please put my food in a jug».'],
+        ['Түлкі ұялып, тамақты құмыраға салып берді.', 'Лисе стало стыдно, и она подала еду в кувшине.', 'The fox felt ashamed and served the food in a jug.'],
+        ['Олар бірге тамақтанып, дос болып қалды.', 'Они поели вместе и остались друзьями.', 'They ate together and stayed friends.'],
+        ['Қонақты сыйлау керек.', 'Гостя нужно уважать.', 'A guest should be treated with respect.']]],
+    mouse: [3, ['Тышқан не істейді?', 'Что сделает мышка?', 'What will the mouse do?'],
+      ['Түйенің өркешіне шығады', 'Залезет на горб верблюда', 'Climb onto the camel\'s hump'],
+      ['Төбеге өзі жүгіреді', 'Сама побежит на холм', 'Run up the hill on its own'], [
+        ['Тышқан төбеге өзі жүгірді, бірақ жол өте ұзақ еді.', 'Мышка сама побежала на холм, но путь был очень долгим.', 'The mouse ran up the hill on its own, but the way was very long.'],
+        ['Таң атқанда күнді түйе бірінші көрді.', 'На рассвете солнце первым увидел верблюд.', 'At dawn the camel saw the sun first.'],
+        ['Күшің аз болса, ақылыңды пайдалан.', 'Если силы мало — пользуйся умом.', 'If you are not strong, use your wits.']]],
+    tortoise: [3, ['Қоян не істейді?', 'Что сделает заяц?', 'What will the hare do?'],
+      ['Ағаш көлеңкесінде демалады', 'Отдохнёт в тени дерева', 'Rest in the shade of a tree'],
+      ['Тоқтамай жүгіреді', 'Побежит без остановки', 'Keep running without stopping'], [
+        ['Қоян тоқтамай жүгіріп, мәреге бірінші жетті.', 'Заяц бежал без остановки и первым добежал до финиша.', 'The hare ran without stopping and reached the finish first.'],
+        ['Ол тасбақаға: «Кешір, енді саған күлмеймін», — деді.', 'Он сказал черепахе: «Прости, я больше не буду над тобой смеяться».', 'He said to the tortoise: «Sorry, I won\'t laugh at you any more».'],
+        ['Досыңа күлме.', 'Не смейся над другом.', 'Don\'t laugh at your friend.']]],
+    ant: [5, ['Құмырсқа не істейді?', 'Что сделает муравей?', 'What will the ant do?'],
+      ['Аңшыны шағады', 'Укусит охотника', 'Bite the hunter'],
+      ['Қарап тұрады', 'Будет просто смотреть', 'Just watch'], [
+        ['Құмырсқа ештеңе істемей, қарап тұрды.', 'Муравей ничего не сделал и просто смотрел.', 'The ant did nothing and just watched.'],
+        ['Көгершін аңшыны өзі байқап, әрең ұшып кетті.', 'Голубь сам заметил охотника и еле успел улететь.', 'The dove noticed the hunter itself and only just flew away.'],
+        ['Құмырсқа ұялды: досқа көмектесу керек еді.', 'Муравью стало стыдно: другу нужно было помочь.', 'The ant felt ashamed: he should have helped his friend.']]],
+    turnip: [3, ['Атам не істейді?', 'Что сделает дедушка?', 'What will Grandpa do?'],
+      ['Көмекке шақырады', 'Позовёт на помощь', 'Call for help'],
+      ['Жалғыз тарта береді', 'Будет тянуть один', 'Keep pulling alone'], [
+        ['Атам жалғыз тарта берді, тарта берді.', 'Дедушка тянул и тянул один.', 'Grandpa kept pulling and pulling alone.'],
+        ['Ол қатты шаршады, ал шалқан жерде қала берді.', 'Он очень устал, а репка так и осталась в земле.', 'He got very tired, and the turnip stayed in the ground.'],
+        ['Бірлік бар жерде тірлік бар.', 'Где единство, там и жизнь.', 'Where there is unity, there is life.']]],
+    goat: [3, ['Ешкі не істейді?', 'Что сделает козёл?', 'What will the goat do?'],
+      ['Құдыққа секіреді', 'Прыгнет в колодец', 'Jump into the well'],
+      ['Алдымен ойланады', 'Сначала подумает', 'Think first'], [
+        ['Ешкі ойланды: «Түлкі өзі неге шықпайды?»', 'Козёл подумал: «А почему лиса сама не вылезает?»', 'The goat thought: «Why doesn\'t the fox climb out herself?»'],
+        ['Ол құдыққа секірмей, ұзын арқан тауып әкелді.', 'Он не стал прыгать в колодец, а нашёл и принёс длинную верёвку.', 'He did not jump in; he found a long rope and brought it.'],
+        ['Түлкі арқанмен шығып, ешкіге рахмет айтты.', 'Лиса выбралась по верёвке и сказала козлу спасибо.', 'The fox climbed out on the rope and thanked the goat.'],
+        ['Алдымен ойлан, содан кейін істе.', 'Сначала подумай, потом делай.', 'Think first, then act.']]],
+    swallow: [2, ['Қарлығаш не істейді?', 'Что сделает ласточка?', 'What will the swallow do?'],
+      ['Адамды қорғайды', 'Защитит человека', 'Protect people'],
+      ['Ұшып кетеді', 'Улетит', 'Fly away'], [
+        ['Қарлығаш: «Бұл менің ісім емес», — деп ұшып кетті.', 'Ласточка сказала: «Это не моё дело» — и улетела.', 'The swallow said: «It\'s none of my business» — and flew away.'],
+        ['Маса жыланға: «Адамның қаны ең тәтті», — деп айтып берді.', 'Комар рассказал змее: «Самая сладкая кровь — у человека».', 'The mosquito told the snake: «People\'s blood is the sweetest».'],
+        ['Басқаға көмектесу — жақсы іс.', 'Помогать другим — доброе дело.', 'Helping others is a good deed.']]],
+    hare: [2, ['Қоян не істейді?', 'Что сделает заяц?', 'What will the hare do?'],
+      ['Қорқып секіреді', 'Испугается и подпрыгнет', 'Get scared and jump'],
+      ['Достарына шынын айтады', 'Скажет друзьям правду', 'Tell his friends the truth'], [
+        ['Қоян: «Достар, мен мақтандым! Қашыңдар!» — деп айқайлады.', 'Заяц закричал: «Друзья, я хвастался! Бегите!»', 'The hare shouted: «Friends, I was boasting! Run!»'],
+        ['Барлық қояндар бұтаға жасырынып, аман қалды.', 'Все зайцы спрятались в кустах и остались целы.', 'All the hares hid in the bushes and stayed safe.'],
+        ['Мақтанба, шынын айт.', 'Не хвастайся, говори правду.', 'Don\'t boast, tell the truth.']]],
+    kids: [3, ['Лақтар не істейді?', 'Что сделают козлята?', 'What will the kids do?'],
+      ['Дауысты тыңдайды', 'Прислушаются к голосу', 'Listen to the voice'],
+      ['Есікті сәл ашады', 'Чуть приоткроют дверь', 'Open the door a little'], [
+        ['Бір лақ есікті сәл ашып, қасқырды көрді.', 'Один козлёнок чуть приоткрыл дверь и увидел волка.', 'One kid opened the door a little and saw the wolf.'],
+        ['Лақтар есікті тез жауып, қатты айқайлады.', 'Козлята быстро закрыли дверь и громко закричали.', 'The kids quickly shut the door and shouted loudly.'],
+        ['Көршілер жүгіріп келіп, қасқырды қуып жіберді.', 'Прибежали соседи и прогнали волка.', 'The neighbours came running and chased the wolf away.'],
+        ['Есікті бейтаныс адамға ашпа.', 'Не открывай дверь незнакомым.', 'Don\'t open the door to strangers.']]],
+    aldar: [5, ['Алдар не дейді?', 'Что ответит Алдар?', 'What will Aldar say?'],
+      ['«Тоным сиқырлы» дейді', 'Скажет: «Шуба волшебная»', 'Say: «My coat is magic»'],
+      ['Шынын айтады', 'Скажет правду', 'Tell the truth'], [
+        ['Алдар: «Мен ән саламын, сондықтан тоңбаймын», — деді.', 'Алдар ответил: «Я пою, поэтому не мёрзну».', 'Aldar said: «I sing, so I don\'t get cold».'],
+        ['Бай да ән салып, жылынды.', 'Бай тоже запел и согрелся.', 'The rich man sang too and warmed up.'],
+        ['Көңілді адам тоңбайды.', 'Весёлый человек не мёрзнет.', 'A cheerful person never gets cold.']]]
+  };
+  window.QREAD.forEach(function (t) {
+    var f = FORKS[t.id]; if (!f) return;
+    t.fork = { at: f[0], ask: L3(f[1]), a: L3(f[2]), b: { kk: f[3][0], ru: f[3][1], en: f[3][2], lines: f[4].map(L3) } };
+  });
 })();

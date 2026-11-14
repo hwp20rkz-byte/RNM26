@@ -21,5 +21,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Метеориты падают на Бәйтерек — назови по-казахски', en: 'Meteors fall on Baiterek — name them in Kazakh' } },
   { id: 'gravity', kk: 'Грави-тир', ru: 'Грави-тир: мынау, анау, аламын', en: 'Gravity Range', icon: '🧲', ready: true,
     pillar: { ru: 'Мынау / анау · Мен … аламын', en: 'Мынау / анау · Мен … аламын' },
-    mechanic: { ru: 'Близкое — перчаткой, далёкое — грави-лучом; «аламын» включает суперсилу', en: 'Near — the glove, far — the gravity beam; «аламын» powers the hero up' } }
+    mechanic: { ru: 'Близкое — перчаткой, далёкое — грави-лучом; «аламын» включает суперсилу', en: 'Near — the glove, far — the gravity beam; «аламын» powers the hero up' } },
+  { id: 'city', kk: 'Қала квесті', ru: 'Квест по городу: вывески', en: 'City Quest', icon: '🏙️', ready: true,
+    pillar: { ru: 'Вывески · Барыс септік: қайда? — дәріханаға', en: 'City signs · Dative: where to? — дәріханаға' },
+    mechanic: { ru: 'Прочитай вывеску и отправь Айсұлу на ховерборде; исправь вывески, которые перепутал Жалқаубек', en: 'Read the signs and send Айсұлу on her hoverboard; fix the signs Жалқаубек swapped' } }
 ];

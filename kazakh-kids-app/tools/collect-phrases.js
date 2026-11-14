@@ -146,6 +146,15 @@ try {
   C.RANGE_ITEMS.forEach((x) => { add(C.demoPhrase(true, x.kk)); add(C.demoPhrase(false, x.kk)); });
   C.ABILITIES.forEach((a) => { add(C.canPhrase(a, true)); add(C.canPhrase(a, false)); });
 } catch (e) { process.stderr.write('suite gravity skipped: ' + e.message + '\n'); }
+// 3D suite: «Қала квесті» — the need (spoken at each task), «Дәріханаға барамын!», «Бұл — дәріхана.», every place word
+try {
+  const esbuild = require('esbuild');
+  const r = esbuild.buildSync({ entryPoints: [path.resolve(__dirname, '../suite/src/data/cityCorpus.ts')], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  const C = m.exports;
+  C.PLACES.forEach((p) => { add(p.hint.kk); add(C.goPhrase(p)); add(C.fixPhrase(p)); add(p.kk); });
+} catch (e) { process.stderr.write('suite city skipped: ' + e.message + '\n'); }
 
 // «Сөздік» hub (web/phrasebook-data.js + web/grammar-core.js): phrases, dialogues, proverbs, idioms,
 // twisters, thematic words, and every form the grammar tables can show (spoken exactly as displayed)
@@ -187,7 +196,7 @@ try {
   const HOURS = G.NUMBERS.concat(['он бір', 'он екі']);
   HOURS.forEach((h, i) => { const nx = HOURS[(i + 1) % 12]; ['Сағат ' + h + '.', 'Сағат ' + G.caseForm(h, 'shygys') + ' ширек өтті.', 'Сағат ' + h + ' жарым.', 'Сағат ' + G.caseForm(nx, 'barys') + ' ширек қалды.'].forEach((x) => add(x)); });
   require(path.join(web, 'reading-data.js'));
-  window.QREAD.forEach((t) => { t.lines.forEach((l) => add(l.kk)); t.qs.forEach((q) => { add(q.kk); add(q.a); }); });
+  window.QREAD.forEach((t) => { t.lines.forEach((l) => add(l.kk)); t.qs.forEach((q) => { add(q.kk); add(q.a); }); if (t.fork) { add(t.fork.ask.kk); add(t.fork.a.kk); add(t.fork.b.kk); t.fork.b.lines.forEach((l) => add(l.kk)); } });
 }
 
 process.stdout.write(JSON.stringify([...out.values()], null, 0));

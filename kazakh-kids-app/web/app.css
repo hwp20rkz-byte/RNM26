@@ -831,6 +831,23 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .rd-tale { display: grid; gap: var(--s-1); margin: var(--s-2) 0; }
 .rd-line { border-radius: var(--r-1); transition: background-color .2s; }
 .rd-line.now .ph-row { background: var(--sun-100); border-color: var(--sun-300); }
+.rd-fork { padding: var(--s-3); border: 2px dashed var(--sky-300); border-radius: var(--r-2); background: var(--sky-50); }
+.rd-fork.now { border-style: solid; border-color: var(--sun-500); }
+.rd-ask { margin: 0 0 var(--s-2); }
+.rd-tag { display: block; margin-bottom: var(--s-1); font-size: var(--fs-1); font-weight: 900; color: var(--sky-700); }
+.rd-choices { display: grid; gap: var(--s-2); }
+.rd-choice { display: grid; gap: var(--s-1); min-height: 56px; padding: var(--s-2) var(--s-3); text-align: left; font: inherit; color: var(--ink-800);
+  background: var(--ink-0); border: 2px solid var(--sky-300); border-radius: var(--r-2); box-shadow: var(--lip) var(--sky-300); cursor: pointer; }
+.rd-choice b { font-size: var(--fs-2); }
+.rd-choice small { color: var(--ink-600); }
+.rd-choice.on { background: var(--sun-100); border-color: var(--sun-600); box-shadow: var(--lip) var(--sun-600); }
+.rd-choice[aria-pressed="false"] { opacity: .7; }
+.rd-hint { margin: var(--s-2) 0 0; font-size: var(--fs-1); }
+.rd-end { display: grid; gap: var(--s-1); }
+@media (min-width: 720px) { .rd-choices { grid-template-columns: 1fr 1fr; } }
+@media (hover: hover) { .rd-choice:hover { border-color: var(--sky-500); } }
+.rd-choice:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--sky-300); }
+@media (prefers-reduced-motion: reduce) { .rd-choice:active { transform: none; } }
 
 /* «Мұғалім айтады» arcade */
 .sim-stage { text-align: center; padding: var(--s-2); }
