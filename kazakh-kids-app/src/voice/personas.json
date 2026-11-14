@@ -243,7 +243,10 @@
     "workshop.done": {
       "baiterek": "ANEL",
       "khanshatyr": "ANEL",
-      "sarai": "ALIBEK"
+      "sarai": "ALIBEK",
+      "baikonur": "ALIBEK",
+      "charyn": "ANEL",
+      "burabay": "ALIBEK"
     },
     "room.item": "ZHALKAU"
   }

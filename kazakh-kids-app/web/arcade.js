@@ -634,6 +634,53 @@
     api.qs('#arcgo').onclick = function () { api.sfx.tap(); ov.remove(); T = countdown(api, Z.SECONDS, hud, end); show(); hud(); };
   };
 
+  /* ============================================================ «Мұғалім парағы» — class blitz (sprint 5) */
+  // Logic: web/teacher-core.js. For the interactive board: the teacher picks a grade and a topic; the class answers
+  // aloud; «Жауап» reveals and speaks the answer; ✅ / ❌ count the class score; 5 minutes; a school mark at the end.
+  ARC.teacher = function (api) {
+    var T = window.QTEACH, en = api.lang() === 'en', gi = Math.min(D.GRADES.length - 1, Math.max(0, (api.S.grade || 1) - 1)), cards = [], i = 0, right = 0, asked = 0, shown = false, over = false, timer = null;
+    api.frame('Мұғалім парағы', '<div class="tch" id="tch"></div>'); neon(api);
+    api.onLeave(function () { over = true; if (timer) timer.stop(); });
+    function setup() {
+      var g = D.GRADES[gi];
+      api.qs('#tch').innerHTML = '<h2>👩‍🏫 ' + api.esc(en ? 'Pick a grade and a topic' : 'Выберите класс и тему') + '</h2>' +
+        '<div class="tch-grades">' + D.GRADES.map(function (x, k) { return '<button class="tch-g' + (k === gi ? ' on' : '') + '" data-g="' + k + '">' + api.esc(x.kk) + '</button>'; }).join('') + '</div>' +
+        '<div class="tch-topics"><button class="tch-t all" data-u="*">⭐ ' + api.esc(en ? 'All topics of ' : 'Все темы: ') + api.esc(g.kk) + '</button>' +
+        T.topics(g).map(function (u) { return '<button class="tch-t" data-u="' + u.id + '"><b>' + api.esc(u.kk) + '</b><small>' + api.esc(en ? (u.en || u.ru) : u.ru) + '</small></button>'; }).join('') + '</div>' +
+        '<p class="muted">' + api.esc(en ? '5 minutes · the class answers aloud · you reveal the answer and mark ✅ or ❌' : '5 минут · класс отвечает вслух · вы открываете ответ и отмечаете ✅ или ❌') + '</p>';
+      api.qsa('.tch-g').forEach(function (b) { b.onclick = function () { api.sfx.tap(); gi = +b.getAttribute('data-g'); setup(); }; });
+      api.qsa('.tch-t').forEach(function (b) { b.onclick = function () {
+        api.sfx.tap(); var id = b.getAttribute('data-u'), us = id === '*' ? T.topics(g) : g.units.filter(function (u) { return u.id === id; });
+        cards = T.build(us, Math.random); i = 0; right = 0; asked = 0; timer = countdown(api, T.SECONDS, hud, end); card();
+      }; });
+    }
+    function hud() { var l = timer ? timer.left() : T.SECONDS; api.stat('⏱ ' + Math.floor(l / 60) + ':' + String(l % 60).padStart(2, '0') + ' · ✅ ' + right + '/' + asked); }
+    function card() {
+      if (over) return;
+      if (i >= cards.length) return end();
+      var c = cards[i]; shown = false; hud();
+      api.qs('#tch').innerHTML = '<div class="tch-card"><small>' + (i + 1) + ' / ' + cards.length + ' · ' + api.esc(c.type === 'word' ? (en ? 'Say the word in Kazakh' : 'Скажите слово по-казахски') : (en ? 'Say it in Kazakh' : 'Скажите по-казахски')) + '</small>' +
+        (c.e ? '<div class="tch-pic">' + c.e + '</div>' : '') + '<div class="tch-ask">' + api.esc(en ? c.en : c.ru) + '</div><div class="tch-ans" id="tans"></div></div>' +
+        '<div class="tch-btns" id="tbtn"><button class="btn gold" id="tshow">👁 Жауап · ' + api.esc(en ? 'answer' : 'ответ') + '</button></div>';
+      api.qs('#tshow').onclick = reveal;
+    }
+    function reveal() {
+      if (over || shown) return; shown = true; var c = cards[i];
+      api.qs('#tans').textContent = c.kk; api.TTS.speak(c.kk, true); api.sfx.tap();
+      api.qs('#tbtn').innerHTML = '<button class="btn ok" id="tyes">✅ ' + api.esc(en ? 'Class got it' : 'Класс ответил') + '</button><button class="btn bad" id="tno">❌ ' + api.esc(en ? 'Not yet' : 'Пока нет') + '</button>';
+      api.qs('#tyes').onclick = function () { right++; asked++; api.sfx.ok(); i++; card(); };
+      api.qs('#tno').onclick = function () { asked++; api.sfx.bad(); i++; card(); };
+    }
+    function end() {
+      if (over) return; over = true; if (timer) timer.stop();
+      var m = T.mark(right, asked);
+      api.end({ arcade: true, title: m >= 4 ? 'Жарайсыңдар, балалар!' : 'Тағы жаттығайық!', score: right, scoreText: right + ' / ' + asked + ' · «' + m + '»', coins: Math.min(20, right), xp: 5,
+        sub: (en ? 'Class mark (criteria): ' : 'Оценка класса (критериальная): ') + m });
+    }
+    if (/[?&]e2e\b/.test(location.search)) window.__teach = function () { return { i: i, n: cards.length, shown: shown, right: right, asked: asked, over: over, kk: cards[i] && cards[i].kk }; };
+    setup();
+  };
+
   window.QARCADE = ARC;
   window.QARCADE_DATA = { VERSES: VERSES, CMD: CMD, RESPECT: RESPECT, GOODS: GOODS, NEEDS: NEEDS,
     SELLER: ['Сәлеметсіз бе! Келіңіз!', 'Әрине, бал татиды!', 'Рақмет! Тағы келіңіз!', 'Жарайды!', 'Түсіріп беріңізші!', 'Бұл тым қымбат', 'Келістік!', 'Қолма-қол ма, аударым ба?', 'Аударыммен төлеймін', 'Тәтті ме өзі?', 'Жеттік, осы жерде қалдырыңыз'] };

@@ -4,7 +4,7 @@
 const path = require('path');
 global.window = {};
 const web = path.resolve(__dirname, '../web');
-['data', 'grade1', 'grade2', 'grade3', 'life', 'textbook', 'curriculum', 'world'].forEach((f) => require(path.join(web, f + '.js')));
+['data', 'grade1', 'grade2', 'grade3', 'life', 'textbook', 'grade4', 'curriculum', 'world'].forEach((f) => require(path.join(web, f + '.js')));
 const C = window.QCURRICULUM, VOICES = require('../src/voice/personas.json');
 const tagOf = (who) => (VOICES.personas[who] && VOICES.personas[who].piper.tag) || who;
 // arcade.js only needs a stub of the app API to expose its word lists

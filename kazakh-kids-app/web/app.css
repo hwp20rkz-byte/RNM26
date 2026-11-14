@@ -909,3 +909,27 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .zh-fb { min-height: 64px; }
 .zh-fb s { opacity: .7; }
 @media (hover: hover) { .zh-banner:hover { border-color: var(--sun-600); } .duo-opt:hover { border-color: var(--sky-300); } }
+
+/* «Мұғалім парағы» — class blitz for the interactive board: big type, few controls */
+.tch { flex: 1; display: flex; flex-direction: column; gap: var(--s-3); }
+.tch h2 { margin: 0; }
+.tch-grades { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.tch-g { min-height: 44px; padding: 0 var(--s-3); border: 2px solid var(--night-500); border-radius: var(--r-2); background: var(--night-700); color: var(--ink-0); font: inherit; font-weight: 800; cursor: pointer; }
+.tch-g.on { border-color: var(--neon-gold); background: var(--night-500); }
+.tch-topics { display: grid; gap: var(--s-2); }
+.tch-t { display: grid; gap: 2px; min-height: 52px; padding: var(--s-2) var(--s-3); text-align: left; border: 2px solid var(--night-500); border-radius: var(--r-2); background: var(--night-800); color: var(--ink-0); font: inherit; cursor: pointer; }
+.tch-t small { color: hsl(230 30% 76%); }
+.tch-t.all { border-color: var(--neon-gold); font-weight: 900; }
+.tch-card { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-3); text-align: center; padding: var(--s-4); border-radius: var(--r-3); background: var(--night-800); border: 2px solid var(--night-500); }
+.tch-card small { color: hsl(230 30% 76%); font-weight: 800; }
+.tch-pic { font-size: 96px; line-height: 1; }
+.tch-ask { font-size: var(--fs-4); font-weight: 900; }
+.tch-ans { min-height: 1.3em; font-size: var(--fs-5); font-weight: 900; color: var(--neon-gold); }
+.tch-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+.tch-btns .btn:only-child { grid-column: 1 / -1; }
+@media (min-width: 720px) { .tch-topics { grid-template-columns: repeat(3, 1fr); } .tch-pic { font-size: 160px; } }
+
+/* grade switch: six courses since sprint 5 — one scrolling row, labels never break mid-word */
+.seg.grades { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.seg.grades::-webkit-scrollbar { display: none; }
+.seg.grades button { flex: 0 0 auto; white-space: nowrap; padding-left: var(--s-3); padding-right: var(--s-3); }

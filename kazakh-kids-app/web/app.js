@@ -724,7 +724,7 @@
     return '<nav class="nav">' + items.map(function (it) { return '<button data-tab="' + it[0] + '" class="' + (tab === it[0] ? 'on' : '') + '"><span class="ico">' + it[1] + '</span>' + it[2] + '</button>'; }).join('') + '</nav>';
   }
   function gradeSwitch() {
-    return '<div class="seg">' + D.GRADES.map(function (g) { return '<button data-grade="' + g.n + '" class="' + (S.grade === g.n ? 'on' : '') + '">' + g.kk + '</button>'; }).join('') + '</div>';
+    return '<div class="seg grades">' + D.GRADES.map(function (g) { return '<button data-grade="' + g.n + '" class="' + (S.grade === g.n ? 'on' : '') + '">' + g.kk + '</button>'; }).join('') + '</div>';
   }
   function langSwitch() {
     return '<div class="seg two">' + [['ru', 'Русский → Қазақша'], ['en', 'English → Қазақша']].map(function (l) { return '<button data-lang="' + l[0] + '" class="' + (lang() === l[0] ? 'on' : '') + '">' + l[1] + '</button>'; }).join('') + '</div>';
@@ -737,6 +737,7 @@
     qsa('[data-voice]').forEach(function (b) { b.onclick = function () { S.voice = b.getAttribute('data-voice'); save(); TTS.speak('Сәлем! Мен сенің дауысыңмын.'); refresh(); }; });
     qsa('[data-lang]').forEach(function (b) { b.onclick = function () { sfx.tap(); S.lang = b.getAttribute('data-lang'); save(); renderHome(true); }; });
     qsa('[data-grade]').forEach(function (b) { b.onclick = function () { sfx.tap(); S.grade = +b.getAttribute('data-grade'); save(); renderHome(); }; });
+    qsa('.seg.grades').forEach(function (sg) { var on = sg.querySelector('.on'); if (on) sg.scrollLeft = Math.max(0, on.offsetLeft - sg.offsetLeft - 16); });   // keep the chosen course in view
     bindSpeak($app);
     if (tab === 'path') { bindPath(keep); X('bindHome'); }
     if (tab === 'games') bindGames();
