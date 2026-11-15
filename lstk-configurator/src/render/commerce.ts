@@ -35,9 +35,15 @@ export function car(g: THREE.Group, cx: number, y: number, cz: number, alongX: b
   g.add(c);
 }
 
+/** Lit surfaces (screens, LED strips), shared by colour: a hall of gaming stations is three materials, not seventy */
+const glows = new Map<string, THREE.MeshStandardMaterial>();
 function glow(color: string, intensity = 0.7): THREE.MeshStandardMaterial {
-  const m = new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: intensity, roughness: 0.5 });
-  m.userData.ownsMaterial = true;
+  const key = `${color}|${intensity}`;
+  let m = glows.get(key);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: intensity, roughness: 0.5 });
+    glows.set(key, m);
+  }
   return m;
 }
 

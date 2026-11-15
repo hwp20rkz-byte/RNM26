@@ -3,7 +3,7 @@
 import type { Analysis } from "@/domain/planner/analyze";
 import { sideOpenings } from "@/domain/buildings/generate";
 import { useT } from "@/i18n";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { canRecord, saveBlob, startRecording, type Recording } from "./recorder";
 import { walkKeys, type TourKind, type TourPoints } from "./Tour";
 
@@ -63,6 +63,12 @@ export function CameraBar({ a, cam, setCam, productId }: { a: Analysis; cam: Cam
   // Known only in the browser: checked after hydration so the server HTML matches
   const [recordable, setRecordable] = useState(false);
   useEffect(() => setRecordable(canRecord()), []);
+  // Leaving the 3D view mid-recording must stop the capture, or the canvas stream stays open
+  const live = useRef<Recording | null>(null);
+  useEffect(() => {
+    live.current = rec?.r ?? null;
+  }, [rec]);
+  useEffect(() => () => void live.current?.stop(), []);
   const begin = (name: string) => {
     const c = document.querySelector("main canvas") as HTMLCanvasElement | null;
     if (!c || !recordable) return;

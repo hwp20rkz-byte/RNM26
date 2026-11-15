@@ -117,7 +117,7 @@ export function disposeOwned(root: THREE.Object3D): void {
       for (const m of mats) {
         if (!m.userData.ownsMaterial) continue;
         // Textures are clones of a shared canvas: dispose the clone's GPU copy only
-        if ((m as THREE.MeshStandardMaterial).map) (m as THREE.MeshStandardMaterial).map!.dispose();
+        if ((m as THREE.MeshStandardMaterial).map && !m.userData.sharedMap) (m as THREE.MeshStandardMaterial).map!.dispose();
         m.dispose();
       }
     }

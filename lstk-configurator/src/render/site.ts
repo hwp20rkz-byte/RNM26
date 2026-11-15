@@ -2,6 +2,8 @@ import * as THREE from "three";
 import type { Rect, SiteItem, SitePlan } from "@/domain/site/site";
 import { box, cyl, mat } from "./kit";
 import { MM } from "./profileGeometry";
+import { hsl } from "./skin";
+import { asphaltTexture, glowTexture, grassTexture, LAWN, pavingTexture, tileUV } from "./textures";
 
 /**
  * The plot in 3D: lawn, asphalt with bay markings (accessible bays blue, EV
@@ -16,11 +18,46 @@ function slab(g: THREE.Group, r: Rect, y: number, t: number, m: THREE.Material) 
   return mesh;
 }
 
+/** Shared ground materials with a tiling surface texture (plain colour where there is no DOM) */
+const grounds = new Map<string, THREE.MeshStandardMaterial>();
+function ground(key: "lawn" | "asphalt" | "paving"): THREE.MeshStandardMaterial {
+  let m = grounds.get(key);
+  if (!m) {
+    const [color, tex, rough] = key === "lawn" ? [LAWN, grassTexture(), 1] : key === "asphalt" ? ["hsl(220 6% 30%)", asphaltTexture(), 0.92] : ["hsl(30 8% 74%)", pavingTexture(), 0.85];
+    m = new THREE.MeshStandardMaterial({ color: hsl(color as string), roughness: rough as number, map: tex as THREE.Texture | null, bumpMap: key === "lawn" ? null : (tex as THREE.Texture | null), bumpScale: 1.2 });
+    grounds.set(key, m);
+  }
+  return m;
+}
+/** Metres per texture tile */
+const TILE = { lawn: 6, asphalt: 3, paving: 1 };
+
+function surface(g: THREE.Group, r: Rect, y: number, t: number, key: "lawn" | "asphalt" | "paving") {
+  const mesh = slab(g, r, y, t, ground(key));
+  tileUV(mesh.geometry, ((r.x1 - r.x0) * MM) / TILE[key], ((r.z1 - r.z0) * MM) / TILE[key]);
+  return mesh;
+}
+
+/** Faceted foliage in a few shades, picked by position so a row of trees is not one colour */
+const foliage = new Map<string, THREE.MeshStandardMaterial>();
+function leaves(hue: number, sat: number, light: number, x: number, z: number): THREE.MeshStandardMaterial {
+  const k = Math.abs(Math.round(x / 700) * 7 + Math.round(z / 700) * 13) % 4;
+  const key = `${hue}|${k}`;
+  let m = foliage.get(key);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({ color: hsl(`hsl(${hue + (k - 1.5) * 7} ${sat + (k % 2) * 6}% ${light + (k - 1.5) * 2.5}%)`), roughness: 0.95, flatShading: true });
+    foliage.set(key, m);
+  }
+  return m;
+}
+
 function deciduous(g: THREE.Group, x: number, z: number, s = 1) {
   cyl(g, x, 1300 * s, z, 110 * s, 2600 * s, mat("hsl(25 30% 28%)", 0.95));
-  for (const [dx, dy, dz, r] of [[0, 3600, 0, 1500], [700, 3200, 300, 1000], [-600, 3300, -400, 1100]] as const) {
-    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r * s * MM, 1), mat("hsl(105 38% 34%)", 0.95));
+  const m0 = leaves(105, 38, 34, x, z);
+  for (const [dx, dy, dz, r] of [[0, 3600, 0, 1500], [700, 3200, 300, 1000], [-600, 3300, -400, 1100], [100, 4500, -200, 900]] as const) {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r * s * MM, 1), m0);
     m.position.set((x + dx * s) * MM, dy * s * MM, (z + dz * s) * MM);
+    m.rotation.set(x * 0.001 + dx, z * 0.001 + dy, dz);
     m.castShadow = true;
     m.userData.ownsGeometry = true;
     g.add(m);
@@ -29,13 +66,33 @@ function deciduous(g: THREE.Group, x: number, z: number, s = 1) {
 
 function conifer(g: THREE.Group, x: number, z: number) {
   cyl(g, x, 500, z, 120, 1000, mat("hsl(25 30% 25%)", 0.95));
-  for (let i = 0; i < 3; i++) {
-    const m = new THREE.Mesh(new THREE.ConeGeometry((1500 - i * 380) * MM, 2400 * MM, 9), mat("hsl(150 32% 24%)", 0.95));
-    m.position.set(x * MM, (1900 + i * 1300) * MM, z * MM);
+  const m0 = leaves(150, 32, 24, x, z);
+  for (let i = 0; i < 4; i++) {
+    const m = new THREE.Mesh(new THREE.ConeGeometry((1500 - i * 330) * MM, 2200 * MM, 9), m0);
+    m.position.set(x * MM, (1800 + i * 1050) * MM, z * MM);
+    m.rotation.y = i * 0.4;
     m.castShadow = true;
     m.userData.ownsGeometry = true;
     g.add(m);
   }
+}
+
+/** A pool of warm light on the ground, shown by the viewport after sunset (`userData.night`) */
+function lightPool(g: THREE.Group, x: number, z: number, radius: number) {
+  const tex = glowTexture();
+  if (!tex) return;
+  const m = new THREE.MeshBasicMaterial({ map: tex, color: "#ffd9a0", transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  m.userData.ownsMaterial = true;
+  // The glow canvas is shared: the material must not take it down with itself
+  m.userData.sharedMap = true;
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(radius * MM, 32), m);
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.set(x * MM, 0.045, z * MM);
+  pool.userData.ownsGeometry = true;
+  pool.userData.night = true;
+  pool.visible = false;
+  pool.renderOrder = 2;
+  g.add(pool);
 }
 
 /** Solar LED street lamp: 6 m pole, 40 W head, 120 W panel on top */
@@ -46,7 +103,10 @@ function lamp(g: THREE.Group, x: number, z: number) {
   head.castShadow = false;
   const led = new THREE.MeshStandardMaterial({ color: "#fff6e0", emissive: new THREE.Color("#ffe8b0"), emissiveIntensity: 1.2 });
   led.userData.ownsMaterial = true;
+  // The viewport turns the lamps up after sunset
+  led.userData.lamp = true;
   box(g, x - 140, 5735, z + 520, 280, 6, 340, led);
+  lightPool(g, x, z + 700, 5500);
   const panel = box(g, x - 330, 6150, z - 450, 660, 30, 1000, mat("hsl(225 45% 18%)", 0.2, 0.6));
   panel.rotation.x = -0.6;
 }
@@ -109,9 +169,9 @@ function item(i: SiteItem): THREE.Group {
 export function createSite(p: SitePlan): THREE.Group {
   const g = new THREE.Group();
   g.name = "site";
-  slab(g, p.plot, -2, 4, mat("hsl(95 38% 46%)", 1));
-  for (const r of p.asphalt) slab(g, r, 2, 30, mat("hsl(220 6% 26%)", 0.95));
-  for (const r of p.paving) slab(g, r, 4, 40, mat("hsl(30 8% 70%)", 0.85));
+  surface(g, p.plot, -2, 4, "lawn");
+  for (const r of p.asphalt) surface(g, r, 2, 30, "asphalt");
+  for (const r of p.paving) surface(g, r, 4, 40, "paving");
   const white = mat("hsl(0 0% 94%)", 0.7);
   for (const b of p.bays) {
     if (b.kind !== "car") slab(g, { x0: b.x0 + 80, x1: b.x1 - 80, z0: b.z0 + 80, z1: b.z1 - 80 }, 33, 4, mat(b.kind === "accessible" ? "hsl(210 70% 45%)" : "hsl(145 55% 38%)", 0.8));
