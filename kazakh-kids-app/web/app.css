@@ -1053,3 +1053,18 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .bz-modes { display: grid; gap: var(--s-2); width: 100%; max-width: 360px; }
 @media (min-width: 720px) { .bz-opts { grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .bz-bar b { transition: none; } }
+/* «Мектеп» → логика */
+.mk-pat, .mk-odd { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-2); font-size: var(--fs-4); line-height: 1; }
+.mk-pat .q { display: grid; place-items: center; width: 40px; height: 40px; border: 2px dashed var(--sky-500); border-radius: var(--r-1); font-size: var(--fs-3); color: var(--sky-600); font-weight: 900; }
+.mk-odd span { display: grid; place-items: center; width: 64px; height: 64px; border-radius: var(--r-2); background: var(--ink-0); border: 2px solid var(--ink-200); }
+.mk-yurt { margin: 0; padding-left: var(--s-4); font-size: var(--fs-2); font-weight: 800; color: var(--ink-800); }
+.mk-yurt .q { color: var(--sky-600); }
+.mk-grid { display: grid; grid-template-columns: repeat(var(--n), 48px); gap: 4px; }
+.mk-grid i { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 8px; background: var(--ink-0); border: 2px solid var(--ink-200); font-style: normal; font-size: var(--fs-3); }
+.mk-orn { width: 180px; height: 150px; }
+.mk-orn rect { fill: var(--ink-0); stroke: var(--ink-200); stroke-width: .5; }
+.mk-orn rect.on { fill: var(--u-red); stroke: var(--u-red-d); }
+.mk-orn rect.q { fill: var(--sky-50); stroke: var(--sky-300); stroke-dasharray: 1.5 1; }
+.mk-orn line { stroke: var(--sun-600); stroke-width: .8; stroke-dasharray: 2 1.5; }
+.mk-o.pic { padding: var(--s-1); }
+.mk-o.pic .mk-orn { width: 100%; height: auto; max-width: 110px; }

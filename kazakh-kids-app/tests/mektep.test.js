@@ -23,7 +23,7 @@ let seed = 11; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2 ** 31;
 const calc = (t) => { const m = /^(\d+) ([+−×÷]) (\d+)$/.exec(t); const a = +m[1], b = +m[3]; return m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '÷' ? a / b : a * b; };
 for (const s of M.SUBJECTS) for (const t of s.topics) for (let k = 0; k < 30; k++) for (const q of M.round(t, rnd)) {
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ': distinct options with the answer'); n++;
-  assert.ok(q.kk && q.ru && q.en && q.say && q.full && !/undefined|NaN/.test(q.full + q.say), t.id + ': texts ' + q.full); n++;
+  assert.ok(q.kk && q.ru && q.en && (q.say || ['pattern', 'algo', 'sym'].includes(t.gen)) && q.full && !/undefined|NaN/.test(q.full + q.say), t.id + ': texts ' + q.full); n++;
   const v = q.visual;
   if (v.type === 'expr' && t.gen !== 'compare') { const c = calc(v.text); eq(q.answer, String(c), t.id + ' ' + v.text); assert.ok(c >= 0 && c <= 100, 'within range'); if (t.gen === 'add20') assert.ok(c <= 20 && +v.text.split(' ')[0] <= 20); }
   if (t.gen === 'compare') { const [a, , b] = v.text.split(' ').map((x) => +x || x); eq(q.answer, a === b ? '=' : a < b ? '<' : '>', 'compare ' + v.text); }
@@ -52,7 +52,22 @@ for (const t of M.SUBJECTS[0].topics.filter((x) => x.grade >= 3)) for (let k = 0
   if (t.gen === 'place') { eq(q.answer, String(v.h * 100 + v.t * 10 + v.u), 'place value'); }
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length, t.id + ' options'); n++;
 }
+// day 4 — logic: hand-written cases first, then every generated task is re-checked
+eq(M.runProgram({ x: 0, y: 0 }, ['R', 'R', 'D']).x, 2, 'robot moves right twice'); eq(M.runProgram({ x: 0, y: 0 }, ['R', 'R', 'D']).y, 1, 'then down');
+eq(M.mirror(['100', '010']).join('|'), '001|010', 'mirror of a half pattern');
+eq(M.ARROW_KK.R + ' ' + M.ARROW_KK.L + ' ' + M.ARROW_KK.U + ' ' + M.ARROW_KK.D, 'оңға солға жоғары төмен', 'direction words');
+eq(M.YURT.map((x) => x.kk).join(' → '), 'кереге → есік → шаңырақ → уық → киіз', 'yurt assembly order');
+const logic = M.SUBJECTS.find((x) => x.id === 'logic');
+for (const t of logic.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'pattern') eq(q.answer, v.unit[v.seq.length % v.unit.length], 'pattern continues ' + v.seq.join(''));
+  if (t.gen === 'odd') { const cats = q.options.map((o) => M.ODD_CAT[o]); assert.ok(cats.filter((c) => c === M.ODD_CAT[q.answer]).length === 1 && new Set(cats).size === 2, 'odd one: one of a kind ' + q.options); n++; }
+  if (t.gen === 'algo') { q.options.forEach((o) => { const end = M.runProgram(v.start, o.split(' '), v.size, v.walls); assert.ok((end.x === v.goal.x && end.y === v.goal.y && !end.crash) === (o === q.answer), 'only the answer reaches the battery: ' + o); n++; }); }
+  if (t.gen === 'sym') { q.options.forEach((o) => { assert.ok((o === M.mirror(v.left).join('|')) === (o === q.answer), 'only the mirror is right'); n++; }); }
+  if (t.gen === 'yurt') eq(q.answer, M.YURT[v.step].kk, 'next yurt step');
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(1).every((s) => s.day >= 4), 'skeleton: 7 subjects, maths has 13 topics (grades 1–4), the rest are planned'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(2).every((s) => s.day >= 5) && M.SUBJECTS[1].topics.length === 5, 'skeleton: 7 subjects, maths 13 topics, logic 5, the rest planned'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');

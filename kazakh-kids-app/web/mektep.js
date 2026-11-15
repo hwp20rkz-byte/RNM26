@@ -13,6 +13,15 @@
     rect: '<rect x="6" y="26" width="88" height="48"/>', rhombus: '<polygon points="50,6 90,50 50,94 10,50"/>',
     pentagon: '<polygon points="50,8 92,40 76,90 24,90 8,40"/>'
   };
+  /** Kazakh ornament on a 6×5 grid: the left half given, the right half either empty («?») or an option. */
+  function ornament(left, right) {
+    var cells = '';
+    left.forEach(function (row, y) {
+      var full = row + (right ? right[y] : '???');
+      for (var x = 0; x < 6; x++) cells += '<rect x="' + x * 10 + '" y="' + y * 10 + '" width="9" height="9" class="' + (full[x] === '1' ? 'on' : full[x] === '?' ? 'q' : '') + '"/>';
+    });
+    return '<svg class="mk-orn" viewBox="0 0 59 49" aria-hidden="true">' + cells + '<line x1="29.5" y1="0" x2="29.5" y2="49"/></svg>';
+  }
   function visual(v) {
     if (v.type === 'items') return '<div class="mk-items">' + new Array(v.n + 1).join('<span>' + v.e + '</span>') + '</div>';
     if (v.type === 'tens') return '<div class="mk-tens">' + new Array(v.t + 1).join('<i class="rod"></i>') + new Array(v.u + 1).join('<i class="one"></i>') + '</div>';
@@ -28,6 +37,18 @@
       }
       return out + '</svg>';
     }
+    if (v.type === 'pattern') return '<div class="mk-pat">' + v.seq.map(function (e) { return '<span>' + e + '</span>'; }).join('') + '<span class="q">?</span></div>';
+    if (v.type === 'odd') return '<div class="mk-odd">' + v.list.map(function (e) { return '<span>' + e + '</span>'; }).join('') + '</div>';
+    if (v.type === 'yurt') return '<ol class="mk-yurt">' + v.done.map(function (x) { return '<li>✅ ' + A.esc(x) + '</li>'; }).join('') + '<li class="q">❓</li></ol>';
+    if (v.type === 'grid') {
+      var g = '<div class="mk-grid" style="--n:' + v.size + '">';
+      for (var y = 0; y < v.size; y++) for (var x = 0; x < v.size; x++) {
+        var c = x === v.start.x && y === v.start.y ? '🤖' : x === v.goal.x && y === v.goal.y ? '🔋' : v.walls.some(function (w) { return w.x === x && w.y === y; }) ? '🧱' : '';
+        g += '<i>' + c + '</i>';
+      }
+      return g + '</div>';
+    }
+    if (v.type === 'sym') return ornament(v.left, null);
     if (v.type === 'coins') return '<div class="mk-coins">' + v.list.map(function (c) { return '<span class="c' + (c >= 100 ? ' big' : '') + '">' + c + '<small>₸</small></span>'; }).join('') + '</div>';
     return '';
   }
@@ -53,7 +74,7 @@
             return '<button class="mk-t" data-topic="' + t.id + '"><b>' + A.esc(t.kk) + '</b><small>' + A.esc(T(t)) + '</small>' + (best != null ? '<span class="pill ok">' + best + ' / ' + M.ROUND + '</span>' : '<span class="pill">NEW</span>') + '</button>';
           }).join('') + '</div>';
       }
-      html += '<p class="muted">' + A.esc(en() ? 'Maths first; logic, science, geography, cities, history and reading come next.' : 'Сначала математика; логика, природа, география, города, история и чтение — следующие.') + '</p>';
+      html += '<p class="muted">' + A.esc(en() ? 'Maths and logic are open; science, geography, cities, history and reading come next.' : 'Открыты математика и логика; природа, география, города, история и чтение — следующие.') + '</p>';
       api.qs('#mk').innerHTML = html; api.stat('');
       api.qsa('[data-subj]').forEach(function (b) { b.onclick = function () { api.sfx.tap(); subj = M.SUBJECTS.filter(function (s) { return s.id === b.getAttribute('data-subj'); })[0]; home(); }; });
       api.qsa('.mk-g').forEach(function (b) { b.onclick = function () { api.sfx.tap(); grade = +b.getAttribute('data-grade'); S.mkGrade = grade; home(); }; });
@@ -67,7 +88,8 @@
       api.qs('#mk').innerHTML = '<div class="mk-q"><small>' + A.esc(topic.kk) + '</small><div class="mk-vis">' + visual(q.visual) + '</div>' +
         '<p class="mk-ask' + (q.kk.length > 40 ? ' long' : '') + '"><b>' + A.esc(q.kk) + '</b> ' + (A.TTS.file(q.kk) ? '<button class="mk-say" data-s="' + A.esc(q.kk) + '" aria-label="🔊">🔊</button>' : '') + '<span class="muted">' + A.esc(T(q)) + '</span></p>' +
         '<div class="mk-opts' + (q.options.length > 3 ? ' four' : '') + '">' + q.options.map(function (o) {
-          return '<button class="mk-o" data-o="' + A.esc(o) + '">' + A.esc(o) + (q.labels ? '<small>' + A.esc(q.labels[o]) + '</small>' : '') + '</button>';
+          var face = q.optType === 'sym' ? ornament(q.visual.left, o.split('|')) : A.esc(o);   // symmetry: the whole ornament per option
+          return '<button class="mk-o' + (q.optType ? ' pic' : '') + '" data-o="' + A.esc(o) + '">' + face + (q.labels ? '<small>' + A.esc(q.labels[o]) + '</small>' : '') + '</button>';
         }).join('') + '</div><div class="mk-fb" id="mkfb"></div></div>';
       var sb = api.qs('.mk-say'); if (sb) sb.onclick = function () { api.TTS.speak(q.kk, true); };
       api.qsa('.mk-o').forEach(function (b) { b.onclick = function () { answer(b.getAttribute('data-o'), b); }; });

@@ -128,6 +128,98 @@
       var o = [n]; c.forEach(function (x) { if (o.length < 3 && o.indexOf(x) < 0) o.push(x); }); return shuffle(o, r).map(String); })(), say: N(n), full: cap(N(n)) + '.' };
   };
 
+  /* ---------- day 4: logic ---------- */
+  var ARROW = { R: '→', L: '←', U: '↑', D: '↓' }, FROM_ARROW = { '→': 'R', '←': 'L', '↑': 'U', '↓': 'D' };
+  var ARROW_KK = { R: 'оңға', L: 'солға', U: 'жоғары', D: 'төмен' };
+  /** Runs a program (letters R/L/U/D or arrows) on a size×size grid; a wall or the edge stops it with crash. */
+  function runProgram(start, steps, size, walls) {
+    size = size || 4; walls = walls || [];
+    var x = start.x, y = start.y;
+    for (var i = 0; i < steps.length; i++) {
+      var d = FROM_ARROW[steps[i]] || steps[i], nx = x + (d === 'R' ? 1 : d === 'L' ? -1 : 0), ny = y + (d === 'D' ? 1 : d === 'U' ? -1 : 0);
+      if (nx < 0 || ny < 0 || nx >= size || ny >= size || walls.some(function (w) { return w.x === nx && w.y === ny; })) return { x: x, y: y, crash: true };
+      x = nx; y = ny;
+    }
+    return { x: x, y: y, crash: false };
+  }
+  /** Mirror of the left half of an ornament (rows of 0/1): the right half reads the row backwards. */
+  function mirror(left) { return left.map(function (row) { return row.split('').reverse().join(''); }); }
+  var ODD_SETS = {
+    fruit: [['алма', '🍎'], ['алмұрт', '🍐'], ['жүзім', '🍇'], ['қарбыз', '🍉'], ['құлпынай', '🍓']],
+    animal: [['сиыр', '🐄'], ['жылқы', '🐎'], ['қой', '🐑'], ['түйе', '🐫'], ['ит', '🐕']],
+    transport: [['автобус', '🚌'], ['ұшақ', '✈️'], ['велосипед', '🚲'], ['пойыз', '🚂'], ['кеме', '🚢']]
+  };
+  var ODD_CAT = {}, ODD_E = {};
+  Object.keys(ODD_SETS).forEach(function (c) { ODD_SETS[c].forEach(function (x) { ODD_CAT[x[0]] = c; ODD_E[x[0]] = x[1]; }); });
+  // Киіз үй тігу — the usual order (to be checked by the teacher, see methodology/plan-10-days.md)
+  var YURT = [{ kk: 'кереге', e: '🧱', ru: 'решётчатые стены', en: 'lattice walls' }, { kk: 'есік', e: '🚪', ru: 'дверь', en: 'door' },
+    { kk: 'шаңырақ', e: '⭕', ru: 'купольный круг', en: 'roof crown' }, { kk: 'уық', e: '🥢', ru: 'жерди купола', en: 'roof poles' }, { kk: 'киіз', e: '🧶', ru: 'войлочное покрытие', en: 'felt cover' }];
+  var PAT_E = ['🍎', '🍐', '⭐', '🌙', '🔺', '🔵', '🌷', '🐟'], PAT_UNITS = ['AB', 'AAB', 'ABB', 'ABC', 'AABB'];
+  GEN.pattern = function (r) {
+    var u = PAT_UNITS[rint(r, 0, PAT_UNITS.length - 1)], es = shuffle(PAT_E.slice(), r), map = { A: es[0], B: es[1], C: es[2] };
+    var unit = u.split('').map(function (c) { return map[c]; }), len = rint(r, 5, 8), seq = [];
+    for (var i = 0; i < len; i++) seq.push(unit[i % unit.length]);
+    var ans = unit[len % unit.length], opts = shuffle([ans].concat(shuffle(es.slice(0, 4).filter(function (e) { return e !== ans; }), r).slice(0, 2)), r);
+    return { kk: 'Келесісі қандай?', ru: 'Что дальше?', en: 'What comes next?', visual: { type: 'pattern', unit: unit, seq: seq }, answer: ans, options: opts, say: '', full: 'Заңдылық: ' + unit.join(' ') + ' …' };
+  };
+  GEN.odd = function (r) {
+    var cats = shuffle(Object.keys(ODD_SETS), r), main = shuffle(ODD_SETS[cats[0]].slice(), r).slice(0, 3), odd = ODD_SETS[cats[1]][rint(r, 0, 4)];
+    var items = shuffle(main.concat([odd]), r);
+    return { kk: 'Қайсысы артық?', ru: 'Что лишнее?', en: 'Which is the odd one out?', visual: { type: 'odd', list: items.map(function (x) { return x[1]; }) }, answer: odd[0],
+      options: items.map(function (x) { return x[0]; }), say: odd[0], full: 'Артығы — ' + odd[0] + '.' };
+  };
+  /** Shortest path by BFS; null if none. */
+  function path(size, start, goal, walls) {
+    var q = [[start.x, start.y, []]], seen = {}; seen[start.x + ',' + start.y] = 1;
+    while (q.length) {
+      var c = q.shift();
+      if (c[0] === goal.x && c[1] === goal.y) return c[2];
+      [['R', 1, 0], ['D', 0, 1], ['L', -1, 0], ['U', 0, -1]].forEach(function (d) {
+        var nx = c[0] + d[1], ny = c[1] + d[2], k = nx + ',' + ny;
+        if (nx < 0 || ny < 0 || nx >= size || ny >= size || seen[k] || walls.some(function (w) { return w.x === nx && w.y === ny; })) return;
+        seen[k] = 1; q.push([nx, ny, c[2].concat([d[0]])]);
+      });
+    }
+    return null;
+  }
+  GEN.algo = function (r) {
+    var size = 4;
+    for (var g = 0; g < 200; g++) {
+      var start = { x: rint(r, 0, 3), y: rint(r, 0, 3) }, goal = { x: rint(r, 0, 3), y: rint(r, 0, 3) }, walls = [];
+      for (var k = 0; k < 2; k++) { var w = { x: rint(r, 0, 3), y: rint(r, 0, 3) }; if (!(w.x === start.x && w.y === start.y) && !(w.x === goal.x && w.y === goal.y)) walls.push(w); }
+      var p = path(size, start, goal, walls); if (!p || p.length < 3 || p.length > 5) continue;
+      var ans = p.map(function (d) { return ARROW[d]; }).join(' '), wrong = [];
+      for (var t = 0; t < 60 && wrong.length < 2; t++) {
+        var m = p.slice(), i = rint(r, 0, m.length - 1), kind = rint(r, 0, 2);
+        if (kind === 0) m[i] = ['R', 'L', 'U', 'D'][rint(r, 0, 3)]; else if (kind === 1) m.pop(); else if (i + 1 < m.length) { var tmp = m[i]; m[i] = m[i + 1]; m[i + 1] = tmp; }
+        var str = m.map(function (d) { return ARROW[d]; }).join(' '), end = runProgram(start, m, size, walls);
+        if (str !== ans && wrong.indexOf(str) < 0 && m.length && !(end.x === goal.x && end.y === goal.y && !end.crash)) wrong.push(str);
+      }
+      if (wrong.length < 2) continue;
+      return { kk: 'Әже-Bot батареяға қалай жетеді?', ru: 'Какая программа приведёт робота к батарейке?', en: 'Which program takes the robot to the battery?',
+        visual: { type: 'grid', size: size, start: start, goal: goal, walls: walls }, answer: ans, options: shuffle([ans].concat(wrong), r), say: '', full: p.map(function (d) { return ARROW_KK[d]; }).join(', ') + '.' };
+    }
+    return GEN.algo(Math.random);
+  };
+  GEN.sym = function (r) {
+    for (var g = 0; g < 100; g++) {
+      var left = []; for (var y = 0; y < 5; y++) { var row = ''; for (var x = 0; x < 3; x++) row += r() < 0.5 ? '1' : '0'; left.push(row); }
+      var mir = mirror(left).join('|'), same = left.join('|');
+      if (mir === same) continue;                           // a palindromic half would make the copy right too
+      var flip = mirror(left).map(function (row, i) { return i === 2 ? (row[0] === '1' ? '0' : '1') + row.slice(1) : row; }).join('|');
+      var opts = [mir, same, flip].filter(function (x, i, a) { return a.indexOf(x) === i; });
+      if (opts.length < 3) continue;
+      return { kk: 'Ою-өрнекті симметриялы етіп аяқта.', ru: 'Дорисуй орнамент симметрично', en: 'Complete the ornament symmetrically', visual: { type: 'sym', left: left }, answer: mir, options: shuffle(opts, r), optType: 'sym', say: '', full: 'Оң жағы — сол жағының айнадағы бейнесі.' };
+    }
+    return GEN.sym(Math.random);
+  };
+  GEN.yurt = function (r) {
+    var step = rint(r, 1, YURT.length - 1), ans = YURT[step].kk;
+    var others = shuffle(YURT.filter(function (x, i) { return i !== step; }).map(function (x) { return x.kk; }), r).slice(0, 2);
+    return { kk: 'Киіз үй тігу: келесі қадам қандай?', ru: 'Ставим юрту: что дальше?', en: 'Putting up a yurt: what comes next?', visual: { type: 'yurt', step: step, done: YURT.slice(0, step).map(function (x) { return x.e + ' ' + x.kk; }) },
+      answer: ans, options: shuffle([ans].concat(others), r), say: ans, full: YURT.slice(0, step + 1).map(function (x) { return x.kk; }).join(' → ') + '.' };
+  };
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -145,7 +237,13 @@
       { id: 'm4shop', grade: 4, gen: 'shop', kk: 'Базарда: есептер', ru: 'Задачи: покупки и сдача', en: 'Word problems: shopping' },
       { id: 'm4place', grade: 4, gen: 'place', kk: 'Үш таңбалы сандар', ru: 'Трёхзначные числа', en: 'Three-digit numbers' }
     ] },
-    { id: 'logic', icon: '🧩', kk: 'Логика', ru: 'Логика и алгоритмы', en: 'Logic', hue: 'purple', day: 4, topics: [] },
+    { id: 'logic', icon: '🧩', kk: 'Логика', ru: 'Логика и алгоритмы', en: 'Logic', hue: 'purple', topics: [
+      { id: 'l1pattern', grade: 1, gen: 'pattern', kk: 'Заңдылық', ru: 'Закономерности', en: 'Patterns' },
+      { id: 'l1odd', grade: 1, gen: 'odd', kk: 'Артығын тап', ru: 'Найди лишнее', en: 'Odd one out' },
+      { id: 'l2algo', grade: 2, gen: 'algo', kk: 'Әже-Bot бағдарламасы', ru: 'Программа для робота', en: 'Program the robot' },
+      { id: 'l2yurt', grade: 2, gen: 'yurt', kk: 'Киіз үй құрастыр', ru: 'Собери юрту', en: 'Put up a yurt' },
+      { id: 'l3sym', grade: 3, gen: 'sym', kk: 'Ою-өрнек: симметрия', ru: 'Орнамент: симметрия', en: 'Ornament: symmetry' }
+    ] },
     { id: 'nature', icon: '🌿', kk: 'Жаратылыстану', ru: 'Естествознание', en: 'Science', hue: 'green', day: 5, topics: [] },
     { id: 'geo', icon: '🗺️', kk: 'География', ru: 'География Казахстана', en: 'Geography', hue: 'teal', day: 6, topics: [] },
     { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', day: 7, topics: [] },
@@ -175,7 +273,9 @@
     for (var hh = 200; hh <= 900; hh += 100) out.push(N(hh));
     FRAC_D.forEach(function (d) { for (var nn = 1; nn < d; nn++) out.push(fractionKk(nn, d)); });
     out.push('Шеңбердің қанша бөлігі боялған?');
+    Object.keys(ODD_CAT).forEach(function (k) { out.push(k); }); YURT.forEach(function (x) { out.push(x.kk); });
+    ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });
