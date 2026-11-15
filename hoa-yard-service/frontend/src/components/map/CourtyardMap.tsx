@@ -4,7 +4,11 @@ import type { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
 import {
   MapPin,
   Trash2,
+  Trash,
   Trees,
+  TreePine,
+  Shrub,
+  Armchair,
   DoorOpen,
   Dumbbell,
   Baby,
@@ -34,6 +38,15 @@ const ZONE_STYLE: Record<ZoneType, PathOptions> = {
     fillColor: "hsl(var(--zone-playground))",
     fillOpacity: 0.18,
     weight: 1.5
+  },
+  TREE: { color: "hsl(var(--zone-tree))", fillColor: "hsl(var(--zone-tree))", fillOpacity: 0.3, weight: 1.5 },
+  BUSH: { color: "hsl(var(--zone-bush))", fillColor: "hsl(var(--zone-bush))", fillOpacity: 0.3, weight: 1.5 },
+  BENCH: { color: "hsl(var(--zone-bench))", fillColor: "hsl(var(--zone-bench))", fillOpacity: 0.3, weight: 1.5 },
+  TRASH_BIN: {
+    color: "hsl(var(--zone-trash-bin))",
+    fillColor: "hsl(var(--zone-trash-bin))",
+    fillOpacity: 0.3,
+    weight: 1.5
   }
 };
 
@@ -46,7 +59,11 @@ const ZONE_ICON: Record<ZoneType, typeof MapPin> = {
   GATE: DoorOpen,
   STAIRS: Waypoints,
   SPORT: Dumbbell,
-  PLAYGROUND: Baby
+  PLAYGROUND: Baby,
+  TREE: TreePine,
+  BUSH: Shrub,
+  BENCH: Armchair,
+  TRASH_BIN: Trash
 };
 
 const ZONE_LABEL: Record<ZoneType, string> = {
@@ -58,7 +75,11 @@ const ZONE_LABEL: Record<ZoneType, string> = {
   GATE: "Ворота",
   STAIRS: "Лестница",
   SPORT: "Спортзона",
-  PLAYGROUND: "Детская площадка"
+  PLAYGROUND: "Детская площадка",
+  TREE: "Дерево",
+  BUSH: "Кустарник",
+  BENCH: "Лавочка",
+  TRASH_BIN: "Урна"
 };
 
 interface CourtyardMapProps {
@@ -157,7 +178,7 @@ export function CourtyardMap({ onZoneSelect }: CourtyardMapProps) {
       {!editMode && (
         <div className="pointer-events-none absolute left-4 top-4 max-w-panel rounded-2xl bg-surface-raised/90 p-4 shadow-sm backdrop-blur">
           <p className="mb-2 text-xs font-medium text-ink-muted">Ақмешіт 9 · Двор</p>
-          <ul className="space-y-2">
+          <ul className="max-h-64 space-y-2 overflow-y-auto pointer-events-auto">
             {(Object.keys(ZONE_LABEL) as ZoneType[]).map((type) => {
               const Icon = ZONE_ICON[type];
               return (
