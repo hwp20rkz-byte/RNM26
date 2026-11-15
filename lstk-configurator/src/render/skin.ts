@@ -7,6 +7,7 @@ import { openingTop } from "@/domain/walls/generate";
 import type { Opening } from "@/domain/walls/types";
 import { tagExplode } from "./assemblies";
 import { MM } from "./profileGeometry";
+import { grain } from "./textures";
 
 /**
  * The building's skin: facade and roof finishes in the chosen colours, windows
@@ -50,10 +51,12 @@ const texCache = new Map<string, THREE.CanvasTexture | null>();
 function lookTexture(look: Look): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
   if (texCache.has(look)) return texCache.get(look)!;
+  // Drawn on a 64-unit grid, rasterised at 256 px: crisp seams up close
   const c = document.createElement("canvas");
-  c.width = c.height = 64;
+  c.width = c.height = 256;
   const g = c.getContext("2d");
   if (!g) return null;
+  g.scale(4, 4);
   g.fillStyle = "#fff";
   g.fillRect(0, 0, 64, 64);
   const dark = (a: number) => `rgba(0,0,0,${a})`;
@@ -110,25 +113,28 @@ function lookTexture(look: Look): THREE.CanvasTexture | null {
         }
       break;
     case "smooth":
-      texCache.set(look, null);
-      return null;
+      // Render and boards have no pattern: the grain below is their texture
+      break;
   }
+  // Surface grain: the same canvas is the colour map and the relief (bump) map
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  grain(g, 256, look === "smooth" || look === "stone" || look === "shingles" ? 0.07 : 0.03, 7);
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
+  tex.anisotropy = 8;
   texCache.set(look, tex);
   return tex;
 }
 
 /** Metres covered by one texture tile, per look */
-const TILE: Record<Look, number> = { ribbed: 0.8, "standing-seam": 0.5, boards: 0.8, tiles: 0.7, shingles: 1, stone: 1.2, smooth: 1 };
+const TILE: Record<Look, number> = { ribbed: 0.8, "standing-seam": 0.5, boards: 0.8, tiles: 0.7, shingles: 1, stone: 1.2, smooth: 1.5 };
 
 function finishMaterial(id: string, color: string, sizeM: [number, number], rotate = false): THREE.MeshStandardMaterial {
   const f = finish(id);
   const tex = lookTexture(f.look);
   const metal = f.look === "ribbed" || f.look === "standing-seam" || f.look === "tiles";
-  const m = new THREE.MeshStandardMaterial({ color: hsl(color), roughness: metal ? 0.45 : 0.85, metalness: metal ? 0.3 : 0, side: THREE.DoubleSide });
+  const m = new THREE.MeshStandardMaterial({ color: hsl(color), roughness: metal ? 0.42 : 0.88, metalness: metal ? 0.35 : 0, side: THREE.DoubleSide });
   if (tex) {
     const t = tex.clone();
     const [u, v] = sizeM;
@@ -138,6 +144,9 @@ function finishMaterial(id: string, color: string, sizeM: [number, number], rota
     } else t.repeat.set(u / TILE[f.look], v / TILE[f.look]);
     t.needsUpdate = true;
     m.map = t;
+    // Seams, laps and joints stand out in raking light
+    m.bumpMap = t;
+    m.bumpScale = f.look === "smooth" ? 0.6 : metal ? 2.5 : 1.8;
   }
   m.userData.ownsMaterial = true;
   return m;
@@ -228,8 +237,11 @@ export function createSkin(b: Building, finishes: FinishChoice): THREE.Group {
   const a = (roof.pitchDeg * Math.PI) / 180;
   const plinth = input.foundation.type === "none" ? 0 : input.foundation.plinth;
   const trim = plain(finishes.trimColor, { metalness: 0.3, roughness: 0.4 });
-  const glass = new THREE.MeshStandardMaterial({ color: hsl("hsl(205 45% 55%)"), metalness: 0.7, roughness: 0.05, transparent: true, opacity: 0.45 });
+  // Glazing: mostly a mirror of the sky with a little of the room showing through.
+  // `glass` marks it for the viewport, which lights the windows at dusk
+  const glass = new THREE.MeshPhysicalMaterial({ color: hsl("hsl(205 30% 42%)"), metalness: 0.9, roughness: 0.04, transparent: true, opacity: 0.55, envMapIntensity: 2.2, clearcoat: 1, clearcoatRoughness: 0.02 });
   glass.userData.ownsMaterial = true;
+  glass.userData.glass = true;
   const leaf = plain("hsl(24 35% 30%)", { roughness: 0.7 });
   const gateMat = finishMaterial("profsheet", finishes.trimColor, [6, 3]);
   const SKIN = 12;

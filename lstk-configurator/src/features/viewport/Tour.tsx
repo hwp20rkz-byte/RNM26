@@ -141,6 +141,8 @@ export function TourRig({ kind, points, offset, onDone, seconds }: { kind: TourK
   return null;
 }
 
+const UP = new THREE.Vector3(0, 1, 0);
+
 /** Keys held for the walk, shared with the on-screen pad */
 export const walkKeys = { forward: false, back: false, left: false, right: false, turnLeft: false, turnRight: false, run: false };
 
@@ -167,7 +169,16 @@ export function WalkRig({ start, offset, walls = [] }: { start: [number, number,
       ShiftLeft: "run",
       ShiftRight: "run",
     };
+    // Typing in a field of the side panel is not walking
+    const typing = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      return !!el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
+    };
+    const release = () => {
+      for (const k of Object.keys(walkKeys) as (keyof typeof walkKeys)[]) walkKeys[k] = false;
+    };
     const down = (e: KeyboardEvent) => {
+      if (typing(e)) return;
       const k = map[e.code];
       if (k) {
         walkKeys[k] = true;
@@ -180,10 +191,13 @@ export function WalkRig({ start, offset, walls = [] }: { start: [number, number,
     };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    // A key held while the window loses focus never sends its keyup: the walker would run on
+    window.addEventListener("blur", release);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
-      for (const k of Object.keys(walkKeys) as (keyof typeof walkKeys)[]) walkKeys[k] = false;
+      window.removeEventListener("blur", release);
+      release();
       cam.fov = keep;
       cam.updateProjectionMatrix();
     };
@@ -194,8 +208,8 @@ export function WalkRig({ start, offset, walls = [] }: { start: [number, number,
   const side = useMemo(() => new THREE.Vector3(), []);
   useFrame((_, dt) => {
     const step = (walkKeys.run ? 3.2 : 1.4) * Math.min(dt, 0.1);
-    if (walkKeys.turnLeft) camera.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), 1.6 * Math.min(dt, 0.1));
-    if (walkKeys.turnRight) camera.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), -1.6 * Math.min(dt, 0.1));
+    if (walkKeys.turnLeft) camera.rotateOnWorldAxis(UP, 1.6 * Math.min(dt, 0.1));
+    if (walkKeys.turnRight) camera.rotateOnWorldAxis(UP, -1.6 * Math.min(dt, 0.1));
     camera.getWorldDirection(dir);
     dir.y = 0;
     dir.normalize();

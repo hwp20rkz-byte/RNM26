@@ -116,7 +116,14 @@ export function createInterior(b: Building, f: FinishChoice, atticInsulation: nu
       // Board ceiling on the bottom chords; the top floor gets the attic insulation over it
       if (finished) lids.add(slab(r.x0, info.base + H - 13, r.z0, r.x1 - r.x0, 13, r.z1 - r.z0, ceilingMat));
       if (finished && li === input.levels.length - 1 && atticInsulation > 0) {
-        const ins = slab(r.x0, info.base + H, r.z0, r.x1 - r.x0, atticInsulation, r.z1 - r.z0, wool);
+        // Kept back from the eaves, where the roof comes down to the wall plate: a full-depth
+        // layer there would stand through the roofing
+        const tan = Math.tan((input.roof.pitchDeg * Math.PI) / 180);
+        const back = Math.max(0, (atticInsulation - (input.roof.type === "mono" ? input.roof.heelHeight : 0)) / Math.max(tan, 0.05)) + 150;
+        const z0 = Math.max(r.z0, back);
+        const z1 = input.roof.type === "mono" ? r.z1 : Math.min(r.z1, input.width - back);
+        if (z1 - z0 < 300) continue;
+        const ins = slab(r.x0, info.base + H, z0, r.x1 - r.x0, atticInsulation, z1 - z0, wool);
         ins.castShadow = false;
         lids.add(ins);
       }

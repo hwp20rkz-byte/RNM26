@@ -29,10 +29,13 @@ export function startRecording(canvas: HTMLCanvasElement, fps = 30, bitrate = 12
     mime: rec.mimeType || mime,
     stop: () =>
       new Promise<Blob>((resolve) => {
-        rec.onstop = () => {
+        const finish = () => {
           stream.getTracks().forEach((t) => t.stop());
           resolve(new Blob(chunks, { type: rec.mimeType || "video/webm" }));
         };
+        // A recorder that already stopped (an encoder error) never fires onstop again
+        if (rec.state === "inactive") return finish();
+        rec.onstop = finish;
         rec.stop();
       }),
   };
