@@ -17,11 +17,11 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   assert(!!(await p.$('.mk-banner')), 'the «Мектеп» banner is on the games tab');
   await p.click('.mk-banner'); await p.waitForTimeout(300);
   const soon = await p.$$eval('.mk-s.soon', (x) => x.length);
-  assert(soon === 3, 'maths, logic, science and geography are open, the other 3 subjects are marked «скоро»');
+  assert(soon === 2, 'maths, logic, science, geography and cities are open, history and literature are marked «скоро»');
   await p.click('[data-subj=math]'); await p.waitForTimeout(200);
   await shot(p, 'mk-home.png');
   // every topic's spoken answers are voiced (many rounds)
-  const miss = await p.evaluate(() => { const M = window.QMEKTEP, out = new Set(); M.SUBJECTS.slice(0, 4).flatMap((x) => x.topics).forEach((t) => { for (let k = 0; k < 40; k++) M.round(t, Math.random).forEach((q) => { if (q.say && q.visual.type !== 'place' && !window.Q.api.TTS.file(q.say)) out.add(q.say); if (!window.Q.api.TTS.file(q.kk) && /[а-яәіңғүұқөһ]/i.test(q.kk) && !/\d/.test(q.kk) && q.visual.type !== 'good') out.add(q.kk); }); }); return [...out]; });
+  const miss = await p.evaluate(() => { const M = window.QMEKTEP, out = new Set(); M.SUBJECTS.slice(0, 5).flatMap((x) => x.topics).forEach((t) => { for (let k = 0; k < 40; k++) M.round(t, Math.random).forEach((q) => { if (q.say && q.visual.type !== 'place' && !window.Q.api.TTS.file(q.say)) out.add(q.say); if (!window.Q.api.TTS.file(q.kk) && /[а-яәіңғүұқөһ]/i.test(q.kk) && !/\d/.test(q.kk) && q.visual.type !== 'good') out.add(q.kk); }); }); return [...out]; });
   assert(miss.length === 0, 'every spoken answer and prompt is voiced' + (miss.length ? ': ' + miss.slice(0, 5).join(' | ') : ''));
   // a full round of «Санау 1–20» with one wrong answer
   await p.click('[data-topic=m1count]'); await p.waitForTimeout(200);
@@ -52,13 +52,16 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   // logic (phase 2, day 4): each topic opens and its right option is accepted
   for (const [subj, g, t] of [['logic', 1, 'l1pattern'], ['logic', 1, 'l1odd'], ['logic', 2, 'l2algo'], ['logic', 2, 'l2yurt'], ['logic', 3, 'l3sym'],
     ['nature', 1, 'n1season'], ['nature', 1, 'n1wild'], ['nature', 2, 'n2home'], ['nature', 2, 'n2water'], ['nature', 2, 'n2senses'], ['nature', 3, 'n3redbook'],
-    ['geo', 2, 'g2dirs'], ['geo', 3, 'g3feature'], ['geo', 3, 'g3repcity'], ['geo', 4, 'g4center'], ['geo', 4, 'g4neighbor']]) {
+    ['geo', 2, 'g2dirs'], ['geo', 3, 'g3feature'], ['geo', 3, 'g3repcity'], ['geo', 4, 'g4center'], ['geo', 4, 'g4neighbor'],
+    ['cities', 2, 'c2landmark'], ['cities', 3, 'c3river'], ['cities', 3, 'c3guide']]) {
     await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);
     await p.click('[data-subj=' + subj + ']'); await p.waitForTimeout(100);
     await p.click(`.mk-g[data-grade="${g}"]`); await p.waitForTimeout(100);
     await p.click(`[data-topic=${t}]`); await p.waitForTimeout(200);
     const s = await p.evaluate(() => window.__mk());
     assert(s.topic === t && (await p.$$('.mk-o')).length >= 3, t + ' opens with options');
+    const wide = await p.evaluate(() => document.documentElement.scrollWidth);
+    assert(wide <= 400, t + ': no sideways scroll on a phone (' + wide + ' px)');
     await shot(p, 'mk-' + t + '.png');
     await p.evaluate((a) => { const b = [...document.querySelectorAll('.mk-o')].find((e) => e.dataset.o === a); b.click(); }, s.answer); await p.waitForTimeout(150);
     assert(!!(await p.$('.mk-o.right')) && !(await p.$('.mk-o.wrong')), t + ': the right option is accepted');

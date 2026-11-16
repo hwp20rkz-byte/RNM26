@@ -350,6 +350,59 @@
       answer: x.a, options: x.opts, say: x.a, full: 'Қазақстанның көршілері: ' + NEIGHBORS.join(', ') + '.' };
   };
 
+  /* ---------- day 7: cities and landmarks (reference tables by hand; sources in methodology/plan-10-days.md) ---------- */
+  var LANDMARK = { 'Бәйтерек': 'Астана', 'Хан Шатыр': 'Астана', 'Ақорда': 'Астана', 'Медеу': 'Алматы', 'Көктөбе': 'Алматы', 'Шымбұлақ': 'Алматы',
+    'Қожа Ахмет Ясауи кесенесі': 'Түркістан', 'Абай мұражайы': 'Семей' };
+  var NEAR = { 'Айша бибі кесенесі': 'Тараз', 'Үлкен Алматы көлі': 'Алматы' };   // outside the city itself: «қай қаланың маңында?»
+  var LANDMARK_E = { 'Бәйтерек': '🗼', 'Хан Шатыр': '⛺', 'Ақорда': '🏛️', 'Медеу': '⛸️', 'Көктөбе': '🚡', 'Шымбұлақ': '🎿', 'Қожа Ахмет Ясауи кесенесі': '🕌',
+    'Абай мұражайы': '📖', 'Айша бибі кесенесі': '🕌', 'Үлкен Алматы көлі': '🏞️' };
+  var CITY_RIVER = { 'Семей': 'Ертіс', 'Павлодар': 'Ертіс', 'Өскемен': 'Ертіс', 'Орал': 'Жайық', 'Атырау': 'Жайық', 'Астана': 'Есіл', 'Петропавл': 'Есіл',
+    'Қызылорда': 'Сырдария', 'Қостанай': 'Тобыл' };
+  var RIVERS = ['Ертіс', 'Жайық', 'Есіл', 'Сырдария', 'Тобыл', 'Іле'];
+  // Қонаев is left out: the spelling of its endings (Қонаевқа / Қонаевке) is not settled for a children's game
+  var GUIDE_CITIES = REP_CITIES.concat(REGIONS.map(function (x) { return REGION_CENTER[x]; })).filter(function (c, i, a) { return c !== 'Қонаев' && a.indexOf(c) === i; });
+  /** [locative, dative, ablative] from the engine: Алматыда, Алматыға, Алматыдан */
+  function guideForms(c) { return [G.caseForm(c, 'zhatys'), G.caseForm(c, 'barys'), G.caseForm(c, 'shygys')]; }
+  GEN.landmark = function (r) {
+    var names = Object.keys(LANDMARK), cities = Object.keys(NEAR).map(function (x) { return NEAR[x]; }).concat(names.map(function (x) { return LANDMARK[x]; })).filter(function (c, i, a) { return a.indexOf(c) === i; });
+    var roll = r();
+    if (roll < 0.3) {   // «Қайсысы Астанада?» — one landmark of the city among others
+      var city = ['Астана', 'Алматы'][rint(r, 0, 1)], mine = names.filter(function (x) { return LANDMARK[x] === city; }), other = names.filter(function (x) { return LANDMARK[x] !== city; });
+      var a = mine[rint(r, 0, mine.length - 1)], loc = guideForms(city)[0];
+      return { kk: 'Қайсысы ' + loc + '?', ru: 'Что из этого находится в городе ' + city + '?', en: 'Which one is in ' + city + '?', visual: { type: 'big', e: '🏙️', text: city },
+        answer: a, options: shuffle([a].concat(shuffle(other, r).slice(0, 2)), r), say: a, full: a + ' ' + loc + '.' };
+    }
+    var near = roll < 0.45, list = near ? Object.keys(NEAR) : names, n = list[rint(r, 0, list.length - 1)], ans = near ? NEAR[n] : LANDMARK[n];
+    var opts = shuffle([ans].concat(shuffle(cities.filter(function (c) { return c !== ans; }), r).slice(0, 2)), r);
+    return { kk: n + (near ? ' қай қаланың маңында?' : ' қай қалада?'), ru: near ? 'Возле какого города?' : 'В каком городе?', en: near ? 'Near which city?' : 'In which city?',
+      visual: { type: 'big', e: LANDMARK_E[n], text: n }, answer: ans, options: opts, say: ans, full: n + ' — ' + (near ? G.caseForm(ans, 'ilik') + ' маңында' : guideForms(ans)[0]) + '.' };
+  };
+  GEN.river = function (r) {
+    var cities = Object.keys(CITY_RIVER), roll = r();
+    if (roll < 0.12) {
+      var o = shuffle(['Қарағанды', 'Тараз', 'Астана', 'Павлодар', 'Қостанай'], r).slice(0, 2);
+      return { kk: 'Қай қала Каспий теңізінің жағасында тұр?', ru: 'Какой город стоит на берегу Каспийского моря?', en: 'Which city is on the Caspian Sea?', visual: { type: 'big', e: '🌊', text: 'Каспий' },
+        answer: 'Ақтау', options: shuffle(['Ақтау'].concat(o), r), say: 'Ақтау', full: 'Ақтау Каспий теңізінің жағасында тұр.' };
+    }
+    if (roll < 0.45) {   // «Қай қала Ертіс өзенінің бойында тұр?»
+      var rv = ['Ертіс', 'Жайық', 'Есіл'][rint(r, 0, 2)], on = cities.filter(function (c) { return CITY_RIVER[c] === rv; }), off = cities.filter(function (c) { return CITY_RIVER[c] !== rv; });
+      var a = on[rint(r, 0, on.length - 1)];
+      return { kk: 'Қай қала ' + rv + ' өзенінің бойында тұр?', ru: 'Какой город стоит на реке ' + rv + '?', en: 'Which city stands on the ' + rv + '?', visual: { type: 'big', e: '🏞️', text: rv },
+        answer: a, options: shuffle([a].concat(shuffle(off, r).slice(0, 2)), r), say: a, full: a + ' ' + rv + ' өзенінің бойында тұр.' };
+    }
+    var c = cities[rint(r, 0, cities.length - 1)], ans = CITY_RIVER[c];
+    return { kk: c + ' қай өзеннің бойында тұр?', ru: 'На какой реке стоит город?', en: 'Which river is the city on?', visual: { type: 'big', e: '🏙️', text: c },
+      answer: ans, options: shuffle([ans].concat(shuffle(RIVERS.filter(function (x) { return x !== ans; }), r).slice(0, 2)), r), say: ans, full: c + ' ' + ans + ' өзенінің бойында тұр.' };
+  };
+  var GUIDE_Q = { zhatys: ['Турист қазір қайда?', 'Где сейчас турист?', 'Where is the tourist now?', '📍'], barys: ['Турист қайда барады?', 'Куда едет турист?', 'Where is the tourist going?', '✈️'],
+    shygys: ['Турист қайдан келді?', 'Откуда приехал турист?', 'Where did the tourist come from?', '🚆'] };
+  GEN.guide = function (r) {
+    var c = GUIDE_CITIES[rint(r, 0, GUIDE_CITIES.length - 1)], kase = ['zhatys', 'barys', 'shygys'][rint(r, 0, 2)], f = guideForms(c), q = GUIDE_Q[kase];
+    var a = f[{ zhatys: 0, barys: 1, shygys: 2 }[kase]];
+    return { kk: q[0], ru: q[1], en: q[2], visual: { type: 'big', e: q[3], text: kase === 'barys' ? '→ ' + c : kase === 'shygys' ? c + ' →' : c, city: c, kase: kase },
+      answer: a, options: shuffle(f.slice(), r), say: a, full: 'Турист ' + a + (kase === 'zhatys' ? '.' : kase === 'barys' ? ' барады.' : ' келді.') };
+  };
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -389,7 +442,11 @@
       { id: 'g4center', grade: 4, gen: 'center', kk: 'Облыс орталықтары', ru: 'Центры областей', en: 'Regional centres' },
       { id: 'g4neighbor', grade: 4, gen: 'neighbor', kk: 'Көрші елдер', ru: 'Соседние страны', en: 'Neighbouring countries' }
     ] },
-    { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', day: 7, topics: [] },
+    { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', topics: [
+      { id: 'c2landmark', grade: 2, gen: 'landmark', kk: 'Көрікті жерлер', ru: 'Достопримечательности', en: 'Landmarks' },
+      { id: 'c3river', grade: 3, gen: 'river', kk: 'Қалалар мен өзендер', ru: 'Города на реках', en: 'Cities and rivers' },
+      { id: 'c3guide', grade: 3, gen: 'guide', kk: 'Гид бол: қайда? қайдан?', ru: 'Будь гидом: где? куда? откуда?', en: 'Be a guide: where to / from?' }
+    ] },
     { id: 'history', icon: '📜', kk: 'Тарих', ru: 'История (5 класс)', en: 'History (grade 5)', hue: 'red', day: 8, topics: [] },
     { id: 'lit', icon: '📖', kk: 'Әдебиеттік оқу', ru: 'Литературное чтение', en: 'Reading', hue: 'pink', day: 9, topics: [] }
   ];
@@ -420,6 +477,14 @@
     MONTHS.concat(SEASONS, WILD, DOMESTIC.map(function (x) { return x[0]; }), HOMES.map(function (x) { return x.kk; }), REDBOOK, COMMON).forEach(function (x) { out.push(x); });
     SENSES.forEach(function (x) { out.push(x.q); out.push(x.organ); }); WATER.forEach(function (x) { out.push(x.kk); });
     MONTHS.forEach(function (m) { out.push(cap(m) + ' — қай мезгіл?'); }); HOMES.forEach(function (h) { out.push(cap(h.home) + ' кім тұрады?'); });
+    Object.keys(LANDMARK).concat(Object.keys(NEAR)).forEach(function (x) { out.push(x); out.push(x + ' қай қалада?'); });
+    Object.keys(NEAR).forEach(function (x) { out.push(x + ' қай қаланың маңында?'); });
+    ['Астана', 'Алматы'].forEach(function (c) { out.push('Қайсысы ' + guideForms(c)[0] + '?'); });
+    Object.keys(CITY_RIVER).forEach(function (c) { out.push(c + ' қай өзеннің бойында тұр?'); out.push(c); });
+    ['Ертіс', 'Жайық', 'Есіл'].forEach(function (x) { out.push('Қай қала ' + x + ' өзенінің бойында тұр?'); }); RIVERS.forEach(function (x) { out.push(x); });
+    out.push('Қай қала Каспий теңізінің жағасында тұр?'); out.push('Ақтау'); out.push('Түркістан'); out.push('Тараз');
+    GUIDE_CITIES.forEach(function (c) { guideForms(c).forEach(function (x) { out.push(x); }); });
+    ['zhatys', 'barys', 'shygys'].forEach(function (k) { out.push(GUIDE_Q[k][0]); });
     REGIONS.forEach(function (g) { out.push(centerQuestion(g)); out.push(REGION_CENTER[g]); out.push(g); });
     DIRS.forEach(function (d) { out.push(d.kk); out.push(cap(G.caseForm(d.kk, 'ilik')) + ' қарама-қарсы жағы қай жақ?'); }); Object.keys(FEATURE).concat(NEIGHBORS, FAR, REP_CITIES, OTHER_CITIES).forEach(function (x) { out.push(x); });
     ['Күн қай жақтан шығады?', 'Күн қай жаққа батады?', 'Нұсқар қай жаққа бағытталған?', 'Қайсысы өзен?', 'Қайсысы көл?', 'Қайсысы тау?', 'Қайсысы республикалық маңызы бар қала?', 'Қайсысы Қазақстанмен шекаралас?', 'Қайсысы Қазақстанмен шекараласпайды?', 'Қайсысы республикалық маңызы бар қала емес?', 'Қазақстанның астанасы қай қала?', 'Түсте күн қай жақта тұрады?'].forEach(function (x) { out.push(x); });
@@ -427,5 +492,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

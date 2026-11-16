@@ -1017,7 +1017,8 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .mk-ask { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); margin: 0; font-size: var(--fs-3); }
 .mk-ask .muted { flex: 1 0 100%; font-size: var(--fs-1); }
 .mk-say { min-width: 44px; min-height: 44px; border: 0; border-radius: 50%; background: var(--sky-100); cursor: pointer; }
-.mk-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.mk-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
+.mk-opts.long { grid-template-columns: minmax(0, 1fr); }   /* «Жезқазғаннан», «Қожа Ахмет Ясауи кесенесі»: one per row, no sideways scroll */
 .mk-o { display: grid; place-items: center; gap: 2px; min-height: 64px; padding: var(--s-1); border: 2px solid var(--ink-200); border-radius: var(--r-2); background: var(--ink-0); box-shadow: var(--lip) var(--ink-200);
   font: inherit; font-size: var(--fs-3); font-weight: 900; color: var(--ink-800); cursor: pointer; }
 .mk-o small { font-size: var(--fs-1); font-weight: 800; color: var(--ink-600); }
@@ -1077,3 +1078,38 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .mk-big { display: grid; justify-items: center; gap: var(--s-1); }
 .mk-big span { font-size: 72px; line-height: 1; }
 .mk-big b { font-size: var(--fs-3); color: var(--ink-800); }
+
+/* 16.11: «Жалғау жаңбыры» and «Сөз жылан» */
+.rn, .sn { display: flex; flex-direction: column; gap: var(--s-2); height: 100%; color: var(--ink-0); }
+.rn-hud, .sn-hud { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3); border-radius: var(--r-2); background: var(--night-700); font-weight: 900; }
+.rn-hud b, .sn-hud b { text-align: center; color: var(--neon-gold); font-size: var(--fs-3); }
+.rn-mult.on { color: var(--neon-lime); }
+.rn-field { position: relative; flex: 1; min-height: 280px; border-radius: var(--r-3); background: linear-gradient(180deg, var(--night-800), var(--night-700)); border: 2px solid var(--night-500); overflow: hidden; }
+.rn-drop { position: absolute; left: 50%; top: 0; display: grid; justify-items: center; gap: 2px; padding: var(--s-2) var(--s-3); border-radius: var(--r-2); background: var(--night-900); border: 2px solid var(--neon-cyan); box-shadow: 0 0 16px hsl(188 100% 55% / .35); transform: translate(-50%, 0); will-change: transform; }
+.rn-drop span { font-size: 40px; line-height: 1; }
+.rn-drop b { font-size: var(--fs-3); color: var(--neon-cyan); }
+.rn-drop b em { font-style: normal; color: var(--neon-gold); }
+.rn-drop small { color: hsl(230 30% 76%); font-weight: 800; }
+.rn-drop.ok { border-color: var(--ok); } .rn-drop.bad { border-color: var(--bad); }
+.rn-baskets { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.rn-b { display: grid; justify-items: center; min-height: 72px; padding: var(--s-1); border: 2px solid var(--night-500); border-radius: var(--r-2); background: var(--night-700); color: var(--ink-0); font: inherit; font-size: var(--fs-3); font-weight: 900; cursor: pointer; }
+.rn-b i { font-style: normal; font-size: 24px; }
+.rn-b.right { background: var(--ok); border-color: var(--ok-d); color: var(--ink-800); }
+.rn-b.wrong { background: var(--bad); border-color: var(--bad-d); }
+.sn-word { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: var(--s-2); align-items: center; padding: var(--s-1) var(--s-3); border-radius: var(--r-2); background: var(--night-800); }
+.sn-word .e { grid-row: span 2; font-size: 40px; line-height: 1; }
+.sn-word .tr { color: hsl(230 30% 76%); font-weight: 800; }
+.sn-word .sl { display: flex; gap: 4px; }
+.sn-word .sl i { display: grid; place-items: center; width: 28px; height: 32px; border-bottom: 3px solid var(--night-500); font-style: normal; font-size: var(--fs-3); font-weight: 900; color: var(--neon-lime); }
+.sn-word .sl i.next { border-color: var(--neon-gold); }
+.sn-board { display: grid; grid-template-columns: repeat(var(--c), 1fr); gap: 2px; width: 100%; max-width: 380px; margin: 0 auto; padding: 4px; border-radius: var(--r-2); background: var(--night-900); border: 2px solid var(--night-500); touch-action: none; }
+.sn-board i { display: grid; place-items: center; aspect-ratio: 1; border-radius: 6px; background: var(--night-800); font-style: normal; font-weight: 900; font-size: var(--fs-4); line-height: 1; }
+
+.sn-board i.l { background: var(--night-700); color: var(--neon-gold); }
+.sn-board i.bd { background: var(--u-green); }
+.sn-board i.hd { background: var(--neon-lime); border-radius: 40%; }
+.sn-board.hurt { border-color: var(--bad); } .sn-board.win { border-color: var(--neon-lime); }
+.sn-pad { display: grid; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(2, 56px); gap: var(--s-1); justify-content: center; }
+.sn-pad button { border: 2px solid var(--night-500); border-radius: var(--r-2); background: var(--night-700); color: var(--ink-0); font-size: 22px; cursor: pointer; }
+.sn-pad [data-d=up] { grid-column: 2; } .sn-pad [data-d=left] { grid-column: 1; grid-row: 2; } .sn-pad [data-d=down] { grid-column: 2; grid-row: 2; } .sn-pad [data-d=right] { grid-column: 3; grid-row: 2; }
+.sn-board i.bd.l { background: var(--u-green); color: var(--night-900); }

@@ -218,6 +218,7 @@ try {
 }
 // phase 2 «Мектеп»: number words 0–200, sums in тенге, prompts and labels of the maths topics
 { global.self = global; const MK = require(path.join(web, 'mektep-core.js')); MK.voiceLines().forEach((x) => add(x)); }
+{ const RN = require(path.join(web, 'rain-core.js')); RN.NOUNS.forEach((w) => add(w.kk)); }   // «Жалғау жаңбыры» and «Сөз жылан» say the word
 // sprint 6: pet lines and «Көше тілі» pairs
 {
   const PT = require(path.join(web, 'pets-core.js')); Object.values(PT.LINES).forEach((l) => add(l.kk));

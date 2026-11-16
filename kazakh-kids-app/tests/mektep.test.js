@@ -104,7 +104,32 @@ for (const t of geo.topics) for (let k = 0; k < 40; k++) for (const q of M.round
   else if (t.gen === 'repcity' && q.kk.includes('емес')) { assert.ok(q.options.filter((o) => !M.REP_CITIES.includes(o)).length === 1 && !M.REP_CITIES.includes(q.answer), 'one ordinary city'); n++; }
   else if (t.gen === 'repcity') { assert.ok(q.options.filter((o) => M.REP_CITIES.includes(o)).length === 1 && M.REP_CITIES.includes(q.answer), 'one city of republican significance'); n++; }
 }
+// day 7: cities — reference case forms written by hand (locative / dative / ablative)
+const GUIDE_REF = { Алматы: ['Алматыда', 'Алматыға', 'Алматыдан'], Шымкент: ['Шымкентте', 'Шымкентке', 'Шымкенттен'], Тараз: ['Таразда', 'Таразға', 'Тараздан'],
+  Өскемен: ['Өскеменде', 'Өскеменге', 'Өскеменнен'], Ақтау: ['Ақтауда', 'Ақтауға', 'Ақтаудан'], Ақтөбе: ['Ақтөбеде', 'Ақтөбеге', 'Ақтөбеден'],
+  Семей: ['Семейде', 'Семейге', 'Семейден'], Көкшетау: ['Көкшетауда', 'Көкшетауға', 'Көкшетаудан'], Орал: ['Оралда', 'Оралға', 'Оралдан'], Астана: ['Астанада', 'Астанаға', 'Астанадан'] };
+for (const c of Object.keys(GUIDE_REF)) { eq(M.guideForms(c).join(' '), GUIDE_REF[c].join(' '), 'case forms of ' + c); }
+eq(M.LANDMARK['Бәйтерек'], 'Астана', 'Бәйтерек'); eq(M.LANDMARK['Медеу'], 'Алматы', 'Медеу'); eq(M.LANDMARK['Қожа Ахмет Ясауи кесенесі'], 'Түркістан', 'Ясауи');
+eq(M.CITY_RIVER['Орал'], 'Жайық', 'Орал on the Жайық'); eq(M.CITY_RIVER['Астана'], 'Есіл', 'Астана on the Есіл'); eq(M.CITY_RIVER['Семей'], 'Ертіс', 'Семей on the Ертіс');
+assert.ok(!M.GUIDE_CITIES.includes('Қонаев'), 'Қонаев is left out of the guide (spelling of its endings varies)'); n++;
+const cities = M.SUBJECTS.find((x) => x.id === 'cities');
+eq(cities.topics.length, 3, 'three city topics');
+for (const t of cities.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
+for (const t of cities.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'landmark') {
+    if (q.kk.endsWith('қай қалада?')) eq(q.answer, M.LANDMARK[v.text], 'city of ' + v.text);
+    else if (q.kk.endsWith('маңында?')) eq(q.answer, M.NEAR[v.text], 'near ' + v.text);
+    else { const city = q.kk.replace('Қайсысы ', '').replace(/да\?$|де\?$|та\?$|те\?$/, ''); assert.ok(q.options.filter((o) => M.LANDMARK[o] && q.kk.includes(M.guideForms(M.LANDMARK[o])[0])).length === 1 && q.kk.includes(M.guideForms(M.LANDMARK[q.answer])[0]), 'one landmark in ' + city); n++; }
+  }
+  if (t.gen === 'river') {
+    if (q.kk.startsWith('Қай қала')) { if (q.kk.includes('Каспий')) eq(q.answer, 'Ақтау', 'the Caspian city'); else { const r = Object.values(M.CITY_RIVER).find((x) => q.kk.includes(x)); assert.ok(q.options.filter((o) => M.CITY_RIVER[o] === r).length === 1 && M.CITY_RIVER[q.answer] === r, 'one city on ' + r); n++; } }
+    else eq(q.answer, M.CITY_RIVER[v.text], 'river of ' + v.text);
+  }
+  if (t.gen === 'guide') { const f = M.guideForms(v.city); eq(q.options.slice().sort().join(' '), f.slice().sort().join(' '), 'three case forms'); eq(q.answer, f[{ zhatys: 0, barys: 1, shygys: 2 }[v.kase]], 'right case for ' + q.kk); }
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(4).every((s) => s.day >= 7) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, geography 5, the rest planned'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(5).every((s) => s.day >= 8) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5 && M.SUBJECTS[4].topics.length === 3, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, geography 5, cities 3, the rest planned'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');
