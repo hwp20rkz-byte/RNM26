@@ -67,7 +67,24 @@ for (const t of logic.topics) for (let k = 0; k < 40; k++) for (const q of M.rou
   if (t.gen === 'sym') { q.options.forEach((o) => { assert.ok((o === M.mirror(v.left).join('|')) === (o === q.answer), 'only the mirror is right'); n++; }); }
   if (t.gen === 'yurt') eq(q.answer, M.YURT[v.step].kk, 'next yurt step');
 }
+// day 5 — nature: reference tables written by hand (sources in methodology/plan-10-days.md), forms from the engine
+eq(M.SEASON_OF['наурыз'], 'көктем', 'March is spring'); eq(M.SEASON_OF['желтоқсан'], 'қыс', 'December is winter'); eq(M.SEASON_OF['қыркүйек'], 'күз', 'September is autumn');
+eq(M.SENSES.map((x) => x.organ).join(' '), 'көзбен құлақпен мұрынмен тілмен терімен', 'sense organs with «немен?» (instrumental)');
+eq(M.HOMES.map((x) => x.kk + ' — ' + x.home).join(', '), 'балық — суда, барыс — тауда, түйе — шөлде, тиін — орманда', 'where animals live (locative)');
+eq(M.WATER.map((x) => x.kk).join(' → '), 'Су буланады → Бұлт пайда болады → Жаңбыр жауады → Су өзенге ағады', 'water cycle order');
+eq(M.REDBOOK.join(' '), 'барыс құлан арқар қарақұйрық', 'Red Book animals in the game');
+const nature = M.SUBJECTS.find((x) => x.id === 'nature');
+for (const t of nature.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'season') eq(q.answer, M.SEASON_OF[v.text], 'season of ' + v.text);
+  if (t.gen === 'wild') { const w = q.options.filter((o) => M.WILD.includes(o)); assert.ok(q.kk.includes('жабайы') ? w.length === 1 && w[0] === q.answer : w.length === 2 && !w.includes(q.answer), 'wild/domestic ' + q.options); n++; }
+  if (t.gen === 'home') { eq(M.HOMES.find((x) => x.kk === q.answer).home, v.text, 'lives ' + v.text); assert.ok(q.options.filter((o) => o !== q.answer).every((o) => M.HOME_NOT[v.text].includes(o)), 'distractors are surely wrong: ' + q.options); n++; }
+  if (t.gen === 'senses') eq(q.answer, M.SENSES.find((x) => x.q === q.kk).organ, 'organ for ' + q.kk);
+  if (t.gen === 'redbook') { assert.ok(M.REDBOOK.includes(q.answer) && q.options.filter((o) => M.REDBOOK.includes(o)).length === 1, 'one Red Book animal'); n++; }
+  if (t.gen === 'water') eq(q.answer, M.WATER[v.step].kk, 'water step');
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(2).every((s) => s.day >= 5) && M.SUBJECTS[1].topics.length === 5, 'skeleton: 7 subjects, maths 13 topics, logic 5, the rest planned'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(3).every((s) => s.day >= 6) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, the rest planned'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');

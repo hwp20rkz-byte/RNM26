@@ -220,6 +220,57 @@
       answer: ans, options: shuffle([ans].concat(others), r), say: ans, full: YURT.slice(0, step + 1).map(function (x) { return x.kk; }).join(' → ') + '.' };
   };
 
+  /* ---------- day 5: nature (reference tables written by hand; sources in methodology/plan-10-days.md) ---------- */
+  var MONTHS = ['қаңтар', 'ақпан', 'наурыз', 'сәуір', 'мамыр', 'маусым', 'шілде', 'тамыз', 'қыркүйек', 'қазан', 'қараша', 'желтоқсан'];
+  var SEASONS = ['қыс', 'көктем', 'жаз', 'күз'], SEASON_OF = {};
+  MONTHS.forEach(function (m, i) { SEASON_OF[m] = SEASONS[Math.floor(((i + 1) % 12) / 3)]; });
+  var DOMESTIC = [['сиыр', '🐄'], ['қой', '🐑'], ['жылқы', '🐎'], ['түйе', '🐫'], ['ешкі', '🐐'], ['ит', '🐕'], ['мысық', '🐈']];
+  var WILD_L = [['қасқыр', '🐺'], ['түлкі', '🦊'], ['аю', '🐻'], ['барыс', '🐆'], ['қоян', '🐇'], ['тиін', '🐿️'], ['бүркіт', '🦅']];
+  var WILD = WILD_L.map(function (x) { return x[0]; });
+  // who lives where: only unambiguous pairs; distractors per place are surely wrong (no «squirrel in the mountains»)
+  var HOMES = [{ kk: 'балық', e: '🐟', home: G.caseForm('су', 'zhatys') }, { kk: 'барыс', e: '🐆', home: G.caseForm('тау', 'zhatys') },
+    { kk: 'түйе', e: '🐫', home: G.caseForm('шөл', 'zhatys') }, { kk: 'тиін', e: '🐿️', home: G.caseForm('орман', 'zhatys') }];
+  var HOME_NOT = { 'суда': ['барыс', 'түйе', 'тиін'], 'тауда': ['балық', 'түйе'], 'шөлде': ['балық', 'тиін'], 'орманда': ['балық', 'түйе'] };
+  var SENSES = [
+    { q: 'Біз немен көреміз?', organ: G.caseForm('көз', 'komektes'), ru: 'Чем мы видим?', en: 'What do we see with?' },
+    { q: 'Біз немен естиміз?', organ: G.caseForm('құлақ', 'komektes'), ru: 'Чем мы слышим?', en: 'What do we hear with?' },
+    { q: 'Иісті немен сеземіз?', organ: G.caseForm('мұрын', 'komektes'), ru: 'Чем мы чувствуем запах?', en: 'What do we smell with?' },
+    { q: 'Дәмді немен сеземіз?', organ: G.caseForm('тіл', 'komektes'), ru: 'Чем мы чувствуем вкус?', en: 'What do we taste with?' },
+    { q: 'Жылы мен суықты немен сеземіз?', organ: G.caseForm('тері', 'komektes'), ru: 'Чем мы чувствуем тепло и холод?', en: 'What do we feel warm and cold with?' }];
+  // Қызыл кітап (Красная книга РК): only animals listed there; the distractors are common farm animals
+  var REDBOOK = ['барыс', 'құлан', 'арқар', 'қарақұйрық'], COMMON = ['қой', 'сиыр', 'тауық', 'ит', 'мысық', 'жылқы'];
+  var WATER = [{ kk: 'Су буланады', e: '♨️' }, { kk: 'Бұлт пайда болады', e: '☁️' }, { kk: 'Жаңбыр жауады', e: '🌧️' }, { kk: 'Су өзенге ағады', e: '🏞️' }];
+  GEN.season = function (r) {
+    var m = MONTHS[rint(r, 0, 11)], ans = SEASON_OF[m];
+    return { kk: cap(m) + ' — қай мезгіл?', ru: 'Какое это время года?', en: 'Which season is it?', visual: { type: 'big', e: '📅', text: m }, answer: ans,
+      options: shuffle([ans].concat(shuffle(SEASONS.filter(function (x) { return x !== ans; }), r).slice(0, 2)), r), say: ans, full: cap(m) + ' — ' + ans + '.' };
+  };
+  GEN.wild = function (r) {
+    var askWild = r() < 0.5, one = (askWild ? WILD_L : DOMESTIC)[rint(r, 0, 6)], two = shuffle((askWild ? DOMESTIC : WILD_L).slice(), r).slice(0, 2), items = shuffle([one].concat(two), r);
+    return { kk: askWild ? 'Қайсысы жабайы аң?' : 'Қайсысы үй жануары?', ru: askWild ? 'Кто из них дикий зверь?' : 'Кто из них домашнее животное?', en: askWild ? 'Which is a wild animal?' : 'Which is a farm animal?',
+      visual: { type: 'odd', list: items.map(function (x) { return x[1]; }) }, answer: one[0], options: items.map(function (x) { return x[0]; }), say: one[0], full: cap(one[0]) + ' — ' + (askWild ? 'жабайы аң.' : 'үй жануары.') };
+  };
+  GEN.home = function (r) {
+    var h = HOMES[rint(r, 0, HOMES.length - 1)], wrong = shuffle(HOME_NOT[h.home].slice(), r).slice(0, 2);
+    var e = function (k) { return HOMES.filter(function (x) { return x.kk === k; })[0].e; };
+    return { kk: cap(h.home) + ' кім тұрады?', ru: 'Кто живёт здесь?', en: 'Who lives here?', visual: { type: 'big', e: { 'суда': '🌊', 'тауда': '🏔️', 'шөлде': '🏜️', 'орманда': '🌲' }[h.home], text: h.home },
+      answer: h.kk, options: shuffle([h.kk].concat(wrong), r), labels: null, say: h.kk, full: cap(h.kk) + ' ' + h.home + ' тұрады.', emo: [h.kk].concat(wrong).map(e) };
+  };
+  GEN.senses = function (r) {
+    var s = SENSES[rint(r, 0, SENSES.length - 1)], others = shuffle(SENSES.filter(function (x) { return x !== s; }), r).slice(0, 2).map(function (x) { return x.organ; });
+    return { kk: s.q, ru: s.ru, en: s.en, visual: { type: 'big', e: '🧒', text: '' }, answer: s.organ, options: shuffle([s.organ].concat(others), r), say: s.organ, full: s.q.replace('немен', s.organ).replace('?', '.') };
+  };
+  GEN.redbook = function (r) {
+    var a = REDBOOK[rint(r, 0, REDBOOK.length - 1)], others = shuffle(COMMON.slice(), r).slice(0, 2);
+    return { kk: 'Қайсысы Қызыл кітапқа енген?', ru: 'Кто из них в Красной книге?', en: 'Which one is in the Red Book?', visual: { type: 'big', e: '📕', text: 'Қызыл кітап' },
+      answer: a, options: shuffle([a].concat(others), r), say: a, full: cap(a) + ' — Қызыл кітапқа енген.' };
+  };
+  GEN.water = function (r) {
+    var step = rint(r, 1, WATER.length - 1), ans = WATER[step].kk, others = shuffle(WATER.filter(function (x, i) { return i !== step; }).map(function (x) { return x.kk; }), r).slice(0, 2);
+    return { kk: 'Судың айналымы: келесі кезең қандай?', ru: 'Круговорот воды: что дальше?', en: 'The water cycle: what comes next?', visual: { type: 'yurt', step: step, done: WATER.slice(0, step).map(function (x) { return x.e + ' ' + x.kk; }) },
+      answer: ans, options: shuffle([ans].concat(others), r), say: ans, full: WATER.slice(0, step + 1).map(function (x) { return x.kk; }).join(' → ') + '.' };
+  };
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -244,7 +295,14 @@
       { id: 'l2yurt', grade: 2, gen: 'yurt', kk: 'Киіз үй құрастыр', ru: 'Собери юрту', en: 'Put up a yurt' },
       { id: 'l3sym', grade: 3, gen: 'sym', kk: 'Ою-өрнек: симметрия', ru: 'Орнамент: симметрия', en: 'Ornament: symmetry' }
     ] },
-    { id: 'nature', icon: '🌿', kk: 'Жаратылыстану', ru: 'Естествознание', en: 'Science', hue: 'green', day: 5, topics: [] },
+    { id: 'nature', icon: '🌿', kk: 'Жаратылыстану', ru: 'Естествознание', en: 'Science', hue: 'green', topics: [
+      { id: 'n1season', grade: 1, gen: 'season', kk: 'Жыл мезгілдері', ru: 'Времена года', en: 'Seasons' },
+      { id: 'n1wild', grade: 1, gen: 'wild', kk: 'Үй жануары ма, жабайы ма?', ru: 'Домашние и дикие', en: 'Farm or wild?' },
+      { id: 'n2home', grade: 2, gen: 'home', kk: 'Кім қайда тұрады?', ru: 'Кто где живёт?', en: 'Who lives where?' },
+      { id: 'n2water', grade: 2, gen: 'water', kk: 'Судың айналымы', ru: 'Круговорот воды', en: 'The water cycle' },
+      { id: 'n2senses', grade: 2, gen: 'senses', kk: 'Сезім мүшелері', ru: 'Органы чувств', en: 'The senses' },
+      { id: 'n3redbook', grade: 3, gen: 'redbook', kk: 'Қызыл кітап', ru: 'Красная книга', en: 'The Red Book' }
+    ] },
     { id: 'geo', icon: '🗺️', kk: 'География', ru: 'География Казахстана', en: 'Geography', hue: 'teal', day: 6, topics: [] },
     { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', day: 7, topics: [] },
     { id: 'history', icon: '📜', kk: 'Тарих', ru: 'История (5 класс)', en: 'History (grade 5)', hue: 'red', day: 8, topics: [] },
@@ -274,8 +332,12 @@
     FRAC_D.forEach(function (d) { for (var nn = 1; nn < d; nn++) out.push(fractionKk(nn, d)); });
     out.push('Шеңбердің қанша бөлігі боялған?');
     Object.keys(ODD_CAT).forEach(function (k) { out.push(k); }); YURT.forEach(function (x) { out.push(x.kk); });
+    MONTHS.concat(SEASONS, WILD, DOMESTIC.map(function (x) { return x[0]; }), HOMES.map(function (x) { return x.kk; }), REDBOOK, COMMON).forEach(function (x) { out.push(x); });
+    SENSES.forEach(function (x) { out.push(x.q); out.push(x.organ); }); WATER.forEach(function (x) { out.push(x.kk); });
+    MONTHS.forEach(function (m) { out.push(cap(m) + ' — қай мезгіл?'); }); HOMES.forEach(function (h) { out.push(cap(h.home) + ' кім тұрады?'); });
+    ['Қайсысы жабайы аң?', 'Қайсысы үй жануары?', 'Қайсысы Қызыл кітапқа енген?', 'Судың айналымы: келесі кезең қандай?'].forEach(function (x) { out.push(x); });
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

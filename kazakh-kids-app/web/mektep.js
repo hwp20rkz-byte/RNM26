@@ -37,6 +37,7 @@
       }
       return out + '</svg>';
     }
+    if (v.type === 'big') return '<div class="mk-big"><span>' + v.e + '</span>' + (v.text ? '<b>' + A.esc(v.text) + '</b>' : '') + '</div>';
     if (v.type === 'pattern') return '<div class="mk-pat">' + v.seq.map(function (e) { return '<span>' + e + '</span>'; }).join('') + '<span class="q">?</span></div>';
     if (v.type === 'odd') return '<div class="mk-odd">' + v.list.map(function (e) { return '<span>' + e + '</span>'; }).join('') + '</div>';
     if (v.type === 'yurt') return '<ol class="mk-yurt">' + v.done.map(function (x) { return '<li>✅ ' + A.esc(x) + '</li>'; }).join('') + '<li class="q">❓</li></ol>';
@@ -74,7 +75,7 @@
             return '<button class="mk-t" data-topic="' + t.id + '"><b>' + A.esc(t.kk) + '</b><small>' + A.esc(T(t)) + '</small>' + (best != null ? '<span class="pill ok">' + best + ' / ' + M.ROUND + '</span>' : '<span class="pill">NEW</span>') + '</button>';
           }).join('') + '</div>';
       }
-      html += '<p class="muted">' + A.esc(en() ? 'Maths and logic are open; science, geography, cities, history and reading come next.' : 'Открыты математика и логика; природа, география, города, история и чтение — следующие.') + '</p>';
+      html += '<p class="muted">' + A.esc(en() ? 'Maths, logic and science are open; geography, cities, history and reading come next.' : 'Открыты математика, логика и естествознание; география, города, история и чтение — следующие.') + '</p>';
       api.qs('#mk').innerHTML = html; api.stat('');
       api.qsa('[data-subj]').forEach(function (b) { b.onclick = function () { api.sfx.tap(); subj = M.SUBJECTS.filter(function (s) { return s.id === b.getAttribute('data-subj'); })[0]; home(); }; });
       api.qsa('.mk-g').forEach(function (b) { b.onclick = function () { api.sfx.tap(); grade = +b.getAttribute('data-grade'); S.mkGrade = grade; home(); }; });
