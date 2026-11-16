@@ -271,6 +271,85 @@
       answer: ans, options: shuffle([ans].concat(others), r), say: ans, full: WATER.slice(0, step + 1).map(function (x) { return x.kk; }).join(' → ') + '.' };
   };
 
+  /* ---------- day 6: geography of Kazakhstan (reference tables by hand; sources in methodology/plan-10-days.md) ---------- */
+  var REGION_CENTER = {
+    'Абай облысы': 'Семей', 'Ақмола облысы': 'Көкшетау', 'Ақтөбе облысы': 'Ақтөбе', 'Алматы облысы': 'Қонаев', 'Атырау облысы': 'Атырау',
+    'Батыс Қазақстан облысы': 'Орал', 'Жамбыл облысы': 'Тараз', 'Жетісу облысы': 'Талдықорған', 'Қарағанды облысы': 'Қарағанды',
+    'Қостанай облысы': 'Қостанай', 'Қызылорда облысы': 'Қызылорда', 'Маңғыстау облысы': 'Ақтау', 'Павлодар облысы': 'Павлодар',
+    'Солтүстік Қазақстан облысы': 'Петропавл', 'Түркістан облысы': 'Түркістан', 'Ұлытау облысы': 'Жезқазған', 'Шығыс Қазақстан облысы': 'Өскемен'
+  };
+  var REGIONS = Object.keys(REGION_CENTER);
+  /** «Абай облысының орталығы қай қала?» (genitive from the engine) */
+  function centerQuestion(reg) { return G.caseForm(reg, 'ilik') + ' орталығы қай қала?'; }
+  var DIRS = [{ kk: 'солтүстік', ru: 'север', en: 'north' }, { kk: 'шығыс', ru: 'восток', en: 'east' }, { kk: 'оңтүстік', ru: 'юг', en: 'south' }, { kk: 'батыс', ru: 'запад', en: 'west' }];
+  var FEATURE = {};   // rivers, lakes and mountains of Kazakhstan (seas left out: «sea or lake» is not a question for grade 3)
+  ['Ертіс', 'Іле', 'Сырдария', 'Жайық', 'Есіл', 'Тобыл'].forEach(function (x) { FEATURE[x] = 'river'; });
+  ['Балқаш', 'Алакөл', 'Зайсан', 'Марқакөл'].forEach(function (x) { FEATURE[x] = 'lake'; });
+  ['Алтай', 'Алатау', 'Тарбағатай', 'Қаратау'].forEach(function (x) { FEATURE[x] = 'mountain'; });
+  var KIND_KK = { river: 'өзен', lake: 'көл', mountain: 'тау' };
+  var NEIGHBORS = ['Ресей', 'Қытай', 'Қырғызстан', 'Өзбекстан', 'Түрікменстан'], FAR = ['Жапония', 'Франция', 'Бразилия', 'Египет', 'Канада', 'Италия'];
+  var REP_CITIES = ['Астана', 'Алматы', 'Шымкент'], OTHER_CITIES = ['Қарағанды', 'Ақтөбе', 'Тараз', 'Павлодар', 'Өскемен', 'Атырау'];
+  function oneOf(list, others, r, n) { var a = list[rint(r, 0, list.length - 1)]; return { a: a, opts: shuffle([a].concat(shuffle(others.slice(), r).slice(0, n || 2)), r) }; }
+  GEN.dirs = function (r) {
+    var roll = r();
+    if (roll < 0.25) {   // opposite side: «Солтүстіктің қарама-қарсы жағы қай жақ?»
+      var j = rint(r, 0, 3), opp = DIRS[(j + 2) % 4].kk, o2 = shuffle(DIRS.filter(function (x, n) { return n !== (j + 2) % 4; }).map(function (x) { return x.kk; }), r).slice(0, 2);
+      return { kk: cap(G.caseForm(DIRS[j].kk, 'ilik')) + ' қарама-қарсы жағы қай жақ?', ru: 'Какая сторона противоположна?', en: 'Which side is opposite?',
+        visual: { type: 'big', e: '↕️', text: cap(DIRS[j].kk) }, answer: opp, options: shuffle([opp].concat(o2), r), say: opp, full: cap(DIRS[j].kk) + ' — ' + opp + '.' };
+    }
+    if (roll < 0.35) {   // northern hemisphere: the noon sun is in the south
+      var o3 = shuffle(['солтүстік', 'шығыс', 'батыс'], r).slice(0, 2);
+      return { kk: 'Түсте күн қай жақта тұрады?', ru: 'Где солнце в полдень?', en: 'Where is the sun at noon?', visual: { type: 'big', e: '☀️', text: '' },
+        answer: 'оңтүстік', options: shuffle(['оңтүстік'].concat(o3), r), say: 'оңтүстік', full: 'Түсте күн оңтүстікте тұрады.' };
+    }
+    if (roll < 0.55) {
+      var rise = r() < 0.5, ans = rise ? 'шығыс' : 'батыс', o = shuffle(DIRS.map(function (d) { return d.kk; }).filter(function (x) { return x !== ans; }), r).slice(0, 2);
+      return { kk: rise ? 'Күн қай жақтан шығады?' : 'Күн қай жаққа батады?', ru: rise ? 'Где восходит солнце?' : 'Где садится солнце?', en: rise ? 'Where does the sun rise?' : 'Where does the sun set?',
+        visual: { type: 'big', e: rise ? '🌅' : '🌇', text: '' }, answer: ans, options: shuffle([ans].concat(o), r), say: ans, full: rise ? 'Күн шығыстан шығады.' : 'Күн батысқа батады.' };
+    }
+    var k = rint(r, 0, 3), d = DIRS[k], others = shuffle(DIRS.filter(function (x) { return x !== d; }), r).slice(0, 2).map(function (x) { return x.kk; });
+    return { kk: 'Нұсқар қай жаққа бағытталған?', ru: 'Куда показывает стрелка?', en: 'Which way does the arrow point?', visual: { type: 'compass', deg: k * 90 },
+      answer: d.kk, options: shuffle([d.kk].concat(others), r), say: d.kk, full: cap(d.kk) + '.' };
+  };
+  GEN.feature = function (r) {
+    var kinds = shuffle(['river', 'lake', 'mountain'], r), kind = kinds[0], names = Object.keys(FEATURE);
+    var pick = function (kd) { var l = names.filter(function (x) { return FEATURE[x] === kd; }); return l[rint(r, 0, l.length - 1)]; };
+    var a = pick(kind), opts = shuffle([a, pick(kinds[1]), pick(kinds[2])], r);
+    return { kk: 'Қайсысы ' + KIND_KK[kind] + '?', ru: { river: 'Что из этого река?', lake: 'Что из этого озеро?', mountain: 'Что из этого горы?' }[kind], en: 'Which one is a ' + { river: 'river', lake: 'lake', mountain: 'mountain range' }[kind] + '?',
+      visual: { type: 'big', e: { river: '🏞️', lake: '🌊', mountain: '🏔️' }[kind], text: '' }, answer: a, options: opts, say: a, full: a + ' — ' + KIND_KK[kind] + '.' };
+  };
+  GEN.repcity = function (r) {
+    var roll = r();
+    if (roll < 0.15) return { kk: 'Қазақстанның астанасы қай қала?', ru: 'Какой город — столица Казахстана?', en: 'Which city is the capital of Kazakhstan?', visual: { type: 'big', e: '🏛️', text: '' },
+      answer: 'Астана', options: shuffle(['Астана'].concat(shuffle(['Алматы', 'Шымкент', 'Қарағанды'], r).slice(0, 2)), r), say: 'Астана', full: 'Қазақстанның астанасы — Астана.' };
+    if (roll < 0.55) {
+      var y = oneOf(OTHER_CITIES, REP_CITIES, r);
+      return { kk: 'Қайсысы республикалық маңызы бар қала емес?', ru: 'Какой город НЕ республиканского значения?', en: 'Which is NOT a city of national significance?', visual: { type: 'big', e: '🏘️', text: '' },
+        answer: y.a, options: y.opts, say: y.a, full: 'Республикалық маңызы бар қалалар: Астана, Алматы, Шымкент.' };
+    }
+    var x = oneOf(REP_CITIES, OTHER_CITIES, r);
+    return { kk: 'Қайсысы республикалық маңызы бар қала?', ru: 'Какой город — республиканского значения?', en: 'Which is a city of national significance?', visual: { type: 'big', e: '🏙️', text: '' },
+      answer: x.a, options: x.opts, say: x.a, full: 'Республикалық маңызы бар қалалар: Астана, Алматы, Шымкент.' };
+  };
+  GEN.center = function (r) {
+    // 7 of 17 regions share the centre's name and answer themselves: 3 tasks in 4 go to the other 10
+    var hard = REGIONS.filter(function (x) { return x.indexOf(REGION_CENTER[x] + ' ') !== 0; }), pool = r() < 0.75 ? hard : REGIONS;
+    var reg = pool[rint(r, 0, pool.length - 1)], ans = REGION_CENTER[reg];
+    var others = shuffle(REGIONS.filter(function (x) { return x !== reg; }).map(function (x) { return REGION_CENTER[x]; }), r).slice(0, 2);
+    return { kk: centerQuestion(reg), ru: 'Какой город — центр этой области?', en: 'Which city is the centre of this region?', visual: { type: 'big', e: '🗺️', text: reg },
+      answer: ans, options: shuffle([ans].concat(others), r), say: ans, full: G.caseForm(reg, 'ilik') + ' орталығы — ' + ans + '.' };
+  };
+  GEN.neighbor = function (r) {
+    if (r() < 0.45) {
+      var y = oneOf(FAR, NEIGHBORS, r);
+      return { kk: 'Қайсысы Қазақстанмен шекараласпайды?', ru: 'Какая страна НЕ граничит с Казахстаном?', en: 'Which country does NOT border Kazakhstan?', visual: { type: 'big', e: '🌍', text: '' },
+        answer: y.a, options: y.opts, say: y.a, full: y.a + ' — алыс ел.' };
+    }
+    var x = oneOf(NEIGHBORS, FAR, r);
+    return { kk: 'Қайсысы Қазақстанмен шекаралас?', ru: 'Какая страна граничит с Казахстаном?', en: 'Which country borders Kazakhstan?', visual: { type: 'big', e: '🇰🇿', text: '' },
+      answer: x.a, options: x.opts, say: x.a, full: 'Қазақстанның көршілері: ' + NEIGHBORS.join(', ') + '.' };
+  };
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -303,7 +382,13 @@
       { id: 'n2senses', grade: 2, gen: 'senses', kk: 'Сезім мүшелері', ru: 'Органы чувств', en: 'The senses' },
       { id: 'n3redbook', grade: 3, gen: 'redbook', kk: 'Қызыл кітап', ru: 'Красная книга', en: 'The Red Book' }
     ] },
-    { id: 'geo', icon: '🗺️', kk: 'География', ru: 'География Казахстана', en: 'Geography', hue: 'teal', day: 6, topics: [] },
+    { id: 'geo', icon: '🗺️', kk: 'География', ru: 'География Казахстана', en: 'Geography', hue: 'teal', topics: [
+      { id: 'g2dirs', grade: 2, gen: 'dirs', kk: 'Дүние тараптары', ru: 'Стороны света', en: 'Compass directions' },
+      { id: 'g3feature', grade: 3, gen: 'feature', kk: 'Өзен, көл, тау', ru: 'Реки, озёра, горы', en: 'Rivers, lakes, mountains' },
+      { id: 'g3repcity', grade: 3, gen: 'repcity', kk: 'Республикалық қалалар', ru: 'Города республиканского значения', en: 'Cities of national significance' },
+      { id: 'g4center', grade: 4, gen: 'center', kk: 'Облыс орталықтары', ru: 'Центры областей', en: 'Regional centres' },
+      { id: 'g4neighbor', grade: 4, gen: 'neighbor', kk: 'Көрші елдер', ru: 'Соседние страны', en: 'Neighbouring countries' }
+    ] },
     { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', day: 7, topics: [] },
     { id: 'history', icon: '📜', kk: 'Тарих', ru: 'История (5 класс)', en: 'History (grade 5)', hue: 'red', day: 8, topics: [] },
     { id: 'lit', icon: '📖', kk: 'Әдебиеттік оқу', ru: 'Литературное чтение', en: 'Reading', hue: 'pink', day: 9, topics: [] }
@@ -312,7 +397,7 @@
   function round(topic, r) {
     var out = [], seen = {};
     for (var guard = 0; out.length < ROUND && guard < 200; guard++) {
-      var q = GEN[topic.gen](r), k = q.kk + '|' + JSON.stringify(q.visual);
+      var q = GEN[topic.gen](r), k = q.kk + '|' + JSON.stringify(q.visual) + '|' + q.answer;
       if (seen[k]) continue; seen[k] = 1; out.push(q);
     }
     return out;
@@ -335,9 +420,12 @@
     MONTHS.concat(SEASONS, WILD, DOMESTIC.map(function (x) { return x[0]; }), HOMES.map(function (x) { return x.kk; }), REDBOOK, COMMON).forEach(function (x) { out.push(x); });
     SENSES.forEach(function (x) { out.push(x.q); out.push(x.organ); }); WATER.forEach(function (x) { out.push(x.kk); });
     MONTHS.forEach(function (m) { out.push(cap(m) + ' — қай мезгіл?'); }); HOMES.forEach(function (h) { out.push(cap(h.home) + ' кім тұрады?'); });
+    REGIONS.forEach(function (g) { out.push(centerQuestion(g)); out.push(REGION_CENTER[g]); out.push(g); });
+    DIRS.forEach(function (d) { out.push(d.kk); out.push(cap(G.caseForm(d.kk, 'ilik')) + ' қарама-қарсы жағы қай жақ?'); }); Object.keys(FEATURE).concat(NEIGHBORS, FAR, REP_CITIES, OTHER_CITIES).forEach(function (x) { out.push(x); });
+    ['Күн қай жақтан шығады?', 'Күн қай жаққа батады?', 'Нұсқар қай жаққа бағытталған?', 'Қайсысы өзен?', 'Қайсысы көл?', 'Қайсысы тау?', 'Қайсысы республикалық маңызы бар қала?', 'Қайсысы Қазақстанмен шекаралас?', 'Қайсысы Қазақстанмен шекараласпайды?', 'Қайсысы республикалық маңызы бар қала емес?', 'Қазақстанның астанасы қай қала?', 'Түсте күн қай жақта тұрады?'].forEach(function (x) { out.push(x); });
     ['Қайсысы жабайы аң?', 'Қайсысы үй жануары?', 'Қайсысы Қызыл кітапқа енген?', 'Судың айналымы: келесі кезең қандай?'].forEach(function (x) { out.push(x); });
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

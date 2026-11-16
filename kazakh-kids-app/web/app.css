@@ -1068,6 +1068,12 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .mk-orn line { stroke: var(--sun-600); stroke-width: .8; stroke-dasharray: 2 1.5; }
 .mk-o.pic { padding: var(--s-1); }
 .mk-o.pic .mk-orn { width: 100%; height: auto; max-width: 110px; }
+.mk-cmp { width: 168px; height: 168px; }
+.mk-cmp circle { fill: var(--sky-50); stroke: var(--ink-200); stroke-width: 2; }
+.mk-cmp .tk { stroke: var(--ink-600); stroke-width: 3; }
+.mk-cmp .ar { fill: var(--u-red); }
+.mk-cmp .tl { fill: var(--ink-200); }
+.mk-cmp .hub { fill: var(--ink-800); stroke: none; }
 .mk-big { display: grid; justify-items: center; gap: var(--s-1); }
 .mk-big span { font-size: 72px; line-height: 1; }
 .mk-big b { font-size: var(--fs-3); color: var(--ink-800); }

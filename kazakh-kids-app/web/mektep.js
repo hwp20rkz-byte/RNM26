@@ -49,6 +49,11 @@
       }
       return g + '</div>';
     }
+    if (v.type === 'compass') {   // map convention: up = north; no letters on the dial, the arrow alone carries the question
+      return '<svg class="mk-cmp" viewBox="-50 -50 100 100" aria-hidden="true"><circle r="46"/>' +
+        [0, 90, 180, 270].map(function (d) { return '<line class="tk" y1="-46" y2="-38" transform="rotate(' + d + ')"/>'; }).join('') +
+        '<g transform="rotate(' + v.deg + ')"><path class="ar" d="M0 -34 L9 2 L0 -4 L-9 2 Z"/><path class="tl" d="M0 -4 L9 2 L0 30 L-9 2 Z"/></g><circle class="hub" r="4"/></svg>';
+    }
     if (v.type === 'sym') return ornament(v.left, null);
     if (v.type === 'coins') return '<div class="mk-coins">' + v.list.map(function (c) { return '<span class="c' + (c >= 100 ? ' big' : '') + '">' + c + '<small>₸</small></span>'; }).join('') + '</div>';
     return '';

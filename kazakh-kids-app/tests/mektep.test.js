@@ -84,7 +84,27 @@ for (const t of nature.topics) for (let k = 0; k < 40; k++) for (const q of M.ro
   if (t.gen === 'redbook') { assert.ok(M.REDBOOK.includes(q.answer) && q.options.filter((o) => M.REDBOOK.includes(o)).length === 1, 'one Red Book animal'); n++; }
   if (t.gen === 'water') eq(q.answer, M.WATER[v.step].kk, 'water step');
 }
+// day 6 — geography: reference tables by hand (sources in plan-10-days.md)
+eq(M.REGIONS.length, 17, '17 regions'); eq(M.REGION_CENTER['Абай облысы'], 'Семей', 'Abai → Semey'); eq(M.REGION_CENTER['Ұлытау облысы'], 'Жезқазған', 'Ulytau → Zhezkazgan');
+eq(M.REGION_CENTER['Жетісу облысы'], 'Талдықорған', 'Zhetisu → Taldykorgan'); eq(M.REGION_CENTER['Алматы облысы'], 'Қонаев', 'Almaty region → Konaev');
+eq(M.centerQuestion('Абай облысы'), 'Абай облысының орталығы қай қала?', 'genitive from the engine');
+eq(M.NEIGHBORS.join(' '), 'Ресей Қытай Қырғызстан Өзбекстан Түрікменстан', 'five neighbours');
+eq(M.DIRS.map((d) => d.kk).join(' '), 'солтүстік шығыс оңтүстік батыс', 'directions clockwise from north');
+const geo = M.SUBJECTS.find((x) => x.id === 'geo');
+for (const t of geo.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10 different tasks'); n++; }
+for (const t of geo.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'dirs') { if (v.type === 'compass') eq(q.answer, M.DIRS[v.deg / 90].kk, 'arrow ' + v.deg); else if (q.kk.includes('қарама-қарсы')) eq(M.DIRS.findIndex((d) => d.kk === q.answer), (M.DIRS.findIndex((d) => d.kk === v.text.toLowerCase()) + 2) % 4, 'opposite of ' + v.text); else if (q.kk.startsWith('Түсте')) eq(q.answer, 'оңтүстік', 'noon sun'); else eq(q.answer, q.kk.includes('шығады') ? 'шығыс' : 'батыс', 'the sun'); }
+  if (t.gen === 'center') eq(q.answer, M.REGION_CENTER[v.text], 'center of ' + v.text);
+  if (t.gen === 'feature') { const kind = q.kk.includes('өзен') ? 'river' : q.kk.includes('көл') ? 'lake' : 'mountain'; assert.ok(q.options.filter((o) => M.FEATURE[o] === kind).length === 1 && M.FEATURE[q.answer] === kind, 'one ' + kind); n++; }
+  if (t.gen === 'neighbor' && q.kk.includes('шекараласпайды')) { assert.ok(q.options.filter((o) => !M.NEIGHBORS.includes(o)).length === 1 && !M.NEIGHBORS.includes(q.answer), 'one non-neighbour'); n++; }
+  else if (t.gen === 'neighbor') { assert.ok(q.options.filter((o) => M.NEIGHBORS.includes(o)).length === 1 && M.NEIGHBORS.includes(q.answer), 'one neighbour'); n++; }
+  if (t.gen === 'repcity' && q.kk.includes('астанасы')) eq(q.answer, 'Астана', 'the capital');
+  else if (t.gen === 'repcity' && q.kk.includes('емес')) { assert.ok(q.options.filter((o) => !M.REP_CITIES.includes(o)).length === 1 && !M.REP_CITIES.includes(q.answer), 'one ordinary city'); n++; }
+  else if (t.gen === 'repcity') { assert.ok(q.options.filter((o) => M.REP_CITIES.includes(o)).length === 1 && M.REP_CITIES.includes(q.answer), 'one city of republican significance'); n++; }
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(3).every((s) => s.day >= 6) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, the rest planned'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(4).every((s) => s.day >= 7) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, geography 5, the rest planned'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');
