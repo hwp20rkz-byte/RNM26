@@ -1113,3 +1113,16 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .sn-pad button { border: 2px solid var(--night-500); border-radius: var(--r-2); background: var(--night-700); color: var(--ink-0); font-size: 22px; cursor: pointer; }
 .sn-pad [data-d=up] { grid-column: 2; } .sn-pad [data-d=left] { grid-column: 1; grid-row: 2; } .sn-pad [data-d=down] { grid-column: 2; grid-row: 2; } .sn-pad [data-d=right] { grid-column: 3; grid-row: 2; }
 .sn-board i.bd.l { background: var(--u-green); color: var(--night-900); }
+
+/* 17.11: «Мектеп күнделігі» */
+.mk-diary-btn { width: 100%; min-height: 48px; margin: 0 0 var(--s-3); border: 2px solid var(--u-pink, var(--sky-300)); border-radius: var(--r-2); background: var(--ink-0); color: var(--ink-800); font: inherit; font-weight: 900; cursor: pointer; }
+.mk-diary { display: grid; gap: var(--s-2); }
+.mk-row { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: var(--s-2); padding: var(--s-2); border-radius: var(--r-2); background: var(--ink-0); border: 2px solid var(--ink-200); }
+.mk-row .i { font-size: var(--fs-3); }
+.mk-row small { font-weight: 800; color: var(--ink-600); white-space: nowrap; }
+.mk-bar { height: 8px; border-radius: 4px; background: var(--ink-200); overflow: hidden; }
+.mk-bar i { display: block; height: 100%; background: var(--ok); }
+.mk-weak { display: flex; flex-wrap: wrap; gap: var(--s-1); padding-left: var(--s-4); }
+.mk-redo { min-height: 44px; padding: 0 var(--s-2); border: 2px dashed var(--bad); border-radius: var(--r-2); background: var(--bad-bg); color: var(--ink-800); font: inherit; font-weight: 800; cursor: pointer; }
+.mk-report { margin: 0; padding: var(--s-3); border-radius: var(--r-2); background: var(--sky-50); border: 2px solid var(--sky-100); white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: var(--fs-1); line-height: 1.5; color: var(--ink-800); }
+.mk-acts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }

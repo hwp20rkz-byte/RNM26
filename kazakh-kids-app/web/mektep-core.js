@@ -568,6 +568,29 @@
     }
     return out;
   }
+  /* ---------- day 10: «Мектеп күнделігі» — the diary for the child and the report for the teacher / parent ---------- */
+  /** Stars for a best score out of 10: 9–10 ★★★, 6–8 ★★, 1–5 ★, not played or 0 — none. */
+  function stars(best) { return best == null || best <= 0 ? 0 : best >= 9 ? 3 : best >= 6 ? 2 : 1; }
+  /** Per subject: topics done, total, stars earned / possible, and the topics to repeat (played, best < 6). */
+  function diary(best) {
+    best = best || {};
+    return SUBJECTS.map(function (s) {
+      var done = 0, st = 0, weak = [];
+      s.topics.forEach(function (t) { var b = best[t.id]; if (b != null) { done++; if (b < 6) weak.push(t); } st += stars(b); });
+      return { id: s.id, icon: s.icon, kk: s.kk, ru: s.ru, en: s.en, done: done, total: s.topics.length, stars: st, maxStars: s.topics.length * 3, weak: weak };
+    });
+  }
+  /** Plain-text report (copied and sent to the teacher or a parent). */
+  function reportText(best, name, lang, date) {
+    var en = lang === 'en', d = diary(best), all = d.reduce(function (a, x) { return a + x.total; }, 0), done = d.reduce(function (a, x) { return a + x.done; }, 0);
+    var lines = ['🏫 Мектеп күнделігі' + (name ? ' — ' + name : '') + (date ? ' · ' + date : ''),
+      (en ? 'Topics done: ' : 'Пройдено тем: ') + done + ' / ' + all + ' · ★ ' + d.reduce(function (a, x) { return a + x.stars; }, 0) + ' / ' + d.reduce(function (a, x) { return a + x.maxStars; }, 0), ''];
+    d.forEach(function (x) { var tr = en ? x.en : x.ru; lines.push(x.icon + ' ' + x.kk + (tr && tr !== x.kk ? ' — ' + tr : '') + ': ' + x.done + ' / ' + x.total + ' · ★ ' + x.stars + ' / ' + x.maxStars); });
+    var weak = []; d.forEach(function (x) { x.weak.forEach(function (t) { weak.push(t.kk + ' — ' + (en ? t.en : t.ru) + ' (' + best[t.id] + ' / ' + ROUND + ')'); }); });
+    lines.push(''); lines.push(weak.length ? (en ? 'Worth repeating:' : 'Стоит повторить:') : (en ? 'Nothing to repeat — well done!' : 'Повторять нечего — молодец!'));
+    weak.forEach(function (w) { lines.push('• ' + w); });
+    return lines.join('\n');
+  }
   function topicById(id) { var t = null; SUBJECTS.forEach(function (s) { s.topics.forEach(function (x) { if (x.id === id) t = x; }); }); return t; }
   /** Everything a topic can say aloud (for the voice pipeline): number words, prompts, labels. */
   function voiceLines() {
@@ -606,5 +629,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

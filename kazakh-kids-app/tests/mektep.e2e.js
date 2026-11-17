@@ -39,6 +39,17 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   assert(res.includes('9 / 10'), 'the round ends 9 / 10: ' + res);
   const best = await p.evaluate(() => window.qDebug.state().mektep);
   assert(best && best.m1count === 9, 'the best result is saved');
+  // «Мектеп күнделігі»: 3 stars for 9 / 10, the report for the teacher, «copy» works
+  await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);
+  await p.click('#mkdiary'); await p.waitForTimeout(200);
+  const diary = await p.evaluate(() => ({ math: document.querySelector('.mk-row small').textContent, rep: document.querySelector('#mkrep').textContent, wide: document.documentElement.scrollWidth }));
+  assert(diary.math === '1 / 13 · ★ 3', 'diary: maths 1 / 13 topics, 3 stars: ' + diary.math);
+  assert(diary.rep.startsWith('🏫 Мектеп күнделігі — T') && diary.rep.includes('Пройдено тем: 1 / 38') && diary.rep.includes('Повторять нечего'), 'the report text for the teacher');
+  assert(diary.wide <= 400, 'the diary fits a phone (' + diary.wide + ' px)');
+  await shot(p, 'mk-diary.png');
+  await p.click('#mkcopy'); await p.waitForTimeout(300);
+  assert(/✓/.test(await p.textContent('#mkcopy')), 'the report is copied');
+  await p.click('#mkback'); await p.waitForTimeout(150);
   // open each other topic and screenshot its first task
   for (const [g, t] of [[1, 'm1tens'], [1, 'm1shapes'], [1, 'm1add20'], [1, 'm1compare'], [2, 'm2add100'], [2, 'm2mul'], [2, 'm2money'], [3, 'm3mul69'], [3, 'm3div'], [3, 'm3frac'], [4, 'm4shop'], [4, 'm4place']]) {
     await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);

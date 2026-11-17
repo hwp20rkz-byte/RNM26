@@ -66,7 +66,8 @@
     api.onLeave(function () { over = true; });
     function home() {
       topic = null;
-      var html = '<h2>🏫 Мектеп · ' + A.esc(en() ? 'school subjects in Kazakh' : 'школьные предметы на казахском') + '</h2><div class="mk-subj">' + M.SUBJECTS.map(function (s) {
+      var html = '<h2>🏫 Мектеп · ' + A.esc(en() ? 'school subjects in Kazakh' : 'школьные предметы на казахском') + '</h2>' +
+        '<button class="mk-diary-btn" id="mkdiary">📒 ' + A.esc(en() ? 'Diary · Мектеп күнделігі' : 'Дневник · Мектеп күнделігі') + '</button><div class="mk-subj">' + M.SUBJECTS.map(function (s) {
         var ready = s.topics.length > 0;
         return '<button class="mk-s' + (ready ? '' : ' soon') + (subj === s ? ' on' : '') + '" data-subj="' + s.id + '"' + (ready ? '' : ' disabled') + ' style="--uc:var(--u-' + s.hue + ');--ucd:var(--u-' + s.hue + '-d)">' +
           '<span class="i">' + s.icon + '</span><b>' + A.esc(s.kk) + '</b><small>' + A.esc(ready ? T(s) : (en() ? 'coming soon' : 'скоро')) + '</small></button>';
@@ -80,11 +81,32 @@
             return '<button class="mk-t" data-topic="' + t.id + '"><b>' + A.esc(t.kk) + '</b><small>' + A.esc(T(t)) + '</small>' + (best != null ? '<span class="pill ok">' + best + ' / ' + M.ROUND + '</span>' : '<span class="pill">NEW</span>') + '</button>';
           }).join('') + '</div>';
       }
-      html += '<p class="muted">' + A.esc(en() ? 'Maths, logic and science are open; geography, cities, history and reading come next.' : 'Открыты математика, логика и естествознание; география, города, история и чтение — следующие.') + '</p>';
       api.qs('#mk').innerHTML = html; api.stat('');
+      api.qs('#mkdiary').onclick = function () { api.sfx.tap(); diaryView(); };
       api.qsa('[data-subj]').forEach(function (b) { b.onclick = function () { api.sfx.tap(); subj = M.SUBJECTS.filter(function (s) { return s.id === b.getAttribute('data-subj'); })[0]; home(); }; });
       api.qsa('.mk-g').forEach(function (b) { b.onclick = function () { api.sfx.tap(); grade = +b.getAttribute('data-grade'); S.mkGrade = grade; home(); }; });
       api.qsa('[data-topic]').forEach(function (b) { b.onclick = function () { api.sfx.tap(); start(M.topicById(b.getAttribute('data-topic'))); }; });
+    }
+    // «Мектеп күнделігі»: stars and progress per subject, topics worth repeating, a text report to copy for the teacher / parent
+    function diaryView() {
+      var d = M.diary(S.mektep), lang = en() ? 'en' : 'ru';
+      var rep = M.reportText(S.mektep, S.name || '', lang, new Date().toLocaleDateString('ru-RU'));
+      api.qs('#mk').innerHTML = '<div class="mk-diary"><h2>📒 Мектеп күнделігі</h2>' + d.map(function (x) {
+        return '<div class="mk-row"><span class="i">' + x.icon + '</span><b>' + A.esc(x.kk) + '</b><span class="mk-bar"><i style="width:' + Math.round(x.done / Math.max(1, x.total) * 100) + '%"></i></span>' +
+          '<small>' + x.done + ' / ' + x.total + ' · ★ ' + x.stars + '</small></div>' +
+          (x.weak.length ? '<div class="mk-weak">' + x.weak.map(function (t) { return '<button class="mk-redo" data-topic="' + t.id + '">↻ ' + A.esc(t.kk) + ' · ' + S.mektep[t.id] + ' / ' + M.ROUND + '</button>'; }).join('') + '</div>' : '');
+      }).join('') +
+        '<h3>' + A.esc(en() ? 'Report for the teacher or a parent' : 'Отчёт для учителя или родителей') + '</h3><pre class="mk-report" id="mkrep">' + A.esc(rep) + '</pre>' +
+        '<div class="mk-acts"><button class="btn gold" id="mkcopy">📋 ' + A.esc(en() ? 'Copy' : 'Скопировать') + '</button><button class="btn ghost" id="mkback">← ' + A.esc(en() ? 'Subjects' : 'Предметы') + '</button></div></div>';
+      api.stat('');
+      api.qs('#mkback').onclick = function () { api.sfx.tap(); home(); };
+      api.qsa('.mk-redo').forEach(function (b) { b.onclick = function () { api.sfx.tap(); start(M.topicById(b.getAttribute('data-topic'))); }; });
+      api.qs('#mkcopy').onclick = function () {
+        var done = function () { var b = api.qs('#mkcopy'); if (b) b.textContent = '✓ ' + (en() ? 'Copied' : 'Скопировано'); };
+        try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(rep).then(done, select); return; } } catch (e) { /* old WebView */ }
+        select();
+        function select() { var r = document.createRange(), el = api.qs('#mkrep'); r.selectNodeContents(el); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); done(); } catch (e) { /* the text stays selected */ } }
+      };
     }
     function start(t) { topic = t; qs = M.round(t, Math.random); i = 0; right = 0; show(); }
     function show() {
@@ -122,7 +144,7 @@
   E.gamesTop = function () {
     var s = A.state().mektep || {}, done = Object.keys(s).length, all = M.SUBJECTS.reduce(function (a, x) { return a + x.topics.length; }, 0);
     var b = '<button class="mk-banner" data-arc="mektep"><span class="i">🏫</span><span><b>Мектеп · ' + A.esc(en() ? 'school subjects' : 'школьные предметы') + '</b><small>' +
-      A.esc((en() ? 'Maths in Kazakh · topics done: ' : 'Математика на казахском · тем пройдено: ') + done + ' / ' + all) + '</small></span></button>';
+      A.esc((en() ? '7 subjects in Kazakh · topics done: ' : '7 предметов на казахском · тем пройдено: ') + done + ' / ' + all) + '</small></span></button>';
     var rest = prev ? prev() : '';
     var cut = rest.indexOf('<h2 class="arc-h">');
     return cut >= 0 ? rest.slice(0, cut) + b + rest.slice(cut) : b + rest;

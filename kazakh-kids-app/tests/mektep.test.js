@@ -168,6 +168,17 @@ for (const t of lit.topics) for (let k = 0; k < 40; k++) for (const q of M.round
   if (t.gen === 'genre') eq(q.answer, M.GENRES.find((g) => g.text === q.visual.text).a, 'genre of ' + q.visual.text);
   else eq(q.answer, allLit.find((x) => x.kk === q.kk).a, q.kk);
 }
+// day 10: the diary — stars, progress per subject, topics to repeat, the report text
+eq([undefined, 0, 1, 5, 6, 8, 9, 10].map(M.stars).join(''), '00112233', 'stars for a best score');
+const best = { m1count: 9, m1tens: 4, l1pattern: 10, g2dirs: 6 };
+const dia = M.diary(best), mathD = dia.find((x) => x.id === 'math');
+eq(mathD.done, 2, 'maths: two topics played'); eq(mathD.stars, 4, 'maths: 3 + 1 stars'); eq(mathD.maxStars, 39, 'maths: 13 topics × 3');
+eq(mathD.weak.map((t) => t.id).join(), 'm1tens', 'below 6 is worth repeating');
+eq(dia.find((x) => x.id === 'geo').weak.length, 0, '6 / 10 is not weak');
+eq(dia.length, 7, 'seven subjects'); eq(M.diary({}).every((x) => x.done === 0 && x.stars === 0), true, 'an empty diary');
+const rep = M.reportText(best, 'Әнел', 'ru', '17.11.2026');
+assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 38') && rep.includes('🔢 Математика: 2 / 13 · ★ 4 / 39') && rep.includes('📜 Тарих — История (5 класс): 0 / 3') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
+assert.ok(M.reportText({ m1count: 10 }, '', 'en').includes('Nothing to repeat'), 'nothing to repeat'); n++;
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
 assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5 && M.SUBJECTS[4].topics.length === 3 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 5, cities 3, history 3, reading 3'); n++;
 module.exports = { checks: () => n };
