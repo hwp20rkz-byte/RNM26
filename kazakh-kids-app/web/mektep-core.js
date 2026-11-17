@@ -152,8 +152,11 @@
   var ODD_CAT = {}, ODD_E = {};
   Object.keys(ODD_SETS).forEach(function (c) { ODD_SETS[c].forEach(function (x) { ODD_CAT[x[0]] = c; ODD_E[x[0]] = x[1]; }); });
   // Киіз үй тігу — the usual order (to be checked by the teacher, see methodology/plan-10-days.md)
-  var YURT = [{ kk: 'кереге', e: '🧱', ru: 'решётчатые стены', en: 'lattice walls' }, { kk: 'есік', e: '🚪', ru: 'дверь', en: 'door' },
-    { kk: 'шаңырақ', e: '⭕', ru: 'купольный круг', en: 'roof crown' }, { kk: 'уық', e: '🥢', ru: 'жерди купола', en: 'roof poles' }, { kk: 'киіз', e: '🧶', ru: 'войлочное покрытие', en: 'felt cover' }];
+  // build order of a yurt (also the 3D «Киіз үй» in suite/: suite/src/lib/kiiz.test.ts checks it against this table);
+  // done — what the narrator says when the part is in place
+  var YURT = [{ kk: 'кереге', e: '🧱', ru: 'решётчатые стены', en: 'lattice walls', done: 'Кереге жайылды.' }, { kk: 'есік', e: '🚪', ru: 'дверь', en: 'door', done: 'Есік орнатылды.' },
+    { kk: 'шаңырақ', e: '⭕', ru: 'купольный круг', en: 'roof crown', done: 'Шаңырақ көтерілді.' }, { kk: 'уық', e: '🥢', ru: 'жерди купола', en: 'roof poles', done: 'Уықтар шаншылды.' },
+    { kk: 'киіз', e: '🧶', ru: 'войлочное покрытие', en: 'felt cover', done: 'Киіз жабылды.' }];
   var PAT_E = ['🍎', '🍐', '⭐', '🌙', '🔺', '🔵', '🌷', '🐟'], PAT_UNITS = ['AB', 'AAB', 'ABB', 'ABC', 'AABB'];
   GEN.pattern = function (r) {
     var u = PAT_UNITS[rint(r, 0, PAT_UNITS.length - 1)], es = shuffle(PAT_E.slice(), r), map = { A: es[0], B: es[1], C: es[2] };
@@ -485,6 +488,7 @@
     out.push('Қай қала Каспий теңізінің жағасында тұр?'); out.push('Ақтау'); out.push('Түркістан'); out.push('Тараз');
     GUIDE_CITIES.forEach(function (c) { guideForms(c).forEach(function (x) { out.push(x); }); });
     ['zhatys', 'barys', 'shygys'].forEach(function (k) { out.push(GUIDE_Q[k][0]); });
+    YURT.forEach(function (y) { out.push(y.kk); out.push(y.done); }); out.push('Енді не керек?'); out.push('Бұл не?'); out.push('Киіз үй дайын!');
     REGIONS.forEach(function (g) { out.push(centerQuestion(g)); out.push(REGION_CENTER[g]); out.push(g); });
     DIRS.forEach(function (d) { out.push(d.kk); out.push(cap(G.caseForm(d.kk, 'ilik')) + ' қарама-қарсы жағы қай жақ?'); }); Object.keys(FEATURE).concat(NEIGHBORS, FAR, REP_CITIES, OTHER_CITIES).forEach(function (x) { out.push(x); });
     ['Күн қай жақтан шығады?', 'Күн қай жаққа батады?', 'Нұсқар қай жаққа бағытталған?', 'Қайсысы өзен?', 'Қайсысы көл?', 'Қайсысы тау?', 'Қайсысы республикалық маңызы бар қала?', 'Қайсысы Қазақстанмен шекаралас?', 'Қайсысы Қазақстанмен шекараласпайды?', 'Қайсысы республикалық маңызы бар қала емес?', 'Қазақстанның астанасы қай қала?', 'Түсте күн қай жақта тұрады?'].forEach(function (x) { out.push(x); });

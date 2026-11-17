@@ -30,5 +30,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Блок-окончание пристыковывается к корню, видно озвончение и выпадение гласной; аниматор поз героев', en: 'An ending block snaps onto the root, showing voicing and a dropped vowel; a pose animator for the heroes' } },
   { id: 'sandar', kk: 'Сандар қаласы', ru: 'Город чисел: десятки и единицы', en: 'Number City', icon: '🏙️', ready: true,
     pillar: { ru: 'Мектеп · математика 1–2: ондықтар мен бірліктер, қосу', en: 'School · maths 1–2: tens and ones, adding' },
-    mechanic: { ru: 'Прочитай башни из десятков и единиц; при сложении десять кубиков складываются в новый десяток', en: 'Read towers of tens and ones; when adding, ten cubes stack into a new ten' } }
+    mechanic: { ru: 'Прочитай башни из десятков и единиц; при сложении десять кубиков складываются в новый десяток', en: 'Read towers of tens and ones; when adding, ten cubes stack into a new ten' } },
+  { id: 'kiiz', kk: 'Киіз үй', ru: 'Собери юрту', en: 'Build a Yurt', icon: '🛖', ready: true,
+    pillar: { ru: 'Мектеп · логика 2: порядок сборки, названия частей', en: 'School · logic 2: build order, names of the parts' },
+    mechanic: { ru: 'Выбери следующую часть — кереге, есік, шаңырақ, уық, киіз — и она встанет на место; потом назови светящуюся часть', en: 'Pick the next part and it drops into place; then name the part that glows' } }
 ];
