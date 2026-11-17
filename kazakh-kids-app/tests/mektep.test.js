@@ -23,7 +23,7 @@ let seed = 11; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2 ** 31;
 const calc = (t) => { const m = /^(\d+) ([+−×÷]) (\d+)$/.exec(t); const a = +m[1], b = +m[3]; return m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '÷' ? a / b : a * b; };
 for (const s of M.SUBJECTS) for (const t of s.topics) for (let k = 0; k < 30; k++) for (const q of M.round(t, rnd)) {
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ': distinct options with the answer'); n++;
-  assert.ok(q.kk && q.ru && q.en && (q.say || ['pattern', 'algo', 'sym'].includes(t.gen)) && q.full && !/undefined|NaN/.test(q.full + q.say), t.id + ': texts ' + q.full); n++;
+  assert.ok(q.kk && q.ru && q.en && (q.say || ['pattern', 'algo', 'sym'].includes(t.gen) || /\d|^[IVX]+ /.test(q.answer)) && q.full && !/undefined|NaN/.test(q.full + q.say), t.id + ': texts ' + q.full); n++;
   const v = q.visual;
   if (v.type === 'expr' && t.gen !== 'compare') { const c = calc(v.text); eq(q.answer, String(c), t.id + ' ' + v.text); assert.ok(c >= 0 && c <= 100, 'within range'); if (t.gen === 'add20') assert.ok(c <= 20 && +v.text.split(' ')[0] <= 20); }
   if (t.gen === 'compare') { const [a, , b] = v.text.split(' ').map((x) => +x || x); eq(q.answer, a === b ? '=' : a < b ? '<' : '>', 'compare ' + v.text); }
@@ -129,7 +129,28 @@ for (const t of cities.topics) for (let k = 0; k < 40; k++) for (const q of M.ro
   }
   if (t.gen === 'guide') { const f = M.guideForms(v.city); eq(q.options.slice().sort().join(' '), f.slice().sort().join(' '), 'three case forms'); eq(q.answer, f[{ zhatys: 0, barys: 1, shygys: 2 }[v.kase]], 'right case for ' + q.kk); }
 }
+// day 8: history (grade 5) — the reference facts written by hand; the game data must agree with them
+const HIST_REF = { 'Қазақ хандығын кімдер құрды?': 'Керей мен Жәнібек', '«Қара сөздердің» авторы кім?': 'Абай Құнанбайұлы', 'Қазақстан қай жылы тәуелсіздік алды?': '1991',
+  'Қазақстан Конституциясы қай жылы қабылданды?': '1995', 'Қазақ хандығы қай ғасырда құрылды?': 'XV ғасырда', 'Тәуелсіздік күні қай күні?': '16 желтоқсан',
+  'Пирамидалар қай елде?': 'Мысыр', 'Олимпиада ойындары қай елде басталды?': 'Грекия', 'Колизей қай қалада?': 'Рим', '1492 жылы Америкаға кім жетті?': 'Колумб' };
+const allHist = M.HISTORY_KZ.concat(M.HISTORY_WORLD);
+for (const k of Object.keys(HIST_REF)) { const f = allHist.find((x) => x.kk === k); assert.ok(f, 'fact present: ' + k); eq(f.a, HIST_REF[k], k); }
+for (const f of allHist) { assert.ok(f.d.length >= 2 && !f.d.includes(f.a) && new Set(f.d).size === f.d.length, 'distractors of ' + f.kk); n++; }
+// timeline: years are the commonly accepted ones; the game only compares events at least 300 years apart
+assert.ok(M.EVENTS.length >= 8 && M.EVENTS.every((e) => typeof e.y === 'number' && e.kk && e.e), 'events'); n++;
+eq(M.EVENTS.find((e) => /хандығы/.test(e.kk)).y, 1465, 'the Kazakh Khanate'); eq(M.EVENTS.find((e) => /тәуелсіздік/.test(e.kk)).y, 1991, 'independence');
+const hist = M.SUBJECTS.find((x) => x.id === 'history');
+eq(hist.topics.length, 3, 'three history topics'); assert.ok(hist.topics.every((t) => t.grade === 5), 'grade 5'); n++;
+for (const t of hist.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
+for (const t of hist.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === 3, t.id + ' options'); n++;
+  if (t.gen === 'timeline') {
+    const ev = q.options.map((o) => M.EVENTS.find((e) => e.kk === o)), ys = ev.map((e) => e.y).sort((a, b) => a - b);
+    eq(q.answer, ev.reduce((a, b) => (b.y < a.y ? b : a)).kk, 'earliest event');
+    assert.ok(ys[1] - ys[0] >= 300 && ys[2] - ys[1] >= 300, 'events far apart: ' + ys.join(' ')); n++;
+  } else { const f = allHist.find((x) => x.kk === q.kk); eq(q.answer, f.a, q.kk); }
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(5).every((s) => s.day >= 8) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5 && M.SUBJECTS[4].topics.length === 3, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, geography 5, cities 3, the rest planned'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(6).every((s) => s.day >= 9) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5 && M.SUBJECTS[4].topics.length === 3 && M.SUBJECTS[5].topics.length === 3, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, geography 5, cities 3, history 3, literature planned'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');

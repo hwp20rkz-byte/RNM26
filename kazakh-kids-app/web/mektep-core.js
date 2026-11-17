@@ -406,6 +406,59 @@
       answer: a, options: shuffle(f.slice(), r), say: a, full: 'Турист ' + a + (kase === 'zhatys' ? '.' : kase === 'barys' ? ' барады.' : ' келді.') };
   };
 
+  /* ---------- day 8: history, grade 5 (only settled facts; sources in methodology/plan-10-days.md, teacher to check) ---------- */
+  // a: the answer, d: distractors (real people / places / dates, but not the answer), e: picture; say: voice the answer (years and dates are shown, not voiced)
+  var HISTORY_KZ = [
+    { kk: 'Қазақ хандығын кімдер құрды?', ru: 'Кто основал Казахское ханство?', en: 'Who founded the Kazakh Khanate?', a: 'Керей мен Жәнібек', d: ['Абылай хан', 'Кенесары хан'], e: '🏇' },
+    { kk: '«Қара сөздердің» авторы кім?', ru: 'Кто автор «Слов назидания»?', en: 'Who wrote the «Book of Words»?', a: 'Абай Құнанбайұлы', d: ['Ыбырай Алтынсарин', 'Әл-Фараби'], e: '✍️' },
+    { kk: '«Екінші ұстаз» деп кімді атайды?', ru: 'Кого называют «Вторым учителем»?', en: 'Who is called «the Second Teacher»?', a: 'Әл-Фараби', d: ['Абай Құнанбайұлы', 'Қожа Ахмет Ясауи'], e: '📜' },
+    { kk: 'Қазақ балаларына мектеп ашқан ағартушы кім?', ru: 'Какой просветитель открыл школу для казахских детей?', en: 'Which educator opened a school for Kazakh children?', a: 'Ыбырай Алтынсарин', d: ['Абай Құнанбайұлы', 'Әл-Фараби'], e: '🏫' },
+    { kk: 'Түркістандағы кесене кімнің құрметіне салынған?', ru: 'В честь кого построен мавзолей в Туркестане?', en: 'Whom is the mausoleum in Turkistan built for?', a: 'Қожа Ахмет Ясауи', d: ['Әл-Фараби', 'Абай Құнанбайұлы'], e: '🕌' },
+    { kk: 'Әл-Фараби қай қаладан шыққан?', ru: 'Из какого города аль-Фараби?', en: 'Which city was al-Farabi from?', a: 'Отырар', d: ['Тараз', 'Түркістан'], e: '🏺' },
+    { kk: 'Алтын адам қай дәуірге жатады?', ru: 'К какой эпохе относится Золотой человек?', en: 'Which era does the Golden Man belong to?', a: 'Сақтар дәуірі', d: ['Қазақ хандығы', 'Тәуелсіздік жылдары'], e: '👑' },
+    { kk: 'Алтын адам қай жерден табылды?', ru: 'Где нашли Золотого человека?', en: 'Where was the Golden Man found?', a: 'Есік қорғанынан', d: ['Отырардан', 'Тараздан'], e: '⛏️' },
+    { kk: 'Қазақстан қай жылы тәуелсіздік алды?', ru: 'В каком году Казахстан стал независимым?', en: 'In which year did Kazakhstan become independent?', a: '1991', d: ['1995', '1465'], e: '🇰🇿', noSay: true },
+    { kk: 'Тәуелсіздік күні қай күні?', ru: 'Когда День Независимости?', en: 'When is Independence Day?', a: '16 желтоқсан', d: ['30 тамыз', '22 наурыз'], e: '🎆', noSay: true },
+    { kk: 'Қазақстан Конституциясы қай жылы қабылданды?', ru: 'В каком году принята Конституция Казахстана?', en: 'In which year was the Constitution adopted?', a: '1995', d: ['1991', '1997'], e: '📘', noSay: true },
+    { kk: 'Қазақ хандығы қай ғасырда құрылды?', ru: 'В каком веке основано Казахское ханство?', en: 'In which century was the Kazakh Khanate founded?', a: 'XV ғасырда', d: ['XVIII ғасырда', 'X ғасырда'], e: '⏳', noSay: true }
+  ];
+  var HISTORY_WORLD = [
+    { kk: 'Пирамидалар қай елде?', ru: 'В какой стране пирамиды?', en: 'Which country has the pyramids?', a: 'Мысыр', d: ['Грекия', 'Қытай'], e: '🔺' },
+    { kk: 'Олимпиада ойындары қай елде басталды?', ru: 'Где начались Олимпийские игры?', en: 'Where did the Olympic Games begin?', a: 'Грекия', d: ['Мысыр', 'Рим'], e: '🏅' },
+    { kk: 'Ұлы қорған қай елде?', ru: 'В какой стране Великая стена?', en: 'Which country has the Great Wall?', a: 'Қытай', d: ['Мысыр', 'Грекия'], e: '🧱' },
+    { kk: 'Колизей қай қалада?', ru: 'В каком городе Колизей?', en: 'Which city has the Colosseum?', a: 'Рим', d: ['Афина', 'Каир'], e: '🏟️' },
+    { kk: '1492 жылы Америкаға кім жетті?', ru: 'Кто в 1492 году доплыл до Америки?', en: 'Who reached America in 1492?', a: 'Колумб', d: ['Магеллан', 'Марко Поло'], e: '⛵' },
+    { kk: 'Мысырда не бар?', ru: 'Что есть в Египте?', en: 'What is in Egypt?', a: 'Пирамидалар', d: ['Колизей', 'Ұлы Қытай қорғаны'], e: '🏜️' },
+    { kk: 'Қытайда не бар?', ru: 'Что есть в Китае?', en: 'What is in China?', a: 'Ұлы Қытай қорғаны', d: ['Пирамидалар', 'Колизей'], e: '🐉' },
+    { kk: 'Римде не бар?', ru: 'Что есть в Риме?', en: 'What is in Rome?', a: 'Колизей', d: ['Пирамидалар', 'Ұлы Қытай қорғаны'], e: '🏛️' },
+    { kk: 'Ежелгі Грекияда не басталды?', ru: 'Что началось в Древней Греции?', en: 'What began in Ancient Greece?', a: 'Олимпиада ойындары', d: ['Ұлы Жібек жолы', 'Пирамидалар'], e: '🔥' },
+    { kk: 'Ұлы Жібек жолы нені байланыстырды?', ru: 'Что связал Великий шёлковый путь?', en: 'What did the Great Silk Road connect?', a: 'Қытай мен Еуропаны', d: ['Америка мен Африканы', 'Австралия мен Жапонияны'], e: '🐫' }
+  ];
+  // approximate commonly accepted years (BC < 0); questions only compare events ≥ 300 years apart, so disputed datings never decide
+  var EVENTS = [
+    { kk: 'Мысыр пирамидалары салынды', y: -2600, e: '🔺' }, { kk: 'Алғашқы Олимпиада ойындары өтті', y: -776, e: '🏅' },
+    { kk: 'Сақтар дәуірі: Алтын адам', y: -400, e: '👑' }, { kk: 'Ұлы Жібек жолы ашылды', y: -130, e: '🐫' },
+    { kk: 'Әл-Фараби өмір сүрді', y: 900, e: '📜' }, { kk: 'Қожа Ахмет Ясауи кесенесі салынды', y: 1390, e: '🕌' },
+    { kk: 'Қазақ хандығы құрылды', y: 1465, e: '🏇' }, { kk: 'Колумб Америкаға жетті', y: 1492, e: '⛵' },
+    { kk: 'Абай дүниеге келді', y: 1845, e: '✍️' }, { kk: 'Қазақстан тәуелсіздік алды', y: 1991, e: '🇰🇿' }
+  ];
+  function factQ(list, r) {
+    var f = list[rint(r, 0, list.length - 1)];
+    return { kk: f.kk, ru: f.ru, en: f.en, visual: { type: 'big', e: f.e, text: '' }, answer: f.a, options: shuffle([f.a].concat(f.d), r), say: f.noSay ? '' : f.a, full: f.kk + ' — ' + f.a + '.' };
+  }
+  GEN.histkz = function (r) { return factQ(HISTORY_KZ, r); };
+  GEN.histworld = function (r) { return factQ(HISTORY_WORLD, r); };
+  GEN.timeline = function (r) {
+    for (var g = 0; g < 200; g++) {
+      var pick = shuffle(EVENTS.slice(), r).slice(0, 3), ys = pick.map(function (e) { return e.y; }).sort(function (a, b) { return a - b; });
+      if (ys[1] - ys[0] < 300 || ys[2] - ys[1] < 300) continue;
+      var first = pick.reduce(function (a, b) { return b.y < a.y ? b : a; });
+      return { kk: 'Қайсысы бұрын болды?', ru: 'Что было раньше всех?', en: 'Which happened first?', visual: { type: 'big', e: '⏳', text: '', set: ys.join(',') },   // the set of events makes the task unique in a round
+        answer: first.kk, options: pick.map(function (e) { return e.kk; }), say: first.kk, full: first.kk + ' — ең ертедегі оқиға.' };
+    }
+    return null;
+  };
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -450,7 +503,11 @@
       { id: 'c3river', grade: 3, gen: 'river', kk: 'Қалалар мен өзендер', ru: 'Города на реках', en: 'Cities and rivers' },
       { id: 'c3guide', grade: 3, gen: 'guide', kk: 'Гид бол: қайда? қайдан?', ru: 'Будь гидом: где? куда? откуда?', en: 'Be a guide: where to / from?' }
     ] },
-    { id: 'history', icon: '📜', kk: 'Тарих', ru: 'История (5 класс)', en: 'History (grade 5)', hue: 'red', day: 8, topics: [] },
+    { id: 'history', icon: '📜', kk: 'Тарих', ru: 'История (5 класс)', en: 'History (grade 5)', hue: 'red', topics: [
+      { id: 'h5timeline', grade: 5, gen: 'timeline', kk: 'Уақыт өзені: қайсысы бұрын?', ru: 'Река времени: что раньше?', en: 'River of time: what came first?' },
+      { id: 'h5kz', grade: 5, gen: 'histkz', kk: 'Қазақстан тарихы: кім? қашан? қайда?', ru: 'История Казахстана: кто? когда? где?', en: 'History of Kazakhstan' },
+      { id: 'h5world', grade: 5, gen: 'histworld', kk: 'Ежелгі әлем', ru: 'Древний мир', en: 'The ancient world' }
+    ] },
     { id: 'lit', icon: '📖', kk: 'Әдебиеттік оқу', ru: 'Литературное чтение', en: 'Reading', hue: 'pink', day: 9, topics: [] }
   ];
   /** A round of ROUND tasks for a topic; questions with the same visual are not repeated in a row. */
@@ -488,6 +545,8 @@
     out.push('Қай қала Каспий теңізінің жағасында тұр?'); out.push('Ақтау'); out.push('Түркістан'); out.push('Тараз');
     GUIDE_CITIES.forEach(function (c) { guideForms(c).forEach(function (x) { out.push(x); }); });
     ['zhatys', 'barys', 'shygys'].forEach(function (k) { out.push(GUIDE_Q[k][0]); });
+    HISTORY_KZ.concat(HISTORY_WORLD).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
+    EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
     YURT.forEach(function (y) { out.push(y.kk); out.push(y.done); }); out.push('Енді не керек?'); out.push('Бұл не?'); out.push('Киіз үй дайын!');
     REGIONS.forEach(function (g) { out.push(centerQuestion(g)); out.push(REGION_CENTER[g]); out.push(g); });
     DIRS.forEach(function (d) { out.push(d.kk); out.push(cap(G.caseForm(d.kk, 'ilik')) + ' қарама-қарсы жағы қай жақ?'); }); Object.keys(FEATURE).concat(NEIGHBORS, FAR, REP_CITIES, OTHER_CITIES).forEach(function (x) { out.push(x); });
@@ -496,5 +555,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });
