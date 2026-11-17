@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1525mm" height="1525mm" viewBox="0 0 1525 1525">
+<title>press-M-12mm-sheet2</title>
+<desc>Лист 1525×1525, фанера 12 мм. Слои: чёрный рез, синий отверстия, красный карманы, зелёный гравировка. Единицы мм.</desc>
+<rect x="0" y="0" width="1525" height="1525" fill="none" stroke="#999999" stroke-width="0.3" stroke-dasharray="6 4"/>
+<g id="PLATEN_TEE-1" data-part="PLATEN_TEE" data-qty-index="1">
+<rect x="120" y="15" width="140" height="50" rx="20" fill="none" stroke="#000000" stroke-width="0.3"/>
+<circle cx="90" cy="405" r="4" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="290" cy="405" r="4" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="190" cy="125" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="23" y="29" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">PLATEN_TEE · 12 мм</text>
+<rect x="15" y="15" width="350" height="450" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="JAW_UPPER-1" data-part="JAW_UPPER" data-qty-index="1">
+<circle cx="417" cy="65" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="637" cy="65" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="385" y="29" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">JAW_UPPER · 12 мм</text>
+<rect x="377" y="15" width="300" height="100" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<text x="1517" y="1517" text-anchor="end" font-size="10" font-family="sans-serif" fill="#00a000">press-M-12mm-sheet2 · загрузка 8 %</text>
+</svg>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1525mm" height="1525mm" viewBox="0 0 1525 1525">
+<title>press-M-18mm-sheet1</title>
+<desc>Лист 1525×1525, фанера 18 мм. Слои: чёрный рез, синий отверстия, красный карманы, зелёный гравировка. Единицы мм.</desc>
+<rect x="0" y="0" width="1525" height="1525" fill="none" stroke="#999999" stroke-width="0.3" stroke-dasharray="6 4"/>
+<g id="BASE-1" data-part="BASE" data-qty-index="1">
+<rect x="204.5" y="205" width="41" height="600" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="40" cy="40" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="410" cy="40" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="40" cy="780" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="410" cy="780" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="225" cy="265" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="225" cy="425" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="225" cy="585" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="225" cy="745" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="66" cy="95" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="66" cy="335" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="384" cy="95" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="384" cy="335" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="85" cy="765" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="125" cy="765" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="325" cy="765" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="365" cy="765" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="23" y="29" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">BASE · 18 мм</text>
+<rect x="15" y="15" width="420" height="790" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="CARRIER-1" data-part="CARRIER" data-qty-index="1">
+<circle cx="547" cy="115" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="767" cy="115" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="547" cy="435" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="767" cy="435" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="498" cy="155" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="498" cy="395" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="816" cy="155" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="816" cy="395" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="455" y="29" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">CARRIER · 18 мм</text>
+<rect x="447" y="15" width="420" height="490" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="BED-1" data-part="BED" data-qty-index="1">
+<rect x="909" y="51.5" width="20" height="7" rx="3.5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<rect x="1129" y="51.5" width="20" height="7" rx="3.5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<rect x="909" y="371.5" width="20" height="7" rx="3.5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<rect x="1129" y="371.5" width="20" height="7" rx="3.5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="929" cy="355" r="4" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1129" cy="355" r="4" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1029" cy="75" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="887" y="29" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">BED · 18 мм</text>
+<rect x="879" y="15" width="300" height="400" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="HEAD_TOP-1" data-part="HEAD_TOP" data-qty-index="1">
+<rect x="1191" y="150.9" width="86" height="8.2" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="1216" cy="95" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1252" cy="95" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1209" cy="45" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1259" cy="45" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1209" cy="75" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1259" cy="75" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1234" cy="115" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1234" cy="215" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="1199" y="29" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">HEAD_TOP · 18 мм</text>
+<rect x="1191" y="15" width="86" height="215" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="HEAD_BOTTOM-1" data-part="HEAD_BOTTOM" data-qty-index="1">
+<rect x="1289" y="150.9" width="86" height="8.2" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="1314" cy="95" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1350" cy="95" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1307" cy="45" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1357" cy="45" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1307" cy="75" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1357" cy="75" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1332" cy="115" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="1297" y="29" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">HEAD_BOTTOM · 18 мм</text>
+<rect x="1289" y="15" width="86" height="150" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="CARRIAGE-1" data-part="CARRIAGE" data-qty-index="1">
+<rect x="74.5" y="817" width="41" height="140" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="95" cy="852" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="95" cy="922" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="27" cy="829" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="163" cy="829" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="27" cy="945" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="163" cy="945" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="51" cy="917" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="51" cy="942" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="139" cy="917" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="139" cy="942" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="23" y="831" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">CARRIAGE 1/2 · 18 мм</text>
+<rect x="15" y="817" width="160" height="140" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="CARRIAGE-2" data-part="CARRIAGE" data-qty-index="2">
+<rect x="246.5" y="817" width="41" height="140" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="267" cy="852" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="267" cy="922" r="4.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="199" cy="829" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="335" cy="829" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="199" cy="945" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="335" cy="945" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="223" cy="917" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="223" cy="942" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="311" cy="917" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="311" cy="942" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="195" y="831" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">CARRIAGE 2/2 · 18 мм</text>
+<rect x="187" y="817" width="160" height="140" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="JAW_LOWER-1" data-part="JAW_LOWER" data-qty-index="1">
+<circle cx="399" cy="867" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="619" cy="867" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="484" cy="887" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="534" cy="887" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="484" cy="857" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="534" cy="857" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="367" y="831" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">JAW_LOWER · 18 мм</text>
+<rect x="359" y="817" width="300" height="100" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="LEG-1" data-part="LEG" data-qty-index="1">
+<circle cx="751" cy="837" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="991" cy="837" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="751" cy="887" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="991" cy="887" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="679" y="831" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">LEG 1/2 · 18 мм</text>
+<rect x="671" y="817" width="400" height="90" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="LEG-2" data-part="LEG" data-qty-index="2">
+<circle cx="1163" cy="837" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1403" cy="837" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1163" cy="887" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="1403" cy="887" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="1091" y="831" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">LEG 2/2 · 18 мм</text>
+<rect x="1083" y="817" width="400" height="90" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="CHEEK-1" data-part="CHEEK" data-qty-index="1">
+<circle cx="60" cy="990" r="10.95" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="40" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="80" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="23" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">CHEEK 1/4 · 18 мм</text>
+<rect x="15" y="969" width="90" height="66" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="CHEEK-2" data-part="CHEEK" data-qty-index="2">
+<circle cx="162" cy="990" r="10.95" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="142" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="182" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="125" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">CHEEK 2/4 · 18 мм</text>
+<rect x="117" y="969" width="90" height="66" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="CHEEK-3" data-part="CHEEK" data-qty-index="3">
+<circle cx="264" cy="990" r="10.95" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="244" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="284" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="227" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">CHEEK 3/4 · 18 мм</text>
+<rect x="219" y="969" width="90" height="66" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="CHEEK-4" data-part="CHEEK" data-qty-index="4">
+<circle cx="366" cy="990" r="10.95" fill="none" stroke="#ff0000" stroke-width="0.3"/>
+<circle cx="346" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="386" cy="1010" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="329" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">CHEEK 4/4 · 18 мм</text>
+<rect x="321" y="969" width="90" height="66" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="ANCHOR-1" data-part="ANCHOR" data-qty-index="1">
+<circle cx="453" cy="999" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="433" cy="999" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="473" cy="999" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="431" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">ANCHOR 1/2 · 18 мм</text>
+<rect x="423" y="969" width="60" height="60" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="ANCHOR-2" data-part="ANCHOR" data-qty-index="2">
+<circle cx="525" cy="999" r="3.25" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="505" cy="999" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<circle cx="545" cy="999" r="2" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="503" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">ANCHOR 2/2 · 18 мм</text>
+<rect x="495" y="969" width="60" height="60" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="PUSH-1" data-part="PUSH" data-qty-index="1">
+<circle cx="597" cy="983" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="575" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">PUSH 1/4 · 18 мм</text>
+<rect x="567" y="969" width="60" height="28" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="PUSH-2" data-part="PUSH" data-qty-index="2">
+<circle cx="669" cy="983" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="647" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">PUSH 2/4 · 18 мм</text>
+<rect x="639" y="969" width="60" height="28" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="PUSH-3" data-part="PUSH" data-qty-index="3">
+<circle cx="741" cy="983" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="719" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">PUSH 3/4 · 18 мм</text>
+<rect x="711" y="969" width="60" height="28" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<g id="PUSH-4" data-part="PUSH" data-qty-index="4">
+<circle cx="813" cy="983" r="5" fill="none" stroke="#0000ff" stroke-width="0.3"/>
+<text x="791" y="983" font-size="8" font-family="sans-serif" fill="#00a000" stroke="none">PUSH 4/4 · 18 мм</text>
+<rect x="783" y="969" width="60" height="28" rx="3" fill="none" stroke="#000000" stroke-width="0.3"/>
+</g>
+<text x="1517" y="1517" text-anchor="end" font-size="10" font-family="sans-serif" fill="#00a000">press-M-18mm-sheet1 · загрузка 38 %</text>
+</svg>
