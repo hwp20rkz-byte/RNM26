@@ -8,8 +8,8 @@ python3 scripts/tts.py --voices <папка с vits-piper-*>   # озвучка 
 python3 scripts/sound.py                                  # музыка и звуки (синтез)
 npm run timing                                            # длительности сцен по озвучке + липсинк
 npm run studio                                            # превью
-npm run render:all                                        # out/*.mp4, 4K 2160×3840 @ 60 fps
-npm run export:32k-frames                                 # frames-32k/*.svg + 32K PNG (17280×30720)
+npm run render:all                                        # out/*.mp4, 720×1280 @ 60 fps (SCALE=2 → 4K)
+npm run export:32k-frames                                 # необязательно: frames-32k/*.svg (+ 32K PNG)
 npm run qc                                                # проверка форматов и контрольные кадры out/qc/
 ```
 
