@@ -1,0 +1,79 @@
+{
+  "title": { "kz": "Алматы хайуанаттар бағында", "pl": "W almatyńskim zoo" },
+  "format": { "aspect": "9:16", "viewBox": "0 0 1080 1920", "fps": 60, "master": [2160, 3840], "verify32k": [17280, 30720] },
+  "characters": {
+    "aisha": { "kz": "Айша", "pl": "Ajsza", "look": "girl, 8, coral hoodie, turquoise skirt, two dark braids with amber bands, white sneakers" },
+    "arman": { "kz": "Арман", "pl": "Arman", "look": "boy, 9, lime T-shirt with a snow-leopard print, blue shorts, amber cap backwards, backpack" },
+    "beaver": { "name": "Bober", "look": "chubby brown beaver, big expressive eyes, two big front teeth, flat scaly tail" }
+  },
+  "voices": {
+    "kz": { "aisha": { "engine": "piper", "model": "kk_KZ-raya-x_low", "pitch": 1.06 }, "arman": { "engine": "piper", "model": "kk_KZ-iseke-x_low", "pitch": 1.22 } },
+    "pl": { "aisha": { "engine": "piper", "model": "pl_PL-gosia-medium", "pitch": 1.08 }, "arman": { "engine": "piper", "model": "pl_PL-darkman-medium", "pitch": 1.25 } },
+    "requested": "edge-tts kk-KZ-AigulNeural / kk-KZ-DauletNeural / pl-PL-ZofiaNeural / pl-PL-MarekNeural — blocked by the network policy of this environment; scripts/tts.py switches with --engine edge"
+  },
+  "scenes": [
+    {
+      "id": "s1", "name": "Вход в зоопарк", "nominal": [0, 5], "shot": "WS — общий план", "camera": "slow push-in 1.00 → 1.06, slight rise",
+      "composition": "arch on the upper third, Alatau peaks behind, kids on the lower third (Aisha left, Arman right), path leads the eye to the gate",
+      "animation": ["arch flags flutter", "clouds drift", "kids wave (arm swing 2 Hz)", "blink every ~2.6 s", "lip-sync on the speaker"],
+      "ui": [{ "type": "header", "at": 0.0 }, { "type": "sign", "text": { "kz": "Алматы хайуанаттар бағы", "pl": "Zoo w Ałmaty" }, "at": 0.4 }],
+      "speaker": "aisha",
+      "line": { "kz": "Сәлем, Арман! Қарашы, біз Алматы хайуанаттар бағына келдік!", "pl": "Cześć, Arman! Spójrz, przyszliśmy do almatyńskiego zoo!" },
+      "sfx": ["birds", "music in"]
+    },
+    {
+      "id": "s2", "name": "Қар барысы мен арыстан", "nominal": [5, 10], "shot": "MS — средний план", "camera": "zoom 1.0 → 1.12 to the enclosures",
+      "composition": "rocky enclosure top-left (snow leopard on a ledge), savanna bottom-right (lion), Arman in the lower-left corner pointing",
+      "animation": ["leopard tail sways", "lion mane breathes, ears twitch", "cards pop with spring, pointer lines draw (strokeDashoffset)"],
+      "ui": [
+        { "type": "card", "animal": "leopard", "text": { "kz": "Қар барысы", "pl": "Pantera śnieżna" }, "at": 0.6 },
+        { "type": "card", "animal": "lion", "text": { "kz": "Арыстан", "pl": "Lew" }, "at": 1.4 }
+      ],
+      "speaker": "arman",
+      "line": { "kz": "Керемет! Анау жерде қар барысы мен арыстан жүр!", "pl": "Super! Tam spacerują pantera śnieżna i lew!" },
+      "sfx": ["soft roar", "pop ×2"]
+    },
+    {
+      "id": "s3", "name": "Керік пен піл", "nominal": [10, 16], "shot": "MCU/MS — крупный-средний, акцент на животных", "camera": "tilt up the giraffe's neck, then settle",
+      "composition": "giraffe on the left reaching a tree crown at the top, elephant on the right raising the trunk, Aisha bottom-centre looking up",
+      "animation": ["giraffe neck reaches, chews", "elephant trunk lifts and waves", "ears flap", "cards pop"],
+      "ui": [
+        { "type": "card", "animal": "giraffe", "text": { "kz": "Керік", "pl": "Żyrafa" }, "at": 0.6 },
+        { "type": "card", "animal": "elephant", "text": { "kz": "Піл", "pl": "Słoń" }, "at": 1.4 }
+      ],
+      "speaker": "aisha",
+      "line": { "kz": "Ал мына керік сондай биік! Қасында үлкен піл тұр.", "pl": "A ta żyrafa jest taka wysoka! Obok stoi wielki słoń." },
+      "sfx": ["elephant toot", "leaves rustle"]
+    },
+    {
+      "id": "s4", "name": "Құндыздың тоғаны", "nominal": [16, 23], "shot": "MS — средний план у водоёма", "camera": "gentle pan right to the pond, 1.0 → 1.08",
+      "composition": "pond fills the lower half, wooden dam on the right, beaver on a log at the centre, Arman on the bank bottom-left",
+      "animation": ["water ripples", "beaver blinks, nose twitches, teeth shine", "big call-out card with a long pointer"],
+      "ui": [{ "type": "card", "animal": "beaver", "big": true, "text": { "kz": "Құндыз — «Bober»", "pl": "Bóbr — «Bober»" }, "at": 0.8 }],
+      "speaker": "arman",
+      "line": { "kz": "Ой, тоғанға қара! Бұл нағыз құндыз — Бобер!", "pl": "Ojej, spójrz na staw! To prawdziwy bóbr — Bober!" },
+      "sfx": ["water", "pop"]
+    },
+    {
+      "id": "s5", "name": "Бобер сәлем береді", "nominal": [23, 28], "shot": "CU — крупный план", "camera": "push-in on the beaver 1.05 → 1.15, small shake on the tail slap",
+      "composition": "beaver large at the centre, kids laughing at the bottom corners, summary plate at the bottom",
+      "animation": ["beaver waves a paw", "tail slaps the water, vector splash drops", "kids laugh (bounce)", "summary plate slides up"],
+      "ui": [{ "type": "plate", "text": { "kz": "Алматы хайуанаттар бағы", "pl": "Zoo w Ałmaty" }, "at": 1.0 }],
+      "speaker": "aisha",
+      "line": { "kz": "Ол өте сүйкімді! Бүгінгі серуен өте қызықты өтті!", "pl": "Jest taki uroczy! Dzisiejszy spacer był bardzo ciekawy!" },
+      "sfx": ["splash", "kids laugh (music sting)"]
+    },
+    {
+      "id": "s6", "name": "Outro / CTA", "nominal": [28, 32], "shot": "Brand screen", "camera": "static, globe rotates",
+      "composition": "title on top, snow-leopard cub mascot on a rotating stylised globe, flag clouds 🇰🇿 🇵🇱, books, a cup, Almaty mountains, glossy button at the bottom",
+      "animation": ["globe meridians rotate", "mascot waves", "clouds bob", "CTA button pulses"],
+      "ui": [
+        { "type": "title", "text": { "kz": "Тілдерді бірге үйренейік!", "pl": "Uczmy się języków razem!" }, "at": 0.2 },
+        { "type": "cta", "text": { "kz": "Жазыл!", "pl": "Subskrybuj!" }, "at": 0.8 }
+      ],
+      "speaker": "aisha",
+      "line": { "kz": "Тілдерді бірге үйренейік!", "pl": "Uczmy się języków razem!" },
+      "sfx": ["chime", "music out"]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "almaty-zoo-video",
+  "private": true,
+  "description": "«Дети пошли в Алматинский зоопарк» — a 9:16 vector (SVG) learning video in Kazakh and Polish, rendered with Remotion",
+  "scripts": {
+    "tts": "python3 scripts/tts.py",
+    "sound": "python3 scripts/sound.py",
+    "timing": "node scripts/timing.mjs",
+    "studio": "remotion studio",
+    "render:bilingual": "remotion render ZooBilingual out/almaty_zoo_kz_pl_bilingual.mp4",
+    "render:kz": "remotion render ZooKZ out/almaty_zoo_kz.mp4",
+    "render:pl": "remotion render ZooPL out/almaty_zoo_pl.mp4",
+    "render:all": "npm run render:bilingual && npm run render:kz && npm run render:pl",
+    "export:32k-frames": "node scripts/export-32k.mjs",
+    "qc": "node scripts/qc.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.539",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.539"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "sharp": "0.34.3",
+    "typescript": "5.8.3"
+  }
+}
