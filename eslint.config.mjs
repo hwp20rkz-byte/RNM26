@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     "hoa-yard-service/**",
     "lstk-business-plan/**",
     "lstk-configurator/**",
+    "kazakh-kids-app/**",
   ]),
 ]);
 

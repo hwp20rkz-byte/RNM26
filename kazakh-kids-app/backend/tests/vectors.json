@@ -1,0 +1,224 @@
+[
+ {
+  "hyp": "Сәлем, досым!",
+  "target": "Сәлем, досым!",
+  "conf": null,
+  "hypothesis": "сәлем досым",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "салем досым",
+  "target": "Сәлем, досым!",
+  "conf": 0.9,
+  "hypothesis": "салем досым",
+  "accuracy": 87.0,
+  "score": 78.3,
+  "passed": true,
+  "missed": [
+   "ә"
+  ]
+ },
+ {
+  "hyp": "",
+  "target": "Қанша тұрады?",
+  "conf": null,
+  "hypothesis": "",
+  "accuracy": 0.0,
+  "score": 0.0,
+  "passed": false,
+  "missed": [
+   "қ",
+   "ұ"
+  ]
+ },
+ {
+  "hyp": "канша турады",
+  "target": "Қанша тұрады?",
+  "conf": null,
+  "hypothesis": "канша турады",
+  "accuracy": 76.9,
+  "score": 76.9,
+  "passed": true,
+  "missed": [
+   "қ",
+   "ұ"
+  ]
+ },
+ {
+  "hyp": "қанша тұрады",
+  "target": "Қанша тұрады?",
+  "conf": 0.62,
+  "hypothesis": "қанша тұрады",
+  "accuracy": 100.0,
+  "score": 62.0,
+  "passed": false,
+  "missed": []
+ },
+ {
+  "hyp": "түсіріп беріңізші",
+  "target": "Түсіріп беріңізші!",
+  "conf": null,
+  "hypothesis": "түсіріп беріңізші",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "тусирип беринизши",
+  "target": "Түсіріп беріңізші!",
+  "conf": null,
+  "hypothesis": "тусирип беринизши",
+  "accuracy": 48.8,
+  "score": 48.8,
+  "passed": false,
+  "missed": [
+   "ү",
+   "і",
+   "ң"
+  ]
+ },
+ {
+  "hyp": "оңға бұрыл",
+  "target": "Оңға бұрыл!",
+  "conf": 1.0,
+  "hypothesis": "оңға бұрыл",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "онга бурыл",
+  "target": "Оңға бұрыл!",
+  "conf": 1.0,
+  "hypothesis": "онга бурыл",
+  "accuracy": 60.9,
+  "score": 60.9,
+  "passed": false,
+  "missed": [
+   "ң",
+   "ғ",
+   "ұ"
+  ]
+ },
+ {
+  "hyp": "тоқта бағдаршам қызыл",
+  "target": "Тоқта, бағдаршам қызыл!",
+  "conf": 0.8,
+  "hypothesis": "тоқта бағдаршам қызыл",
+  "accuracy": 100.0,
+  "score": 80.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "шай ішіңіз ыстықтай",
+  "target": "Шай ішіңіз, ыстықтай!",
+  "conf": null,
+  "hypothesis": "шай ішіңіз ыстықтай",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "мен мектепке барамын",
+  "target": "Мен таңертең мектепке барамын",
+  "conf": null,
+  "hypothesis": "мен мектепке барамын",
+  "accuracy": 66.7,
+  "score": 66.7,
+  "passed": false,
+  "missed": [
+   "ң"
+  ]
+ },
+ {
+  "hyp": "абсолютно другое",
+  "target": "Ас болсын!",
+  "conf": null,
+  "hypothesis": "абсолютно другое",
+  "accuracy": 18.8,
+  "score": 18.8,
+  "passed": false,
+  "missed": []
+ },
+ {
+  "hyp": "ёлка",
+  "target": "елка",
+  "conf": null,
+  "hypothesis": "елка",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "Айдаһар",
+  "target": "айдахар",
+  "conf": null,
+  "hypothesis": "айдаһар",
+  "accuracy": 86.7,
+  "score": 86.7,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "mong jejs",
+  "target": "мың жеті жүз",
+  "conf": null,
+  "hypothesis": "mong jejs",
+  "accuracy": 0.0,
+  "score": 0.0,
+  "passed": false,
+  "missed": [
+   "ң",
+   "і",
+   "ү"
+  ]
+ },
+ {
+  "hyp": "730",
+  "target": "жеті жүз отыз",
+  "conf": null,
+  "hypothesis": "жеті жүз отыз",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "1500 теңге",
+  "target": "Мың бес жүз теңге",
+  "conf": 0.9,
+  "hypothesis": "мың бес жүз теңге",
+  "accuracy": 100.0,
+  "score": 90.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "56",
+  "target": "елу алты",
+  "conf": null,
+  "hypothesis": "елу алты",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ },
+ {
+  "hyp": "2 алма",
+  "target": "екі алма",
+  "conf": null,
+  "hypothesis": "екі алма",
+  "accuracy": 100.0,
+  "score": 100.0,
+  "passed": true,
+  "missed": []
+ }
+]

@@ -1,0 +1,185 @@
+// Фаза 2 «Мектеп»: числа по-казахски до миллиона (эталоны написаны вручную ДО исправления движка) и математика
+const assert = require('assert'); global.window = {}; require('../web/data.js');
+const N = window.QDATA.numToKk; let n = 0; const eq = (a, b, m) => { assert.strictEqual(a, b, m + ': ' + a + ' ≠ ' + b); n++; };
+const NUM = {
+  0: 'нөл', 7: 'жеті', 11: 'он бір', 40: 'қырық', 99: 'тоқсан тоғыз', 100: 'жүз', 110: 'жүз он', 999: 'тоғыз жүз тоқсан тоғыз',
+  1000: 'мың', 1001: 'мың бір', 1500: 'мың бес жүз', 2026: 'екі мың жиырма алты',
+  10000: 'он мың', 12345: 'он екі мың үш жүз қырық бес', 21000: 'жиырма бір мың', 99999: 'тоқсан тоғыз мың тоғыз жүз тоқсан тоғыз',
+  100000: 'жүз мың', 100100: 'жүз мың жүз', 101000: 'жүз бір мың', 250000: 'екі жүз елу мың',
+  999999: 'тоғыз жүз тоқсан тоғыз мың тоғыз жүз тоқсан тоғыз', 1000000: 'бір миллион'
+};
+for (const [k, v] of Object.entries(NUM)) eq(N(+k), v, 'numToKk ' + k);
+for (let i = 0; i <= 1000000; i += 997) { const w = N(i); assert.ok(w && !/undefined/.test(w), 'no gaps: ' + i + ' → ' + w); n++; }
+
+// maths: sentences written by hand first, then every generated task is checked by recomputing it
+const M = require('../web/mektep-core.js');
+eq(M.compareSentence(37, 42), 'Отыз жеті қырық екіден кем.', 'compare <');
+eq(M.compareSentence(60, 10), 'Алпыс оннан артық.', 'compare >');
+eq(M.compareSentence(50, 50), 'Елу елуге тең.', 'compare =');
+eq(M.exprSentence(8, '+', 5, 13), 'Сегіз қосу бес тең он үш.', 'plus');
+eq(M.exprSentence(15, '−', 7, 8), 'Он бес алу жеті тең сегіз.', 'minus');
+eq(M.exprSentence(3, '×', 4, 12), 'Үш көбейту төрт тең он екі.', 'times');
+let seed = 11; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return seed / 2 ** 31; };
+const calc = (t) => { const m = /^(\d+) ([+−×÷]) (\d+)$/.exec(t); const a = +m[1], b = +m[3]; return m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '÷' ? a / b : a * b; };
+for (const s of M.SUBJECTS) for (const t of s.topics) for (let k = 0; k < 30; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ': distinct options with the answer'); n++;
+  assert.ok(q.kk && q.ru && q.en && (q.say || ['pattern', 'algo', 'sym'].includes(t.gen) || /\d|^[IVX]+ /.test(q.answer)) && q.full && !/undefined|NaN/.test(q.full + q.say), t.id + ': texts ' + q.full); n++;
+  const v = q.visual;
+  if (v.type === 'expr' && t.gen !== 'compare') { const c = calc(v.text); eq(q.answer, String(c), t.id + ' ' + v.text); assert.ok(c >= 0 && c <= 100, 'within range'); if (t.gen === 'add20') assert.ok(c <= 20 && +v.text.split(' ')[0] <= 20); }
+  if (t.gen === 'compare') { const [a, , b] = v.text.split(' ').map((x) => +x || x); eq(q.answer, a === b ? '=' : a < b ? '<' : '>', 'compare ' + v.text); }
+  if (v.type === 'items') eq(q.answer, window.QDATA.numToKk(v.n), 'count ' + v.n);
+  if (v.type === 'tens') eq(q.answer, String(v.t * 10 + v.u), 'tens');
+  if (v.type === 'coins') eq(q.answer, String(v.list.reduce((a, b) => a + b, 0)), 'coins');
+  if (t.gen === 'add20' && q.kk.includes('+')) { const [a, , b] = v.text.split(' ').map(Number); assert.ok(a + b > 10, 'add20 crosses ten: ' + v.text); n++; }
+}
+// grades 3–4 (hand-written expected texts, then the generators)
+eq(M.fractionKk(3, 4), 'төрттен үш', 'fraction 3/4'); eq(M.fractionKk(1, 2), 'екіден бір', 'fraction 1/2'); eq(M.fractionKk(5, 8), 'сегізден бес', 'fraction 5/8');
+eq(M.exprSentence(12, '÷', 3, 4), 'Он екі бөлу үш тең төрт.', 'division');
+eq(M.buyText({ e: '🍎', kk: 'алма' }, 120, 3, 'Әнел'), 'Бір алма — 120 теңге. Әнел 3 алма алды. Барлығы неше теңге?', 'shopping total');
+eq(M.changeText({ e: '📕', kk: 'кітап' }, 500, 320, 'Әлібек'), 'Әлібекте 500 теңге бар. Ол 320 теңгеге кітап алды. Қанша теңге қалды?', 'change');
+for (const t of M.SUBJECTS[0].topics.filter((x) => x.grade >= 3)) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  const v = q.visual;
+  if (t.gen === 'mul69') { const [a, , b] = v.text.split(' ').map(Number); eq(q.answer, String(a * b), 'mul ' + v.text); assert.ok(a >= 6 && a <= 9); }
+  if (t.gen === 'div') { const [a, , b] = v.text.split(' ').map(Number); assert.ok(a % b === 0, 'exact division ' + v.text); eq(q.answer, String(a / b), 'div ' + v.text); }
+  if (t.gen === 'frac') {
+    eq(q.answer, M.fractionKk(v.n, v.d), 'fraction picture ' + v.n + '/' + v.d); assert.ok(v.n < v.d);
+    // no distractor may be the same amount (2/4 and 1/2 are both right): compare values
+    const val = {}; for (const d of [2, 3, 4, 5, 6, 8]) for (let k = 1; k < d; k++) val[M.fractionKk(k, d)] = k / d;
+    assert.ok(q.options.filter((o) => Math.abs(val[o] - v.n / v.d) < 1e-9).length === 1, 'one right amount among ' + q.options.join(', ')); n++;
+  }
+  if (t.gen === 'shop') { const m = /— (\d+) теңге\. \S+ (\d+) /.exec(q.kk); const ch = /^\S+(?:да|де|та|те) (\d+) теңге бар\. Ол (\d+) теңгеге/.exec(q.kk);
+    if (m) eq(q.answer, String(+m[1] * +m[2]), 'shop total'); else eq(q.answer, String(+ch[1] - +ch[2]), 'change'); assert.ok(+q.answer % 10 === 0 && +q.answer <= 1000, 'round sums ≤ 1000'); }
+  if (t.gen === 'place') { eq(q.answer, String(v.h * 100 + v.t * 10 + v.u), 'place value'); }
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length, t.id + ' options'); n++;
+}
+// day 4 — logic: hand-written cases first, then every generated task is re-checked
+eq(M.runProgram({ x: 0, y: 0 }, ['R', 'R', 'D']).x, 2, 'robot moves right twice'); eq(M.runProgram({ x: 0, y: 0 }, ['R', 'R', 'D']).y, 1, 'then down');
+eq(M.mirror(['100', '010']).join('|'), '001|010', 'mirror of a half pattern');
+eq(M.ARROW_KK.R + ' ' + M.ARROW_KK.L + ' ' + M.ARROW_KK.U + ' ' + M.ARROW_KK.D, 'оңға солға жоғары төмен', 'direction words');
+eq(M.YURT.map((x) => x.kk).join(' → '), 'кереге → есік → шаңырақ → уық → киіз', 'yurt assembly order');
+const logic = M.SUBJECTS.find((x) => x.id === 'logic');
+for (const t of logic.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'pattern') eq(q.answer, v.unit[v.seq.length % v.unit.length], 'pattern continues ' + v.seq.join(''));
+  if (t.gen === 'odd') { const cats = q.options.map((o) => M.ODD_CAT[o]); assert.ok(cats.filter((c) => c === M.ODD_CAT[q.answer]).length === 1 && new Set(cats).size === 2, 'odd one: one of a kind ' + q.options); n++; }
+  if (t.gen === 'algo') { q.options.forEach((o) => { const end = M.runProgram(v.start, o.split(' '), v.size, v.walls); assert.ok((end.x === v.goal.x && end.y === v.goal.y && !end.crash) === (o === q.answer), 'only the answer reaches the battery: ' + o); n++; }); }
+  if (t.gen === 'sym') { q.options.forEach((o) => { assert.ok((o === M.mirror(v.left).join('|')) === (o === q.answer), 'only the mirror is right'); n++; }); }
+  if (t.gen === 'yurt') eq(q.answer, M.YURT[v.step].kk, 'next yurt step');
+}
+// day 5 — nature: reference tables written by hand (sources in methodology/plan-10-days.md), forms from the engine
+eq(M.SEASON_OF['наурыз'], 'көктем', 'March is spring'); eq(M.SEASON_OF['желтоқсан'], 'қыс', 'December is winter'); eq(M.SEASON_OF['қыркүйек'], 'күз', 'September is autumn');
+eq(M.SENSES.map((x) => x.organ).join(' '), 'көзбен құлақпен мұрынмен тілмен терімен', 'sense organs with «немен?» (instrumental)');
+eq(M.HOMES.map((x) => x.kk + ' — ' + x.home).join(', '), 'балық — суда, барыс — тауда, түйе — шөлде, тиін — орманда', 'where animals live (locative)');
+eq(M.WATER.map((x) => x.kk).join(' → '), 'Су буланады → Бұлт пайда болады → Жаңбыр жауады → Су өзенге ағады', 'water cycle order');
+eq(M.REDBOOK.join(' '), 'барыс құлан арқар қарақұйрық', 'Red Book animals in the game');
+const nature = M.SUBJECTS.find((x) => x.id === 'nature');
+for (const t of nature.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'season') eq(q.answer, M.SEASON_OF[v.text], 'season of ' + v.text);
+  if (t.gen === 'wild') { const w = q.options.filter((o) => M.WILD.includes(o)); assert.ok(q.kk.includes('жабайы') ? w.length === 1 && w[0] === q.answer : w.length === 2 && !w.includes(q.answer), 'wild/domestic ' + q.options); n++; }
+  if (t.gen === 'home') { eq(M.HOMES.find((x) => x.kk === q.answer).home, v.text, 'lives ' + v.text); assert.ok(q.options.filter((o) => o !== q.answer).every((o) => M.HOME_NOT[v.text].includes(o)), 'distractors are surely wrong: ' + q.options); n++; }
+  if (t.gen === 'senses') eq(q.answer, M.SENSES.find((x) => x.q === q.kk).organ, 'organ for ' + q.kk);
+  if (t.gen === 'redbook') { assert.ok(M.REDBOOK.includes(q.answer) && q.options.filter((o) => M.REDBOOK.includes(o)).length === 1, 'one Red Book animal'); n++; }
+  if (t.gen === 'water') eq(q.answer, M.WATER[v.step].kk, 'water step');
+}
+// day 6 — geography: reference tables by hand (sources in plan-10-days.md)
+eq(M.REGIONS.length, 17, '17 regions'); eq(M.REGION_CENTER['Абай облысы'], 'Семей', 'Abai → Semey'); eq(M.REGION_CENTER['Ұлытау облысы'], 'Жезқазған', 'Ulytau → Zhezkazgan');
+eq(M.REGION_CENTER['Жетісу облысы'], 'Талдықорған', 'Zhetisu → Taldykorgan'); eq(M.REGION_CENTER['Алматы облысы'], 'Қонаев', 'Almaty region → Konaev');
+eq(M.centerQuestion('Абай облысы'), 'Абай облысының орталығы қай қала?', 'genitive from the engine');
+eq(M.NEIGHBORS.join(' '), 'Ресей Қытай Қырғызстан Өзбекстан Түрікменстан', 'five neighbours');
+eq(M.DIRS.map((d) => d.kk).join(' '), 'солтүстік шығыс оңтүстік батыс', 'directions clockwise from north');
+const geo = M.SUBJECTS.find((x) => x.id === 'geo');
+for (const t of geo.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10 different tasks'); n++; }
+for (const t of geo.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'dirs') { if (v.type === 'compass') eq(q.answer, M.DIRS[v.deg / 90].kk, 'arrow ' + v.deg); else if (q.kk.includes('қарама-қарсы')) eq(M.DIRS.findIndex((d) => d.kk === q.answer), (M.DIRS.findIndex((d) => d.kk === v.text.toLowerCase()) + 2) % 4, 'opposite of ' + v.text); else if (q.kk.startsWith('Түсте')) eq(q.answer, 'оңтүстік', 'noon sun'); else eq(q.answer, q.kk.includes('шығады') ? 'шығыс' : 'батыс', 'the sun'); }
+  if (t.gen === 'center') eq(q.answer, M.REGION_CENTER[v.text], 'center of ' + v.text);
+  if (t.gen === 'feature') { const kind = q.kk.includes('өзен') ? 'river' : q.kk.includes('көл') ? 'lake' : 'mountain'; assert.ok(q.options.filter((o) => M.FEATURE[o] === kind).length === 1 && M.FEATURE[q.answer] === kind, 'one ' + kind); n++; }
+  if (t.gen === 'neighbor' && q.kk.includes('шекараласпайды')) { assert.ok(q.options.filter((o) => !M.NEIGHBORS.includes(o)).length === 1 && !M.NEIGHBORS.includes(q.answer), 'one non-neighbour'); n++; }
+  else if (t.gen === 'neighbor') { assert.ok(q.options.filter((o) => M.NEIGHBORS.includes(o)).length === 1 && M.NEIGHBORS.includes(q.answer), 'one neighbour'); n++; }
+  if (t.gen === 'repcity' && q.kk.includes('астанасы')) eq(q.answer, 'Астана', 'the capital');
+  else if (t.gen === 'repcity' && q.kk.includes('емес')) { assert.ok(q.options.filter((o) => !M.REP_CITIES.includes(o)).length === 1 && !M.REP_CITIES.includes(q.answer), 'one ordinary city'); n++; }
+  else if (t.gen === 'repcity') { assert.ok(q.options.filter((o) => M.REP_CITIES.includes(o)).length === 1 && M.REP_CITIES.includes(q.answer), 'one city of republican significance'); n++; }
+}
+// day 7: cities — reference case forms written by hand (locative / dative / ablative)
+const GUIDE_REF = { Алматы: ['Алматыда', 'Алматыға', 'Алматыдан'], Шымкент: ['Шымкентте', 'Шымкентке', 'Шымкенттен'], Тараз: ['Таразда', 'Таразға', 'Тараздан'],
+  Өскемен: ['Өскеменде', 'Өскеменге', 'Өскеменнен'], Ақтау: ['Ақтауда', 'Ақтауға', 'Ақтаудан'], Ақтөбе: ['Ақтөбеде', 'Ақтөбеге', 'Ақтөбеден'],
+  Семей: ['Семейде', 'Семейге', 'Семейден'], Көкшетау: ['Көкшетауда', 'Көкшетауға', 'Көкшетаудан'], Орал: ['Оралда', 'Оралға', 'Оралдан'], Астана: ['Астанада', 'Астанаға', 'Астанадан'] };
+for (const c of Object.keys(GUIDE_REF)) { eq(M.guideForms(c).join(' '), GUIDE_REF[c].join(' '), 'case forms of ' + c); }
+eq(M.LANDMARK['Бәйтерек'], 'Астана', 'Бәйтерек'); eq(M.LANDMARK['Медеу'], 'Алматы', 'Медеу'); eq(M.LANDMARK['Қожа Ахмет Ясауи кесенесі'], 'Түркістан', 'Ясауи');
+eq(M.CITY_RIVER['Орал'], 'Жайық', 'Орал on the Жайық'); eq(M.CITY_RIVER['Астана'], 'Есіл', 'Астана on the Есіл'); eq(M.CITY_RIVER['Семей'], 'Ертіс', 'Семей on the Ертіс');
+assert.ok(!M.GUIDE_CITIES.includes('Қонаев'), 'Қонаев is left out of the guide (spelling of its endings varies)'); n++;
+const cities = M.SUBJECTS.find((x) => x.id === 'cities');
+eq(cities.topics.length, 3, 'three city topics');
+for (const t of cities.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
+for (const t of cities.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
+  const v = q.visual;
+  if (t.gen === 'landmark') {
+    if (q.kk.endsWith('қай қалада?')) eq(q.answer, M.LANDMARK[v.text], 'city of ' + v.text);
+    else if (q.kk.endsWith('маңында?')) eq(q.answer, M.NEAR[v.text], 'near ' + v.text);
+    else { const city = q.kk.replace('Қайсысы ', '').replace(/да\?$|де\?$|та\?$|те\?$/, ''); assert.ok(q.options.filter((o) => M.LANDMARK[o] && q.kk.includes(M.guideForms(M.LANDMARK[o])[0])).length === 1 && q.kk.includes(M.guideForms(M.LANDMARK[q.answer])[0]), 'one landmark in ' + city); n++; }
+  }
+  if (t.gen === 'river') {
+    if (q.kk.startsWith('Қай қала')) { if (q.kk.includes('Каспий')) eq(q.answer, 'Ақтау', 'the Caspian city'); else { const r = Object.values(M.CITY_RIVER).find((x) => q.kk.includes(x)); assert.ok(q.options.filter((o) => M.CITY_RIVER[o] === r).length === 1 && M.CITY_RIVER[q.answer] === r, 'one city on ' + r); n++; } }
+    else eq(q.answer, M.CITY_RIVER[v.text], 'river of ' + v.text);
+  }
+  if (t.gen === 'guide') { const f = M.guideForms(v.city); eq(q.options.slice().sort().join(' '), f.slice().sort().join(' '), 'three case forms'); eq(q.answer, f[{ zhatys: 0, barys: 1, shygys: 2 }[v.kase]], 'right case for ' + q.kk); }
+}
+// day 8: history (grade 5) — the reference facts written by hand; the game data must agree with them
+const HIST_REF = { 'Қазақ хандығын кімдер құрды?': 'Керей мен Жәнібек', '«Қара сөздердің» авторы кім?': 'Абай Құнанбайұлы', 'Қазақстан қай жылы тәуелсіздік алды?': '1991',
+  'Қазақстан Конституциясы қай жылы қабылданды?': '1995', 'Қазақ хандығы қай ғасырда құрылды?': 'XV ғасырда', 'Тәуелсіздік күні қай күні?': '16 желтоқсан',
+  'Пирамидалар қай елде?': 'Мысыр', 'Олимпиада ойындары қай елде басталды?': 'Грекия', 'Колизей қай қалада?': 'Рим', '1492 жылы Америкаға кім жетті?': 'Колумб' };
+const allHist = M.HISTORY_KZ.concat(M.HISTORY_WORLD);
+for (const k of Object.keys(HIST_REF)) { const f = allHist.find((x) => x.kk === k); assert.ok(f, 'fact present: ' + k); eq(f.a, HIST_REF[k], k); }
+for (const f of allHist) { assert.ok(f.d.length >= 2 && !f.d.includes(f.a) && new Set(f.d).size === f.d.length, 'distractors of ' + f.kk); n++; }
+// timeline: years are the commonly accepted ones; the game only compares events at least 300 years apart
+assert.ok(M.EVENTS.length >= 8 && M.EVENTS.every((e) => typeof e.y === 'number' && e.kk && e.e), 'events'); n++;
+eq(M.EVENTS.find((e) => /хандығы/.test(e.kk)).y, 1465, 'the Kazakh Khanate'); eq(M.EVENTS.find((e) => /тәуелсіздік/.test(e.kk)).y, 1991, 'independence');
+const hist = M.SUBJECTS.find((x) => x.id === 'history');
+eq(hist.topics.length, 3, 'three history topics'); assert.ok(hist.topics.every((t) => t.grade === 5), 'grade 5'); n++;
+for (const t of hist.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
+for (const t of hist.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === 3, t.id + ' options'); n++;
+  if (t.gen === 'timeline') {
+    const ev = q.options.map((o) => M.EVENTS.find((e) => e.kk === o)), ys = ev.map((e) => e.y).sort((a, b) => a - b);
+    eq(q.answer, ev.reduce((a, b) => (b.y < a.y ? b : a)).kk, 'earliest event');
+    assert.ok(ys[1] - ys[0] >= 300 && ys[2] - ys[1] >= 300, 'events far apart: ' + ys.join(' ')); n++;
+  } else { const f = allHist.find((x) => x.kk === q.kk); eq(q.answer, f.a, q.kk); }
+}
+// day 9: reading, music and art — reference answers written by hand
+const LIT_REF = { '«Қара сөздерді» кім жазған?': 'Абай Құнанбайұлы', '«Кел, балалар, оқылық» өлеңін кім жазған?': 'Ыбырай Алтынсарин', '«Маса» кітабын кім жазған?': 'Ахмет Байтұрсынұлы',
+  '«Қырық мысал» кітабын кім жазған?': 'Ахмет Байтұрсынұлы', '«Қыпшақ Сейітқұл» әңгімесін кім жазған?': 'Ыбырай Алтынсарин',
+  'Домбыраның неше ішегі бар?': 'екі', '«Сарыарқа» күйін кім шығарған?': 'Құрманғазы', 'Қайсысы — үрмелі аспап?': 'Сыбызғы', 'Қошқар мүйіз деген не?': 'Ою-өрнек' };
+const allLit = M.LIT_AUTHORS.concat(M.LIT_MUSIC);
+for (const k of Object.keys(LIT_REF)) { const f = allLit.find((x) => x.kk === k); assert.ok(f, 'fact present: ' + k); eq(f.a, LIT_REF[k], k); }
+for (const f of allLit) { assert.ok(f.d.length >= 2 && !f.d.includes(f.a) && f.en && f.ru, 'distractors and texts of ' + f.kk); n++; }
+for (const g of M.GENRES) { assert.ok(['мақал-мәтел', 'жұмбақ', 'ертегі'].includes(g.a) && g.text.length > 10, 'genre sample ' + g.text); n++; }
+assert.ok(M.GENRES.filter((g) => g.a === 'ертегі').every((g) => /^Ерте, ерте, ертеде/.test(g.text)), 'every tale sample opens with the folk formula'); n++;
+assert.ok(M.GENRES.filter((g) => g.a === 'жұмбақ').every((g) => /\?$/.test(g.text)), 'every riddle asks'); n++;
+const lit = M.SUBJECTS.find((x) => x.id === 'lit');
+eq(lit.topics.length, 3, 'three reading topics');
+for (const t of lit.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
+for (const t of lit.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === 3, t.id + ' options'); n++;
+  if (t.gen === 'genre') eq(q.answer, M.GENRES.find((g) => g.text === q.visual.text).a, 'genre of ' + q.visual.text);
+  else eq(q.answer, allLit.find((x) => x.kk === q.kk).a, q.kk);
+}
+// day 10: the diary — stars, progress per subject, topics to repeat, the report text
+eq([undefined, 0, 1, 5, 6, 8, 9, 10].map(M.stars).join(''), '00112233', 'stars for a best score');
+const best = { m1count: 9, m1tens: 4, l1pattern: 10, g2dirs: 6 };
+const dia = M.diary(best), mathD = dia.find((x) => x.id === 'math');
+eq(mathD.done, 2, 'maths: two topics played'); eq(mathD.stars, 4, 'maths: 3 + 1 stars'); eq(mathD.maxStars, 39, 'maths: 13 topics × 3');
+eq(mathD.weak.map((t) => t.id).join(), 'm1tens', 'below 6 is worth repeating');
+eq(dia.find((x) => x.id === 'geo').weak.length, 0, '6 / 10 is not weak');
+eq(dia.length, 7, 'seven subjects'); eq(M.diary({}).every((x) => x.done === 0 && x.stars === 0), true, 'an empty diary');
+const rep = M.reportText(best, 'Әнел', 'ru', '17.11.2026');
+assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 38') && rep.includes('🔢 Математика: 2 / 13 · ★ 4 / 39') && rep.includes('📜 Тарих — История (5 класс): 0 / 3') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
+assert.ok(M.reportText({ m1count: 10 }, '', 'en').includes('Nothing to repeat'), 'nothing to repeat'); n++;
+const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5 && M.SUBJECTS[4].topics.length === 3 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 5, cities 3, history 3, reading 3'); n++;
+module.exports = { checks: () => n };
+if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');
