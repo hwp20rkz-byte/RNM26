@@ -46,7 +46,7 @@ def child(in_wav, out_wav, pitch):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--voices', default=os.environ.get('PIPER_VOICES', ''))
-    ap.add_argument('--engine', default='piper', choices=['piper', 'edge'])
+    ap.add_argument('--engine', default='piper', choices=['piper', 'edge', 'fs'])   # fs: Kazakh from scripts/tts-fs.mjs, Polish in Piper
     a = ap.parse_args()
     sb = json.load(open(os.path.join(ROOT, 'storyboard', 'storyboard.json'), encoding='utf-8'))
     for lang in ('kz', 'pl'):
@@ -56,13 +56,17 @@ def main():
             tmp = os.path.join(ROOT, '.cache', 'tts'); os.makedirs(tmp, exist_ok=True)
             raw = os.path.join(tmp, 'raw-%s-%s.wav' % (lang, sc['id']))
             if a.engine == 'edge': edge(EDGE[(lang, spk)][0], EDGE[(lang, spk)][1], text, raw); pitch = 1.0
+            elif a.engine == 'fs' and lang == 'kz':
+                if not os.path.exists(raw): sys.exit('run FS_API_KEY=... node scripts/tts-fs.mjs first: missing ' + raw)
+                pitch = 2 ** (v['pitchSt'] / 12)
             else:
+                v = v.get('fallback', v) if v.get('engine') == 'freedomspeech' and a.engine != 'fs' else v
                 d = os.path.join(a.voices, 'vits-piper-' + v['model'])
                 if not os.path.isdir(d): sys.exit('missing voice ' + d)
                 piper(d, text, raw); pitch = v['pitch']
             out = os.path.join(ROOT, 'public', 'audio', lang, sc['id'] + '.wav')
             child(raw, out, pitch)
-            print(lang, sc['id'], spk, v['model'], '→', os.path.relpath(out, ROOT))
+            print(lang, sc['id'], spk, v.get('voice') or v.get('model'), '→', os.path.relpath(out, ROOT))
 
 
 if __name__ == '__main__':

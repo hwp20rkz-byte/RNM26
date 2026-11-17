@@ -16,7 +16,7 @@ for (const [v, f] of Object.entries(files)) {
   const vid = probe.streams.find((s) => s.codec_type === 'video'), aud = probe.streams.find((s) => s.codec_type === 'audio');
   let lufs = '?';
   try { const err = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i "${path}" -af loudnorm=print_format=json -f null - 2>&1 | tail -12`]).toString(); lufs = JSON.parse(err.slice(err.indexOf('{'))).input_i; } catch { /* keep ? */ }
-  const ok = vid.width === 2160 && vid.height === 3840 && vid.avg_frame_rate === '60/1' && !!aud && Math.abs(+probe.format.duration - timing[v].total) < 0.2;
+  const ok = vid.width === Number(process.env.W ?? 720) && vid.height === Number(process.env.H ?? 1280) && vid.avg_frame_rate === '60/1' && !!aud && Math.abs(+probe.format.duration - timing[v].total) < 0.2;
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${f}: ${vid.width}×${vid.height} ${vid.codec_name} ${vid.avg_frame_rate} fps, ${(+probe.format.duration).toFixed(2)} s (plan ${timing[v].total}), audio ${aud ? aud.codec_name : 'none'}, ${(probe.format.size / 1e6).toFixed(1)} MB, ${lufs} LUFS`);
   if (!ok) process.exitCode = 1;
   const shots = timing[v].scenes.map((s) => (s.from + Math.min(s.dur - 0.3, s.dur * 0.62)).toFixed(2));

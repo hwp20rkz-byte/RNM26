@@ -1,18 +1,18 @@
 {
   "fps": 60,
   "kz": {
-    "total": 32.36,
+    "total": 32.5,
     "scenes": [
       {
         "id": "s1",
         "from": 0,
-        "dur": 5.36,
+        "dur": 5,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s1.wav",
             "at": 0.55,
-            "dur": 4.16,
+            "dur": 3.68,
             "text": "Сәлем, Арман! Қарашы, біз Алматы хайуанаттар бағына келдік!",
             "speaker": "aisha"
           }
@@ -20,14 +20,14 @@
       },
       {
         "id": "s2",
-        "from": 5.36,
-        "dur": 5,
+        "from": 5,
+        "dur": 5.5,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s2.wav",
             "at": 0.55,
-            "dur": 3.64,
+            "dur": 4.3,
             "text": "Керемет! Анау жерде қар барысы мен арыстан жүр!",
             "speaker": "arman"
           }
@@ -35,14 +35,14 @@
       },
       {
         "id": "s3",
-        "from": 10.36,
+        "from": 10.5,
         "dur": 6,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s3.wav",
             "at": 0.55,
-            "dur": 3.15,
+            "dur": 3.14,
             "text": "Ал мына керік сондай биік! Қасында үлкен піл тұр.",
             "speaker": "aisha"
           }
@@ -50,14 +50,14 @@
       },
       {
         "id": "s4",
-        "from": 16.36,
+        "from": 16.5,
         "dur": 7,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s4.wav",
             "at": 0.55,
-            "dur": 3.91,
+            "dur": 3.72,
             "text": "Ой, тоғанға қара! Бұл нағыз құндыз — Бобер!",
             "speaker": "arman"
           }
@@ -65,14 +65,14 @@
       },
       {
         "id": "s5",
-        "from": 23.36,
+        "from": 23.5,
         "dur": 5,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s5.wav",
             "at": 0.55,
-            "dur": 3.24,
+            "dur": 3.18,
             "text": "Ол өте сүйкімді! Бүгінгі серуен өте қызықты өтті!",
             "speaker": "aisha"
           }
@@ -80,14 +80,14 @@
       },
       {
         "id": "s6",
-        "from": 28.36,
+        "from": 28.5,
         "dur": 4,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s6.wav",
             "at": 0.55,
-            "dur": 1.93,
+            "dur": 1.89,
             "text": "Тілдерді бірге үйренейік!",
             "speaker": "aisha"
           }
@@ -96,7 +96,7 @@
     ]
   },
   "pl": {
-    "total": 32.1,
+    "total": 32,
     "scenes": [
       {
         "id": "s1",
@@ -107,7 +107,7 @@
             "lang": "pl",
             "file": "audio/pl/s1.wav",
             "at": 0.55,
-            "dur": 3.67,
+            "dur": 3.7,
             "text": "Cześć, Arman! Spójrz, przyszliśmy do almatyńskiego zoo!",
             "speaker": "aisha"
           }
@@ -122,7 +122,7 @@
             "lang": "pl",
             "file": "audio/pl/s2.wav",
             "at": 0.55,
-            "dur": 3.66,
+            "dur": 3.72,
             "text": "Super! Tam spacerują pantera śnieżna i lew!",
             "speaker": "arman"
           }
@@ -137,7 +137,7 @@
             "lang": "pl",
             "file": "audio/pl/s3.wav",
             "at": 0.55,
-            "dur": 3.85,
+            "dur": 3.81,
             "text": "A ta żyrafa jest taka wysoka! Obok stoi wielki słoń.",
             "speaker": "aisha"
           }
@@ -152,7 +152,7 @@
             "lang": "pl",
             "file": "audio/pl/s4.wav",
             "at": 0.55,
-            "dur": 3.53,
+            "dur": 3.58,
             "text": "Ojej, spójrz na staw! To prawdziwy bóbr — Bober!",
             "speaker": "arman"
           }
@@ -161,13 +161,13 @@
       {
         "id": "s5",
         "from": 23,
-        "dur": 5.1,
+        "dur": 5,
         "lines": [
           {
             "lang": "pl",
             "file": "audio/pl/s5.wav",
             "at": 0.55,
-            "dur": 3.9,
+            "dur": 3.79,
             "text": "Jest taki uroczy! Dzisiejszy spacer był bardzo ciekawy!",
             "speaker": "aisha"
           }
@@ -175,14 +175,14 @@
       },
       {
         "id": "s6",
-        "from": 28.1,
+        "from": 28,
         "dur": 4,
         "lines": [
           {
             "lang": "pl",
             "file": "audio/pl/s6.wav",
             "at": 0.55,
-            "dur": 1.76,
+            "dur": 1.74,
             "text": "Uczmy się języków razem!",
             "speaker": "aisha"
           }
@@ -191,26 +191,26 @@
     ]
   },
   "bilingual": {
-    "total": 50.61,
+    "total": 50.45,
     "scenes": [
       {
         "id": "s1",
         "from": 0,
-        "dur": 9.43,
+        "dur": 8.99,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s1.wav",
             "at": 0.55,
-            "dur": 4.16,
+            "dur": 3.68,
             "text": "Сәлем, Арман! Қарашы, біз Алматы хайуанаттар бағына келдік!",
             "speaker": "aisha"
           },
           {
             "lang": "pl",
             "file": "audio/pl/s1.wav",
-            "at": 5.11,
-            "dur": 3.67,
+            "at": 4.63,
+            "dur": 3.7,
             "text": "Cześć, Arman! Spójrz, przyszliśmy do almatyńskiego zoo!",
             "speaker": "aisha"
           }
@@ -218,22 +218,22 @@
       },
       {
         "id": "s2",
-        "from": 9.43,
-        "dur": 8.9,
+        "from": 8.99,
+        "dur": 9.61,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s2.wav",
             "at": 0.55,
-            "dur": 3.64,
+            "dur": 4.3,
             "text": "Керемет! Анау жерде қар барысы мен арыстан жүр!",
             "speaker": "arman"
           },
           {
             "lang": "pl",
             "file": "audio/pl/s2.wav",
-            "at": 4.59,
-            "dur": 3.66,
+            "at": 5.25,
+            "dur": 3.72,
             "text": "Super! Tam spacerują pantera śnieżna i lew!",
             "speaker": "arman"
           }
@@ -241,22 +241,22 @@
       },
       {
         "id": "s3",
-        "from": 18.33,
-        "dur": 8.6,
+        "from": 18.6,
+        "dur": 8.55,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s3.wav",
             "at": 0.55,
-            "dur": 3.15,
+            "dur": 3.14,
             "text": "Ал мына керік сондай биік! Қасында үлкен піл тұр.",
             "speaker": "aisha"
           },
           {
             "lang": "pl",
             "file": "audio/pl/s3.wav",
-            "at": 4.1,
-            "dur": 3.85,
+            "at": 4.09,
+            "dur": 3.81,
             "text": "A ta żyrafa jest taka wysoka! Obok stoi wielki słoń.",
             "speaker": "aisha"
           }
@@ -264,22 +264,22 @@
       },
       {
         "id": "s4",
-        "from": 26.93,
-        "dur": 9.04,
+        "from": 27.15,
+        "dur": 8.91,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s4.wav",
             "at": 0.55,
-            "dur": 3.91,
+            "dur": 3.72,
             "text": "Ой, тоғанға қара! Бұл нағыз құндыз — Бобер!",
             "speaker": "arman"
           },
           {
             "lang": "pl",
             "file": "audio/pl/s4.wav",
-            "at": 4.86,
-            "dur": 3.53,
+            "at": 4.67,
+            "dur": 3.58,
             "text": "Ojej, spójrz na staw! To prawdziwy bóbr — Bober!",
             "speaker": "arman"
           }
@@ -287,22 +287,22 @@
       },
       {
         "id": "s5",
-        "from": 35.97,
-        "dur": 8.75,
+        "from": 36.06,
+        "dur": 8.57,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s5.wav",
             "at": 0.55,
-            "dur": 3.24,
+            "dur": 3.18,
             "text": "Ол өте сүйкімді! Бүгінгі серуен өте қызықты өтті!",
             "speaker": "aisha"
           },
           {
             "lang": "pl",
             "file": "audio/pl/s5.wav",
-            "at": 4.19,
-            "dur": 3.9,
+            "at": 4.13,
+            "dur": 3.79,
             "text": "Jest taki uroczy! Dzisiejszy spacer był bardzo ciekawy!",
             "speaker": "aisha"
           }
@@ -310,22 +310,22 @@
       },
       {
         "id": "s6",
-        "from": 44.72,
-        "dur": 5.89,
+        "from": 44.63,
+        "dur": 5.82,
         "lines": [
           {
             "lang": "kz",
             "file": "audio/kz/s6.wav",
             "at": 0.55,
-            "dur": 1.93,
+            "dur": 1.89,
             "text": "Тілдерді бірге үйренейік!",
             "speaker": "aisha"
           },
           {
             "lang": "pl",
             "file": "audio/pl/s6.wav",
-            "at": 2.88,
-            "dur": 1.76,
+            "at": 2.84,
+            "dur": 1.74,
             "text": "Uczmy się języków razem!",
             "speaker": "aisha"
           }

@@ -1,6 +1,7 @@
 import { Config } from '@remotion/cli/config';
-// 4K master: the 1080×1920 SVG design is rendered at deviceScaleFactor 2 → 2160×3840, H.264 high quality, 60 fps.
-Config.setScale(2);
+// The 1080×1920 SVG design is rendered at deviceScaleFactor SCALE: 2/3 → 720×1280 (default, owner's choice 17.11),
+// 2 → 4K 2160×3840 (SCALE=2 npm run render:all). Vector art, so every scale is sharp. 60 fps, H.264.
+Config.setScale(Number(process.env.SCALE ?? 2 / 3));
 Config.setVideoImageFormat('png');
 Config.setCodec('h264');
 Config.setCrf(16);
