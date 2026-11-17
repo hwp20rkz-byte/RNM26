@@ -459,6 +459,51 @@
     return null;
   };
 
+  /* ---------- day 9: reading, music and art (titles and authors only — no verses quoted; sources in plan-10-days.md) ---------- */
+  var A3 = ['Абай Құнанбайұлы', 'Ыбырай Алтынсарин', 'Ахмет Байтұрсынұлы'];
+  function byAuthor(kk, ru, en, a, e) { return { kk: kk, ru: ru, en: en, a: a, d: A3.filter(function (x) { return x !== a; }), e: e }; }
+  var LIT_AUTHORS = [
+    byAuthor('«Қара сөздерді» кім жазған?', 'Кто написал «Слова назидания»?', 'Who wrote the «Book of Words»?', A3[0], '📜'),
+    byAuthor('«Қыс» өлеңін кім жазған?', 'Кто написал стихотворение «Зима»?', 'Who wrote the poem «Winter»?', A3[0], '❄️'),
+    byAuthor('«Жаз» өлеңін кім жазған?', 'Кто написал стихотворение «Лето»?', 'Who wrote the poem «Summer»?', A3[0], '☀️'),
+    byAuthor('«Ғылым таппай мақтанба» өлеңін кім жазған?', 'Кто написал «Не хвались, не найдя знаний»?', 'Who wrote «Do not boast without knowledge»?', A3[0], '🎓'),
+    byAuthor('«Кел, балалар, оқылық» өлеңін кім жазған?', 'Кто написал «Давайте, дети, учиться»?', 'Who wrote «Come, children, let us learn»?', A3[1], '📚'),
+    byAuthor('«Өнер-білім бар жұрттар» өлеңін кім жазған?', 'Кто написал «Народы, у которых есть знания»?', 'Who wrote «Nations with knowledge and skill»?', A3[1], '🔭'),
+    byAuthor('«Бай мен жарлының балалары» әңгімесін кім жазған?', 'Кто написал рассказ «Дети богача и бедняка»?', 'Who wrote «The children of the rich man and the poor man»?', A3[1], '👦'),
+    byAuthor('«Қыпшақ Сейітқұл» әңгімесін кім жазған?', 'Кто написал рассказ «Кипчак Сейиткул»?', 'Who wrote the story «Kipchak Seitkul»?', A3[1], '🌾'),
+    byAuthor('«Маса» кітабын кім жазған?', 'Кто написал книгу «Комар»?', 'Who wrote the book «The Mosquito»?', A3[2], '🦟'),
+    byAuthor('«Қырық мысал» кітабын кім жазған?', 'Кто написал книгу «Сорок басен»?', 'Who wrote «Forty Fables»?', A3[2], '🦊')
+  ];
+  var LIT_MUSIC = [
+    { kk: 'Домбыраның неше ішегі бар?', ru: 'Сколько струн у домбры?', en: 'How many strings does a dombra have?', a: 'екі', d: ['үш', 'төрт'], e: '🎸' },
+    { kk: 'Жетігеннің неше ішегі бар?', ru: 'Сколько струн у жетигена?', en: 'How many strings does a zhetigen have?', a: 'жеті', d: ['екі', 'бес'], e: '🎼' },
+    { kk: 'Аңыз бойынша қобызды кім жасаған?', ru: 'Кто, по легенде, сделал кобыз?', en: 'Who made the kobyz, as the legend says?', a: 'Қорқыт ата', d: ['Құрманғазы', 'Абай Құнанбайұлы'], e: '🎻' },
+    { kk: '«Сарыарқа» күйін кім шығарған?', ru: 'Кто сочинил кюй «Сарыарка»?', en: 'Who composed the kuy «Saryarka»?', a: 'Құрманғазы', d: ['Абай Құнанбайұлы', 'Ыбырай Алтынсарин'], e: '🎶' },
+    { kk: '«Адай» күйінің авторы кім?', ru: 'Кто автор кюя «Адай»?', en: 'Who wrote the kuy «Adai»?', a: 'Құрманғазы', d: ['Қорқыт ата', 'Ахмет Байтұрсынұлы'], e: '🐎' },
+    { kk: 'Күй деген не?', ru: 'Что такое кюй?', en: 'What is a kuy?', a: 'аспапта орындалатын шығарма', d: ['ертегі', 'мақал-мәтел'], e: '🎵' },
+    { kk: 'Қошқар мүйіз деген не?', ru: 'Что такое «кошкар муйиз»?', en: 'What is «koshkar muiz»?', a: 'Ою-өрнек', d: ['Күй', 'Ертегі'], e: '🐏' },
+    { kk: 'Қайсысы — ішекті аспап?', ru: 'Какой инструмент струнный?', en: 'Which instrument has strings?', a: 'Домбыра', d: ['Сыбызғы', 'Дауылпаз'], e: '🎼' },
+    { kk: 'Қайсысы — үрмелі аспап?', ru: 'Какой инструмент духовой?', en: 'Which is a wind instrument?', a: 'Сыбызғы', d: ['Домбыра', 'Дауылпаз'], e: '🎼' },
+    { kk: 'Қайсысы — ұрмалы аспап?', ru: 'Какой инструмент ударный?', en: 'Which is a percussion instrument?', a: 'Дауылпаз', d: ['Домбыра', 'Сыбызғы'], e: '🎼' }   // a neutral picture: 🥁 / 🌬️ / 🎸 would give the answer away
+  ];
+  // genre samples: folk proverbs, own riddles, the folk opening formula of a tale
+  var GENRES = [
+    { text: 'Отан — оттан да ыстық.', a: 'мақал-мәтел' }, { text: 'Бірлік бар жерде тірлік бар.', a: 'мақал-мәтел' },
+    { text: 'Білекті бірді жығар, білімді мыңды жығар.', a: 'мақал-мәтел' }, { text: 'Ел іші — алтын бесік.', a: 'мақал-мәтел' },
+    { text: 'Оқу — инемен құдық қазғандай.', a: 'мақал-мәтел' },
+    { text: 'Қанаты бар, құс емес, көкте ұшады. Бұл не?', a: 'жұмбақ' }, { text: 'Аяғы жоқ, жүгіреді, суы мөлдір. Бұл не?', a: 'жұмбақ' },
+    { text: 'Түнде жанады, күндіз сөнеді, көкте тұрады. Бұл не?', a: 'жұмбақ' }, { text: 'Бетін ашсаң, сөйлейді, тілі жоқ. Бұл не?', a: 'жұмбақ' },
+    { text: 'Ерте, ерте, ертеде бір кемпір мен шал өмір сүріпті.', a: 'ертегі' }, { text: 'Ерте, ерте, ертеде ақылды бір бала болыпты.', a: 'ертегі' },
+    { text: 'Ерте, ерте, ертеде бір түлкі орманда тұрыпты.', a: 'ертегі' }
+  ];
+  GEN.genre = function (r) {
+    var g = GENRES[rint(r, 0, GENRES.length - 1)];
+    return { kk: 'Бұл қай жанр?', ru: 'Какой это жанр?', en: 'Which genre is it?', visual: { type: 'big', e: '📖', text: g.text },
+      answer: g.a, options: shuffle(['мақал-мәтел', 'жұмбақ', 'ертегі'], r), say: g.a, full: 'Бұл — ' + g.a + '.' };
+  };
+  GEN.authors = function (r) { return factQ(LIT_AUTHORS, r); };
+  GEN.music = function (r) { return factQ(LIT_MUSIC, r); };
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -508,7 +553,11 @@
       { id: 'h5kz', grade: 5, gen: 'histkz', kk: 'Қазақстан тарихы: кім? қашан? қайда?', ru: 'История Казахстана: кто? когда? где?', en: 'History of Kazakhstan' },
       { id: 'h5world', grade: 5, gen: 'histworld', kk: 'Ежелгі әлем', ru: 'Древний мир', en: 'The ancient world' }
     ] },
-    { id: 'lit', icon: '📖', kk: 'Әдебиеттік оқу', ru: 'Литературное чтение', en: 'Reading', hue: 'pink', day: 9, topics: [] }
+    { id: 'lit', icon: '📖', kk: 'Әдебиеттік оқу', ru: 'Литературное чтение, музыка, искусство', en: 'Reading, music, art', hue: 'pink', topics: [
+      { id: 'r2genre', grade: 2, gen: 'genre', kk: 'Мақал, жұмбақ, ертегі', ru: 'Пословица, загадка, сказка', en: 'Proverb, riddle, tale' },
+      { id: 'r3music', grade: 3, gen: 'music', kk: 'Музыка және өнер', ru: 'Музыка и искусство', en: 'Music and art' },
+      { id: 'r4authors', grade: 4, gen: 'authors', kk: 'Кім жазған?', ru: 'Кто написал?', en: 'Who wrote it?' }
+    ] }
   ];
   /** A round of ROUND tasks for a topic; questions with the same visual are not repeated in a row. */
   function round(topic, r) {
@@ -545,6 +594,8 @@
     out.push('Қай қала Каспий теңізінің жағасында тұр?'); out.push('Ақтау'); out.push('Түркістан'); out.push('Тараз');
     GUIDE_CITIES.forEach(function (c) { guideForms(c).forEach(function (x) { out.push(x); }); });
     ['zhatys', 'barys', 'shygys'].forEach(function (k) { out.push(GUIDE_Q[k][0]); });
+    LIT_AUTHORS.concat(LIT_MUSIC).forEach(function (f) { out.push(f.kk); out.push(f.a); });
+    ['мақал-мәтел', 'жұмбақ', 'ертегі', 'Бұл қай жанр?'].forEach(function (x) { out.push(x); }); GENRES.forEach(function (g) { out.push(g.text); });
     HISTORY_KZ.concat(HISTORY_WORLD).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
     EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
     YURT.forEach(function (y) { out.push(y.kk); out.push(y.done); }); out.push('Енді не керек?'); out.push('Бұл не?'); out.push('Киіз үй дайын!');
@@ -555,5 +606,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

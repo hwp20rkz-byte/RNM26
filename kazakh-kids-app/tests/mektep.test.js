@@ -150,7 +150,25 @@ for (const t of hist.topics) for (let k = 0; k < 40; k++) for (const q of M.roun
     assert.ok(ys[1] - ys[0] >= 300 && ys[2] - ys[1] >= 300, 'events far apart: ' + ys.join(' ')); n++;
   } else { const f = allHist.find((x) => x.kk === q.kk); eq(q.answer, f.a, q.kk); }
 }
+// day 9: reading, music and art — reference answers written by hand
+const LIT_REF = { '«Қара сөздерді» кім жазған?': 'Абай Құнанбайұлы', '«Кел, балалар, оқылық» өлеңін кім жазған?': 'Ыбырай Алтынсарин', '«Маса» кітабын кім жазған?': 'Ахмет Байтұрсынұлы',
+  '«Қырық мысал» кітабын кім жазған?': 'Ахмет Байтұрсынұлы', '«Қыпшақ Сейітқұл» әңгімесін кім жазған?': 'Ыбырай Алтынсарин',
+  'Домбыраның неше ішегі бар?': 'екі', '«Сарыарқа» күйін кім шығарған?': 'Құрманғазы', 'Қайсысы — үрмелі аспап?': 'Сыбызғы', 'Қошқар мүйіз деген не?': 'Ою-өрнек' };
+const allLit = M.LIT_AUTHORS.concat(M.LIT_MUSIC);
+for (const k of Object.keys(LIT_REF)) { const f = allLit.find((x) => x.kk === k); assert.ok(f, 'fact present: ' + k); eq(f.a, LIT_REF[k], k); }
+for (const f of allLit) { assert.ok(f.d.length >= 2 && !f.d.includes(f.a) && f.en && f.ru, 'distractors and texts of ' + f.kk); n++; }
+for (const g of M.GENRES) { assert.ok(['мақал-мәтел', 'жұмбақ', 'ертегі'].includes(g.a) && g.text.length > 10, 'genre sample ' + g.text); n++; }
+assert.ok(M.GENRES.filter((g) => g.a === 'ертегі').every((g) => /^Ерте, ерте, ертеде/.test(g.text)), 'every tale sample opens with the folk formula'); n++;
+assert.ok(M.GENRES.filter((g) => g.a === 'жұмбақ').every((g) => /\?$/.test(g.text)), 'every riddle asks'); n++;
+const lit = M.SUBJECTS.find((x) => x.id === 'lit');
+eq(lit.topics.length, 3, 'three reading topics');
+for (const t of lit.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
+for (const t of lit.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+  assert.ok(q.options.includes(q.answer) && new Set(q.options).size === 3, t.id + ' options'); n++;
+  if (t.gen === 'genre') eq(q.answer, M.GENRES.find((g) => g.text === q.visual.text).a, 'genre of ' + q.visual.text);
+  else eq(q.answer, allLit.find((x) => x.kk === q.kk).a, q.kk);
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.slice(6).every((s) => s.day >= 9) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5 && M.SUBJECTS[4].topics.length === 3 && M.SUBJECTS[5].topics.length === 3, 'skeleton: 7 subjects, maths 13, logic 5, nature 6, geography 5, cities 3, history 3, literature planned'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 5 && M.SUBJECTS[4].topics.length === 3 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 5, cities 3, history 3, reading 3'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');
