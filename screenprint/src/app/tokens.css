@@ -1,0 +1,69 @@
+/* Токены дизайна ScreenPrint. Палитра: чернильный синий (primary), охра фанеры (accent), тёплый нейтральный (neutral), HSL. */
+:root {
+  --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --font-display: "Manrope", "IBM Plex Sans", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* шкала размеров: 5 ступеней */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.5rem;
+  --text-xl: 2.25rem;
+
+  /* 8-пунктовая сетка */
+  --s-1: 0.5rem;
+  --s-2: 1rem;
+  --s-3: 1.5rem;
+  --s-4: 2rem;
+  --s-6: 3rem;
+  --s-8: 4rem;
+  --s-12: 6rem;
+
+  --radius: 0.75rem;
+  --container: 1440px;
+
+  /* primary: чернильный синий */
+  --primary-900: hsl(211 36% 12%);
+  --primary-700: hsl(211 36% 22%);
+  --primary-500: hsl(203 40% 41%);
+  --primary-300: hsl(203 40% 70%);
+  --primary-100: hsl(203 40% 94%);
+
+  /* accent: охра фанеры */
+  --accent-700: hsl(32 55% 40%);
+  --accent-500: hsl(32 55% 51%);
+  --accent-300: hsl(32 60% 70%);
+  --accent-100: hsl(32 60% 94%);
+
+  /* neutral: тёплый */
+  --neutral-900: hsl(40 10% 12%);
+  --neutral-700: hsl(40 8% 32%);
+  --neutral-500: hsl(40 8% 52%);
+  --neutral-300: hsl(40 15% 80%);
+  --neutral-100: hsl(40 30% 95%);
+  --neutral-50: hsl(40 35% 98%);
+
+  /* статусы: только для статусов */
+  --success: hsl(150 45% 36%);
+  --warning: hsl(38 85% 45%);
+  --error: hsl(4 65% 48%);
+
+  --bg: var(--neutral-50);
+  --bg-elevated: #fff;
+  --fg: var(--neutral-900);
+  --fg-muted: var(--neutral-700);
+  --border: var(--neutral-300);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: hsl(211 30% 10%);
+    --bg-elevated: hsl(211 28% 14%);
+    --fg: hsl(40 30% 92%);
+    --fg-muted: hsl(40 15% 70%);
+    --border: hsl(211 20% 26%);
+    --primary-100: hsl(211 30% 18%);
+    --accent-100: hsl(32 30% 18%);
+  }
+}

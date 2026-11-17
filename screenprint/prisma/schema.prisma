@@ -1,0 +1,304 @@
+// Схема данных ScreenPrint FabLab & MES/CRM.
+// SQLite для локального запуска из коробки; смена provider на postgresql
+// и DATABASE_URL переводит на Postgres (Supabase/Neon) без правки моделей.
+// JSON-поля хранятся строками (*Json): SQLite не поддерживает тип Json в Prisma.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Оборудование: конфигурации станков и их физические экземпляры ----------
+
+enum MachineType {
+  PRESS        // печатный станок (1 стол или карусель)
+  STRETCHER    // натяжитель сетки
+  EXPOSURE     // УФ-экспокамера
+  WASHOUT      // промывочная кабина
+  DRYER        // ИК-флеш / сушильный шкаф
+  PROFILE_SAW  // станок резки и торцовки профиля рам
+}
+
+model MachineConfig {
+  id         String       @id @default(cuid())
+  type       MachineType
+  name       String
+  sizeId     String?      // S / M / L / XL для пресса
+  paramsJson String       // PressConfig и аналоги: параметры генератора
+  partsJson  String       // снимок деталей (Part[]) на момент сохранения
+  bomJson    String       // снимок спецификации (BomLine[])
+  costLowKzt Int
+  costHighKzt Int
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  builds     MachineBuild[]
+}
+
+enum BuildStatus {
+  PLANNED
+  CUT        // фанера нарезана, профиль закуплен
+  ASSEMBLED
+  TESTED     // прошёл протокол испытаний (гейт)
+  RETIRED
+}
+
+model MachineBuild {
+  id        String       @id @default(cuid())
+  configId  String
+  config    MachineConfig @relation(fields: [configId], references: [id])
+  serial    String       @unique // например PRESS-M-001
+  status    BuildStatus  @default(PLANNED)
+  notes     String?
+  testedAt  DateTime?
+  createdAt DateTime     @default(now())
+}
+
+// ---------- Люди ----------
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  PRINTER
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  role      UserRole   @default(PRINTER)
+  stageLogs StageLog[]
+  createdAt DateTime   @default(now())
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  company   String?
+  phone     String?
+  email     String?
+  notes     String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+// ---------- Каталог изделий ----------
+
+enum ProductKind {
+  TEE
+  TEE_OVERSIZE
+  HOODIE
+  SWEATSHIRT
+  LONGSLEEVE
+  TOTE
+  NOTEBOOK
+  THERMOS
+  BACKPACK
+  OTHER
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  kind          ProductKind
+  name          String
+  fabricGsm     Int?        // плотность ткани
+  colorsJson    String      // доступные цвета ткани: [{name, hex}]
+  printZonesJson String     // зоны печати: [{id, name, maxWmm, maxHmm}]
+  blankCostKzt  Int         // закупочная цена заготовки
+  priceKzt      Int         // цена клиенту без печати
+  active        Boolean     @default(true)
+  items         OrderItem[]
+}
+
+// ---------- Заказы и производственный поток ----------
+
+enum OrderStatus {
+  NEW          // новый заказ
+  PREPRESS     // векторизация, цветоделение, согласование макета
+  SCREENS      // изготовление печатных форм: натяжка, эмульсия, засветка
+  SETUP        // установка рам, приводка, пробный оттиск
+  PRINTING     // печать тиража
+  DRYING_QC    // сушка, контроль качества
+  SHIPPED      // отгружено
+  CANCELLED
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  number      String      @unique   // SP-2026-0001
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  status      OrderStatus @default(NEW)
+  dueDate     DateTime?
+  totalKzt    Int         @default(0)
+  prepaidKzt  Int         @default(0)
+  notes       String?
+  items       OrderItem[]
+  artworks    Artwork[]
+  jobTicket   JobTicket?
+  stageLogs   StageLog[]
+  movements   InventoryMovement[]
+  screens     Screen[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  size        String   // S, M, L, XL или «универсальный»
+  fabricColor String   // имя цвета из Product.colorsJson
+  printZone   String   // id зоны из Product.printZonesJson
+  qty         Int
+  unitPriceKzt Int
+  suppliedByCustomer Boolean @default(false) // давальческие заготовки
+}
+
+// Макет: загруженный растр, его векторная версия и цветоделение
+model Artwork {
+  id            String       @id @default(cuid())
+  orderId       String
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  name          String
+  originalUrl   String       // загруженный PNG/JPG/SVG
+  vectorSvgUrl  String?      // результат трассировки
+  widthMm       Float?
+  heightMm      Float?
+  colorCount    Int          @default(1)
+  needsUnderbase Boolean     @default(false) // белая подложка для тёмной ткани
+  separations   Separation[]
+  createdAt     DateTime     @default(now())
+}
+
+// Один цветовой канал макета = одна печатная форма
+model Separation {
+  id          String   @id @default(cuid())
+  artworkId   String
+  artwork     Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  index       Int      // порядок наложения: 0 — подложка/первый цвет
+  name        String   // «Синий», «Подложка белая»
+  hex         String
+  pantone     String?
+  coverageMm2 Float?   // площадь заливки для нормы краски
+  minDetailMm Float?   // минимальная деталь → выбор сетки
+  meshCount   Int?     // нитей/см: 43–55 подложка, 77–120 детали
+  filmUrl     String?  // фотоформа с приводными крестами
+  screen      Screen?
+}
+
+// ---------- Печатные формы и рамы ----------
+
+enum FrameStatus {
+  EMPTY      // рама без сетки
+  MESHED     // сетка натянута
+  COATED     // эмульсия нанесена и высушена
+  EXPOSED    // засвечена и проявлена, готова к печати
+  IN_USE
+  RECLAIM    // на смывку
+  DAMAGED
+}
+
+model Frame {
+  id          String      @id @default(cuid())
+  code        String      @unique // F-4050-01
+  widthMm     Int
+  heightMm    Int
+  material    String      // алюминий / дерево
+  meshCount   Int?
+  tensionNcm  Float?      // натяжение, Н/см
+  status      FrameStatus @default(EMPTY)
+  notes       String?
+  screens     Screen[]
+  updatedAt   DateTime    @updatedAt
+}
+
+model Screen {
+  id            String     @id @default(cuid())
+  frameId       String
+  frame         Frame      @relation(fields: [frameId], references: [id])
+  separationId  String     @unique
+  separation    Separation @relation(fields: [separationId], references: [id])
+  orderId       String
+  order         Order      @relation(fields: [orderId], references: [id])
+  emulsion      String?
+  exposureSec   Int?
+  exposedAt     DateTime?
+  reclaimedAt   DateTime?
+}
+
+// Технологическая карта для печатника
+model JobTicket {
+  id               String   @id @default(cuid())
+  orderId          String   @unique
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inksJson         String   // [{separationIndex, inkType, pantone, mixRecipe, grams}]
+  colorOrderJson   String   // порядок наложения с флеш-сушкой между слоями
+  meshPlanJson     String   // [{separationIndex, meshCount, frameCode}]
+  offContactMm     Float    @default(2)
+  squeegeeDurometer Int     @default(70)
+  squeegeeAngleDeg Int      @default(75)
+  flashSec         Int?     // промежуточная сушка
+  cureTempC        Int?     // 160 для пластизоля
+  cureSec          Int?
+  exposureSec      Int?
+  estimatedMinutes Int?
+  pdfUrl           String?
+  generatedAt      DateTime @default(now())
+}
+
+model StageLog {
+  id         String      @id @default(cuid())
+  orderId    String
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  note       String?
+  at         DateTime    @default(now())
+}
+
+// ---------- Склад ----------
+
+enum InventoryCategory {
+  INK        // краски: пластизоль, водные, вытравные
+  EMULSION
+  MESH       // сетка рулонная
+  FRAME      // рамы (учёт как расходник; физические рамы — Frame)
+  BLANK      // заготовки одежды
+  CHEMISTRY  // обезжириватель, смывка, растворитель
+  FILM       // плёнка для фотоформ
+  HARDWARE   // комплектующие станков
+}
+
+model InventoryItem {
+  id         String            @id @default(cuid())
+  category   InventoryCategory
+  name       String
+  sku        String?
+  unit       String            // кг, л, м, шт
+  qty        Float             @default(0)
+  minQty     Float             @default(0)
+  costKzt    Int?              // за единицу
+  supplier   String?
+  searchString String?         // поисковая строка для маркетплейса
+  movements  InventoryMovement[]
+  updatedAt  DateTime          @updatedAt
+}
+
+model InventoryMovement {
+  id       String        @id @default(cuid())
+  itemId   String
+  item     InventoryItem @relation(fields: [itemId], references: [id])
+  orderId  String?
+  order    Order?        @relation(fields: [orderId], references: [id])
+  delta    Float         // плюс приход, минус списание
+  reason   String        // «списание по техкарте», «приход от поставщика», «инвентаризация»
+  at       DateTime      @default(now())
+}

@@ -89,6 +89,25 @@ jobs:
           mkdir -p out/lstk-configurator
           cp -r lstk-configurator/out/. out/lstk-configurator/
 
+      # ScreenPrint FabLab — Next.js static export (own package.json); GITHUB_ACTIONS
+      # makes next.config.ts set basePath /RNM26/screenprint.
+      - name: Install ScreenPrint dependencies
+        working-directory: screenprint
+        run: npm ci
+
+      - name: Test ScreenPrint domain model
+        working-directory: screenprint
+        run: npm test
+
+      - name: Build ScreenPrint
+        working-directory: screenprint
+        run: npm run build
+
+      - name: Merge ScreenPrint build into Pages output
+        run: |
+          mkdir -p out/screenprint
+          cp -r screenprint/out/. out/screenprint/
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true

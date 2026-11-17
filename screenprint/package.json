@@ -1,0 +1,41 @@
+{
+  "name": "screenprint",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ScreenPrint FabLab & MES/CRM: параметрические станки для шелкографии, 3D-конфигуратор, сайт, CRM",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3200",
+    "build": "next build",
+    "start": "next start --port 3200",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "export": "tsx scripts/export.ts",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.0",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.1",
+    "gsap": "^3.13.0",
+    "next": "^16.3.8",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "^0.186.1",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "prisma": "^6.16.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
