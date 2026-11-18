@@ -233,6 +233,17 @@
   // who lives where: only unambiguous pairs; distractors per place are surely wrong (no «squirrel in the mountains»)
   var HOMES = [{ kk: 'балық', e: '🐟', home: G.caseForm('су', 'zhatys') }, { kk: 'барыс', e: '🐆', home: G.caseForm('тау', 'zhatys') },
     { kk: 'түйе', e: '🐫', home: G.caseForm('шөл', 'zhatys') }, { kk: 'тиін', e: '🐿️', home: G.caseForm('орман', 'zhatys') }];
+  // 3D «Табиғат зертханасы» (suite/src/lib/labLogic.ts checks against these): two clear animals per habitat, and
+  // three well-known food chains (plant → plant-eater → predator); facts for the teacher in plan-10-days.md
+  var LAB_HOMES = [
+    { kk: 'балық', e: '🐟', home: 'су' }, { kk: 'шаян', e: '🦞', home: 'су' },
+    { kk: 'барыс', e: '🐆', home: 'тау' }, { kk: 'арқар', e: '🐏', home: 'тау' },
+    { kk: 'түйе', e: '🐫', home: 'шөл' }, { kk: 'кесіртке', e: '🦎', home: 'шөл' },
+    { kk: 'тиін', e: '🐿️', home: 'орман' }, { kk: 'тоқылдақ', e: '🐦', home: 'орман' }
+  ].map(function (x) { return { kk: x.kk, e: x.e, home: x.home, at: G.caseForm(x.home, 'zhatys') }; });
+  var CHAINS = [[{ kk: 'шөп', e: '🌿' }, { kk: 'қоян', e: '🐇' }, { kk: 'түлкі', e: '🦊' }],
+    [{ kk: 'дән', e: '🌾' }, { kk: 'тышқан', e: '🐭' }, { kk: 'бүркіт', e: '🦅' }],
+    [{ kk: 'шөп', e: '🌱' }, { kk: 'қой', e: '🐑' }, { kk: 'қасқыр', e: '🐺' }]];
   var HOME_NOT = { 'суда': ['барыс', 'түйе', 'тиін'], 'тауда': ['балық', 'түйе'], 'шөлде': ['балық', 'тиін'], 'орманда': ['балық', 'түйе'] };
   var SENSES = [
     { q: 'Біз немен көреміз?', organ: G.caseForm('көз', 'komektes'), ru: 'Чем мы видим?', en: 'What do we see with?' },
@@ -621,6 +632,9 @@
     ['мақал-мәтел', 'жұмбақ', 'ертегі', 'Бұл қай жанр?'].forEach(function (x) { out.push(x); }); GENRES.forEach(function (g) { out.push(g.text); });
     HISTORY_KZ.concat(HISTORY_WORLD).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
     EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
+    LAB_HOMES.forEach(function (x) { out.push(x.kk); out.push(x.at); out.push(cap(x.kk) + ' ' + x.at + ' тұрады.'); });
+    CHAINS.forEach(function (c) { c.forEach(function (x) { out.push(x.kk); }); out.push(c.map(function (x) { return x.kk; }).join(' — ')); });
+    ['Бұл жануар қайда тұрады?', 'Тізбекте не жетіспейді?'].forEach(function (x) { out.push(x); });
     YURT.forEach(function (y) { out.push(y.kk); out.push(y.done); }); out.push('Енді не керек?'); out.push('Бұл не?'); out.push('Киіз үй дайын!');
     REGIONS.forEach(function (g) { out.push(centerQuestion(g)); out.push(REGION_CENTER[g]); out.push(g); });
     DIRS.forEach(function (d) { out.push(d.kk); out.push(cap(G.caseForm(d.kk, 'ilik')) + ' қарама-қарсы жағы қай жақ?'); }); Object.keys(FEATURE).concat(NEIGHBORS, FAR, REP_CITIES, OTHER_CITIES).forEach(function (x) { out.push(x); });
@@ -629,5 +643,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

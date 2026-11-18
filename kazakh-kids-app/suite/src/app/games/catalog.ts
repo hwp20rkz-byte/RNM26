@@ -33,5 +33,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Прочитай башни из десятков и единиц; при сложении десять кубиков складываются в новый десяток', en: 'Read towers of tens and ones; when adding, ten cubes stack into a new ten' } },
   { id: 'kiiz', kk: 'Киіз үй', ru: 'Собери юрту', en: 'Build a Yurt', icon: '🛖', ready: true,
     pillar: { ru: 'Мектеп · логика 2: порядок сборки, названия частей', en: 'School · logic 2: build order, names of the parts' },
-    mechanic: { ru: 'Выбери следующую часть — кереге, есік, шаңырақ, уық, киіз — и она встанет на место; потом назови светящуюся часть', en: 'Pick the next part and it drops into place; then name the part that glows' } }
+    mechanic: { ru: 'Выбери следующую часть — кереге, есік, шаңырақ, уық, киіз — и она встанет на место; потом назови светящуюся часть', en: 'Pick the next part and it drops into place; then name the part that glows' } },
+  { id: 'lab', kk: 'Табиғат зертханасы', ru: 'Лаборатория природы', en: 'Nature Lab', icon: '🔬', ready: true,
+    pillar: { ru: 'Мектеп · жаратылыстану 1–2: кто где живёт (суда, тауда, шөлде, орманда), пищевые цепочки', en: 'School · science 1–2: who lives where, food chains' },
+    mechanic: { ru: 'Отправь зверя в его дом на диораме; заполни пропуск в цепочке «растение → травоядное → хищник»', en: 'Send each animal to its habitat on the diorama; fill the gap in a food chain' } }
 ];
