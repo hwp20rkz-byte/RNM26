@@ -49,6 +49,11 @@
   --warning: hsl(38 85% 45%);
   --error: hsl(4 65% 48%);
 
+  /* графики: прибыль / убыток (пара проверена валидатором палитры, обе темы) */
+  --chart-pos: hsl(213 67% 50%);
+  --chart-neg: hsl(0 73% 59%);
+  --chart-grid: var(--neutral-300);
+
   --bg: var(--neutral-50);
   --bg-elevated: #fff;
   --fg: var(--neutral-900);
@@ -65,5 +70,8 @@
     --border: hsl(211 20% 26%);
     --primary-100: hsl(211 30% 18%);
     --accent-100: hsl(32 30% 18%);
+    --chart-pos: hsl(213 76% 56%);
+    --chart-neg: hsl(0 72% 65%);
+    --chart-grid: hsl(211 20% 26%);
   }
 }

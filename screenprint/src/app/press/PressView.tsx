@@ -36,7 +36,8 @@ export function PressView({ size }: { size: PressSizeId }) {
       <section className="grid gap-8 md:grid-cols-2">
         <div className="flex flex-col gap-3">
           <h2>Компоновка</h2>
-          <table className="data">
+          <div className="overflow-x-auto">
+        <table className="data">
             <tbody>
               <tr>
                 <th>Плита основания</th>
@@ -73,9 +74,11 @@ export function PressView({ size }: { size: PressSizeId }) {
             </tbody>
           </table>
         </div>
+        </div>
         <div className="flex flex-col gap-3">
           <h2>Уравновешивание рамы {cfg.frameMassKg} кг</h2>
-          <table className="data">
+          <div className="overflow-x-auto">
+        <table className="data">
             <tbody>
               <tr>
                 <th>Пружина</th>
@@ -104,12 +107,14 @@ export function PressView({ size }: { size: PressSizeId }) {
             </tbody>
           </table>
         </div>
+        </div>
       </section>
 
       <section className="flex flex-col gap-3">
         <h2>
           Спецификация: {totals.low.toLocaleString("ru-RU")}–{totals.high.toLocaleString("ru-RU")} ₸ [Предположение]
         </h2>
+        <div className="overflow-x-auto">
         <table className="data">
           <thead>
             <tr>
@@ -140,6 +145,7 @@ export function PressView({ size }: { size: PressSizeId }) {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );

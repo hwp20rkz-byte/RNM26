@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/", label: "Обзор" },
   { href: "/press/", label: "Печатный станок" },
+  { href: "/plan/", label: "Бизнес-план" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,11 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ru">
       <body className="min-h-screen">
         <header className="border-b border-border bg-bg-elevated">
-          <div className="container flex min-h-16 items-center justify-between gap-4">
+          <div className="container flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
             <Link href="/" className="font-display text-lg font-bold text-primary-700">
               ScreenPrint FabLab
             </Link>
-            <nav className="flex gap-6 text-sm">
+            <nav className="flex flex-wrap gap-x-5 text-sm">
               {NAV.map((n) => (
                 <Link key={n.href} href={n.href} className="min-h-11 inline-flex items-center text-fg-muted hover:text-fg">
                   {n.label}

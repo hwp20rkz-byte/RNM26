@@ -24,6 +24,8 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
+  --color-chart-pos: var(--chart-pos);
+  --color-chart-neg: var(--chart-neg);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
   --font-mono: var(--font-mono);
