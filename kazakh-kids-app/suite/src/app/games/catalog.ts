@@ -36,5 +36,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Выбери следующую часть — кереге, есік, шаңырақ, уық, киіз — и она встанет на место; потом назови светящуюся часть', en: 'Pick the next part and it drops into place; then name the part that glows' } },
   { id: 'lab', kk: 'Табиғат зертханасы', ru: 'Лаборатория природы', en: 'Nature Lab', icon: '🔬', ready: true,
     pillar: { ru: 'Мектеп · жаратылыстану 1–2: кто где живёт (суда, тауда, шөлде, орманда), пищевые цепочки', en: 'School · science 1–2: who lives where, food chains' },
-    mechanic: { ru: 'Отправь зверя в его дом на диораме; заполни пропуск в цепочке «растение → травоядное → хищник»', en: 'Send each animal to its habitat on the diorama; fill the gap in a food chain' } }
+    mechanic: { ru: 'Отправь зверя в его дом на диораме; заполни пропуск в цепочке «растение → травоядное → хищник»', en: 'Send each animal to its habitat on the diorama; fill the gap in a food chain' } },
+  { id: 'river', kk: 'Уақыт өзені', ru: 'Река времени', en: 'River of Time', icon: '⏳', ready: true,
+    pillar: { ru: 'Мектеп · тарих 5: что было раньше — от пирамид до Тәуелсіздік', en: 'School · history 5: what came first — from the pyramids to independence' },
+    mechanic: { ru: 'Расставь четыре события на камнях реки от «Ерте» к «Бүгін»', en: 'Put four events on the river stones from long ago to today' } }
 ];
