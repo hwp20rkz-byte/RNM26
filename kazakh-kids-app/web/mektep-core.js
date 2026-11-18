@@ -3,9 +3,9 @@
  * Математика: ответы вычисляются, числа называет движок QDATA.numToKk, падежи — grammar-core. Факты не нужны —
  * ошибиться в ответе нельзя; а темы и классы надо сверить с типовой программой (методичка, «на проверку»). */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) { require('./data.js'); module.exports = factory((global.window || global).QDATA, require('./grammar-core.js')); }
-  else root.QMEKTEP = factory(root.QDATA, root.QGRAM);
-})(typeof self !== 'undefined' ? self : this, function (D, G) {
+  if (typeof module === 'object' && module.exports) { require('./data.js'); module.exports = factory((global.window || global).QDATA, require('./grammar-core.js'), require('./kz-map.js')); }
+  else root.QMEKTEP = factory(root.QDATA, root.QGRAM, root.QKZMAP);
+})(typeof self !== 'undefined' ? self : this, function (D, G, MAP) {
   'use strict';
   var N = D.numToKk, ROUND = 10;
   var cap = function (s) { return s.charAt(0).toUpperCase() + s.slice(1); };
@@ -364,6 +364,31 @@
       answer: x.a, options: x.opts, say: x.a, full: 'Қазақстанның көршілері: ' + NEIGHBORS.join(', ') + '.' };
   };
 
+  /* ---------- day 6 debt: «Қазақстан картасы» — where is the city? (outline: web/kz-map.js, Natural Earth) ---------- */
+  // approximate coordinates (lon, lat) of the regional centres and the cities of national significance; Қонаев is left
+  // out of the map game: 30 km from Алматы, the two dots would sit on top of each other
+  var CITY_LL = { 'Астана': [71.45, 51.17], 'Алматы': [76.95, 43.24], 'Шымкент': [69.6, 42.32], 'Семей': [80.23, 50.41], 'Көкшетау': [69.4, 53.28],
+    'Ақтөбе': [57.21, 50.28], 'Атырау': [51.92, 47.1], 'Орал': [51.37, 51.23], 'Тараз': [71.37, 42.9], 'Талдықорған': [78.37, 45.02], 'Қарағанды': [73.1, 49.8],
+    'Қостанай': [63.62, 53.21], 'Қызылорда': [65.51, 44.85], 'Ақтау': [51.2, 43.65], 'Павлодар': [76.95, 52.29], 'Петропавл': [69.15, 54.87],
+    'Түркістан': [68.25, 43.3], 'Жезқазған': [67.71, 47.78], 'Өскемен': [82.61, 49.95] };
+  var MAP_GAP = 90;   // candidate dots at least this far apart on the 600 × 340 map
+  function cityXY(c) { var ll = CITY_LL[c]; return MAP ? MAP.project(ll[0], ll[1]) : [0, 0]; }
+  /** Where the city is: «Қазақстанның оңтүстік-шығысында» (possessive + case from the engine). Thresholds on the map
+   *  follow the usual regions (Батыс, Солтүстік, Орталық, Шығыс, Оңтүстік Қазақстан); Астана is named the capital instead. */
+  function cityWhere(c) {
+    if (c === 'Астана') return 'Астана — Қазақстанның елордасы.';
+    var p = cityXY(c), ns = p[1] < 85 ? 'солтүстік' : p[1] > 225 ? 'оңтүстік' : '', ew = p[0] < 180 ? 'батыс' : p[0] > 420 ? 'шығыс' : '';
+    return c + ' — Қазақстанның ' + G.possessiveCase(ns && ew ? ns + '-' + ew : ns || ew || 'орталық', 'ol', 'zhatys') + '.';
+  }
+  GEN.map = function (r) {
+    var names = Object.keys(CITY_LL), a = names[rint(r, 0, names.length - 1)], pick = [a];
+    var far = function (c) { return pick.every(function (p) { var A = cityXY(c), B = cityXY(p); return Math.hypot(A[0] - B[0], A[1] - B[1]) >= MAP_GAP; }); };
+    shuffle(names.slice(), r).forEach(function (c) { if (pick.length < 3 && pick.indexOf(c) < 0 && far(c)) pick.push(c); });
+    return { kk: a + ' қай жерде?', ru: 'Где этот город на карте?', en: 'Where is this city on the map?',
+      visual: { type: 'map', dots: shuffle(pick.slice(), r).map(function (c) { var p = cityXY(c); return { id: c, x: +p[0].toFixed(1), y: +p[1].toFixed(1) }; }) },
+      answer: a, options: pick.slice().sort(), optType: 'map', say: a, full: cityWhere(a) };
+  };
+
   /* ---------- day 7: cities and landmarks (reference tables by hand; sources in methodology/plan-10-days.md) ---------- */
   var LANDMARK = { 'Бәйтерек': 'Астана', 'Хан Шатыр': 'Астана', 'Ақорда': 'Астана', 'Медеу': 'Алматы', 'Көктөбе': 'Алматы', 'Шымбұлақ': 'Алматы',
     'Қожа Ахмет Ясауи кесенесі': 'Түркістан', 'Абай мұражайы': 'Семей' };
@@ -552,6 +577,7 @@
       { id: 'g3feature', grade: 3, gen: 'feature', kk: 'Өзен, көл, тау', ru: 'Реки, озёра, горы', en: 'Rivers, lakes, mountains' },
       { id: 'g3repcity', grade: 3, gen: 'repcity', kk: 'Республикалық қалалар', ru: 'Города республиканского значения', en: 'Cities of national significance' },
       { id: 'g4center', grade: 4, gen: 'center', kk: 'Облыс орталықтары', ru: 'Центры областей', en: 'Regional centres' },
+      { id: 'g4map', grade: 4, gen: 'map', kk: 'Қазақстан картасы', ru: 'Карта Казахстана', en: 'Map of Kazakhstan' },
       { id: 'g4neighbor', grade: 4, gen: 'neighbor', kk: 'Көрші елдер', ru: 'Соседние страны', en: 'Neighbouring countries' }
     ] },
     { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', topics: [
@@ -632,6 +658,7 @@
     ['мақал-мәтел', 'жұмбақ', 'ертегі', 'Бұл қай жанр?'].forEach(function (x) { out.push(x); }); GENRES.forEach(function (g) { out.push(g.text); });
     HISTORY_KZ.concat(HISTORY_WORLD).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
     EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
+    Object.keys(CITY_LL).forEach(function (c) { out.push(c + ' қай жерде?'); out.push(c); });
     LAB_HOMES.forEach(function (x) { out.push(x.kk); out.push(x.at); out.push(cap(x.kk) + ' ' + x.at + ' тұрады.'); });
     CHAINS.forEach(function (c) { c.forEach(function (x) { out.push(x.kk); }); out.push(c.map(function (x) { return x.kk; }).join(' — ')); });
     ['Бұл жануар қайда тұрады?', 'Тізбекте не жетіспейді?'].forEach(function (x) { out.push(x); });
@@ -643,5 +670,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

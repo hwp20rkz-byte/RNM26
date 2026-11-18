@@ -100,6 +100,18 @@
     return stem + { men: y + 'м', sen: y + 'ң', siz: y + 'ң' + y + 'з', ol: y, biz: y + 'м' + y + 'з' }[p];
   }
 
+  /** A case after a possessive. After the 3rd person (-ы/-і/-сы/-сі) the pronominal «н» comes in: солтүстігінде, қаласына,
+   *  кітабын; after менің / сенің the dative is plain -а/-е: кітабыма, кітабыңа. Other forms take the ordinary endings. */
+  function possessiveCase(w, p, c) {
+    var base = possessive(w, p), b = harmony(base) === 'back';
+    if (p === 'ol') {
+      var n = { barys: b ? 'на' : 'не', tabys: 'н', zhatys: b ? 'нда' : 'нде', shygys: b ? 'нан' : 'нен' }[c];
+      if (n) return base + n;
+    }
+    if ((p === 'men' || p === 'sen') && c === 'barys') return base + (b ? 'а' : 'е');
+    return caseForm(base, c);
+  }
+
   /* ---------------- personal endings after nouns (жіктік жалғау): Мен оқушымын ---------------- */
   var PERSONS = ['men', 'sen', 'siz', 'ol', 'biz', 'sender', 'sizder', 'olar'];
   var PERSON_KK = { men: 'Мен', sen: 'Сен', siz: 'Сіз', ol: 'Ол', biz: 'Біз', sender: 'Сендер', sizder: 'Сіздер', olar: 'Олар' };
@@ -236,7 +248,7 @@
 
   var G = {
     harmony: harmony, lastVowel: lastVowel, finalClass: finalClass, last: last,
-    CASES: CASES, CASE_INFO: CASE_INFO, CASE_TABLE: CASE_TABLE, caseSuffix: caseSuffix, caseForm: caseForm,
+    CASES: CASES, CASE_INFO: CASE_INFO, CASE_TABLE: CASE_TABLE, caseSuffix: caseSuffix, caseForm: caseForm, possessiveCase: possessiveCase,
     pluralSuffix: pluralSuffix, plural: plural, POSS_PERSONS: POSS_PERSONS, POSS_LABEL: POSS_LABEL, possessive: possessive,
     PERSONS: PERSONS, PERSON_KK: PERSON_KK, personSuffix: personSuffix, question: question,
     presentBase: presentBase, present: present, presentNeg: presentNeg, past: past, pastNeg: pastNeg, continuous: continuous, wish: wish,

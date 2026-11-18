@@ -54,6 +54,13 @@
         [0, 90, 180, 270].map(function (d) { return '<line class="tk" y1="-46" y2="-38" transform="rotate(' + d + ')"/>'; }).join('') +
         '<g transform="rotate(' + v.deg + ')"><path class="ar" d="M0 -34 L9 2 L0 -4 L-9 2 Z"/><path class="tl" d="M0 -4 L9 2 L0 30 L-9 2 Z"/></g><circle class="hub" r="4"/></svg>';
     }
+    if (v.type === 'map') {   // the outline (Natural Earth) with three tappable dots; the names show after the answer
+      var K = window.QKZMAP;
+      return '<svg class="mk-map" viewBox="0 0 ' + K.W + ' ' + K.H + '" role="group"><path class="land" d="' + K.path + '"/>' + v.dots.map(function (d) {
+        return '<g class="mk-o mk-dot" data-o="' + A.esc(d.id) + '" transform="translate(' + d.x + ' ' + d.y + ')" role="button" aria-label="' + A.esc(d.id) + '">' +
+          '<circle class="hit" r="44"/><circle class="dot" r="15"/><text class="lbl" y="-24" text-anchor="middle">' + A.esc(d.id) + '</text></g>';
+      }).join('') + '</svg>';
+    }
     if (v.type === 'sym') return ornament(v.left, null);
     if (v.type === 'coins') return '<div class="mk-coins">' + v.list.map(function (c) { return '<span class="c' + (c >= 100 ? ' big' : '') + '">' + c + '<small>₸</small></span>'; }).join('') + '</div>';
     return '';
@@ -115,16 +122,17 @@
       api.stat((i + 1) + ' / ' + qs.length + ' · ✅ ' + right);
       api.qs('#mk').innerHTML = '<div class="mk-q"><small>' + A.esc(topic.kk) + '</small><div class="mk-vis">' + visual(q.visual) + '</div>' +
         '<p class="mk-ask' + (q.kk.length > 40 ? ' long' : '') + '"><b>' + A.esc(q.kk) + '</b> ' + (A.TTS.file(q.kk) ? '<button class="mk-say" data-s="' + A.esc(q.kk) + '" aria-label="🔊">🔊</button>' : '') + '<span class="muted">' + A.esc(T(q)) + '</span></p>' +
-        '<div class="mk-opts' + (q.options.length > 3 ? ' four' : '') + (q.options.some(function (o) { return typeof o === 'string' && o.length > 9; }) ? ' long' : '') + '">' + q.options.map(function (o) {
+        (q.optType === 'map' ? '' : '<div class="mk-opts' + (q.options.length > 3 ? ' four' : '') + (q.options.some(function (o) { return typeof o === 'string' && o.length > 9; }) ? ' long' : '') + '">' + q.options.map(function (o) {
           var face = q.optType === 'sym' ? ornament(q.visual.left, o.split('|')) : A.esc(o);   // symmetry: the whole ornament per option
           return '<button class="mk-o' + (q.optType ? ' pic' : '') + '" data-o="' + A.esc(o) + '">' + face + (q.labels ? '<small>' + A.esc(q.labels[o]) + '</small>' : '') + '</button>';
-        }).join('') + '</div><div class="mk-fb" id="mkfb"></div></div>';
+        }).join('') + '</div>') + '<div class="mk-fb" id="mkfb"></div></div>';
       var sb = api.qs('.mk-say'); if (sb) sb.onclick = function () { api.TTS.speak(q.kk, true); };
       api.qsa('.mk-o').forEach(function (b) { b.onclick = function () { answer(b.getAttribute('data-o'), b); }; });
     }
     function answer(o, btn) {
       if (busy || over) return; busy = true;
       var q = qs[i], ok = o === q.answer;
+      var qb = api.qs('.mk-q'); if (qb) qb.classList.add('done');   // the map shows the city names after an answer
       if (ok) { right++; api.sfx.ok(); btn.classList.add('right'); } else { api.sfx.bad(); api.vibrate(40); btn.classList.add('wrong'); api.qsa('.mk-o').forEach(function (b) { if (b.getAttribute('data-o') === q.answer) b.classList.add('right'); }); }
       api.qs('#mkfb').innerHTML = '<div class="ph-fb ' + (ok ? 'ok' : 'bad') + '"><b>' + (ok ? 'Дұрыс!' : (en() ? 'Answer: ' : 'Ответ: ') + A.esc(q.answer)) + '</b> ' + A.esc(q.full) + '</div>';
       if (A.TTS.file(q.say)) api.TTS.speak(q.say, true);   // only recorded answers (three-digit numbers are shown, not spoken)

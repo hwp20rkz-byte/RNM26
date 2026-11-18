@@ -210,4 +210,18 @@ for (const [v, w] of Object.entries(COND)) { ['men', 'sen', 'siz', 'ol', 'biz'].
 const COLL = { 'екі': 'екеу', 'үш': 'үшеу', 'төрт': 'төртеу', 'бес': 'бесеу', 'алты': 'алтау', 'жеті': 'жетеу' };
 for (const [n0, w] of Object.entries(COLL)) eq(G.collective(n0), w, 'collective ' + n0);
 eq(G.collective('екі', 'biz'), 'екеуміз', 'екеуміз'); eq(G.collective('үш', 'biz'), 'үшеуміз', 'үшеуміз'); eq(G.collective('екі', 'ol'), 'екеуі', 'екеуі'); eq(G.collective('бес', 'ol'), 'бесеуі', 'бесеуі');
+// case after a 3rd-person possessive: the pronominal «н» — солтүстігінде, қаласына, кітабын (not *солтүстігіде)
+// reference forms written by hand: [atau, ilik, barys, tabys, zhatys, shygys, komektes]
+const POSS3 = {
+  'солтүстік': 'солтүстігі солтүстігінің солтүстігіне солтүстігін солтүстігінде солтүстігінен солтүстігімен',
+  'шығыс': 'шығысы шығысының шығысына шығысын шығысында шығысынан шығысымен',
+  'орталық': 'орталығы орталығының орталығына орталығын орталығында орталығынан орталығымен',
+  'қала': 'қаласы қаласының қаласына қаласын қаласында қаласынан қаласымен',
+  'кітап': 'кітабы кітабының кітабына кітабын кітабында кітабынан кітабымен',
+  'мектеп': 'мектебі мектебінің мектебіне мектебін мектебінде мектебінен мектебімен',
+  'ауыз': 'аузы аузының аузына аузын аузында аузынан аузымен'
+};
+for (const [w, row] of Object.entries(POSS3)) row.split(' ').forEach((f, i) => eq(G.possessiveCase(w, 'ol', G.CASES[i]), f, 'possessive 3 + case ' + w + ' ' + G.CASES[i]));
+// the other persons take the ordinary endings: кітабымда, кітабыңа, кітабымызды
+eq(G.possessiveCase('кітап', 'men', 'zhatys'), 'кітабымда', 'кітабымда'); eq(G.possessiveCase('кітап', 'sen', 'barys'), 'кітабыңа', 'кітабыңа'); eq(G.possessiveCase('кітап', 'biz', 'tabys'), 'кітабымызды', 'кітабымызды');
 console.log('grammar + phrasebook: ' + n + ' checks passed');

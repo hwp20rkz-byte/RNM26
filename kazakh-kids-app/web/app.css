@@ -1126,3 +1126,13 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .mk-redo { min-height: 44px; padding: 0 var(--s-2); border: 2px dashed var(--bad); border-radius: var(--r-2); background: var(--bad-bg); color: var(--ink-800); font: inherit; font-weight: 800; cursor: pointer; }
 .mk-report { margin: 0; padding: var(--s-3); border-radius: var(--r-2); background: var(--sky-50); border: 2px solid var(--sky-100); white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: var(--fs-1); line-height: 1.5; color: var(--ink-800); }
 .mk-acts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+
+/* 18.11: «Қазақстан картасы» */
+.mk-map { width: 100%; max-width: 380px; height: auto; display: block; margin: 0 auto; }
+.mk-map .land { fill: var(--ok-bg); stroke: var(--ink-800); stroke-width: 2; stroke-linejoin: round; }
+.mk-dot { cursor: pointer; }
+.mk-dot .hit { fill: transparent; }
+.mk-dot .dot { fill: var(--u-blue, var(--sky-300)); stroke: var(--ink-800); stroke-width: 3; }
+.mk-dot .lbl { display: none; font-weight: 900; font-size: 22px; fill: var(--ink-800); paint-order: stroke; stroke: var(--ink-0); stroke-width: 5px; }
+.mk-q.done .mk-dot .lbl { display: block; }
+.mk-dot.right .dot { fill: var(--ok); } .mk-dot.wrong .dot { fill: var(--bad); }
