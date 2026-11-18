@@ -7,6 +7,8 @@ import { mouth } from './anim';
 import { SCENES } from './Scenes';
 import { Background, Header, SceneCard, Subtitles } from './components/UI';
 import { pop } from './anim';
+import { LookContext, type Look } from './look';
+import { StoryDefs, StoryOverlay } from './components/Story';
 
 export type Mode = 'bilingual' | 'kz' | 'pl';
 type Line = { lang: string; file: string; at: number; dur: number; text: string; speaker: string };
@@ -22,7 +24,7 @@ const SFX: Record<string, { file: string; at: number; vol: number; dur?: number 
 const NAMES: Record<string, Record<string, string>> = { kz: { aisha: 'Айша', arman: 'Арман' }, pl: { aisha: 'Ajsza', arman: 'Arman' } };
 
 /** The picture of one frame: a pure function of (mode, frame), so scripts/export-32k.mjs can render it to a .svg file. */
-export function FrameSVG({ mode, frame, fps }: { mode: Mode; frame: number; fps: number }) {
+export function FrameSVG({ mode, frame, fps, look = 'flat', kzOnly = false }: { mode: Mode; frame: number; fps: number; look?: Look; kzOnly?: boolean }) {
   const tl = (timing as unknown as Record<Mode, { total: number; scenes: Sc[] }>)[mode];
   const t = frame / fps, i = Math.max(0, tl.scenes.findIndex((s) => t >= s.from && t < s.from + s.dur));
   const sc = tl.scenes[i] ?? tl.scenes[tl.scenes.length - 1], meta = sb.scenes[i], Scene = SCENES[i];
@@ -34,32 +36,36 @@ export function FrameSVG({ mode, frame, fps }: { mode: Mode; frame: number; fps:
   // scene transitions: a quick dip-to-white with a small scale settle
   const fadeIn = interpolate(local, [0, 0.28 * fps], [0, 1], { extrapolateRight: 'clamp' }), fadeOut = interpolate(local, [sc.dur * fps - 0.22 * fps, sc.dur * fps], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const last = i === tl.scenes.length - 1, vis = Math.min(fadeIn, last ? 1 : fadeOut);
-  const pick = (o: { kz: string; pl: string }) => (mode === 'pl' ? { kz: o.pl, pl: o.kz } : o);   // the version's language goes first
+  const pick = (o: { kz: string; pl: string }) => (kzOnly ? { kz: o.kz, pl: '' } : mode === 'pl' ? { kz: o.pl, pl: o.kz } : o);   // the version's language goes first
   const ui = meta.ui as { type: string; text?: { kz: string; pl: string } }[];
   const titleUI = ui.find((u) => u.type === 'title')?.text, ctaUI = ui.find((u) => u.type === 'cta')?.text, plateUI = ui.find((u) => u.type === 'plate')?.text;
   const head = pick(sb.title);
   return (
-      <svg viewBox="0 0 1080 1920" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision" textRendering="geometricPrecision">
+    <LookContext.Provider value={look}>
+      <svg viewBox="0 0 1080 1920" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision" textRendering="geometricPrecision" className={look === 'story' ? 'story' : undefined}>
         <Background />
+        {look === 'story' && <StoryDefs t={frame / fps} />}
         <SceneCard>
-          <g opacity={vis} transform={`translate(500 643) scale(${0.985 + 0.015 * fadeIn}) translate(-500 -643)`}>
-            <Scene f={local} fps={fps} dur={sc.dur} mouth={m} title={titleUI && pick(titleUI)} cta={ctaUI && pick(ctaUI)} plate={plateUI && pick(plateUI)} />
+          <g opacity={vis} transform={`translate(500 643) scale(${0.985 + 0.015 * fadeIn}) translate(-500 -643)`} filter={look === 'story' ? 'url(#bloom)' : undefined}>
+            <Scene kzOnly={kzOnly} f={local} fps={fps} dur={sc.dur} mouth={m} title={titleUI && pick(titleUI)} cta={ctaUI && pick(ctaUI)} plate={plateUI && pick(plateUI)} />
           </g>
-          <rect width={1000} height={1286} fill="#FFFFFF" opacity={1 - vis} />
+          {look === 'story' && <StoryOverlay t={frame / fps} scene={sc.id} />}
+          <rect width={1000} height={1286} fill={look === 'story' ? '#2A1B3D' : '#FFFFFF'} opacity={1 - vis} />
         </SceneCard>
         <Header kz={head.kz} pl={head.pl} k={pop(frame, fps, 0.05, 13)} />
-        <Subtitles items={subs} k={interpolate(local, [0.15 * fps, 0.4 * fps], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+        <Subtitles big={look === 'story'} items={kzOnly ? subs.filter((x) => x.lang === 'kz') : subs} k={interpolate(local, [0.15 * fps, 0.4 * fps], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
       </svg>
+    </LookContext.Provider>
   );
 }
 
-export function ZooVideo({ mode }: { mode: Mode }) {
+export function ZooVideo({ mode, look = 'flat', kzOnly = false }: { mode: Mode; look?: Look; kzOnly?: boolean }) {
   const frame = useCurrentFrame(), { fps, durationInFrames } = useVideoConfig();
   const tl = (timing as unknown as Record<Mode, { total: number; scenes: Sc[] }>)[mode];
   const speech = tl.scenes.flatMap((s) => s.lines.map((l) => [s.from + l.at, s.from + l.at + l.dur]));
   return (
     <AbsoluteFill>
-      <FrameSVG mode={mode} frame={frame} fps={fps} />
+      <FrameSVG mode={mode} frame={frame} fps={fps} look={look} kzOnly={kzOnly} />
       {tl.scenes.map((s) => (
         <Sequence key={s.id} from={Math.round(s.from * fps)} durationInFrames={Math.round(s.dur * fps)} layout="none">
           {s.lines.map((l) => <Sequence key={l.file} from={Math.round(l.at * fps)} layout="none"><Html5Audio src={staticFile(l.file)} volume={1} /></Sequence>)}

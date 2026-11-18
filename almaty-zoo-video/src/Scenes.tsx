@@ -7,7 +7,7 @@ import { Arch, Books, Cloud, Cup, Dam, Fence, FlagKZ, FlagPL, Globe, Grass, Moun
 import { CTA, Plate, VocabCard } from './components/UI';
 import { C, FONT, INK, LINE } from './theme';
 
-export interface SceneProps { f: number; fps: number; dur: number; mouth: { aisha: number; arman: number }; title?: { kz: string; pl: string }; cta?: { kz: string; pl: string }; plate?: { kz: string; pl: string } }
+export interface SceneProps { kzOnly?: boolean; f: number; fps: number; dur: number; mouth: { aisha: number; arman: number }; title?: { kz: string; pl: string }; cta?: { kz: string; pl: string }; plate?: { kz: string; pl: string } }
 const T = (p: SceneProps) => p.f / p.fps;
 /** Camera: zoom `z` about (cx, cy) plus a pan. Returns the SVG transform and a point mapper for the UI pointers. */
 function camera(z: number, cx: number, cy: number, dx = 0, dy = 0) {
@@ -49,8 +49,8 @@ export function Scene2(p: SceneProps) {
         <Fence y={1180} from={-20} to={1020} />
         <Kid who="arman" x={150} y={1290} s={0.78} t={t} mouth={p.mouth.arman} eyes={blink(p.f, p.fps, 4)} pose="point" />
       </g>
-      <VocabCard x={480} y={250} kind="leopard" kz="Қар барысы" pl="Pantera śnieżna" k={pop(p.f, p.fps, 0.6)} k2={ramp(p.f, p.fps, 0.75, 1.3)} to={cam.at(200, 430)} />
-      <VocabCard x={60} y={600} kind="lion" kz="Арыстан" pl="Lew" k={pop(p.f, p.fps, 1.4)} k2={ramp(p.f, p.fps, 1.55, 2.1)} to={cam.at(745, 900)} />
+      <VocabCard x={480} y={250} kind="leopard" kz="Қар барысы" pl={p.kzOnly ? '' : "Pantera śnieżna"} k={pop(p.f, p.fps, 0.6)} k2={ramp(p.f, p.fps, 0.75, 1.3)} to={cam.at(200, 430)} />
+      <VocabCard x={60} y={600} kind="lion" kz="Арыстан" pl={p.kzOnly ? '' : "Lew"} k={pop(p.f, p.fps, 1.4)} k2={ramp(p.f, p.fps, 1.55, 2.1)} to={cam.at(745, 900)} />
     </g>
   );
 }
@@ -69,8 +69,8 @@ export function Scene3(p: SceneProps) {
         <Elephant x={770} y={1130} s={0.74} t={t} eyes={blink(p.f, p.fps, 6)} lift={ramp(p.f, p.fps, 1.0, 2.0)} />
         <Kid who="aisha" x={430} y={1290} s={0.7} t={t} mouth={p.mouth.aisha} eyes={blink(p.f, p.fps, 1)} pose="look" />
       </g>
-      <VocabCard x={500} y={240} kind="giraffe" kz="Керік" pl="Żyrafa" k={pop(p.f, p.fps, 0.7)} k2={ramp(p.f, p.fps, 0.85, 1.4)} to={cam.at(300, 585)} />
-      <VocabCard x={520} y={560} kind="elephant" kz="Піл" pl="Słoń" k={pop(p.f, p.fps, 1.6)} k2={ramp(p.f, p.fps, 1.75, 2.3)} to={cam.at(660, 940)} />
+      <VocabCard x={500} y={240} kind="giraffe" kz="Керік" pl={p.kzOnly ? '' : "Żyrafa"} k={pop(p.f, p.fps, 0.7)} k2={ramp(p.f, p.fps, 0.85, 1.4)} to={cam.at(300, 585)} />
+      <VocabCard x={520} y={560} kind="elephant" kz="Піл" pl={p.kzOnly ? '' : "Słoń"} k={pop(p.f, p.fps, 1.6)} k2={ramp(p.f, p.fps, 1.75, 2.3)} to={cam.at(660, 940)} />
     </g>
   );
 }
@@ -90,7 +90,7 @@ export function Scene4(p: SceneProps) {
         <Beaver x={490} y={990} s={0.82} t={t} eyes={blink(p.f, p.fps, 7)} />
         <Kid who="arman" x={140} y={1290} s={0.72} t={t} mouth={p.mouth.arman} eyes={blink(p.f, p.fps, 4)} pose="point" />
       </g>
-      <VocabCard x={150} y={250} kind="beaver" kz="Құндыз — «Bober»" pl="Bóbr — «Bober»" big k={pop(p.f, p.fps, 0.8)} k2={ramp(p.f, p.fps, 1.0, 1.6)} to={cam.at(480, 690)} />
+      <VocabCard x={150} y={250} kind="beaver" kz="Құндыз — «Bober»" pl={p.kzOnly ? '' : "Bóbr — «Bober»"} big k={pop(p.f, p.fps, 0.8)} k2={ramp(p.f, p.fps, 1.0, 1.6)} to={cam.at(480, 690)} />
     </g>
   );
 }
@@ -135,8 +135,8 @@ export function Scene6(p: SceneProps) {
       <g transform={`translate(500 ${150 - (1 - tk) * 120})`} opacity={Math.min(1, tk * 1.4)}>
         <rect x={-460} y={-96} width={920} height={196} rx={44} fill={C.white} filter="url(#lift)" />
         <rect x={-460} y={-96} width={920} height={196} rx={44} fill="none" {...LINE} />
-        <text x={0} y={-14} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={52} fill={C.blue}>{title.kz}</text>
-        <text x={0} y={56} textAnchor="middle" fontFamily={FONT} fontWeight={800} fontSize={46} fill={C.coralD}>{title.pl}</text>
+        <text x={0} y={title.pl ? -14 : 22} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={title.pl ? 52 : 60} fill={C.blue}>{title.kz}</text>
+        {title.pl ? <text x={0} y={56} textAnchor="middle" fontFamily={FONT} fontWeight={800} fontSize={46} fill={C.coralD}>{title.pl}</text> : null}
       </g>
       {p.cta && <CTA kz={p.cta.kz} pl={p.cta.pl} k={pop(p.f, p.fps, 0.8)} pulse={Math.max(0, wave(p.f, p.fps, 1.2))} />}
       <text x={500} y={1262} textAnchor="middle" fontFamily={FONT} fontWeight={700} fontSize={24} fill={INK} opacity={0.55}>Алматы · Ałmaty</text>

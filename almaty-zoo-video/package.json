@@ -13,7 +13,8 @@
     "render:all": "npm run render:bilingual && npm run render:kz && npm run render:pl",
     "export:32k-frames": "node scripts/export-32k.mjs",
     "qc": "node scripts/qc.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "render:story": "remotion render ZooStoryKZ out/almaty_zoo_kz_storybook.mp4"
   },
   "dependencies": {
     "@remotion/cli": "4.0.539",

@@ -27,13 +27,13 @@ export function Background() {
   );
 }
 export function Header({ kz, pl, k }: { kz: string; pl: string; k: number }) {
-  const lines = [kz + ' /', pl];
+  const lines = pl ? [kz + ' /', pl] : [kz];
   return (
     <g transform={`translate(540 ${116 - (1 - k) * 160})`} opacity={k}>
       <rect x={-470} y={-82} width={940} height={164} rx={34} fill="url(#hdr)" filter="url(#lift)" />
       <rect x={-470} y={-82} width={940} height={164} rx={34} fill="none" {...LINE} />
       <rect x={-450} y={-70} width={900} height={50} rx={24} fill={C.white} opacity={0.16} />
-      {lines.map((l, i) => <text key={i} x={0} y={-14 + i * 58} textAnchor="middle" fontFamily={FONT} fontWeight={800} fontSize={44} fill={C.white}>{l}</text>)}
+      {lines.map((l, i) => <text key={i} x={0} y={(lines.length > 1 ? -14 : 16) + i * 58} textAnchor="middle" fontFamily={FONT} fontWeight={800} fontSize={44} fill={C.white}>{l}</text>)}
     </g>
   );
 }
@@ -66,7 +66,7 @@ export function VocabCard({ x, y, kind, kz, pl, k, k2, to, big = false }: { x: n
         <rect width={w} height={h} rx={30} fill={C.white} filter="url(#lift)" />
         <rect width={w} height={h} rx={30} fill="none" {...LINE} />
         <g transform="translate(66 66)"><AnimalIcon kind={kind} /></g>
-        <text x={124} y={58} fontFamily={FONT} fontWeight={800} fontSize={big ? 34 : 38} fill={INK}>{kz}</text>
+        <text x={124} y={pl ? 58 : 80} fontFamily={FONT} fontWeight={800} fontSize={pl ? (big ? 34 : 38) : (big ? 42 : 46)} fill={INK}>{kz}</text>
         <text x={124} y={102} fontFamily={FONT} fontWeight={700} fontSize={big ? 30 : 32} fill={C.coralD}>{pl}</text>
       </g>
     </g>
@@ -79,7 +79,7 @@ export function Plate({ kz, pl, k }: { kz: string; pl: string; k: number }) {
       <rect x={-430} y={-74} width={860} height={148} rx={40} fill={C.amber} filter="url(#lift)" />
       <rect x={-430} y={-74} width={860} height={148} rx={40} fill="none" {...LINE} />
       <rect x={-410} y={-62} width={820} height={40} rx={20} fill={C.white} opacity={0.3} />
-      <text x={0} y={-6} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={44} fill={INK}>{kz}</text>
+      <text x={0} y={pl ? -6 : 16} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={pl ? 44 : 52} fill={INK}>{kz}</text>
       <text x={0} y={46} textAnchor="middle" fontFamily={FONT} fontWeight={800} fontSize={36} fill={C.coralD}>{pl}</text>
     </g>
   );
@@ -93,13 +93,24 @@ export function CTA({ kz, pl, k, pulse }: { kz: string; pl: string; k: number; p
       <rect x={-390} y={-70} width={780} height={140} rx={70} fill="none" {...LINE} />
       <rect x={-360} y={-58} width={720} height={48} rx={24} fill={C.white} opacity={0.35} />
       <g transform="translate(-300 0)"><circle r={38} fill={C.white} {...LINE} /><path d="M-10 -18 L20 0 L-10 18 Z" fill={C.coralD} {...LINE} strokeWidth={2.5} /></g>
-      <text x={50} y={15} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={Math.min(46, 1180 / (kz.length + pl.length + 3))} fill={C.white} stroke={C.coralD} strokeWidth={1.5} paintOrder="stroke">{kz + ' / ' + pl}</text>
+      <text x={50} y={15} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={pl ? Math.min(46, 1180 / (kz.length + pl.length + 3)) : 60} fill={C.white} stroke={C.coralD} strokeWidth={1.5} paintOrder="stroke">{pl ? kz + ' / ' + pl : kz}</text>
     </g>
   );
 }
 /** Subtitles under the card: speaker chip + lines; the line being spoken is full colour, the other one dimmed. */
-export function Subtitles({ items, k }: { items: { speaker: string; text: string; active: boolean; lang: string }[]; k: number }) {
+export function Subtitles({ items, k, big = false }: { items: { speaker: string; text: string; active: boolean; lang: string }[]; k: number; big?: boolean }) {
   if (!items.length || k <= 0.001) return null;
+  if (big) {   // storybook look: one language, large centred white type with a dark outline on a soft dark panel
+    const it = items[0], size = 64, lh = 78, lines = wrap(it.text, 940, size, 0.6), h = lines.length * lh + 92, y0 = 1512 + Math.max(0, (392 - h) / 2);
+    return (
+      <g opacity={k}>
+        <rect x={36} y={y0} width={1008} height={h} rx={40} fill="#2A1B3D" opacity={0.82} />
+        <rect x={470} y={y0 - 22} width={140} height={44} rx={22} fill={C.amber} {...LINE} />
+        <text x={540} y={y0 + 8} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={26} fill={INK}>{it.speaker}</text>
+        {lines.map((l, j) => <text key={j} x={540} y={y0 + 46 + (j + 1) * lh - 14} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={size} fill="#FFF8E7" stroke="#1B1028" strokeWidth={6} strokeLinejoin="round" paintOrder="stroke">{l}</text>)}
+      </g>
+    );
+  }
   const size = items.length > 1 ? 38 : 44, lh = size * 1.22;
   const blocks = items.map((it) => ({ ...it, lines: wrap(it.text, 860, size) }));
   const totalH = blocks.reduce((a, b) => a + b.lines.length * lh + 64, 0);

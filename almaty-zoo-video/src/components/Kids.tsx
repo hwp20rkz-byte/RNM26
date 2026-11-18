@@ -1,5 +1,7 @@
 // Айша (Ajsza) and Арман (Arman): line-art kids. Origin at the feet, ~480 units tall at scale 1.
 // Poses: idle, wave (greeting), point (to an animal), laugh (bounce, arms up), look (head tilted up).
+import { useContext } from 'react';
+import { LookContext } from '../look';
 import { C, INK, LINE } from '../theme';
 
 export type Pose = 'idle' | 'wave' | 'point' | 'laugh' | 'look';
@@ -25,7 +27,7 @@ export function Kid({ who, x, y, s = 1, flip = false, t, mouth, eyes, pose }: Ki
   if (pose === 'point') rA = -118 + Math.sin(t * Math.PI * 1.6) * 4;
   if (pose === 'laugh') { rA = -150 + Math.sin(t * Math.PI * 6.4) * 10; lA = 150 - Math.sin(t * Math.PI * 6.4) * 10; }
   const headTilt = pose === 'look' ? -10 : pose === 'laugh' ? Math.sin(t * Math.PI * 3.2) * 4 : sway;
-  const open = Math.max(0, Math.min(1, mouth));
+  const open = Math.max(0, Math.min(1, mouth)), story = useContext(LookContext) === 'story';
   return (
     <g transform={`translate(${x} ${y}) scale(${flip ? -s : s} ${s})`}>
       <ellipse cx={0} cy={4} rx={86} ry={16} fill={INK} opacity={0.12} />
@@ -77,7 +79,15 @@ export function Kid({ who, x, y, s = 1, flip = false, t, mouth, eyes, pose }: Ki
           {/* face */}
           {[-28, 28].map((ex) => (
             <g key={'e' + ex} transform={`translate(${ex} -84) scale(1 ${eyes})`}>
-              <ellipse rx={10} ry={13} fill={INK} /><circle cx={3} cy={-5} r={3.6} fill={C.white} />
+              {story
+                ? (<g>
+                    <ellipse rx={17} ry={21} fill={C.white} {...LINE} />
+                    <circle cx={1} cy={2} r={13} fill={a ? '#7A4A26' : '#3E6B8A'} />
+                    <circle cx={1} cy={2} r={7} fill={INK} />
+                    <circle cx={5} cy={-4} r={4.6} fill={C.white} /><circle cx={-4} cy={7} r={2.2} fill={C.white} />
+                    {a && <path d={`M${ex < 0 ? -16 : 16} -16 L${ex < 0 ? -24 : 24} -24 M${ex < 0 ? -8 : 8} -21 L${ex < 0 ? -12 : 12} -30`} {...LINE} />}
+                  </g>)
+                : (<g><ellipse rx={10} ry={13} fill={INK} /><circle cx={3} cy={-5} r={3.6} fill={C.white} /></g>)}
             </g>
           ))}
           <path d="M-42 -112 Q-28 -120 -14 -112" fill="none" {...LINE} /><path d="M14 -112 Q28 -120 42 -112" fill="none" {...LINE} />

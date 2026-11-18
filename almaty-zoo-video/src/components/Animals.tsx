@@ -1,10 +1,21 @@
 // Zoo animals in line art with cel shading. Each takes a time `t` (seconds) for idle motion and `eyes` (blink scaleY).
 // Origins: at the feet / sitting point, facing left unless flipped.
+import { useContext } from 'react';
+import { LookContext } from '../look';
 import { C, INK, LINE } from '../theme';
 
-const Eye = ({ x, y, r = 9, eyes, iris = INK }: { x: number; y: number; r?: number; eyes: number; iris?: string }) => (
-  <g transform={`translate(${x} ${y}) scale(1 ${eyes})`}><ellipse rx={r} ry={r * 1.15} fill={iris} /><circle cx={r * 0.3} cy={-r * 0.4} r={r * 0.35} fill={C.white} /></g>
-);
+function Eye({ x, y, r = 9, eyes, iris = INK }: { x: number; y: number; r?: number; eyes: number; iris?: string }) {
+  if (useContext(LookContext) === 'story') {
+    const R = r * 1.5;
+    return (
+      <g transform={`translate(${x} ${y}) scale(1 ${eyes})`}>
+        <ellipse rx={R} ry={R * 1.15} fill={C.white} {...LINE} /><circle cy={R * 0.12} r={R * 0.72} fill={iris === INK ? '#5A3A22' : iris} />
+        <circle cy={R * 0.12} r={R * 0.38} fill={INK} /><circle cx={R * 0.28} cy={-R * 0.25} r={R * 0.26} fill={C.white} /><circle cx={-R * 0.25} cy={R * 0.38} r={R * 0.12} fill={C.white} />
+      </g>
+    );
+  }
+  return <g transform={`translate(${x} ${y}) scale(1 ${eyes})`}><ellipse rx={r} ry={r * 1.15} fill={iris} /><circle cx={r * 0.3} cy={-r * 0.4} r={r * 0.35} fill={C.white} /></g>;
+}
 const Shadow = ({ rx, y = 0 }: { rx: number; y?: number }) => <ellipse cx={0} cy={y + 4} rx={rx} ry={rx * 0.16} fill={INK} opacity={0.13} />;
 
 /** Снежный барс — pale fur with rosettes, a long thick swaying tail (the symbol of Almaty). */
