@@ -44,7 +44,7 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   await p.click('#mkdiary'); await p.waitForTimeout(200);
   const diary = await p.evaluate(() => ({ math: document.querySelector('.mk-row small').textContent, rep: document.querySelector('#mkrep').textContent, wide: document.documentElement.scrollWidth }));
   assert(diary.math === '1 / 13 · ★ 3', 'diary: maths 1 / 13 topics, 3 stars: ' + diary.math);
-  assert(diary.rep.startsWith('🏫 Мектеп күнделігі — T') && diary.rep.includes('Пройдено тем: 1 / 39') && diary.rep.includes('Повторять нечего'), 'the report text for the teacher');
+  assert(diary.rep.startsWith('🏫 Мектеп күнделігі — T') && diary.rep.includes('Пройдено тем: 1 / 40') && diary.rep.includes('Повторять нечего'), 'the report text for the teacher');
   assert(diary.wide <= 400, 'the diary fits a phone (' + diary.wide + ' px)');
   await shot(p, 'mk-diary.png');
   await p.click('#mkcopy'); await p.waitForTimeout(300);
@@ -64,7 +64,7 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   for (const [subj, g, t] of [['logic', 1, 'l1pattern'], ['logic', 1, 'l1odd'], ['logic', 2, 'l2algo'], ['logic', 2, 'l2yurt'], ['logic', 3, 'l3sym'],
     ['nature', 1, 'n1season'], ['nature', 1, 'n1wild'], ['nature', 2, 'n2home'], ['nature', 2, 'n2water'], ['nature', 2, 'n2senses'], ['nature', 3, 'n3redbook'],
     ['geo', 2, 'g2dirs'], ['geo', 3, 'g3feature'], ['geo', 3, 'g3repcity'], ['geo', 4, 'g4center'], ['geo', 4, 'g4map'], ['geo', 4, 'g4neighbor'],
-    ['cities', 2, 'c2landmark'], ['cities', 3, 'c3river'], ['cities', 3, 'c3guide'],
+    ['cities', 2, 'c2landmark'], ['cities', 3, 'c3river'], ['cities', 3, 'c3guide'], ['cities', 4, 'c4tour'],
     ['history', 5, 'h5timeline'], ['history', 5, 'h5kz'], ['history', 5, 'h5world'],
     ['lit', 2, 'r2genre'], ['lit', 3, 'r3music'], ['lit', 4, 'r4authors']]) {
     await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);

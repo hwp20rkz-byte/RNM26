@@ -433,6 +433,26 @@
     return { kk: c + ' қай өзеннің бойында тұр?', ru: 'На какой реке стоит город?', en: 'Which river is the city on?', visual: { type: 'big', e: '🏙️', text: c },
       answer: ans, options: shuffle([ans].concat(shuffle(RIVERS.filter(function (x) { return x !== ans; }), r).slice(0, 2)), r), say: ans, full: c + ' ' + ans + ' өзенінің бойында тұр.' };
   };
+  /* «Саяхат» (day 7 debt): the foreign architect (voice tag ARCH — a Freedom Speech catalog voice) wants to see a place;
+     the child says where the train goes: «Мен Бәйтеректі көргім келеді. Қай қалаға барамыз?» — «Астанаға». */
+  var TOUR = {}; Object.keys(LANDMARK).forEach(function (n) { TOUR[n] = LANDMARK[n]; }); Object.keys(NEAR).forEach(function (n) { TOUR[n] = NEAR[n]; });
+  TOUR['Каспий теңізі'] = 'Ақтау';
+  var POSS_STEM = { 'кесенесі': 'кесене', 'мұражайы': 'мұражай', 'көлі': 'көл', 'теңізі': 'теңіз' };
+  /** Accusative of a place name from the engine; a possessive compound takes the pronominal «н»: Ясауи кесенесін. */
+  function accusative(n) {
+    var parts = n.split(' '), lastW = parts[parts.length - 1];
+    if (POSS_STEM[lastW]) return parts.slice(0, -1).concat(G.possessiveCase(POSS_STEM[lastW], 'ol', 'tabys')).join(' ');
+    return G.caseForm(n, 'tabys');
+  }
+  function tourLine(n) { return 'Мен ' + accusative(n) + ' көргім келеді. Қай қалаға барамыз?'; }
+  GEN.tour = function (r) {
+    var names = Object.keys(TOUR), n = names[rint(r, 0, names.length - 1)], city = TOUR[n];
+    var cities = names.map(function (x) { return TOUR[x]; }).filter(function (c, i, a) { return a.indexOf(c) === i && c !== city; });
+    var opts = [city].concat(shuffle(cities, r).slice(0, 2)).map(function (c) { return guideForms(c)[1]; });
+    return { kk: tourLine(n), ru: 'Турист хочет увидеть это место. В какой город едем?', en: 'The tourist wants to see this place. Which city do we go to?', who: 'ARCH',
+      visual: { type: 'big', e: '🚆 ' + (LANDMARK_E[n] || '🌊'), text: n }, answer: guideForms(city)[1], options: shuffle(opts, r), say: guideForms(city)[1],
+      full: n + ' — ' + guideForms(city)[0] + '. Пойызбен ' + guideForms(city)[1] + ' барамыз!' };
+  };
   var GUIDE_Q = { zhatys: ['Турист қазір қайда?', 'Где сейчас турист?', 'Where is the tourist now?', '📍'], barys: ['Турист қайда барады?', 'Куда едет турист?', 'Where is the tourist going?', '✈️'],
     shygys: ['Турист қайдан келді?', 'Откуда приехал турист?', 'Where did the tourist come from?', '🚆'] };
   GEN.guide = function (r) {
@@ -583,6 +603,7 @@
     { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', topics: [
       { id: 'c2landmark', grade: 2, gen: 'landmark', kk: 'Көрікті жерлер', ru: 'Достопримечательности', en: 'Landmarks' },
       { id: 'c3river', grade: 3, gen: 'river', kk: 'Қалалар мен өзендер', ru: 'Города на реках', en: 'Cities and rivers' },
+      { id: 'c4tour', grade: 4, gen: 'tour', kk: 'Саяхат: турист сұрайды', ru: 'Путешествие: спрашивает турист', en: 'A journey: the tourist asks' },
       { id: 'c3guide', grade: 3, gen: 'guide', kk: 'Гид бол: қайда? қайдан?', ru: 'Будь гидом: где? куда? откуда?', en: 'Be a guide: where to / from?' }
     ] },
     { id: 'history', icon: '📜', kk: 'Тарих', ru: 'История (5 класс)', en: 'History (grade 5)', hue: 'red', topics: [
@@ -670,5 +691,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

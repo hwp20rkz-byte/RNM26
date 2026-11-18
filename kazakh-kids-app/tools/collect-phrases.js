@@ -38,6 +38,8 @@ function addAs(t, voice) {
 }
 
 // character lines first, so they keep their own voice even if a narrator phrase has the same text
+// «Мектеп» → «Саяхат»: the foreign architect's lines (Freedom Speech catalog voice, tag ARCH)
+{ global.self = global; require(path.join(web, 'data.js')); require(path.join(web, 'grammar-core.js')); require(path.join(web, 'mektep-core.js')).tourLines().forEach((t) => addAs(t, 'ARCH')); }
 Object.keys(W.LINES).forEach((who) => Object.values(W.LINES[who]).forEach((l) => addAs(l.kk, W.LINE_VOICE[who])));
 // modules 2 & 4: persona lines (dialogues; the player's answers are Әлібек's), game host lines
 Object.values(C.dialogues).forEach((d) => Object.values(d.nodes).forEach((n) => {

@@ -113,7 +113,7 @@ eq(M.LANDMARK['Бәйтерек'], 'Астана', 'Бәйтерек'); eq(M.LAN
 eq(M.CITY_RIVER['Орал'], 'Жайық', 'Орал on the Жайық'); eq(M.CITY_RIVER['Астана'], 'Есіл', 'Астана on the Есіл'); eq(M.CITY_RIVER['Семей'], 'Ертіс', 'Семей on the Ертіс');
 assert.ok(!M.GUIDE_CITIES.includes('Қонаев'), 'Қонаев is left out of the guide (spelling of its endings varies)'); n++;
 const cities = M.SUBJECTS.find((x) => x.id === 'cities');
-eq(cities.topics.length, 3, 'three city topics');
+eq(cities.topics.length, 4, 'four city topics');
 for (const t of cities.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
 for (const t of cities.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
@@ -177,7 +177,7 @@ eq(mathD.weak.map((t) => t.id).join(), 'm1tens', 'below 6 is worth repeating');
 eq(dia.find((x) => x.id === 'geo').weak.length, 0, '6 / 10 is not weak');
 eq(dia.length, 7, 'seven subjects'); eq(M.diary({}).every((x) => x.done === 0 && x.stars === 0), true, 'an empty diary');
 const rep = M.reportText(best, 'Әнел', 'ru', '17.11.2026');
-assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 39') && rep.includes('🔢 Математика: 2 / 13 · ★ 4 / 39') && rep.includes('📜 Тарих — История (5 класс): 0 / 3') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
+assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 40') && rep.includes('🔢 Математика: 2 / 13 · ★ 4 / 39') && rep.includes('📜 Тарих — История (5 класс): 0 / 3') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
 assert.ok(M.reportText({ m1count: 10 }, '', 'en').includes('Nothing to repeat'), 'nothing to repeat'); n++;
 // the map: the cities sit where a child expects them (checked by hand against a school atlas)
 const xy = (c) => M.cityXY(c);
@@ -190,6 +190,16 @@ eq(M.cityWhere('Алматы'), 'Алматы — Қазақстанның оң�
 eq(M.cityWhere('Петропавл'), 'Петропавл — Қазақстанның солтүстігінде.', 'Петропавл in the north');
 eq(M.cityWhere('Атырау'), 'Атырау — Қазақстанның батысында.', 'Атырау in the west'); eq(M.cityWhere('Өскемен'), 'Өскемен — Қазақстанның шығысында.', 'Өскемен in the east');
 eq(M.cityWhere('Қарағанды'), 'Қарағанды — Қазақстанның орталығында.', 'Қарағанды in the centre'); eq(M.cityWhere('Талдықорған'), 'Талдықорған — Қазақстанның оңтүстік-шығысында.', 'Талдықорған SE');
+// «Саяхат»: reference accusatives written by hand, the line, the dative answer
+eq(M.accusative('Бәйтерек'), 'Бәйтеректі', 'Бәйтеректі'); eq(M.accusative('Хан Шатыр'), 'Хан Шатырды', 'Хан Шатырды'); eq(M.accusative('Ақорда'), 'Ақорданы', 'Ақорданы');
+eq(M.accusative('Қожа Ахмет Ясауи кесенесі'), 'Қожа Ахмет Ясауи кесенесін', 'кесенесін'); eq(M.accusative('Абай мұражайы'), 'Абай мұражайын', 'мұражайын');
+eq(M.accusative('Үлкен Алматы көлі'), 'Үлкен Алматы көлін', 'көлін'); eq(M.accusative('Каспий теңізі'), 'Каспий теңізін', 'теңізін');
+eq(M.tourLine('Бәйтерек'), 'Мен Бәйтеректі көргім келеді. Қай қалаға барамыз?', 'the tourist line');
+const tourT = M.topicById('c4tour'); eq(M.round(tourT, rnd).length, 10, 'tour: a round of 10');
+for (let k = 0; k < 40; k++) for (const q of M.round(tourT, rnd)) {
+  eq(q.answer, M.guideForms(M.TOUR[q.visual.text])[1], 'tour answer for ' + q.visual.text); eq(q.who, 'ARCH', 'the architect speaks');
+  assert.ok(new Set(q.options).size === 3 && q.options.includes(q.answer), 'tour options'); n++;
+}
 const mapT = M.topicById('g4map'); eq(M.round(mapT, rnd).length, 10, 'map: a round of 10');
 for (let k = 0; k < 60; k++) for (const q of M.round(mapT, rnd)) {
   const d = q.visual.dots; assert.ok(d.length === 3 && q.options.length === 3 && q.options.includes(q.answer), 'three dots'); n++;
@@ -197,6 +207,6 @@ for (let k = 0; k < 60; k++) for (const q of M.round(mapT, rnd)) {
   for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) assert.ok(Math.hypot(d[i].x - d[j].x, d[i].y - d[j].y) >= M.MAP_GAP, 'dots far apart'); n++;
 }
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 6 && M.SUBJECTS[4].topics.length === 3 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 6, cities 3, history 3, reading 3'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 6 && M.SUBJECTS[4].topics.length === 4 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 6, cities 4, history 3, reading 3'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');

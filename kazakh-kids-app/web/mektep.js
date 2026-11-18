@@ -121,12 +121,13 @@
       var q = qs[i]; busy = false;
       api.stat((i + 1) + ' / ' + qs.length + ' · ✅ ' + right);
       api.qs('#mk').innerHTML = '<div class="mk-q"><small>' + A.esc(topic.kk) + '</small><div class="mk-vis">' + visual(q.visual) + '</div>' +
-        '<p class="mk-ask' + (q.kk.length > 40 ? ' long' : '') + '"><b>' + A.esc(q.kk) + '</b> ' + (A.TTS.file(q.kk) ? '<button class="mk-say" data-s="' + A.esc(q.kk) + '" aria-label="🔊">🔊</button>' : '') + '<span class="muted">' + A.esc(T(q)) + '</span></p>' +
+        '<p class="mk-ask' + (q.kk.length > 40 ? ' long' : '') + '"><b>' + A.esc(q.kk) + '</b> ' + (A.TTS.file(q.kk, q.who) ? '<button class="mk-say" data-s="' + A.esc(q.kk) + '" aria-label="🔊">🔊</button>' : '') + '<span class="muted">' + A.esc(T(q)) + '</span></p>' +
         (q.optType === 'map' ? '' : '<div class="mk-opts' + (q.options.length > 3 ? ' four' : '') + (q.options.some(function (o) { return typeof o === 'string' && o.length > 9; }) ? ' long' : '') + '">' + q.options.map(function (o) {
           var face = q.optType === 'sym' ? ornament(q.visual.left, o.split('|')) : A.esc(o);   // symmetry: the whole ornament per option
           return '<button class="mk-o' + (q.optType ? ' pic' : '') + '" data-o="' + A.esc(o) + '">' + face + (q.labels ? '<small>' + A.esc(q.labels[o]) + '</small>' : '') + '</button>';
         }).join('') + '</div>') + '<div class="mk-fb" id="mkfb"></div></div>';
-      var sb = api.qs('.mk-say'); if (sb) sb.onclick = function () { api.TTS.speak(q.kk, true); };
+      var sb = api.qs('.mk-say'); if (sb) sb.onclick = function () { api.TTS.speak(q.kk, true, q.who); };
+      if (q.who) setTimeout(function () { if (!over && qs[i] === q) api.TTS.speak(q.kk, true, q.who); }, 300);   // a character (the tourist) speaks first, in their own voice
       api.qsa('.mk-o').forEach(function (b) { b.onclick = function () { answer(b.getAttribute('data-o'), b); }; });
     }
     function answer(o, btn) {
