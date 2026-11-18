@@ -649,6 +649,30 @@
     weak.forEach(function (w) { lines.push('• ' + w); });
     return lines.join('\n');
   }
+  /* ---------- «Бүгінгі жаттығу»: today's mix of 10 tasks (spaced review, no penalty for a missed day) ---------- */
+  function dayDiff(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000); }
+  /** Review interval after the best score: 9–10 → 7 days, 6–8 → 3 days (below 6 the topic is «weak» and comes every day). */
+  function reviewDays(best) { return best >= 9 ? 7 : 3; }
+  /** Five topics × 2 tasks: up to 3 weak topics (played, best < 6), then topics due for review (oldest first), then one
+   *  new topic of the child's grade, then any topic of that grade. `seen` maps a topic id to its last day (YYYY-MM-DD). */
+  function dailyMix(best, seen, today, grade, r) {
+    best = best || {}; seen = seen || {};
+    var all = []; SUBJECTS.forEach(function (s) { s.topics.forEach(function (t) { all.push(t); }); });
+    var played = all.filter(function (t) { return best[t.id] != null; });
+    var weak = shuffle(played.filter(function (t) { return best[t.id] < 6; }), r).slice(0, 3);
+    var due = played.filter(function (t) { return best[t.id] >= 6 && (!seen[t.id] || dayDiff(seen[t.id], today) >= reviewDays(best[t.id])); })
+      .sort(function (a, b) { return (seen[a.id] || '').localeCompare(seen[b.id] || ''); });
+    var fresh = shuffle(all.filter(function (t) { return best[t.id] == null && t.grade === grade; }), r);
+    // the fill-up never brings back a topic done today or one that is not due yet, unless nothing else is left
+    var rest = function (t) { return seen[t.id] !== today && !(best[t.id] >= 6 && due.indexOf(t) < 0); };
+    var gradeAll = shuffle(all.filter(function (t) { return t.grade === grade && rest(t); }), r), anyRest = shuffle(all.filter(rest), r);
+    var pick = [], why = {};
+    function take(list, n, tag) { list.forEach(function (t) { if (pick.length < 5 && n > 0 && pick.indexOf(t) < 0) { pick.push(t); why[t.id] = tag; n--; } }); }
+    take(weak, 3, 'weak'); take(due, 5 - pick.length - (fresh.length ? 1 : 0), 'review'); take(fresh, 1, 'new'); take(gradeAll, 5, 'practice'); take(anyRest, 5, 'practice'); take(all, 5, 'practice');
+    var out = [];
+    pick.forEach(function (t) { round(t, r).slice(0, 2).forEach(function (q) { out.push({ topic: t, why: why[t.id], q: q }); }); });
+    return out;
+  }
   function topicById(id) { var t = null; SUBJECTS.forEach(function (s) { s.topics.forEach(function (x) { if (x.id === id) t = x; }); }); return t; }
   /** Everything a topic can say aloud (for the voice pipeline): number words, prompts, labels. */
   function voiceLines() {
@@ -691,5 +715,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

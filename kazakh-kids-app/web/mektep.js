@@ -74,6 +74,7 @@
     function home() {
       topic = null;
       var html = '<h2>🏫 Мектеп · ' + A.esc(en() ? 'school subjects in Kazakh' : 'школьные предметы на казахском') + '</h2>' +
+        '<button class="mk-mix-btn" id="mkmix">🎯 ' + A.esc(en() ? 'Today\'s practice · 10 tasks' : 'Бүгінгі жаттығу · 10 заданий') + '<small>' + A.esc(en() ? 'weak topics, review and one new topic' : 'слабые темы, повторение и одна новая') + '</small></button>' +
         '<button class="mk-diary-btn" id="mkdiary">📒 ' + A.esc(en() ? 'Diary · Мектеп күнделігі' : 'Дневник · Мектеп күнделігі') + '</button><div class="mk-subj">' + M.SUBJECTS.map(function (s) {
         var ready = s.topics.length > 0;
         return '<button class="mk-s' + (ready ? '' : ' soon') + (subj === s ? ' on' : '') + '" data-subj="' + s.id + '"' + (ready ? '' : ' disabled') + ' style="--uc:var(--u-' + s.hue + ');--ucd:var(--u-' + s.hue + '-d)">' +
@@ -90,6 +91,7 @@
       }
       api.qs('#mk').innerHTML = html; api.stat('');
       api.qs('#mkdiary').onclick = function () { api.sfx.tap(); diaryView(); };
+      api.qs('#mkmix').onclick = function () { api.sfx.tap(); startMix(); };
       api.qsa('[data-subj]').forEach(function (b) { b.onclick = function () { api.sfx.tap(); subj = M.SUBJECTS.filter(function (s) { return s.id === b.getAttribute('data-subj'); })[0]; home(); }; });
       api.qsa('.mk-g').forEach(function (b) { b.onclick = function () { api.sfx.tap(); grade = +b.getAttribute('data-grade'); S.mkGrade = grade; home(); }; });
       api.qsa('[data-topic]').forEach(function (b) { b.onclick = function () { api.sfx.tap(); start(M.topicById(b.getAttribute('data-topic'))); }; });
@@ -115,12 +117,22 @@
         function select() { var r = document.createRange(), el = api.qs('#mkrep'); r.selectNodeContents(el); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); done(); } catch (e) { /* the text stays selected */ } }
       };
     }
-    function start(t) { topic = t; qs = M.round(t, Math.random); i = 0; right = 0; show(); }
+    var mix = null;
+    function todayStr() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function start(t) { mix = null; topic = t; qs = M.round(t, Math.random); i = 0; right = 0; show(); }
+    // «Бүгінгі жаттығу»: 10 tasks from weak topics, topics due for review and one new topic (no penalty for a missed day)
+    function startMix() {
+      S.mkSeen = S.mkSeen || {};
+      mix = M.dailyMix(S.mektep, S.mkSeen, todayStr(), S.grade || 1, Math.random);
+      topic = { id: 'mix', kk: 'Бүгінгі жаттығу', ru: 'Тренировка дня', en: 'Today\'s practice' };
+      qs = mix.map(function (x) { return x.q; }); i = 0; right = 0; show();
+    }
     function show() {
       if (over) return;
       var q = qs[i]; busy = false;
       api.stat((i + 1) + ' / ' + qs.length + ' · ✅ ' + right);
-      api.qs('#mk').innerHTML = '<div class="mk-q"><small>' + A.esc(topic.kk) + '</small><div class="mk-vis">' + visual(q.visual) + '</div>' +
+      var label = mix ? { weak: '↻ ', review: '🔁 ', 'new': '✨ ', practice: '' }[mix[i].why] + mix[i].topic.kk : topic.kk;
+      api.qs('#mk').innerHTML = '<div class="mk-q"><small>' + A.esc(label) + '</small><div class="mk-vis">' + visual(q.visual) + '</div>' +
         '<p class="mk-ask' + (q.kk.length > 40 ? ' long' : '') + '"><b>' + A.esc(q.kk) + '</b> ' + (A.TTS.file(q.kk, q.who) ? '<button class="mk-say" data-s="' + A.esc(q.kk) + '" aria-label="🔊">🔊</button>' : '') + '<span class="muted">' + A.esc(T(q)) + '</span></p>' +
         (q.optType === 'map' ? '' : '<div class="mk-opts' + (q.options.length > 3 ? ' four' : '') + (q.options.some(function (o) { return typeof o === 'string' && o.length > 9; }) ? ' long' : '') + '">' + q.options.map(function (o) {
           var face = q.optType === 'sym' ? ornament(q.visual.left, o.split('|')) : A.esc(o);   // symmetry: the whole ornament per option
@@ -140,11 +152,13 @@
       setTimeout(function () { if (over) return; i++; if (i >= qs.length) end(); else show(); }, ok ? 1300 : 2200);
     }
     function end() {
-      S.mektep[topic.id] = Math.max(S.mektep[topic.id] || 0, right);
+      S.mkSeen = S.mkSeen || {};
+      if (mix) mix.forEach(function (x) { S.mkSeen[x.topic.id] = todayStr(); });   // the mix counts as a review of its topics
+      else { S.mektep[topic.id] = Math.max(S.mektep[topic.id] || 0, right); S.mkSeen[topic.id] = todayStr(); }
       api.end({ title: right >= 9 ? 'Керемет!' : right >= 6 ? 'Жарайсың!' : 'Тағы жаттығайық!', score: right, scoreText: right + ' / ' + qs.length, coins: right * 2, xp: Math.min(10, right),
         sub: topic.kk + ' · ' + T(topic) });
     }
-    if (/[?&]e2e\b/.test(location.search)) window.__mk = function () { var q = qs[i]; return { i: i, n: qs.length, right: right, answer: q && q.answer, topic: topic && topic.id, busy: busy }; };
+    if (/[?&]e2e\b/.test(location.search)) window.__mk = function () { var q = qs[i]; return { i: i, n: qs.length, right: right, answer: q && q.answer, topic: topic && topic.id, busy: busy, mix: mix && mix.map(function (x) { return x.topic.id + ':' + x.why; }) }; };
     home();
   };
 

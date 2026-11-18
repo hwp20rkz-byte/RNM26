@@ -1136,3 +1136,7 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .mk-dot .lbl { display: none; font-weight: 900; font-size: 22px; fill: var(--ink-800); paint-order: stroke; stroke: var(--ink-0); stroke-width: 5px; }
 .mk-q.done .mk-dot .lbl { display: block; }
 .mk-dot.right .dot { fill: var(--ok); } .mk-dot.wrong .dot { fill: var(--bad); }
+
+/* 18.11: «Бүгінгі жаттығу» */
+.mk-mix-btn { display: grid; gap: 2px; width: 100%; min-height: 64px; margin: 0 0 var(--s-2); padding: var(--s-2) var(--s-3); border: 2px solid var(--ink-800); border-radius: var(--r-2); background: var(--u-gold, var(--sun-600)); color: var(--ink-800); font: inherit; font-weight: 900; font-size: var(--fs-2); text-align: left; cursor: pointer; box-shadow: var(--lip) var(--ink-800); }
+.mk-mix-btn small { font-weight: 700; font-size: var(--fs-1); }

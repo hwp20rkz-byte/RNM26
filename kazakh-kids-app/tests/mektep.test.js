@@ -206,6 +206,26 @@ for (let k = 0; k < 60; k++) for (const q of M.round(mapT, rnd)) {
   const a = d.find((p) => p.id === q.answer); assert.ok(a && Math.abs(a.x - xy(q.answer)[0]) < 0.1, 'the answer dot is at its city'); n++;
   for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) assert.ok(Math.hypot(d[i].x - d[j].x, d[i].y - d[j].y) >= M.MAP_GAP, 'dots far apart'); n++;
 }
+// «Бүгінгі жаттығу»: weak topics first, then spaced review, then one new topic of the child's grade
+eq(M.dayDiff('2026-11-10', '2026-11-18'), 8, 'days between'); eq(M.reviewDays(10), 7, 'mastered: a week'); eq(M.reviewDays(7), 3, 'good: three days');
+{
+  const today = '2026-11-18';
+  const bestD = { m1count: 4, m1tens: 3, l1pattern: 10, n1season: 7, g2dirs: 9 };
+  const seenD = { m1count: today, m1tens: today, l1pattern: '2026-11-15', n1season: '2026-11-14', g2dirs: '2026-11-10' };
+  for (let k = 0; k < 30; k++) {
+    const mix = M.dailyMix(bestD, seenD, today, 1, rnd), ids = [...new Set(mix.map((x) => x.topic.id))];
+    eq(mix.length, 10, 'ten tasks');
+    assert.ok(ids.includes('m1count') && ids.includes('m1tens'), 'weak topics come every day'); n++;
+    assert.ok(ids.includes('n1season') && ids.includes('g2dirs'), 'due for review: 4 days after 7/10, 8 days after 9/10'); n++;
+    assert.ok(!ids.includes('l1pattern'), 'not due: 10/10 three days ago'); n++;
+    assert.ok(mix.some((x) => x.why === 'new' && x.topic.grade === 1 && bestD[x.topic.id] == null), 'one new topic of grade 1'); n++;
+    assert.ok(mix.every((x) => x.topic.gen && x.q.options.includes(x.q.answer)), 'real tasks'); n++;
+  }
+  // one topic played today (9/10): the fill-up takes other topics of the grade, not that one
+  for (let k = 0; k < 30; k++) { const m2 = M.dailyMix({ m1count: 9 }, { m1count: today }, today, 1, rnd); assert.ok(m2.length === 10 && !m2.some((x) => x.topic.id === 'm1count'), 'a topic done today is not repeated'); n++; }
+  const empty = M.dailyMix({}, {}, today, 3, rnd);
+  eq(empty.length, 10, 'a first-day mix'); assert.ok(empty.every((x) => x.topic.grade === 3), 'a first-day mix is of the child\'s grade'); n++;
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
 assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 6 && M.SUBJECTS[4].topics.length === 4 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 6, cities 4, history 3, reading 3'); n++;
 module.exports = { checks: () => n };

@@ -1250,6 +1250,7 @@
   /* ---------- mini-games host ---------- */
   function startGame(id) {
     if (G && G.cleanup) G.cleanup();
+    [].forEach.call(document.querySelectorAll('.confetti'), function (c) { c.remove(); });   // the celebration belongs to the result screen, not to the next game
     view = 'game'; G = { id: id, cleanup: null };
     var api = {
       words: gradeWords(gIdx()), allWords: ALLWORDS,

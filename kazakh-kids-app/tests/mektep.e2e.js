@@ -50,6 +50,21 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   await p.click('#mkcopy'); await p.waitForTimeout(300);
   assert(/✓/.test(await p.textContent('#mkcopy')), 'the report is copied');
   await p.click('#mkback'); await p.waitForTimeout(150);
+  // «Бүгінгі жаттығу»: 10 tasks; the 9/10 topic played today is not due; a new grade-1 topic is in; all right → 10 / 10
+  await p.click('#mkmix'); await p.waitForTimeout(250);
+  const mx = await p.evaluate(() => window.__mk());
+  assert(mx.n === 10 && mx.topic === 'mix' && !mx.mix.some((x) => x.startsWith('m1count:')) && mx.mix.some((x) => x.endsWith(':new')), 'today\'s mix: 10 tasks, a new topic, no topic that is not due: ' + [...new Set(mx.mix)].join(' '));
+  await shot(p, 'mk-mix.png');
+  for (let k = 0; k < 10; k++) {
+    const s = await p.evaluate(() => window.__mk());
+    await p.evaluate((a) => { const b = [...document.querySelectorAll('.mk-o')].find((e) => e.dataset.o === a); b.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, s.answer);
+    await p.waitForFunction((i) => !window.__mk() || window.__mk().i !== i || !!document.querySelector('.result'), s.i, { timeout: 5000 }).catch(() => null);
+    await p.waitForTimeout(120);
+  }
+  await p.waitForSelector('.result', { timeout: 8000 }).catch(() => null);
+  const mres = await p.$eval('.result', (e) => e.innerText.replace(/\s+/g, ' ').slice(0, 120)).catch(() => 'NO RESULT');
+  const st2 = await p.evaluate(() => window.qDebug.state());
+  assert(mres.includes('10 / 10') && st2.mektep.m1count === 9 && Object.keys(st2.mkSeen || {}).length >= 4, 'the mix ends 10 / 10, keeps the bests, marks its topics as reviewed today: ' + mres);
   // open each other topic and screenshot its first task
   for (const [g, t] of [[1, 'm1tens'], [1, 'm1shapes'], [1, 'm1add20'], [1, 'm1compare'], [2, 'm2add100'], [2, 'm2mul'], [2, 'm2money'], [3, 'm3mul69'], [3, 'm3div'], [3, 'm3frac'], [4, 'm4shop'], [4, 'm4place']]) {
     await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);
