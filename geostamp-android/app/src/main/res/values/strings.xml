@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GeoStamp</string>
+    <string name="tile_label">GPS-камера</string>
+    <string name="shortcut_photo_short">Фото с GPS</string>
+    <string name="shortcut_photo_long">Фото с геоштампом</string>
+    <string name="shortcut_video_short">Видео с GPS</string>
+    <string name="shortcut_video_long">Видео с геоштампом</string>
+    <string name="shortcut_gallery_short">Галерея</string>
+</resources>

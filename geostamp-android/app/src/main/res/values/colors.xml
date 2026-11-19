@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- hsl(222 14% 7%) -->
+    <color name="bg">#0F1115</color>
+    <!-- hsl(36 95% 55%) -->
+    <color name="primary">#F99E1A</color>
+</resources>

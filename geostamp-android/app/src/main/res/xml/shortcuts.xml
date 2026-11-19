@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_photo"
+        android:shortcutId="quick_photo"
+        android:shortcutLongLabel="@string/shortcut_photo_long"
+        android:shortcutShortLabel="@string/shortcut_photo_short">
+        <intent
+            android:action="com.geostamp.app.QUICK_PHOTO"
+            android:targetClass="com.geostamp.app.MainActivity"
+            android:targetPackage="com.geostamp.app" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_video"
+        android:shortcutId="quick_video"
+        android:shortcutLongLabel="@string/shortcut_video_long"
+        android:shortcutShortLabel="@string/shortcut_video_short">
+        <intent
+            android:action="com.geostamp.app.QUICK_VIDEO"
+            android:targetClass="com.geostamp.app.MainActivity"
+            android:targetPackage="com.geostamp.app" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_gallery"
+        android:shortcutId="gallery"
+        android:shortcutShortLabel="@string/shortcut_gallery_short">
+        <intent
+            android:action="com.geostamp.app.OPEN_GALLERY"
+            android:targetClass="com.geostamp.app.MainActivity"
+            android:targetPackage="com.geostamp.app" />
+    </shortcut>
+</shortcuts>

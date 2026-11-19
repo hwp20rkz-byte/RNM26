@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- уголки видоискателя -->
+    <path android:strokeColor="#F99E1A" android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M34,42V34h8M66,34h8v8M74,66v8h-8M42,74h-8v-8" />
+    <!-- геометка -->
+    <path android:fillColor="#F2F4F7"
+        android:pathData="M54,36c-7.2,0 -13,5.8 -13,13c0,9.4 13,21 13,21s13,-11.6 13,-21c0,-7.2 -5.8,-13 -13,-13zM54,54.5c-3,0 -5.5,-2.5 -5.5,-5.5s2.5,-5.5 5.5,-5.5s5.5,2.5 5.5,5.5s-2.5,5.5 -5.5,5.5z" />
+</vector>
