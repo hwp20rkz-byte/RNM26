@@ -11,7 +11,10 @@ import androidx.annotation.OptIn
 import androidx.exifinterface.media.ExifInterface
 import androidx.media3.common.MediaItem as M3Item
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.effect.CanvasOverlay
+import androidx.media3.common.Effect
+import androidx.media3.effect.BitmapOverlay
+import androidx.media3.effect.TextureOverlay
+import androidx.media3.common.util.Size
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
@@ -28,7 +31,6 @@ import com.geostamp.app.data.SyncState
 import com.geostamp.app.stamp.StampData
 import com.geostamp.app.stamp.StampFormat
 import com.geostamp.app.stamp.StampRenderer
-import com.google.common.collect.ImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -84,25 +86,14 @@ class CaptureProcessor(private val c: AppContainer) {
 
     /**
      * Видео: CameraX пишет «чистый» файл, затем Media3 Transformer накладывает штамп на каждый кадр
-     * через CanvasOverlay. Часы в штампе идут вместе с видео (опция «живые часы»).
+     * через StampVideoOverlay. Часы в штампе идут вместе с видео (опция «живые часы»).
      */
     @OptIn(UnstableApi::class)
     suspend fun processVideo(raw: File, startStamp: StampData, s: AppSettings): MediaItem {
         val out = c.media.newFile(MediaType.VIDEO, StampFormat.fileStamp(startStamp.timeMillis))
-        val overlay = object : CanvasOverlay(/* useInputFrameAspectRatio = */ true) {
-            private var lastSecond = -1L
-            override fun onDraw(canvas: Canvas, presentationTimeUs: Long) {
-                val sec = presentationTimeUs / 1_000_000
-                // Bitmap оверлея сохраняется между кадрами — перерисовываем только раз в секунду.
-                if (sec == lastSecond || (!s.liveClockInVideo && lastSecond >= 0)) return
-                lastSecond = sec
-                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-                val t = if (s.liveClockInVideo) startStamp.timeMillis + presentationTimeUs / 1000 else startStamp.timeMillis
-                StampRenderer.draw(canvas, canvas.width, canvas.height, startStamp.copy(timeMillis = t), s.template, s.stampOptions)
-            }
-        }
+        val overlay = StampVideoOverlay(startStamp, s)
         val edited = EditedMediaItem.Builder(M3Item.fromUri(Uri.fromFile(raw)))
-            .setEffects(Effects(ImmutableList.of(), ImmutableList.of(OverlayEffect(ImmutableList.of(overlay)))))
+            .setEffects(Effects(emptyList(), listOf<Effect>(OverlayEffect(listOf<TextureOverlay>(overlay)))))
             .build()
 
         withContext(Dispatchers.Main) {
@@ -137,5 +128,45 @@ class CaptureProcessor(private val c: AppContainer) {
         if (s.copyToGallery) c.media.exportToGallery(item)
         if (s.autoUpload && s.driveConnected) c.drive.enqueue(listOf(item.id), s.wifiOnly)
         return item
+    }
+}
+
+/**
+ * Оверлей штампа для Media3 (аналог CanvasOverlay, которого нет в 1.5.x): bitmap размером с кадр,
+ * перерисовывается раз в секунду. BitmapOverlay заливает текстуру в GPU только при смене
+ * generationId bitmap — остальные кадры идут без копирования.
+ */
+@OptIn(UnstableApi::class)
+private class StampVideoOverlay(private val start: StampData, private val s: AppSettings) : BitmapOverlay() {
+    private var bitmap: Bitmap? = null
+    private var canvas: Canvas? = null
+    private var lastSecond = -1L
+
+    override fun configure(videoSize: Size) {
+        super.configure(videoSize)
+        val w = videoSize.width.coerceAtLeast(1)
+        val h = videoSize.height.coerceAtLeast(1)
+        if (bitmap?.width != w || bitmap?.height != h) {
+            bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { canvas = Canvas(it) }
+            lastSecond = -1L
+        }
+    }
+
+    override fun getBitmap(presentationTimeUs: Long): Bitmap {
+        val bmp = bitmap ?: Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888).also { bitmap = it; canvas = Canvas(it) }
+        val c = canvas!!
+        val sec = presentationTimeUs / 1_000_000
+        if (sec != lastSecond && (s.liveClockInVideo || lastSecond < 0)) {
+            lastSecond = sec
+            c.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+            val t = if (s.liveClockInVideo) start.timeMillis + presentationTimeUs / 1000 else start.timeMillis
+            StampRenderer.draw(c, bmp.width, bmp.height, start.copy(timeMillis = t), s.template, s.stampOptions)
+        }
+        return bmp
+    }
+
+    override fun release() {
+        super.release()
+        bitmap?.recycle(); bitmap = null; canvas = null
     }
 }
