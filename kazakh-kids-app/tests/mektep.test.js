@@ -226,6 +226,21 @@ eq(M.dayDiff('2026-11-10', '2026-11-18'), 8, 'days between'); eq(M.reviewDays(10
   const empty = M.dailyMix({}, {}, today, 3, rnd);
   eq(empty.length, 10, 'a first-day mix'); assert.ok(empty.every((x) => x.topic.grade === 3), 'a first-day mix is of the child\'s grade'); n++;
 }
+// «Сынып есебі»: the diary code survives copying through a messenger; damaged codes are skipped; a class table
+{
+  const c1 = M.encodeReport({ m1count: 10, m1tens: 4, g4map: 7 }, 'Әнел Б', 4), c2 = M.encodeReport({ m1count: 9, m1tens: 3 }, 'Арман', 4);
+  const c3 = M.encodeReport({ m1count: 2 }, 'Әнел Б', 4);   // the same pupil again, later
+  assert.ok(/^QVD1:Әнел_Б:4:[0-9A-]+:[0-9a-z]$/.test(c1), 'code shape: ' + c1); n++;
+  const chat = '[18.11 10:02] Әнел: 🏫 Мектеп күнделігі…\nКод для учителя: ' + c1 + '\n[18.11 10:05] Арман: ' + c2 + ' рахмет!\nсломанный: ' + c2.replace(/.$/, (x) => (x === '0' ? '1' : '0'));
+  const rs = M.decodeReports(chat);
+  eq(rs.length, 2, 'two valid codes, the damaged one skipped'); eq(rs[0].name, 'Әнел Б', 'name back'); eq(rs[0].best.m1count, 10, '10 survives'); eq(rs[0].best.g4map, 7, 'a late topic survives');
+  eq(rs[1].best.m1tens, 3, 'second pupil'); eq(Object.keys(rs[1].best).length, 2, 'unplayed stay unplayed');
+  eq(M.decodeReports(chat + '\n' + c3).find((r) => r.name === 'Әнел Б').best.m1count, 2, 'a pupil sending twice: the last code counts');
+  const sum = M.classSummary(rs);
+  eq(sum[0].topic.id, 'm1tens', 'the weakest topic of the class first'); eq(sum[0].weak, 2, 'both pupils weak'); eq(sum[0].weakNames.join(','), 'Әнел Б,Арман', 'who is weak');
+  eq(sum.find((x) => x.topic.id === 'm1count').avg, 9.5, 'average');
+  assert.ok(M.reportText({ m1count: 9 }, 'T', 'ru', '19.11.2026', 1).includes('Код для учителя: QVD1:T:1:'), 'the report carries the code'); n++;
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
 assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 6 && M.SUBJECTS[4].topics.length === 4 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 6, cities 4, history 3, reading 3'); n++;
 module.exports = { checks: () => n };

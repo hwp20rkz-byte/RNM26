@@ -99,16 +99,18 @@
     // «Мектеп күнделігі»: stars and progress per subject, topics worth repeating, a text report to copy for the teacher / parent
     function diaryView() {
       var d = M.diary(S.mektep), lang = en() ? 'en' : 'ru';
-      var rep = M.reportText(S.mektep, S.name || '', lang, new Date().toLocaleDateString('ru-RU'));
+      var rep = M.reportText(S.mektep, S.name || '', lang, new Date().toLocaleDateString('ru-RU'), S.grade || 1);
       api.qs('#mk').innerHTML = '<div class="mk-diary"><h2>📒 Мектеп күнделігі</h2>' + d.map(function (x) {
         return '<div class="mk-row"><span class="i">' + x.icon + '</span><b>' + A.esc(x.kk) + '</b><span class="mk-bar"><i style="width:' + Math.round(x.done / Math.max(1, x.total) * 100) + '%"></i></span>' +
           '<small>' + x.done + ' / ' + x.total + ' · ★ ' + x.stars + '</small></div>' +
           (x.weak.length ? '<div class="mk-weak">' + x.weak.map(function (t) { return '<button class="mk-redo" data-topic="' + t.id + '">↻ ' + A.esc(t.kk) + ' · ' + S.mektep[t.id] + ' / ' + M.ROUND + '</button>'; }).join('') + '</div>' : '');
       }).join('') +
         '<h3>' + A.esc(en() ? 'Report for the teacher or a parent' : 'Отчёт для учителя или родителей') + '</h3><pre class="mk-report" id="mkrep">' + A.esc(rep) + '</pre>' +
-        '<div class="mk-acts"><button class="btn gold" id="mkcopy">📋 ' + A.esc(en() ? 'Copy' : 'Скопировать') + '</button><button class="btn ghost" id="mkback">← ' + A.esc(en() ? 'Subjects' : 'Предметы') + '</button></div></div>';
+        '<div class="mk-acts"><button class="btn gold" id="mkcopy">📋 ' + A.esc(en() ? 'Copy' : 'Скопировать') + '</button><button class="btn ghost" id="mkback">← ' + A.esc(en() ? 'Subjects' : 'Предметы') + '</button></div>' +
+        '<button class="mk-diary-btn" id="mkclass">👩‍🏫 ' + A.esc(en() ? 'For the teacher: class report' : 'Для учителя: сынып есебі — отчёт класса') + '</button></div>';
       api.stat('');
       api.qs('#mkback').onclick = function () { api.sfx.tap(); home(); };
+      api.qs('#mkclass').onclick = function () { api.sfx.tap(); classView(); };
       api.qsa('.mk-redo').forEach(function (b) { b.onclick = function () { api.sfx.tap(); start(M.topicById(b.getAttribute('data-topic'))); }; });
       api.qs('#mkcopy').onclick = function () {
         var done = function () { var b = api.qs('#mkcopy'); if (b) b.textContent = '✓ ' + (en() ? 'Copied' : 'Скопировано'); };
@@ -119,6 +121,18 @@
     }
     var mix = null;
     function todayStr() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    // «Сынып есебі»: the teacher pastes the pupils' messages (each carries a QVD1 code) and gets the class table
+    function classView(text) {
+      var rs = text ? M.decodeReports(text) : [], sum = M.classSummary(rs);
+      api.qs('#mk').innerHTML = '<div class="mk-diary"><h2>👩‍🏫 Сынып есебі</h2><p class="muted">' + A.esc(en() ? 'Paste the pupils\' diary messages (all at once). Only the codes are read; nothing leaves the phone.' : 'Вставьте сообщения учеников с отчётами (можно все сразу). Читаются только коды, ничего не уходит с телефона.') + '</p>' +
+        '<textarea class="mk-paste" id="mkpaste" rows="5" placeholder="QVD1:…">' + A.esc(text || '') + '</textarea>' +
+        '<div class="mk-acts"><button class="btn gold" id="mkbuild">📊 ' + A.esc(en() ? 'Build the table' : 'Построить таблицу') + '</button><button class="btn ghost" id="mkback2">← ' + A.esc(en() ? 'Diary' : 'Дневник') + '</button></div>' +
+        (text ? '<h3>' + A.esc((en() ? 'Pupils: ' : 'Учеников: ') + rs.length) + '</h3>' + (sum.length ? '<table class="mk-class"><tr><th>' + A.esc(en() ? 'Topic' : 'Тема') + '</th><th>' + A.esc(en() ? 'weak' : 'слабо') + '</th><th>' + A.esc(en() ? 'avg' : 'ср.') + '</th></tr>' +
+          sum.map(function (x) { return '<tr class="' + (x.weak * 2 >= x.played ? 'bad' : '') + '"><td><b>' + A.esc(x.topic.kk) + '</b><small>' + A.esc(x.weakNames.join(', ')) + '</small></td><td>' + x.weak + ' / ' + x.played + '</td><td>' + x.avg + '</td></tr>'; }).join('') + '</table>'
+          : '<p class="muted">' + A.esc(en() ? 'No codes found.' : 'Коды не найдены.') + '</p>') : '') + '</div>';
+      api.qs('#mkbuild').onclick = function () { api.sfx.tap(); classView(api.qs('#mkpaste').value || ' '); };
+      api.qs('#mkback2').onclick = function () { api.sfx.tap(); diaryView(); };
+    }
     function start(t) { mix = null; topic = t; qs = M.round(t, Math.random); i = 0; right = 0; show(); }
     // «Бүгінгі жаттығу»: 10 tasks from weak topics, topics due for review and one new topic (no penalty for a missed day)
     function startMix() {

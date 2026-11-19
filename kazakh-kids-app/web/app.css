@@ -1140,3 +1140,10 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 /* 18.11: «Бүгінгі жаттығу» */
 .mk-mix-btn { display: grid; gap: 2px; width: 100%; min-height: 64px; margin: 0 0 var(--s-2); padding: var(--s-2) var(--s-3); border: 2px solid var(--ink-800); border-radius: var(--r-2); background: var(--u-gold, var(--sun-600)); color: var(--ink-800); font: inherit; font-weight: 900; font-size: var(--fs-2); text-align: left; cursor: pointer; box-shadow: var(--lip) var(--ink-800); }
 .mk-mix-btn small { font-weight: 700; font-size: var(--fs-1); }
+
+/* 19.11: «Сынып есебі» */
+.mk-paste { width: 100%; min-height: 120px; padding: var(--s-2); border: 2px solid var(--ink-200); border-radius: var(--r-2); font: inherit; font-size: var(--fs-1); }
+.mk-class { width: 100%; border-collapse: collapse; font-size: var(--fs-1); }
+.mk-class th, .mk-class td { padding: var(--s-1) var(--s-2); border-bottom: 1px solid var(--ink-200); text-align: left; vertical-align: top; color: var(--ink-800); }
+.mk-class td small { display: block; color: var(--ink-600); }
+.mk-class tr.bad td { background: var(--bad-bg); }

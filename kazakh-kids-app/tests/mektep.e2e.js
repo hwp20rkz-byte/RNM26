@@ -75,6 +75,18 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
     assert(ok === t && (await p.$$('.mk-o')).length >= 3, t + ' opens with options');
     await shot(p, 'mk-' + t + '.png');
   }
+  // «Сынып есебі»: the pupil's report carries a code; the teacher pastes two messages and gets the class table
+  await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);
+  await p.click('#mkdiary'); await p.waitForTimeout(200);
+  const myRep = await p.$eval('#mkrep', (e) => e.textContent);
+  assert(/Код для учителя: QVD1:T:1:[0-9A-]+:[0-9a-z]/.test(myRep), 'the diary report carries the teacher code');
+  await p.click('#mkclass'); await p.waitForTimeout(200);
+  const other = await p.evaluate(() => window.QMEKTEP.encodeReport({ m1count: 3, m1shapes: 10 }, 'Арман', 1));
+  await p.fill('#mkpaste', '[Әнел] ' + myRep + '\n[Арман] ' + other + ' рахмет');
+  await p.click('#mkbuild'); await p.waitForTimeout(250);
+  const cls = await p.evaluate(() => ({ h: document.querySelector('.mk-diary h3').textContent, rows: [...document.querySelectorAll('.mk-class tr')].slice(1).map((r) => r.innerText.replace(/\s+/g, ' ')), wide: document.documentElement.scrollWidth }));
+  assert(cls.h.includes('2') && cls.rows.some((r) => r.includes('Арман') && r.includes('1 / 2')) && cls.wide <= 400, 'class table: 2 pupils, the weak topic names who: ' + cls.rows.slice(0, 2).join(' | '));
+  await shot(p, 'mk-class.png');
   // logic (phase 2, day 4): each topic opens and its right option is accepted
   for (const [subj, g, t] of [['logic', 1, 'l1pattern'], ['logic', 1, 'l1odd'], ['logic', 2, 'l2algo'], ['logic', 2, 'l2yurt'], ['logic', 3, 'l3sym'],
     ['nature', 1, 'n1season'], ['nature', 1, 'n1wild'], ['nature', 2, 'n2home'], ['nature', 2, 'n2water'], ['nature', 2, 'n2senses'], ['nature', 3, 'n3redbook'],

@@ -639,7 +639,7 @@
     });
   }
   /** Plain-text report (copied and sent to the teacher or a parent). */
-  function reportText(best, name, lang, date) {
+  function reportText(best, name, lang, date, grade) {
     var en = lang === 'en', d = diary(best), all = d.reduce(function (a, x) { return a + x.total; }, 0), done = d.reduce(function (a, x) { return a + x.done; }, 0);
     var lines = ['🏫 Мектеп күнделігі' + (name ? ' — ' + name : '') + (date ? ' · ' + date : ''),
       (en ? 'Topics done: ' : 'Пройдено тем: ') + done + ' / ' + all + ' · ★ ' + d.reduce(function (a, x) { return a + x.stars; }, 0) + ' / ' + d.reduce(function (a, x) { return a + x.maxStars; }, 0), ''];
@@ -647,6 +647,7 @@
     var weak = []; d.forEach(function (x) { x.weak.forEach(function (t) { weak.push(t.kk + ' — ' + (en ? t.en : t.ru) + ' (' + best[t.id] + ' / ' + ROUND + ')'); }); });
     lines.push(''); lines.push(weak.length ? (en ? 'Worth repeating:' : 'Стоит повторить:') : (en ? 'Nothing to repeat — well done!' : 'Повторять нечего — молодец!'));
     weak.forEach(function (w) { lines.push('• ' + w); });
+    lines.push(''); lines.push((en ? 'Code for the teacher: ' : 'Код для учителя: ') + encodeReport(best, name, grade));
     return lines.join('\n');
   }
   /* ---------- «Бүгінгі жаттығу»: today's mix of 10 tasks (spaced review, no penalty for a missed day) ---------- */
@@ -672,6 +673,36 @@
     var out = [];
     pick.forEach(function (t) { round(t, r).slice(0, 2).forEach(function (q) { out.push({ topic: t, why: why[t.id], q: q }); }); });
     return out;
+  }
+  /* ---------- «Сынып есебі»: a compact diary code the teacher pastes in bulk → a class table (offline, no server) ---------- */
+  // QVD1:<name>:<grade>:<one char per topic in SUBJECTS order: '-' not played, 0–9, 'A' = 10>:<checksum>
+  // Topics are only ever appended to SUBJECTS, so old codes keep their meaning; a shorter code reads as «not played».
+  function allTopics() { var a = []; SUBJECTS.forEach(function (s) { s.topics.forEach(function (t) { a.push(t); }); }); return a; }
+  function check(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 36; return h.toString(36); }
+  function encodeReport(best, name, grade) {
+    var digits = allTopics().map(function (t) { var b = best && best[t.id]; return b == null ? '-' : b >= 10 ? 'A' : String(Math.max(0, b)); }).join('');
+    var body = 'QVD1:' + String(name || '').replace(/[:\s]+/g, '_').slice(0, 24) + ':' + (grade || '') + ':' + digits;
+    return body + ':' + check(body);
+  }
+  /** Every valid code in a pasted text (messages, notes…); wrong or damaged codes are skipped. */
+  function decodeReports(text) {
+    var out = [], re = /QVD1:([^:\s]*):(\d?):([0-9A\-]+):([0-9a-z])/g, m, topics = allTopics();
+    while ((m = re.exec(String(text || '')))) {
+      var body = 'QVD1:' + m[1] + ':' + m[2] + ':' + m[3];
+      if (check(body) !== m[4]) continue;
+      var best = {}; topics.forEach(function (t, i) { var c = m[3][i]; if (c && c !== '-') best[t.id] = c === 'A' ? 10 : +c; });
+      out.push({ name: m[1].replace(/_/g, ' '), grade: m[2] ? +m[2] : null, best: best });
+    }
+    // one pupil sending twice: keep the last code
+    var seenN = {}; return out.reverse().filter(function (r) { var k = r.name.toLowerCase(); if (seenN[k]) return false; seenN[k] = 1; return true; }).reverse();
+  }
+  /** Per topic: how many played, the average, how many are weak (< 6); the weakest topics first. */
+  function classSummary(reports) {
+    return allTopics().map(function (t) {
+      var sc = reports.map(function (r) { return r.best[t.id]; }).filter(function (b) { return b != null; });
+      return { topic: t, played: sc.length, avg: sc.length ? Math.round(sc.reduce(function (a, b) { return a + b; }, 0) / sc.length * 10) / 10 : null,
+        weak: sc.filter(function (b) { return b < 6; }).length, weakNames: reports.filter(function (r) { return r.best[t.id] != null && r.best[t.id] < 6; }).map(function (r) { return r.name; }) };
+    }).filter(function (x) { return x.played > 0; }).sort(function (a, b) { return (b.weak / b.played) - (a.weak / a.played) || a.avg - b.avg; });
   }
   function topicById(id) { var t = null; SUBJECTS.forEach(function (s) { s.topics.forEach(function (x) { if (x.id === id) t = x; }); }); return t; }
   /** Everything a topic can say aloud (for the voice pipeline): number words, prompts, labels. */
@@ -715,5 +746,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });
