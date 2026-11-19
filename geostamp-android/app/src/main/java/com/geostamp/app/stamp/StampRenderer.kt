@@ -22,7 +22,7 @@ object StampRenderer {
     private object C {
         val white = ColorUtils.HSLToColor(floatArrayOf(220f, 0.20f, 0.97f))
         val muted = ColorUtils.setAlphaComponent(white, 0xC8)
-        val accent = ColorUtils.HSLToColor(floatArrayOf(36f, 0.95f, 0.54f))
+        val accent = ColorUtils.HSLToColor(floatArrayOf(24f, 1.00f, 0.55f))
         val ink = ColorUtils.HSLToColor(floatArrayOf(222f, 0.20f, 0.08f))
         val panel = ColorUtils.setAlphaComponent(ColorUtils.HSLToColor(floatArrayOf(222f, 0.25f, 0.06f)), 0x99)
         val panelSolid = ColorUtils.setAlphaComponent(ColorUtils.HSLToColor(floatArrayOf(222f, 0.18f, 0.09f)), 0xE6)

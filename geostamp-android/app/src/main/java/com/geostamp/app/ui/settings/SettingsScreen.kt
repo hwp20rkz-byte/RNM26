@@ -68,6 +68,15 @@ import com.geostamp.app.data.PhotoQuality
 import com.geostamp.app.data.SyncState
 import com.geostamp.app.data.VideoQuality
 import com.geostamp.app.drive.DriveAuth
+import com.geostamp.app.drive.AppSignature
+import com.geostamp.app.drive.DriveApi
+import com.geostamp.app.drive.DriveErrors
+import com.geostamp.app.share.ShareHelper
+import com.geostamp.app.ui.theme.Space
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.DriveFolderUpload
 import com.geostamp.app.stamp.CoordFormat
 import com.geostamp.app.ui.components.SectionTitle
 import com.geostamp.app.ui.components.SettingRow
@@ -94,27 +103,54 @@ fun SettingsScreen(nav: NavController, activity: MainActivity) {
     fun set(t: (AppSettings) -> AppSettings) { scope.launch { c.settings.update(t) } }
     fun say(msg: String) { scope.launch { snackbar.showSnackbar(msg) } }
 
+    var driveStatus by remember { mutableStateOf<String?>(null) }
+    var driveBusy by remember { mutableStateOf(false) }
+    var showDriveHelp by remember { mutableStateOf(false) }
+
+    /** Реальная проверка: создаём/находим папку GeoStamp. Ловит выключенный Drive API, 403 и т.п. */
+    suspend fun verifyDrive(token: String): Boolean = try {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { DriveApi().ensurePath(token, listOf("GeoStamp")) }
+        c.settings.update { it.copy(driveConnected = true) }
+        driveStatus = "✓ Подключено. Папка «GeoStamp» на Диске готова."
+        true
+    } catch (e: Exception) {
+        c.settings.update { it.copy(driveConnected = false) }
+        driveStatus = DriveErrors.explain(e)
+        false
+    }
+
     val authLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { res ->
-        val token = runCatching { Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(res.data).accessToken }.getOrNull()
-        set { it.copy(driveConnected = token != null) }
-        say(if (token != null) "Google Диск подключён" else "Доступ к Диску не предоставлен")
+        scope.launch {
+            try {
+                val r = Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(res.data)
+                val token = r.accessToken
+                if (token != null) verifyDrive(token) else driveStatus = "Доступ к Диску не предоставлен."
+            } catch (e: Exception) {
+                driveStatus = if (res.resultCode == android.app.Activity.RESULT_CANCELED) "Вход отменён." else DriveErrors.explain(e)
+            }
+            driveBusy = false
+        }
     }
 
     fun connectDrive() = scope.launch {
+        driveBusy = true
+        driveStatus = "Подключение…"
         try {
             val r = DriveAuth.authorize(activity)
             val pi = r.pendingIntent
             if (r.hasResolution() && pi != null) {
                 c.lock.allowShortLeave()
                 authLauncher.launch(IntentSenderRequest.Builder(pi.intentSender).build())
-            } else {
-                c.settings.update { it.copy(driveConnected = r.accessToken != null) }
-                say("Google Диск подключён")
+                return@launch // driveBusy сбросит authLauncher
             }
+            val token = r.accessToken
+            if (token != null) verifyDrive(token) else driveStatus = "Google не выдал токен. Повторите попытку."
         } catch (e: Exception) {
-            // Типичная причина — не создан OAuth-клиент Android (пакет + SHA-1) в Google Cloud Console
-            say("Не удалось подключить Диск: ${e.message ?: "проверьте OAuth-клиент"}")
+            driveStatus = DriveErrors.explain(e)
+            if (e is com.google.android.gms.common.api.ApiException &&
+                e.statusCode == com.google.android.gms.common.api.CommonStatusCodes.DEVELOPER_ERROR) showDriveHelp = true
         }
+        driveBusy = false
     }
 
     Box(Modifier.fillMaxSize().background(Tokens.Bg)) {
@@ -172,11 +208,26 @@ fun SettingsScreen(nav: NavController, activity: MainActivity) {
                 Divider()
                 SectionTitle("Google Диск")
                 SettingRow(
-                    Icons.Filled.Cloud, if (s.driveConnected) "Подключён" else "Подключить Google Диск",
-                    if (s.driveConnected) "Папка «GeoStamp» на вашем Диске. Нажмите, чтобы отключить" else "Доступ только к файлам, созданным приложением",
-                    onClick = { if (s.driveConnected) set { it.copy(driveConnected = false, autoUpload = false) } else connectDrive() },
+                    Icons.Filled.Cloud,
+                    when { driveBusy -> "Подключение…"; s.driveConnected -> "Подключён — отключить"; else -> "Подключить Google Диск" },
+                    if (s.driveConnected) "Папки GeoStamp / Объект / Дата на вашем Диске" else "Автозагрузка в фоне. Доступ только к файлам приложения",
+                    onClick = {
+                        if (driveBusy) return@SettingRow
+                        if (s.driveConnected) { set { it.copy(driveConnected = false, autoUpload = false) }; driveStatus = "Отключено." }
+                        else connectDrive()
+                    },
                 )
+                driveStatus?.let {
+                    Text(
+                        it, style = MaterialTheme.typography.bodySmall,
+                        color = if (it.startsWith("✓")) Tokens.Success else if (it.endsWith("…")) Tokens.TextMuted else Tokens.Error,
+                        modifier = Modifier.padding(horizontal = Space.s2, vertical = Space.s1),
+                    )
+                }
+                SettingRow(Icons.Filled.HelpOutline, "Инструкция и SHA-1", "Что указать в Google Cloud Console, если не подключается",
+                    onClick = { showDriveHelp = true })
                 if (s.driveConnected) {
+                    SettingRow(Icons.Filled.Verified, "Проверить подключение", onClick = { connectDrive() })
                     SwitchRow(Icons.Filled.CloudSync, "Автозагрузка новых снимков", checked = s.autoUpload) { v -> set { it.copy(autoUpload = v) } }
                     SwitchRow(Icons.Filled.Wifi, "Только по Wi-Fi", checked = s.wifiOnly) { v -> set { it.copy(wifiOnly = v) } }
                     SwitchRow(Icons.Filled.Folder, "Папки по объектам", "GeoStamp / Объект / Дата", checked = s.driveByProject) { v -> set { it.copy(driveByProject = v) } }
@@ -188,6 +239,9 @@ fun SettingsScreen(nav: NavController, activity: MainActivity) {
                             snackbar.showSnackbar("В очереди: ${pending.size}")
                         }
                     })
+                } else {
+                    SettingRow(Icons.Filled.DriveFolderUpload, "Без настройки: через приложение «Диск»",
+                        "Кнопка «На Диск» в галерее отправит файлы в приложение Google Диск")
                 }
 
                 Divider()
@@ -217,6 +271,8 @@ fun SettingsScreen(nav: NavController, activity: MainActivity) {
         )
     }
 
+    if (showDriveHelp) DriveHelpDialog(activity) { showDriveHelp = false }
+
     if (confirmPinOff) AlertDialog(
         onDismissRequest = { confirmPinOff = false },
         title = { Text("Отключить PIN?") },
@@ -228,3 +284,46 @@ fun SettingsScreen(nav: NavController, activity: MainActivity) {
 
 @Composable
 private fun Divider() = HorizontalDivider(color = Tokens.Outline)
+
+@Composable
+private fun DriveHelpDialog(activity: MainActivity, onDismiss: () -> Unit) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val sha1 = remember { AppSignature.sha1(activity) ?: "не удалось определить" }
+    val pkg = activity.packageName
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Подключение Google Диска") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text("Google пускает приложение к Диску только если в Google Cloud Console есть OAuth-клиент с этими данными:",
+                    style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(Space.s1))
+                Text("Пакет:", style = MaterialTheme.typography.labelSmall, color = Tokens.TextMuted)
+                androidx.compose.foundation.text.selection.SelectionContainer {
+                    Text(pkg, style = MaterialTheme.typography.bodyMedium, color = Tokens.Primary)
+                }
+                Text("SHA-1:", style = MaterialTheme.typography.labelSmall, color = Tokens.TextMuted)
+                androidx.compose.foundation.text.selection.SelectionContainer {
+                    Text(sha1, style = MaterialTheme.typography.bodyMedium, color = Tokens.Primary)
+                }
+                TextButton(onClick = { clipboard.setText(androidx.compose.ui.text.AnnotatedString(sha1)) }) { Text("Скопировать SHA-1") }
+                Text(
+                    "1. console.cloud.google.com → создать проект.\n" +
+                        "2. APIs & Services → Library → Google Drive API → Enable.\n" +
+                        "3. OAuth consent screen → External → добавить свой Gmail в Test users.\n" +
+                        "4. Credentials → Create credentials → OAuth client ID → тип Android → вставить пакет и SHA-1.\n" +
+                        "5. Подождать 5–10 минут и нажать «Подключить» ещё раз.\n\n" +
+                        "Код ошибки 10 = пункт 4 не сделан или SHA-1 не совпадает. 403 = пункт 2 или 3.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                activity.container.lock.allowShortLeave()
+                ShareHelper.openUrl(activity, "https://console.cloud.google.com/apis/credentials")
+            }) { Text("Открыть Console") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
+    )
+}

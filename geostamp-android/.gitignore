@@ -7,3 +7,6 @@ build/
 captures/
 *.jks
 *.keystore
+
+# Постоянный debug-ключ проекта (не секрет): стабильный SHA-1 для OAuth Google Диска
+!app/debug.keystore

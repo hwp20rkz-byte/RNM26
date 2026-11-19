@@ -3,12 +3,15 @@ package com.geostamp.app.ui.gallery
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -65,6 +68,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.geostamp.app.R
@@ -113,7 +117,13 @@ fun GalleryScreen(nav: NavController) {
 
     fun upload() {
         val s = settings ?: return
-        if (!s.driveConnected) { nav.navigate(Routes.SETTINGS); return }
+        if (!s.driveConnected) {
+            // Диск не подключён через OAuth — отдаём файлы приложению «Google Диск»
+            c.lock.allowShortLeave()
+            ShareHelper.sendToDriveApp(ctx, c.media, selection)
+            selected = emptySet()
+            return
+        }
         scope.launch {
             selection.forEach { item -> c.media.update(item.id) { it.copy(sync = SyncState.QUEUED) } }
             c.drive.enqueue(selection.map { it.id }, s.wifiOnly)
@@ -168,14 +178,11 @@ fun GalleryScreen(nav: NavController) {
             }
         }
         if (selecting) {
-            Row(
-                Modifier.fillMaxWidth().background(Tokens.Surface).navigationBarsPadding().padding(Space.s1),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                ActionButton("WhatsApp", painter = R.drawable.ic_whatsapp) { share(true) }
-                ActionButton("Отправить", Icons.Filled.Share) { share(false) }
-                ActionButton("На Диск", Icons.Filled.CloudUpload) { upload() }
-                ActionButton("Удалить", Icons.Filled.Delete) { confirmDelete = true }
+            ActionBar {
+                ActionButton("WhatsApp", painter = R.drawable.ic_whatsapp, modifier = Modifier.weight(1f)) { share(true) }
+                ActionButton("Отправить", Icons.Filled.Share, modifier = Modifier.weight(1f)) { share(false) }
+                ActionButton("На Диск", Icons.Filled.CloudUpload, modifier = Modifier.weight(1f)) { upload() }
+                ActionButton("Удалить", Icons.Filled.Delete, modifier = Modifier.weight(1f)) { confirmDelete = true }
             }
         }
     }
@@ -199,14 +206,33 @@ private fun SyncBadge(state: SyncState, modifier: Modifier) {
 }
 
 @Composable
-private fun ActionButton(label: String, icon: ImageVector? = null, painter: Int? = null, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        IconButton(onClick = onClick) {
-            if (painter != null) Icon(painterResource(painter), label, tint = Tokens.Success)
-            else if (icon != null) Icon(icon, label)
-        }
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Tokens.TextMuted)
+private fun ActionButton(
+    label: String, icon: ImageVector? = null, painter: Int? = null,
+    modifier: Modifier = Modifier, onClick: () -> Unit,
+) {
+    Column(
+        modifier.clip(RoundedCornerShape(Space.s1)).clickable(onClick = onClick).padding(vertical = Space.s1),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (painter != null) Icon(painterResource(painter), null, tint = Tokens.Primary)
+        else if (icon != null) Icon(icon, null, tint = Tokens.Primary)
+        Spacer(Modifier.height(Space.s1 / 2))
+        Text(
+            label, style = MaterialTheme.typography.labelSmall, color = Tokens.Primary,
+            maxLines = 1, softWrap = false, textAlign = TextAlign.Center,
+        )
     }
+}
+
+/** Нижняя панель действий: фиксирована над навигационной панелью, кнопки делят ширину поровну. */
+@Composable
+private fun ActionBar(content: @Composable RowScope.() -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().background(Tokens.SurfaceHigh).navigationBarsPadding()
+            .padding(horizontal = Space.s1, vertical = Space.s1),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
 }
 
 @Composable
@@ -247,33 +273,31 @@ fun ViewerScreen(nav: NavController, id: String) {
             }
         }
         Column(
-            Modifier.fillMaxWidth().background(Tokens.Surface).navigationBarsPadding()
+            Modifier.fillMaxWidth().heightIn(max = 168.dp).background(Tokens.Surface)
                 .verticalScroll(rememberScrollState()).padding(Space.s2),
-        ) {
-            InfoBlock(item, verify)
-            Spacer(Modifier.height(Space.s1))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                ActionButton("WhatsApp", painter = R.drawable.ic_whatsapp) {
-                    c.lock.allowShortLeave()
-                    ShareHelper.share(ctx, c.media, listOf(item), StampFormat.caption(item.toStamp(), settings?.coordFormat ?: CoordFormat.DECIMAL), true)
-                }
-                ActionButton("Отправить", Icons.Filled.Share) {
-                    c.lock.allowShortLeave()
-                    ShareHelper.share(ctx, c.media, listOf(item), StampFormat.caption(item.toStamp()), false)
-                }
-                ActionButton("На Диск", Icons.Filled.CloudUpload) {
-                    val s = settings ?: return@ActionButton
-                    if (!s.driveConnected) nav.navigate(Routes.SETTINGS)
-                    else scope.launch { c.media.update(item.id) { it.copy(sync = SyncState.QUEUED) }; c.drive.enqueue(listOf(item.id), s.wifiOnly) }
-                }
-                if (item.latitude != null && item.longitude != null) ActionButton("Карта", Icons.Filled.Map) {
-                    c.lock.allowShortLeave(); ShareHelper.openInMaps(ctx, item.latitude, item.longitude)
-                }
-                ActionButton("Проверить", Icons.Filled.Verified) {
-                    scope.launch {
-                        verify = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            com.geostamp.app.data.MediaRepository.sha256(c.media.file(item)) == item.sha256
-                        }
+        ) { InfoBlock(item, verify) }
+        ActionBar {
+            val w = Modifier.weight(1f)
+            ActionButton("WhatsApp", painter = R.drawable.ic_whatsapp, modifier = w) {
+                c.lock.allowShortLeave()
+                ShareHelper.share(ctx, c.media, listOf(item), StampFormat.caption(item.toStamp(), settings?.coordFormat ?: CoordFormat.DECIMAL), true)
+            }
+            ActionButton("Отправить", Icons.Filled.Share, modifier = w) {
+                c.lock.allowShortLeave()
+                ShareHelper.share(ctx, c.media, listOf(item), StampFormat.caption(item.toStamp()), false)
+            }
+            ActionButton("На Диск", Icons.Filled.CloudUpload, modifier = w) {
+                val s = settings ?: return@ActionButton
+                if (!s.driveConnected) { c.lock.allowShortLeave(); ShareHelper.sendToDriveApp(ctx, c.media, listOf(item)) }
+                else scope.launch { c.media.update(item.id) { it.copy(sync = SyncState.QUEUED) }; c.drive.enqueue(listOf(item.id), s.wifiOnly) }
+            }
+            if (item.latitude != null && item.longitude != null) ActionButton("Карта", Icons.Filled.Map, modifier = w) {
+                c.lock.allowShortLeave(); ShareHelper.openInMaps(ctx, item.latitude, item.longitude)
+            }
+            ActionButton("Проверить", Icons.Filled.Verified, modifier = w) {
+                scope.launch {
+                    verify = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        com.geostamp.app.data.MediaRepository.sha256(c.media.file(item)) == item.sha256
                     }
                 }
             }

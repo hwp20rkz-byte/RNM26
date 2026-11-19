@@ -28,15 +28,26 @@
 
 **Локально**: Android Studio Ladybug+ → Open `geostamp-android/` → Run. JDK 17, compileSdk 35, minSdk 26.
 
-## Подключение Google Диска (обязательно, иначе загрузка не заработает)
-1. [Google Cloud Console](https://console.cloud.google.com/) → создать проект → **APIs & Services → Library → Google Drive API → Enable**.
-2. **OAuth consent screen**: External, добавить scope `.../auth/drive.file`, добавить свой Google-аккаунт в Test users.
-3. **Credentials → Create credentials → OAuth client ID → Android**: package `com.geostamp.app`, SHA-1 ключа подписи
-   (`./gradlew signingReport` для debug или `keytool -list -v -keystore release.jks`).
-4. client_id в код вставлять не нужно — Google сопоставляет клиента по пакету и SHA-1.
+## Подключение Google Диска
 
-> Debug APK из CI подписан случайным ключом каждой сборки → SHA-1 меняется. Для стабильной работы Диска
-> соберите локально или задайте release-подпись через secrets `GEOSTAMP_KEYSTORE*` (см. `app/build.gradle.kts`).
+Есть два пути:
+
+**A. Без настройки** — если Диск не подключён, кнопка «На Диск» передаёт файлы приложению Google Диск. Работает сразу, но без автозагрузки.
+
+**B. Полная интеграция (автозагрузка, папки по объектам)** — нужен OAuth-клиент:
+1. [Google Cloud Console](https://console.cloud.google.com/) → новый проект.
+2. **APIs & Services → Library → Google Drive API → Enable**.
+3. **OAuth consent screen** → External → добавить свой Gmail в **Test users**.
+4. **Credentials → Create credentials → OAuth client ID → Android**:
+   - Package name: `com.geostamp.app`
+   - SHA-1: `F8:44:68:4C:6A:A1:40:A8:47:5D:D5:A0:68:79:04:CF:25:15:8E:D9`
+5. Подождать 5–10 минут → Настройки → «Подключить Google Диск».
+
+Все сборки (CI и локальные debug) подписаны постоянным ключом `app/debug.keystore`, поэтому SHA-1 выше не меняется.
+Приложение показывает свой реальный SHA-1 в «Настройки → Инструкция и SHA-1» и расшифровывает коды ошибок
+(10 — нет OAuth-клиента/неверный SHA-1, 403 — не включён Drive API или аккаунт не в Test users).
+
+> Для публикации в Google Play нужен отдельный release-ключ (secrets `GEOSTAMP_KEYSTORE*`) и его SHA-1 — ещё один OAuth-клиент.
 
 ## Архитектура
 ```

@@ -47,6 +47,31 @@ object ShareHelper {
         }
     }
 
+    const val DRIVE_APP = "com.google.android.apps.docs"
+
+    fun driveAppInstalled(context: Context) = installed(context, DRIVE_APP)
+
+    /**
+     * Запасной путь без OAuth: передаём файлы приложению «Google Диск», оно само предлагает папку
+     * и загружает. Работает сразу, без настройки Google Cloud — но без автозагрузки и папок по объектам.
+     */
+    fun sendToDriveApp(context: Context, repo: MediaRepository, items: List<MediaItem>) {
+        if (items.isEmpty()) return
+        val uris = ArrayList<Uri>(items.map { repo.uri(it) })
+        val intent = Intent(if (uris.size == 1) Intent.ACTION_SEND else Intent.ACTION_SEND_MULTIPLE).apply {
+            type = if (items.all { it.type == MediaType.PHOTO }) "image/jpeg" else if (items.all { it.type == MediaType.VIDEO }) "video/mp4" else "*/*"
+            if (uris.size == 1) putExtra(Intent.EXTRA_STREAM, uris[0]) else putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            clipData = ClipData.newRawUri(null, uris[0]).apply { uris.drop(1).forEach { addItem(ClipData.Item(it)) } }
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        if (driveAppInstalled(context)) context.startActivity(intent.setPackage(DRIVE_APP))
+        else context.startActivity(Intent.createChooser(intent, "Сохранить на Диск").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    fun openUrl(context: Context, url: String) {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
     fun openInMaps(context: Context, lat: Double, lon: Double) {
         val uri = Uri.parse("geo:$lat,$lon?q=$lat,$lon")
         context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

@@ -200,7 +200,7 @@ private fun SmallAction(title: String, subtitle: String, icon: ImageVector, modi
         Row(Modifier.padding(Space.s2), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
             Icon(icon, null, tint = Tokens.Primary)
             Column {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(title, style = MaterialTheme.typography.titleMedium, color = Tokens.Primary)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Tokens.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }

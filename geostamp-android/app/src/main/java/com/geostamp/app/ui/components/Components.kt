@@ -88,9 +88,9 @@ fun SettingRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Space.s2),
     ) {
-        Icon(icon, null, tint = Tokens.TextMuted)
+        Icon(icon, null, tint = Tokens.Primary)
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = Tokens.Primary)
             if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Tokens.TextMuted)
         }
         trailing?.invoke()

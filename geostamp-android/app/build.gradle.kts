@@ -21,6 +21,14 @@ android {
     }
 
     signingConfigs {
+        // Постоянный debug-ключ в репозитории: одинаковый SHA-1 у всех сборок (CI и локальных),
+        // поэтому OAuth-клиент Google Диска регистрируется один раз и не «слетает» при обновлении.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (releaseKeystore != null) {
             create("release") {
                 storeFile = file(releaseKeystore)

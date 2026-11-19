@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.sp
  */
 object Tokens {
     // Brand
-    val Primary = Color.hsl(36f, 0.95f, 0.54f)       // янтарный — действие, акцент штампа
-    val PrimaryContainer = Color.hsl(36f, 0.60f, 0.18f)
+    val Primary = Color.hsl(24f, 1.00f, 0.55f)       // ярко-оранжевый — кнопки, подписи, опции
+    val PrimaryContainer = Color.hsl(24f, 0.60f, 0.18f)
     val OnPrimary = Color.hsl(222f, 0.20f, 0.08f)
     val Accent = Color.hsl(172f, 0.62f, 0.46f)        // бирюзовый — GPS / облако
     val AccentContainer = Color.hsl(172f, 0.45f, 0.15f)
