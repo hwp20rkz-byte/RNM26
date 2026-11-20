@@ -3,7 +3,7 @@
  * звучит число / слово, на экране — полная фраза (*Сегіз қосу бес тең он үш.*). Лучший результат — S.mektep[тема]. */
 (function () {
   'use strict';
-  var M = window.QMEKTEP, A = window.Q.api, E = window.Q.ext;
+  var M = window.QMEKTEP, A = window.Q.api, E = window.Q.ext, W = window.QWORLD;
   if (!M) return;
   function en() { return A.lang() === 'en'; }
   function T(o) { return en() ? o.en : o.ru; }
@@ -61,11 +61,31 @@
           '<circle class="hit" r="44"/><circle class="dot" r="15"/><text class="lbl" y="-24" text-anchor="middle">' + A.esc(d.id) + '</text></g>';
       }).join('') + '</svg>';
     }
+    if (v.type === 'clock') {   // the short hand points between the hours at half past
+      var ha = (v.h % 12 + v.m / 60) * 30, ma = v.m * 6, ticks = '';
+      for (var k = 0; k < 12; k++) { var a = k * Math.PI / 6; ticks += '<text x="' + (50 + Math.sin(a) * 37).toFixed(1) + '" y="' + (54 - Math.cos(a) * 37).toFixed(1) + '">' + (k || 12) + '</text>'; }
+      return '<svg class="mk-clock" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/>' + ticks +
+        '<line class="h" x1="50" y1="50" x2="' + (50 + Math.sin(ha * Math.PI / 180) * 22).toFixed(1) + '" y2="' + (50 - Math.cos(ha * Math.PI / 180) * 22).toFixed(1) + '"/>' +
+        '<line class="mm" x1="50" y1="50" x2="' + (50 + Math.sin(ma * Math.PI / 180) * 33).toFixed(1) + '" y2="' + (50 - Math.cos(ma * Math.PI / 180) * 33).toFixed(1) + '"/><circle class="c" cx="50" cy="50" r="3.5"/></svg>';
+    }
+    if (v.type === 'story') return '<div class="mk-story"><span class="i">' + v.e + '</span><p>' + A.esc(v.text) + '</p></div>';
     if (v.type === 'sym') return ornament(v.left, null);
     if (v.type === 'coins') return '<div class="mk-coins">' + v.list.map(function (c) { return '<span class="c' + (c >= 100 ? ' big' : '') + '">' + c + '<small>₸</small></span>'; }).join('') + '</div>';
     return '';
   }
 
+  /** A hero's face: the drawn neo-heroes, or an emoji for Баян апай, Ата, Әже, the pupils and the architect. */
+  function face(x) { return x.hero ? W.hero(x.hero, 'happy', 'mk-face') : '<span class="mk-face e">' + x.e + '</span>'; }
+  function bubble(x) { return '<div class="mk-bub">' + face(x) + '<p><b>' + A.esc(x.name || x.kk) + '</b>' + A.esc(x.text) + '</p></div>'; }
+  /** Say lines one after another in their heroes' voices (each waits for the previous recording to end). */
+  function sayChain(lines, isOver) {
+    var k = 0;
+    (function next() {
+      if (k >= lines.length || isOver()) return;
+      var l = lines[k++], au = A.TTS.speak(l.text, true, l.who);
+      if (au && au.addEventListener) au.addEventListener('ended', function () { setTimeout(next, 250); }); else setTimeout(next, 600 + l.text.length * 60);
+    })();
+  }
   window.QARCADE.mektep = function (api) {
     var S = api.S, grade = S.mkGrade || 1, subj = null, topic = null, qs = [], i = 0, right = 0, busy = false, over = false;
     S.mektep = S.mektep || {};
@@ -133,7 +153,18 @@
       api.qs('#mkbuild').onclick = function () { api.sfx.tap(); classView(api.qs('#mkpaste').value || ' '); };
       api.qs('#mkback2').onclick = function () { api.sfx.tap(); diaryView(); };
     }
-    function start(t) { mix = null; topic = t; qs = M.round(t, Math.random); i = 0; right = 0; show(); }
+    function start(t) { mix = null; topic = t; qs = M.round(t, Math.random); i = 0; right = 0; introView(); }
+    // the topic opens with its heroes: a pupil asks, the host says the rule (both in their own voices)
+    function introView() {
+      var it = M.intro(topic);
+      if (!it.length) return show();
+      api.stat('');
+      api.qs('#mk').innerHTML = '<div class="mk-intro"><small>' + A.esc(topic.kk) + '</small>' +
+        it.map(function (x) { return bubble({ hero: x.hero, e: x.e, name: x.name, text: x.kk }); }).join('') +
+        '<button class="btn gold" id="mkgo">' + A.esc(en() ? 'Start ▶' : 'Бастау ▶') + '</button></div>';
+      sayChain(it.map(function (x) { return { text: x.kk, who: x.who }; }), function () { return over || !api.qs('#mkgo'); });
+      api.qs('#mkgo').onclick = function () { api.sfx.tap(); show(); };
+    }
     // «Бүгінгі жаттығу»: 10 tasks from weak topics, topics due for review and one new topic (no penalty for a missed day)
     function startMix() {
       S.mkSeen = S.mkSeen || {};
@@ -153,7 +184,8 @@
           return '<button class="mk-o' + (q.optType ? ' pic' : '') + '" data-o="' + A.esc(o) + '">' + face + (q.labels ? '<small>' + A.esc(q.labels[o]) + '</small>' : '') + '</button>';
         }).join('') + '</div>') + '<div class="mk-fb" id="mkfb"></div></div>';
       var sb = api.qs('.mk-say'); if (sb) sb.onclick = function () { api.TTS.speak(q.kk, true, q.who); };
-      if (q.who) setTimeout(function () { if (!over && qs[i] === q) api.TTS.speak(q.kk, true, q.who); }, 300);   // a character (the tourist) speaks first, in their own voice
+      if (q.story) { var mine = q; sayChain([{ text: q.story, who: q.storyWho }, { text: q.kk, who: q.who }], function () { return over || qs[i] !== mine; }); }   // Ата / Әже tells, a pupil asks
+      else if (q.who) setTimeout(function () { if (!over && qs[i] === q) api.TTS.speak(q.kk, true, q.who); }, 300);   // a character (the tourist) speaks first, in their own voice
       api.qsa('.mk-o').forEach(function (b) { b.onclick = function () { answer(b.getAttribute('data-o'), b); }; });
     }
     function answer(o, btn) {
@@ -161,9 +193,12 @@
       var q = qs[i], ok = o === q.answer;
       var qb = api.qs('.mk-q'); if (qb) qb.classList.add('done');   // the map shows the city names after an answer
       if (ok) { right++; api.sfx.ok(); btn.classList.add('right'); } else { api.sfx.bad(); api.vibrate(40); btn.classList.add('wrong'); api.qsa('.mk-o').forEach(function (b) { if (b.getAttribute('data-o') === q.answer) b.classList.add('right'); }); }
-      api.qs('#mkfb').innerHTML = '<div class="ph-fb ' + (ok ? 'ok' : 'bad') + '"><b>' + (ok ? 'Дұрыс!' : (en() ? 'Answer: ' : 'Ответ: ') + A.esc(q.answer)) + '</b> ' + A.esc(q.full) + '</div>';
-      if (A.TTS.file(q.say)) api.TTS.speak(q.say, true);   // only recorded answers (three-digit numbers are shown, not spoken)
-      setTimeout(function () { if (over) return; i++; if (i >= qs.length) end(); else show(); }, ok ? 1300 : 2200);
+      var tp = mix ? mix[i].topic : topic, host = M.hostOf(tp), tip = M.TIPS[tp.id];
+      api.qs('#mkfb').innerHTML = '<div class="ph-fb ' + (ok ? 'ok' : 'bad') + '"><b>' + (ok ? 'Дұрыс!' : (en() ? 'Answer: ' : 'Ответ: ') + A.esc(q.answer)) + '</b> ' + A.esc(q.full) + '</div>' +
+        (!ok && host && tip ? bubble({ hero: host.hero, e: host.e, name: host.kk, text: tip }) : '');
+      if (!ok && host && tip) sayChain([{ text: q.say, who: null }, { text: tip, who: host.who }].filter(function (x) { return x.text && A.TTS.file(x.text, x.who); }), function () { return over; });   // the host explains after a mistake
+      else if (A.TTS.file(q.say)) api.TTS.speak(q.say, true);   // only recorded answers (three-digit numbers are shown, not spoken)
+      setTimeout(function () { if (over) return; i++; if (i >= qs.length) end(); else show(); }, ok ? 1300 : (host && tip ? 2200 + tip.length * 45 : 2200));   // time to hear the host's rule
     }
     function end() {
       S.mkSeen = S.mkSeen || {};

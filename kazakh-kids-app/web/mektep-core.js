@@ -560,6 +560,131 @@
   GEN.authors = function (r) { return factQ(LIT_AUTHORS, r); };
   GEN.music = function (r) { return factQ(LIT_MUSIC, r); };
 
+  /* ---------- 20.11: new topics (clock, health, safety, city → region, Ata's stories, legends) ---------- */
+  // «Сағат неше?» — whole and half hours on a drawn clock; the words come from the engine (D.timeKk)
+  GEN.clock = function (r) {
+    var h = rint(r, 1, 12), m = r() < 0.5 ? 0 : 30, ans = D.timeKk(h, m);
+    var alt = [D.timeKk(h, 30 - m), D.timeKk(h % 12 + 1, m), D.timeKk((h + 10) % 12 + 1, m)].filter(function (x) { return x !== ans; });
+    return { kk: 'Сағат неше?', ru: 'Который час?', en: 'What time is it?', visual: { type: 'clock', h: h, m: m },
+      answer: ans, options: shuffle([ans].concat(shuffle(alt, r).slice(0, 2)), r), say: ans, full: ans + '.' };
+  };
+  function quizList(list) { return function (r) { var f = list[rint(r, 0, list.length - 1)];
+    return { kk: f.kk, ru: f.ru, en: f.en, visual: { type: 'big', e: f.e, text: '' }, answer: f.a, options: shuffle([f.a].concat(f.d), r), say: f.noSay ? '' : f.a, full: f.full || (f.kk + ' — ' + f.a + '.') }; }; }
+  // health and safety: everyday rules a grade-2 child is taught (own wording; emergency numbers of Kazakhstan)
+  var HEALTH = [
+    { kk: 'Тісті күніне неше рет тазалау керек?', ru: 'Сколько раз в день чистить зубы?', en: 'How many times a day do we brush our teeth?', a: 'екі рет', d: ['ешқашан', 'он рет'], e: '🪥' },
+    { kk: 'Тісті немен тазалаймыз?', ru: 'Чем чистим зубы?', en: 'What do we brush our teeth with?', a: 'тіс щеткасымен', d: ['қасықпен', 'қаламмен'], e: '🦷' },
+    { kk: 'Тамақ алдында не істейміз?', ru: 'Что делаем перед едой?', en: 'What do we do before eating?', a: 'қолды жуамыз', d: ['ұйықтаймыз', 'жүгіреміз'], e: '🧼' },
+    { kk: 'Қай тағам пайдалы?', ru: 'Какая еда полезная?', en: 'Which food is healthy?', a: 'алма', d: ['кәмпит', 'чипсы'], e: '🍽️' },
+    { kk: 'Күн сайын не ішкен пайдалы?', ru: 'Что полезно пить каждый день?', en: 'What is good to drink every day?', a: 'таза су', d: ['тәтті газды су', 'қою кофе'], e: '🥤' },
+    { kk: 'Таңертең не істейміз?', ru: 'Что делаем утром?', en: 'What do we do in the morning?', a: 'жаттығу жасаймыз', d: ['түні бойы ойнаймыз', 'тәтті жейміз'], e: '🌅' },
+    { kk: 'Ауырып қалсақ, кімге барамыз?', ru: 'К кому идём, если заболели?', en: 'Who do we go to when we are ill?', a: 'дәрігерге', d: ['шаштаразға', 'дүкенге'], e: '🤒' },
+    { kk: 'Көзге не зиян?', ru: 'Что вредно для глаз?', en: 'What is bad for the eyes?', a: 'телефонға ұзақ қарау', d: ['серуендеу', 'ұйықтау'], e: '👀' },
+    { kk: 'Денсаулық үшін не керек?', ru: 'Что нужно для здоровья?', en: 'What do we need to stay healthy?', a: 'спорт', d: ['көп тәтті', 'ұйқысыз түн'], e: '⚽' },
+    { kk: 'Көшеден келгенде не істейміз?', ru: 'Что делаем, придя с улицы?', en: 'What do we do when we come in from outside?', a: 'қолды жуамыз', d: ['бірден тамақ жейміз', 'төсекке жатамыз'], e: '🚿' }
+  ];
+  var SAFETY = [
+    { kk: 'Қызыл шам жанса, не істейміз?', ru: 'Горит красный — что делаем?', en: 'The light is red — what do we do?', a: 'тоқтаймыз', d: ['жүреміз', 'жүгіреміз'], e: '🔴' },
+    { kk: 'Жасыл шам жанса, не істейміз?', ru: 'Горит зелёный — что делаем?', en: 'The light is green — what do we do?', a: 'жүреміз', d: ['тоқтаймыз', 'отырамыз'], e: '🟢' },
+    { kk: 'Көшені қай жерден кесіп өтеміз?', ru: 'Где переходим улицу?', en: 'Where do we cross the street?', a: 'жаяу жүргінші өткелінен', d: ['кез келген жерден', 'көліктің артынан'], e: '🚸' },
+    { kk: 'Өрт болса, қай нөмірге қоңырау шаламыз?', ru: 'Пожар — какой номер?', en: 'A fire — which number?', a: '101', d: ['102', '103'], e: '🔥', noSay: true },
+    { kk: 'Полицияның нөмірі қандай?', ru: 'Номер полиции?', en: 'The police number?', a: '102', d: ['101', '103'], e: '👮', noSay: true },
+    { kk: 'Жедел жәрдемнің нөмірі қандай?', ru: 'Номер скорой помощи?', en: 'The ambulance number?', a: '103', d: ['101', '102'], e: '🚑', noSay: true },
+    { kk: 'Бөтен адам шақырса, не істейміз?', ru: 'Зовёт незнакомец — что делаем?', en: 'A stranger calls you — what do you do?', a: 'бармаймыз', d: ['барамыз', 'соңынан ереміз'], e: '🙅' },
+    { kk: 'Розеткаға саусақ салуға бола ма?', ru: 'Можно ли совать пальцы в розетку?', en: 'May we put a finger into a socket?', a: 'жоқ, болмайды', d: ['иә, болады', 'кейде болады'], e: '🔌' },
+    { kk: 'Велосипед тепкенде не киеміз?', ru: 'Что надеваем на велосипед?', en: 'What do we wear on a bike?', a: 'дулыға', d: ['шляпа', 'орамал'], e: '🚲' },
+    { kk: 'Мұз жұқа болса, не істейміз?', ru: 'Лёд тонкий — что делаем?', en: 'The ice is thin — what do we do?', a: 'мұзға шықпаймыз', d: ['сырғанаймыз', 'секіреміз'], e: '🧊' }
+  ];
+  GEN.health = quizList(HEALTH); GEN.safety = quizList(SAFETY);
+  // «Қала қай облыстың орталығы?» — a card for each of the 17 regional centres
+  function regionQuestion(c) { return c + ' — қай облыстың орталығы?'; }
+  GEN.cityregion = function (r) {
+    var reg = REGIONS[rint(r, 0, REGIONS.length - 1)], c = REGION_CENTER[reg];
+    if (reg.indexOf(c + ' ') === 0 && r() < 0.7) { var hard = REGIONS.filter(function (x) { return x.indexOf(REGION_CENTER[x] + ' ') !== 0; }); reg = hard[rint(r, 0, hard.length - 1)]; c = REGION_CENTER[reg]; }
+    var others = shuffle(REGIONS.filter(function (x) { return x !== reg; }), r).slice(0, 2);
+    return { kk: regionQuestion(c), ru: 'Центром какой области является этот город?', en: 'Which region is this city the centre of?', visual: { type: 'big', e: '📍', text: c },
+      answer: reg, options: shuffle([reg].concat(others), r), say: reg, full: c + ' — ' + G.caseForm(reg, 'ilik') + ' орталығы.' };
+  };
+  // «Атаның әңгімелері»: Ата tells (voice ATA), a pupil asks (ANEL / ALIBEK); facts only from the history table above
+  var ATA_STORIES = [
+    { id: 'khan', text: 'Ертеде Керей мен Жәнібек хандар қазақ елін біріктіріп, Қазақ хандығын құрды. Бұл он бесінші ғасырда болды.', e: '🏇',
+      qs: [HISTORY_KZ[0], HISTORY_KZ[11]] },
+    { id: 'silk', text: 'Ертеде керуендер Қытайдан Еуропаға жібек пен шай тасыды. Бұл жол Ұлы Жібек жолы деп аталды. Оның бойында Отырар, Тараз, Түркістан қалалары болды.', e: '🐫',
+      qs: [HISTORY_WORLD[9], { kk: 'Қай қала Ұлы Жібек жолының бойында болған?', ru: 'Какой город стоял на Шёлковом пути?', en: 'Which city stood on the Silk Road?', a: 'Отырар', d: ['Ақтау', 'Петропавл'] }] },
+    { id: 'gold', text: 'Есік қорғанынан алтын әшекейлі киім киген сақ жауынгері табылды. Оны Алтын адам деп атады. Ол сақтар дәуірінен қалған.', e: '👑',
+      qs: [HISTORY_KZ[7], HISTORY_KZ[6]] },
+    { id: 'indep', text: '1991 жылы Қазақстан тәуелсіз мемлекет болды. Тәуелсіздік күнін біз желтоқсанда тойлаймыз.', e: '🇰🇿',
+      qs: [{ kk: 'Ата, Тәуелсіздік күні қай айда?', ru: 'В каком месяце День Независимости?', en: 'In which month is Independence Day?', a: 'желтоқсанда', d: ['наурызда', 'тамызда'] }, HISTORY_KZ[8]] },
+    { id: 'farabi', text: 'Әл-Фараби Отырар қаласынан шыққан ұлы ғалым. Оны «Екінші ұстаз» деп атайды.', e: '📜',
+      qs: [HISTORY_KZ[5], { kk: 'Әл-Фараби кім болған?', ru: 'Кем был аль-Фараби?', en: 'Who was al-Farabi?', a: 'ғалым', d: ['хан', 'күйші'] }] }
+  ];
+  // «Аңыздар»: two well-known legends in our own retelling (voice AZHE)
+  var LEGENDS = [
+    { id: 'aksak', text: 'Шыңғыс ханның ұлы Жошы аң аулап жүргенде, ақсақ құлан оны тебіп өлтірді. Хан: «Жаман хабар әкелгеннің аузына қорғасын құямын», — деген еді. Сонда күйші Кетбұға «Ақсақ құлан» күйін тартып, болған оқиғаны күймен жеткізді. Хан түсініп, қорғасынды домбыраға құйғызды.', e: '🎻',
+      qs: [{ kk: 'Жаман хабарды ханға кім жеткізді?', ru: 'Кто сообщил хану плохую весть?', en: 'Who brought the bad news to the khan?', a: 'күйші Кетбұға', d: ['Жошы', 'Шыңғыс хан'] },
+        { kk: 'Хабар немен жеткізілді?', ru: 'Чем была передана весть?', en: 'How was the news told?', a: 'күймен', d: ['хатпен', 'суретпен'] },
+        { kk: 'Күйдің аты қалай?', ru: 'Как называется кюй?', en: 'What is the kuy called?', a: 'Ақсақ құлан', d: ['Сарыарқа', 'Адай'] },
+        { kk: 'Қорғасынды неге құйды?', ru: 'Во что залили свинец?', en: 'What was the lead poured into?', a: 'домбыраға', d: ['күйшінің аузына', 'құдыққа'] }] },
+    { id: 'korkyt', text: 'Қорқыт ата өлімнен қашып, қай жерге барса да өзіне қазылған көр көрді. Ол Сырдарияның үстіне кілем төсеп, қобыз тартты. Қобыз үні тұрғанда өлім оған жақындай алмады.', e: '🎶',
+      qs: [{ kk: 'Қорқыт ата қай аспапта ойнады?', ru: 'На каком инструменте играл Коркыт?', en: 'Which instrument did Korkyt play?', a: 'қобызда', d: ['домбырада', 'сыбызғыда'] },
+        { kk: 'Қорқыт ата кілемді қай өзеннің үстіне төседі?', ru: 'Над какой рекой Коркыт расстелил ковёр?', en: 'Over which river did Korkyt spread his carpet?', a: 'Сырдарияның', d: ['Ертістің', 'Жайықтың'] },
+        { kk: 'Қобыз үні тұрғанда не болмады?', ru: 'Чего не случалось, пока звучал кобыз?', en: 'What could not happen while the kobyz played?', a: 'өлім жақындай алмады', d: ['жаңбыр жауды', 'хан келді'] }] }
+  ];
+  function storyGen(list, teller) { return function (r) {
+    var s = list[rint(r, 0, list.length - 1)], k = rint(r, 0, s.qs.length - 1), f = s.qs[k], pupil = (k + s.id.length) % 2 ? 'ANEL' : 'ALIBEK';
+    return { kk: f.kk, ru: f.ru, en: f.en, who: pupil, story: s.text, storyWho: teller, visual: { type: 'story', e: s.e, text: s.text },
+      answer: f.a, options: shuffle([f.a].concat(f.d), r), say: f.noSay ? '' : f.a, full: f.kk + ' — ' + f.a + '.' };
+  }; }
+  GEN.atastory = storyGen(ATA_STORIES, 'ATA'); GEN.legend = storyGen(LEGENDS, 'AZHE');
+
+  /* ---------- 20.11: heroes by situation — a host per subject, a pupil asks, the host explains the rule ---------- */
+  var HOSTS = { math: { who: 'APAI', kk: 'Баян апай', e: '👩‍🏫', ask: 'Апай, бұл қалай шығады?' }, logic: { who: 'E4', kk: 'Әже-Bot 3000', hero: 'azhe', ask: 'Әже-Бот, көмектесші!' },
+    nature: { who: 'T4', kk: 'Айсұлу', hero: 'aisulu', ask: 'Айсұлу, неге олай?' }, geo: { who: 'M1', kk: 'Батыр-X', hero: 'batyr', ask: 'Батыр, мұны қалай табамыз?' },
+    cities: { who: 'ARCH', kk: 'Сәулетші', e: '🧑‍💼', ask: 'Қалай айтамыз, ағай?' }, history: { who: 'ATA', kk: 'Ата', e: '👴', ask: 'Ата, айтып беріңізші!' },
+    lit: { who: 'AZHE', kk: 'Әже', e: '👵', ask: 'Айтып беріңізші, әже!', pupils: ['ALIBEK'] } };   // Әнел's voice swallows «Айтып» every time (ASR 0.68)
+  var PUPILS = [{ who: 'ANEL', kk: 'Әнел', e: '👧' }, { who: 'ALIBEK', kk: 'Әлібек', e: '👦' }];
+  // the rule of each topic, as the host says it (own wording)
+  var TIPS = {
+    m1count: 'Әр затты бір-бірден санаймыз: бір, екі, үш.', m1shapes: 'Шеңбердің бұрышы жоқ, үшбұрыштың үш бұрышы бар, шаршының төрт қабырғасы тең.',
+    m1tens: 'Бір ондық — он бірлік. Алдымен ондықтарды, сосын бірліктерді санаймыз.', m1add20: 'Алдымен онға дейін толықтырамыз, сосын қалғанын қосамыз.',
+    m1compare: 'Үлкен сан артық, кіші сан кем, бірдей болса — тең.', m2add100: 'Ондықтарды ондықтарға, бірліктерді бірліктерге қосамыз.',
+    m2mul: 'Көбейту — бірдей сандарды бірнеше рет қосу.', m2money: 'Тиындарды қосамыз, ең үлкенінен бастаймыз.', m2clock: 'Қысқа тіл сағатты, ұзын тіл минутты көрсетеді.',
+    m3mul69: 'Көбейткіштердің орнын ауыстырсақ, көбейтінді өзгермейді.', m3div: 'Бөлу — көбейтуге кері амал.', m3frac: 'Бөлшектің асты — неше тең бөлік, үсті — нешеуі алынды.',
+    m4shop: 'Бағасын санына көбейтеміз, қалдықты табу үшін азайтамыз.', m4place: 'Үш таңбалы санда жүздіктер, ондықтар және бірліктер бар.',
+    l1pattern: 'Қайталанатын бөлікті тап та, ары қарай жалғастыр.', l1odd: 'Қайсысы басқа топқа жатады? Соны таңда.', l2algo: 'Нұсқарларды ретімен орында: әр қадам — бір шаршы.',
+    l2yurt: 'Киіз үй ретімен тігіледі: алдымен кереге, соңында киіз.', l3sym: 'Айнадағыдай: сол жақ пен оң жақ бірдей болуы керек.',
+    n1season: 'Желтоқсан, қаңтар, ақпан — қыс. Наурыз, сәуір, мамыр — көктем.', n1wild: 'Үй жануарлары адаммен бірге тұрады, жабайы аңдар табиғатта тұрады.',
+    n2home: 'Әр жануар өзіне ыңғайлы жерде тұрады: балық — суда, барыс — тауда.', n2water: 'Су буланады, бұлт болады, сосын жаңбыр болып жауады.',
+    n2senses: 'Көзбен көреміз, құлақпен естиміз, мұрынмен иіс сеземіз.', n2health: 'Таза қол, таза тіс және спорт — денсаулықтың кілті.',
+    n2safety: 'Қызыл — тоқта, жасыл — жүр. Көшені өткелден ғана кесіп өт.', n3redbook: 'Сирек жануарлар Қызыл кітапқа енгізіледі, оларды қорғаймыз.',
+    g2dirs: 'Картада жоғары — солтүстік, төмен — оңтүстік, оң жақ — шығыс, сол жақ — батыс.', g3feature: 'Өзен ағады, көлдің суы бір жерде тұрады, тау биік болады.',
+    g3repcity: 'Республикалық маңызы бар қалалар: Астана, Алматы, Шымкент.', g4center: 'Әр облыстың орталығы бар: Абай облысының орталығы — Семей.',
+    g4map: 'Картада жоғары — солтүстік. Алматы мен Шымкент оңтүстікте.', g4neighbor: 'Қазақстанның көршілері: Ресей, Қытай, Қырғызстан, Өзбекстан, Түрікменстан.',
+    c2landmark: 'Бәйтерек пен Ақорда — Астанада, Медеу мен Көктөбе — Алматыда.', c3river: 'Ертістің бойында — Семей, Павлодар, Өскемен. Жайықтың бойында — Орал мен Атырау.',
+    c3guide: 'Қайда? — Алматыда. Қайда барады? — Алматыға. Қайдан? — Алматыдан.', c3region: 'Әр облыстың бір орталығы бар: Қарағанды облысының орталығы — Қарағанды.',
+    c4tour: 'Қай қалаға? — деп сұрасақ: Астанаға, Алматыға, Түркістанға.',
+    h5timeline: 'Ерте заманнан бүгінге қарай ретімен қой: пирамидалар — ең ертедегісі.', h5kz: 'Қазақ хандығын Керей мен Жәнібек құрды.',
+    h5world: 'Пирамидалар — Мысырда, Колизей — Римде, Ұлы қорған — Қытайда.', h5ata: 'Әңгімені мұқият тыңда, сосын сұраққа жауап бер.',
+    r2genre: 'Мақал — қысқа ақыл сөз. Жұмбақтың шешуі болады. Ертегі «Ерте, ерте, ертеде» деп басталады.', r3music: 'Домбыраның екі ішегі бар, күйді аспаппен орындайды.',
+    r3legend: 'Аңызды мұқият тыңда: кім, не істеді, не болды?', r4authors: '«Қара сөздер» — Абайдікі, «Кел, балалар, оқылық» — Алтынсариндікі.'
+  };
+  function subjectOf(topic) { var out = null; SUBJECTS.forEach(function (s) { if (s.topics.indexOf(topic) >= 0) out = s; }); return out; }
+  /** The two opening lines of a topic: a pupil asks the host, the host says the rule. */
+  function intro(topic) {
+    var s = subjectOf(topic); if (!s) return [];
+    var h = HOSTS[s.id], ps = PUPILS.filter(function (x) { return !h.pupils || h.pupils.indexOf(x.who) >= 0; }), p = ps[s.topics.indexOf(topic) % ps.length];
+    return [{ who: p.who, name: p.kk, e: p.e, kk: h.ask }, { who: h.who, name: h.kk, e: h.e, hero: h.hero, kk: TIPS[topic.id] }];
+  }
+  function hostOf(topic) { var s = subjectOf(topic); return s ? HOSTS[s.id] : null; }
+  /** Every hero line with its voice tag (for tools/collect-phrases.js → Freedom Speech). */
+  function heroLines() {
+    var out = [];
+    SUBJECTS.forEach(function (s) { PUPILS.forEach(function (p) { if (!HOSTS[s.id].pupils || HOSTS[s.id].pupils.indexOf(p.who) >= 0) out.push({ who: p.who, kk: HOSTS[s.id].ask }); }); s.topics.forEach(function (t) { out.push({ who: HOSTS[s.id].who, kk: TIPS[t.id] }); }); });
+    ATA_STORIES.forEach(function (st) { out.push({ who: 'ATA', kk: st.text }); st.qs.forEach(function (q) { PUPILS.forEach(function (p) { out.push({ who: p.who, kk: q.kk }); }); }); });
+    LEGENDS.forEach(function (st) { out.push({ who: 'AZHE', kk: st.text }); st.qs.forEach(function (q) { PUPILS.forEach(function (p) { out.push({ who: p.who, kk: q.kk }); }); }); });
+    return out;
+  }
+
   // Предметы фазы 2 (plan-10-days.md). Классы и темы — по типовым программам РК; сверка с официальным текстом — в методичке.
   var SUBJECTS = [
     { id: 'math', icon: '🔢', kk: 'Математика', ru: 'Математика', en: 'Maths', hue: 'blue', topics: [
@@ -570,6 +695,7 @@
       { id: 'm1compare', grade: 1, gen: 'compare', kk: 'Сандарды салыстыру', ru: 'Сравнение чисел', en: 'Comparing numbers' },
       { id: 'm2add100', grade: 2, gen: 'add100', kk: 'Қосу және азайту 100 көлемінде', ru: 'Сложение и вычитание до 100', en: 'Adding and taking away to 100' },
       { id: 'm2mul', grade: 2, gen: 'mul', kk: 'Көбейту кестесі (2–5)', ru: 'Таблица умножения (2–5)', en: 'Times tables (2–5)' },
+      { id: 'm2clock', grade: 2, gen: 'clock', kk: 'Сағат неше?', ru: 'Который час?', en: 'What time is it?' },
       { id: 'm2money', grade: 2, gen: 'money', kk: 'Ақша: теңге', ru: 'Деньги: тенге', en: 'Money: tenge' },
       { id: 'm3mul69', grade: 3, gen: 'mul69', kk: 'Көбейту кестесі (6–9)', ru: 'Таблица умножения (6–9)', en: 'Times tables (6–9)' },
       { id: 'm3div', grade: 3, gen: 'div', kk: 'Бөлу', ru: 'Деление', en: 'Division' },
@@ -589,6 +715,8 @@
       { id: 'n1wild', grade: 1, gen: 'wild', kk: 'Үй жануары ма, жабайы ма?', ru: 'Домашние и дикие', en: 'Farm or wild?' },
       { id: 'n2home', grade: 2, gen: 'home', kk: 'Кім қайда тұрады?', ru: 'Кто где живёт?', en: 'Who lives where?' },
       { id: 'n2water', grade: 2, gen: 'water', kk: 'Судың айналымы', ru: 'Круговорот воды', en: 'The water cycle' },
+      { id: 'n2health', grade: 2, gen: 'health', kk: 'Денсаулық', ru: 'Здоровье', en: 'Health' },
+      { id: 'n2safety', grade: 2, gen: 'safety', kk: 'Қауіпсіздік', ru: 'Безопасность', en: 'Safety' },
       { id: 'n2senses', grade: 2, gen: 'senses', kk: 'Сезім мүшелері', ru: 'Органы чувств', en: 'The senses' },
       { id: 'n3redbook', grade: 3, gen: 'redbook', kk: 'Қызыл кітап', ru: 'Красная книга', en: 'The Red Book' }
     ] },
@@ -604,15 +732,18 @@
       { id: 'c2landmark', grade: 2, gen: 'landmark', kk: 'Көрікті жерлер', ru: 'Достопримечательности', en: 'Landmarks' },
       { id: 'c3river', grade: 3, gen: 'river', kk: 'Қалалар мен өзендер', ru: 'Города на реках', en: 'Cities and rivers' },
       { id: 'c4tour', grade: 4, gen: 'tour', kk: 'Саяхат: турист сұрайды', ru: 'Путешествие: спрашивает турист', en: 'A journey: the tourist asks' },
+      { id: 'c3region', grade: 3, gen: 'cityregion', kk: 'Қала қай облыстың орталығы?', ru: 'Центр какой области?', en: 'Which region is it the centre of?' },
       { id: 'c3guide', grade: 3, gen: 'guide', kk: 'Гид бол: қайда? қайдан?', ru: 'Будь гидом: где? куда? откуда?', en: 'Be a guide: where to / from?' }
     ] },
     { id: 'history', icon: '📜', kk: 'Тарих', ru: 'История (5 класс)', en: 'History (grade 5)', hue: 'red', topics: [
       { id: 'h5timeline', grade: 5, gen: 'timeline', kk: 'Уақыт өзені: қайсысы бұрын?', ru: 'Река времени: что раньше?', en: 'River of time: what came first?' },
       { id: 'h5kz', grade: 5, gen: 'histkz', kk: 'Қазақстан тарихы: кім? қашан? қайда?', ru: 'История Казахстана: кто? когда? где?', en: 'History of Kazakhstan' },
+      { id: 'h5ata', grade: 5, gen: 'atastory', kk: 'Атаның әңгімелері', ru: 'Рассказы дедушки', en: 'Grandpa\'s stories' },
       { id: 'h5world', grade: 5, gen: 'histworld', kk: 'Ежелгі әлем', ru: 'Древний мир', en: 'The ancient world' }
     ] },
     { id: 'lit', icon: '📖', kk: 'Әдебиеттік оқу', ru: 'Литературное чтение, музыка, искусство', en: 'Reading, music, art', hue: 'pink', topics: [
       { id: 'r2genre', grade: 2, gen: 'genre', kk: 'Мақал, жұмбақ, ертегі', ru: 'Пословица, загадка, сказка', en: 'Proverb, riddle, tale' },
+      { id: 'r3legend', grade: 3, gen: 'legend', kk: 'Аңыздар: Ақсақ құлан, Қорқыт', ru: 'Легенды', en: 'Legends' },
       { id: 'r3music', grade: 3, gen: 'music', kk: 'Музыка және өнер', ru: 'Музыка и искусство', en: 'Music and art' },
       { id: 'r4authors', grade: 4, gen: 'authors', kk: 'Кім жазған?', ru: 'Кто написал?', en: 'Who wrote it?' }
     ] }
@@ -735,6 +866,10 @@
     HISTORY_KZ.concat(HISTORY_WORLD).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
     EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
     Object.keys(CITY_LL).forEach(function (c) { out.push(c + ' қай жерде?'); out.push(c); });
+    for (var hh = 1; hh <= 12; hh++) { out.push(D.timeKk(hh, 0)); out.push(D.timeKk(hh, 30)); } out.push('Сағат неше?');
+    HEALTH.concat(SAFETY).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
+    REGIONS.forEach(function (g) { out.push(regionQuestion(REGION_CENTER[g])); });
+    ATA_STORIES.concat(LEGENDS).forEach(function (st) { st.qs.forEach(function (q) { if (!q.noSay) out.push(q.a); }); });
     LAB_HOMES.forEach(function (x) { out.push(x.kk); out.push(x.at); out.push(cap(x.kk) + ' ' + x.at + ' тұрады.'); });
     CHAINS.forEach(function (c) { c.forEach(function (x) { out.push(x.kk); }); out.push(c.map(function (x) { return x.kk; }).join(' — ')); });
     ['Бұл жануар қайда тұрады?', 'Тізбекте не жетіспейді?'].forEach(function (x) { out.push(x); });
@@ -746,5 +881,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

@@ -1150,3 +1150,20 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 
 /* 20.11: «Үлкен әріп» — the same 5-step type scale, one step larger (Profile → Әріп өлшемі) */
 html.big-text { --fs-1: 17px; --fs-2: 20px; --fs-3: 24px; --fs-4: 32px; }
+
+/* 20.11: heroes in «Мектеп», the clock, stories */
+.mk-intro { display: grid; gap: var(--s-3); }
+.mk-bub { display: grid; grid-template-columns: 64px 1fr; gap: var(--s-2); align-items: start; }
+.mk-bub p { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-2); background: var(--ink-0); border: 2px solid var(--ink-200); color: var(--ink-800); font-weight: 700; font-size: var(--fs-2); }
+.mk-bub p b { display: block; font-size: var(--fs-1); color: var(--ink-600); }
+.mk-face { width: 64px; height: 64px; }
+.mk-face.e { display: grid; place-items: center; font-size: var(--fs-5); line-height: 1; }
+.ph-fb + .mk-bub, .mk-fb .mk-bub { margin-top: var(--s-2); }
+.mk-clock { width: 170px; height: 170px; }
+.mk-clock circle { fill: var(--ink-0); stroke: var(--ink-800); stroke-width: 3; }
+.mk-clock text { font-size: 9px; font-weight: 900; text-anchor: middle; fill: var(--ink-800); }
+.mk-clock line { stroke: var(--ink-800); stroke-linecap: round; } .mk-clock line.h { stroke-width: 5; } .mk-clock line.mm { stroke-width: 3; stroke: var(--u-blue); }
+.mk-clock circle.c { fill: var(--ink-800); stroke: none; }
+.mk-story { display: grid; grid-template-columns: auto 1fr; gap: var(--s-2); align-items: start; text-align: left; }
+.mk-story .i { font-size: var(--fs-5); line-height: 1; }
+.mk-story p { margin: 0; font-weight: 700; font-size: var(--fs-2); color: var(--ink-800); line-height: 1.4; }

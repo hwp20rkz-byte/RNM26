@@ -171,7 +171,7 @@
           curAudio = new Audio(k + '.' + (window.QAUDIO_EXT || 'mp3'));   // mp3, or ogg (Opus) in an OPUS=1 build
           var p = curAudio.play(); if (p && p.catch) p.catch(function () { /* autoplay blocked */ });
         } catch (e) { /* ignore */ }
-        return;
+        return curAudio;   // callers may chain lines on «ended» (heroes' dialogues in «Мектеп»)
       }
       (window.qMissing = window.qMissing || []).push(text);
       // not bundled: the voice server's /tts (cached by the WebView forever), then the phone's own TTS

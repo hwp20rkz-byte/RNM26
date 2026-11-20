@@ -39,5 +39,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Отправь зверя в его дом на диораме; заполни пропуск в цепочке «растение → травоядное → хищник»', en: 'Send each animal to its habitat on the diorama; fill the gap in a food chain' } },
   { id: 'river', kk: 'Уақыт өзені', ru: 'Река времени', en: 'River of Time', icon: '⏳', ready: true,
     pillar: { ru: 'Мектеп · тарих 5: что было раньше — от пирамид до Тәуелсіздік', en: 'School · history 5: what came first — from the pyramids to independence' },
-    mechanic: { ru: 'Расставь четыре события на камнях реки от «Ерте» к «Бүгін»', en: 'Put four events on the river stones from long ago to today' } }
+    mechanic: { ru: 'Расставь четыре события на камнях реки от «Ерте» к «Бүгін»', en: 'Put four events on the river stones from long ago to today' } },
+  { id: 'tower', kk: 'Көбейту мұнарасы', ru: 'Башня умножения и фигуры', en: 'Multiplication Tower', icon: '🏗️', ready: true,
+    pillar: { ru: 'Мектеп · математика 1–3: таблица умножения 2–9, объёмные фигуры', en: 'School · maths 1–3: times tables 2–9, 3D shapes' },
+    mechanic: { ru: 'Сосчитай башню из этажей и кубиков умножением; назови шар, куб, цилиндр, конус, пирамиду', en: 'Count a tower of floors and cubes by multiplying; name the 3D shapes' } }
 ];

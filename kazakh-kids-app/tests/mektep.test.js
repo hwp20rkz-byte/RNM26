@@ -113,7 +113,7 @@ eq(M.LANDMARK['Бәйтерек'], 'Астана', 'Бәйтерек'); eq(M.LAN
 eq(M.CITY_RIVER['Орал'], 'Жайық', 'Орал on the Жайық'); eq(M.CITY_RIVER['Астана'], 'Есіл', 'Астана on the Есіл'); eq(M.CITY_RIVER['Семей'], 'Ертіс', 'Семей on the Ертіс');
 assert.ok(!M.GUIDE_CITIES.includes('Қонаев'), 'Қонаев is left out of the guide (spelling of its endings varies)'); n++;
 const cities = M.SUBJECTS.find((x) => x.id === 'cities');
-eq(cities.topics.length, 4, 'four city topics');
+eq(cities.topics.length, 5, 'five city topics');
 for (const t of cities.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
 for (const t of cities.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === q.options.length && q.options.length >= 3, t.id + ' options'); n++;
@@ -140,7 +140,7 @@ for (const f of allHist) { assert.ok(f.d.length >= 2 && !f.d.includes(f.a) && ne
 assert.ok(M.EVENTS.length >= 8 && M.EVENTS.every((e) => typeof e.y === 'number' && e.kk && e.e), 'events'); n++;
 eq(M.EVENTS.find((e) => /хандығы/.test(e.kk)).y, 1465, 'the Kazakh Khanate'); eq(M.EVENTS.find((e) => /тәуелсіздік/.test(e.kk)).y, 1991, 'independence');
 const hist = M.SUBJECTS.find((x) => x.id === 'history');
-eq(hist.topics.length, 3, 'three history topics'); assert.ok(hist.topics.every((t) => t.grade === 5), 'grade 5'); n++;
+eq(hist.topics.length, 4, 'four history topics'); assert.ok(hist.topics.every((t) => t.grade === 5), 'grade 5'); n++;
 for (const t of hist.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
 for (const t of hist.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === 3, t.id + ' options'); n++;
@@ -148,7 +148,7 @@ for (const t of hist.topics) for (let k = 0; k < 40; k++) for (const q of M.roun
     const ev = q.options.map((o) => M.EVENTS.find((e) => e.kk === o)), ys = ev.map((e) => e.y).sort((a, b) => a - b);
     eq(q.answer, ev.reduce((a, b) => (b.y < a.y ? b : a)).kk, 'earliest event');
     assert.ok(ys[1] - ys[0] >= 300 && ys[2] - ys[1] >= 300, 'events far apart: ' + ys.join(' ')); n++;
-  } else { const f = allHist.find((x) => x.kk === q.kk); eq(q.answer, f.a, q.kk); }
+  } else if (!q.story) { const f = allHist.find((x) => x.kk === q.kk); eq(q.answer, f.a, q.kk); }   // stories have their own check
 }
 // day 9: reading, music and art — reference answers written by hand
 const LIT_REF = { '«Қара сөздерді» кім жазған?': 'Абай Құнанбайұлы', '«Кел, балалар, оқылық» өлеңін кім жазған?': 'Ыбырай Алтынсарин', '«Маса» кітабын кім жазған?': 'Ахмет Байтұрсынұлы',
@@ -161,23 +161,23 @@ for (const g of M.GENRES) { assert.ok(['мақал-мәтел', 'жұмбақ', 
 assert.ok(M.GENRES.filter((g) => g.a === 'ертегі').every((g) => /^Ерте, ерте, ертеде/.test(g.text)), 'every tale sample opens with the folk formula'); n++;
 assert.ok(M.GENRES.filter((g) => g.a === 'жұмбақ').every((g) => /\?$/.test(g.text)), 'every riddle asks'); n++;
 const lit = M.SUBJECTS.find((x) => x.id === 'lit');
-eq(lit.topics.length, 3, 'three reading topics');
-for (const t of lit.topics) { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }
+eq(lit.topics.length, 4, 'four reading topics');
+for (const t of lit.topics) if (t.id !== 'r3legend') { eq(M.round(t, rnd).length, 10, t.id + ': a full round of 10'); }   // the legends have 7 questions (checked below)
 for (const t of lit.topics) for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
   assert.ok(q.options.includes(q.answer) && new Set(q.options).size === 3, t.id + ' options'); n++;
   if (t.gen === 'genre') eq(q.answer, M.GENRES.find((g) => g.text === q.visual.text).a, 'genre of ' + q.visual.text);
-  else eq(q.answer, allLit.find((x) => x.kk === q.kk).a, q.kk);
+  else if (!q.story) eq(q.answer, allLit.find((x) => x.kk === q.kk).a, q.kk);
 }
 // day 10: the diary — stars, progress per subject, topics to repeat, the report text
 eq([undefined, 0, 1, 5, 6, 8, 9, 10].map(M.stars).join(''), '00112233', 'stars for a best score');
 const best = { m1count: 9, m1tens: 4, l1pattern: 10, g2dirs: 6 };
 const dia = M.diary(best), mathD = dia.find((x) => x.id === 'math');
-eq(mathD.done, 2, 'maths: two topics played'); eq(mathD.stars, 4, 'maths: 3 + 1 stars'); eq(mathD.maxStars, 39, 'maths: 13 topics × 3');
+eq(mathD.done, 2, 'maths: two topics played'); eq(mathD.stars, 4, 'maths: 3 + 1 stars'); eq(mathD.maxStars, 42, 'maths: 14 topics × 3');
 eq(mathD.weak.map((t) => t.id).join(), 'm1tens', 'below 6 is worth repeating');
 eq(dia.find((x) => x.id === 'geo').weak.length, 0, '6 / 10 is not weak');
 eq(dia.length, 7, 'seven subjects'); eq(M.diary({}).every((x) => x.done === 0 && x.stars === 0), true, 'an empty diary');
 const rep = M.reportText(best, 'Әнел', 'ru', '17.11.2026');
-assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 40') && rep.includes('🔢 Математика: 2 / 13 · ★ 4 / 39') && rep.includes('📜 Тарих — История (5 класс): 0 / 3') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
+assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 46') && rep.includes('🔢 Математика: 2 / 14 · ★ 4 / 42') && rep.includes('📜 Тарих — История (5 класс): 0 / 4') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
 assert.ok(M.reportText({ m1count: 10 }, '', 'en').includes('Nothing to repeat'), 'nothing to repeat'); n++;
 // the map: the cities sit where a child expects them (checked by hand against a school atlas)
 const xy = (c) => M.cityXY(c);
@@ -241,7 +241,32 @@ eq(M.dayDiff('2026-11-10', '2026-11-18'), 8, 'days between'); eq(M.reviewDays(10
   eq(sum.find((x) => x.topic.id === 'm1count').avg, 9.5, 'average');
   assert.ok(M.reportText({ m1count: 9 }, 'T', 'ru', '19.11.2026', 1).includes('Код для учителя: QVD1:T:1:'), 'the report carries the code'); n++;
 }
+// 20.11 — new topics: the clock (words from the engine), health, safety, city → region, Ata's stories, legends
+{
+  const ck = M.topicById('m2clock'); eq(M.round(ck, rnd).length, 10, 'clock: a round of 10');
+  for (let k = 0; k < 40; k++) for (const q of M.round(ck, rnd)) { eq(q.answer, ((global.window && global.window.QDATA) || global.QDATA).timeKk(q.visual.h, q.visual.m), 'clock answer'); assert.ok(new Set(q.options).size === 3 && q.options.includes(q.answer), 'clock options'); n++; }
+  eq(((global.window && global.window.QDATA) || global.QDATA).timeKk(3, 30), 'Сағат үш жарым', 'reference: half past three');
+  for (const id of ['n2health', 'n2safety']) { const t = M.topicById(id); eq(M.round(t, rnd).length, 10, id + ': a round of 10'); for (let k = 0; k < 20; k++) for (const q of M.round(t, rnd)) { assert.ok(new Set(q.options).size === 3 && q.options.includes(q.answer), id + ' options'); n++; } }
+  eq(M.SAFETY.find((f) => /Өрт/.test(f.kk)).a, '101', 'fire: 101'); eq(M.SAFETY.find((f) => /Полиция/.test(f.kk)).a, '102', 'police: 102'); eq(M.SAFETY.find((f) => /Жедел/.test(f.kk)).a, '103', 'ambulance: 103');
+  const cr = M.topicById('c3region'); eq(M.round(cr, rnd).length, 10, 'city → region: a round of 10');
+  for (let k = 0; k < 40; k++) for (const q of M.round(cr, rnd)) { eq(M.REGION_CENTER[q.answer], q.visual.text, 'region of ' + q.visual.text); assert.ok(!/undefined/.test(q.full) && q.full.includes(' облысының орталығы'), 'genitive from the engine: ' + q.full); n++; }
+  for (const [id, list, teller] of [['h5ata', M.ATA_STORIES, 'ATA'], ['r3legend', M.LEGENDS, 'AZHE']]) {
+    const t = M.topicById(id), r1 = M.round(t, rnd); assert.ok(r1.length >= 7, id + ': at least 7 different questions'); n++;
+    for (let k = 0; k < 40; k++) for (const q of M.round(t, rnd)) {
+      const st = list.find((s) => s.text === q.story); assert.ok(st && q.storyWho === teller && ['ANEL', 'ALIBEK'].includes(q.who), id + ': a story, its teller, a pupil asks'); n++;
+      const f = st.qs.find((x) => x.kk === q.kk); eq(q.answer, f.a, id + ' answer');
+      // the answer is told in the story (a year or a word of it), so the question is fair
+      const core = String(f.a).replace(/(ғасырда|ның|нің|да|де|ға|ге|нан|нен|ны|ні|ды|ді|ке|қа)$/u, '').split(' ')[0].slice(0, 4).toLowerCase();
+      assert.ok(q.story.toLowerCase().includes(core) || /XV/.test(f.a) && /он бесінші/.test(q.story), id + ': the story tells «' + f.a + '»'); n++;
+    }
+  }
+  // heroes: every topic has its host and a tip; the intro is a pupil, then the host
+  const allT = []; M.SUBJECTS.forEach((s) => s.topics.forEach((t) => allT.push(t)));
+  for (const t of allT) { const it = M.intro(t); assert.ok(it.length === 2 && ['ANEL', 'ALIBEK'].includes(it[0].who) && it[1].kk === M.TIPS[t.id] && M.TIPS[t.id].length > 10, 'intro of ' + t.id); n++; }
+  eq(M.hostOf(M.topicById('h5kz')).who, 'ATA', 'history: Ата'); eq(M.hostOf(M.topicById('m1count')).who, 'APAI', 'maths: Баян апай');
+  const hl = M.heroLines(); assert.ok(hl.length > 80 && hl.every((x) => x.who && x.kk && !/undefined/.test(x.kk)), 'hero lines: ' + hl.length); n++;
+}
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 13 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 6 && M.SUBJECTS[3].topics.length === 6 && M.SUBJECTS[4].topics.length === 4 && M.SUBJECTS[5].topics.length === 3 && M.SUBJECTS[6].topics.length === 3, 'all 7 subjects open: maths 13, logic 5, nature 6, geography 6, cities 4, history 3, reading 3'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 14 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 8 && M.SUBJECTS[3].topics.length === 6 && M.SUBJECTS[4].topics.length === 5 && M.SUBJECTS[5].topics.length === 4 && M.SUBJECTS[6].topics.length === 4, 'all 7 subjects open: maths 14, logic 5, nature 8, geography 6, cities 5, history 4, reading 4'); n++;
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');
