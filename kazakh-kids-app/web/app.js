@@ -684,6 +684,8 @@
       (r.coins ? '<p class="coins-big">+' + r.coins + ' 🪙</p>' : '') + '<button class="btn gold" id="rok">Керемет!</button>');
     qs('#rok').onclick = function () { closeSheet(); refresh(); flushRewards(); };
   }
+  /** «Үлкен әріп»: larger type scale for children who read slowly or see poorly (S.bigText, a field only added). */
+  function applyText() { document.documentElement.classList.toggle('big-text', !!S.bigText); }
   function refresh() { if (view === 'home') { var y = qs('#scroll') ? qs('#scroll').scrollTop : 0; renderHome(true); if (qs('#scroll')) qs('#scroll').scrollTop = y; } }
 
   function pickSticker() {
@@ -753,6 +755,7 @@
     var body = tab === 'dict' ? dictPage() : tab === 'games' ? gamesPage() : tab === 'shop' ? shopPage() : tab === 'me' ? mePage() : pathPage();
     $app.innerHTML = topbar() + '<main class="scroll" id="scroll">' + body + '</main>' + nav();
     qsa('[data-tab]').forEach(function (b) { b.onclick = function () { sfx.tap(); tab = b.getAttribute('data-tab'); renderHome(); }; });
+    qsa('[data-bigtext]').forEach(function (b) { b.onclick = function () { S.bigText = b.getAttribute('data-bigtext') === '1'; save(); applyText(); refresh(); }; });
     qsa('[data-voice]').forEach(function (b) { b.onclick = function () { S.voice = b.getAttribute('data-voice'); save(); TTS.speak('Сәлем! Мен сенің дауысыңмын.'); refresh(); }; });
     qsa('[data-lang]').forEach(function (b) { b.onclick = function () { sfx.tap(); S.lang = b.getAttribute('data-lang'); save(); renderHome(true); }; });
     qsa('[data-grade]').forEach(function (b) { b.onclick = function () { sfx.tap(); S.grade = +b.getAttribute('data-grade'); save(); renderHome(); }; });
@@ -984,6 +987,8 @@
       '<label class="muted">Нешінші сынып? — В каком ты классе?</label>' + gradeSwitch() +
       '<label class="muted">Оқу режимі — режим обучения</label>' + langSwitch() +
       '<label class="muted">Дауыс — голос диктора</label><div class="seg" style="grid-template-columns:repeat(' + Math.min(TTS.voices().length, 4) + ',1fr)">' + TTS.voices().map(function (v) { return '<button data-voice="' + v[0] + '" class="' + (TTS.voice() === v[0] ? 'on' : '') + '">' + esc(v[1]) + '</button>'; }).join('') + '</div>' +
+      '<label class="muted">Әріп өлшемі — размер текста</label><div class="seg" style="grid-template-columns:repeat(2,1fr)">' +
+        '<button data-bigtext="0" class="' + (S.bigText ? '' : 'on') + '">Aa</button><button data-bigtext="1" class="' + (S.bigText ? 'on' : '') + '" style="font-size:1.25em">Aa+</button></div>' +
       (window.QTEST ? audioDiag() : '') +
       (window.QTEST && !/android_asset/.test(location.href) ? '<a class="btn" id="voicelab" href="voice-lab.html" style="display:block;text-align:center;margin-top:8px;text-decoration:none">🔬 Дауыс зертханасы — все голоса и тюнинг (TEST)</a>' : '') +
       '<div class="kpis">' +
@@ -1315,6 +1320,7 @@
         document.title = 'Test · ' + document.title;
         var tb = document.createElement('div'); tb.className = 'test-badge'; tb.textContent = 'TEST'; tb.setAttribute('aria-hidden', 'true'); document.body.appendChild(tb);
       }
+      applyText();
       renderHome();
     }
   };

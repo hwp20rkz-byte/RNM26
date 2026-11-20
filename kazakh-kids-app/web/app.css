@@ -16,7 +16,7 @@
   --sky-500: hsl(199 84% 50%); --sky-600: hsl(199 88% 42%); --sky-700: hsl(201 90% 33%);
   --sun-100: hsl(46 100% 90%); --sun-300: hsl(45 100% 70%); --sun-500: hsl(43 100% 52%); --sun-600: hsl(38 95% 45%);
   --ink-0: hsl(0 0% 100%); --ink-50: hsl(210 33% 97%); --ink-100: hsl(210 25% 92%); --ink-200: hsl(212 20% 84%);
-  --ink-400: hsl(214 14% 62%); --ink-600: hsl(216 18% 38%); --ink-800: hsl(218 30% 18%);
+  --ink-400: hsl(214 16% 44%);   /* 5.2:1 on white, 4.9:1 on ink-50 — WCAG AA for the small grey hints and translations (was 62% → 2.8:1) */ --ink-600: hsl(216 18% 38%); --ink-800: hsl(218 30% 18%);
   /* unit hues (tonal set for a kids' path) */
   --u-blue: hsl(199 84% 50%); --u-blue-d: hsl(201 90% 36%);
   --u-gold: hsl(40 100% 50%); --u-gold-d: hsl(32 95% 40%);
@@ -1147,3 +1147,6 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 .mk-class th, .mk-class td { padding: var(--s-1) var(--s-2); border-bottom: 1px solid var(--ink-200); text-align: left; vertical-align: top; color: var(--ink-800); }
 .mk-class td small { display: block; color: var(--ink-600); }
 .mk-class tr.bad td { background: var(--bad-bg); }
+
+/* 20.11: «Үлкен әріп» — the same 5-step type scale, one step larger (Profile → Әріп өлшемі) */
+html.big-text { --fs-1: 17px; --fs-2: 20px; --fs-3: 24px; --fs-4: 32px; }
