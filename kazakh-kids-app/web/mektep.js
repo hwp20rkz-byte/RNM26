@@ -56,10 +56,16 @@
     }
     if (v.type === 'map') {   // the outline (Natural Earth) with three tappable dots; the names show after the answer
       var K = window.QKZMAP;
-      return '<svg class="mk-map" viewBox="0 0 ' + K.W + ' ' + K.H + '" role="group"><path class="land" d="' + K.path + '"/>' + v.dots.map(function (d) {
+      return '<svg class="mk-map" viewBox="0 0 ' + K.W + ' ' + K.H + '" role="group"><path class="land" d="' + K.path + '"/>' + (K.water || []).map(function (w) { return '<path class="wt" d="' + w.path + '"/>'; }).join('') + v.dots.map(function (d) {
         return '<g class="mk-o mk-dot" data-o="' + A.esc(d.id) + '" transform="translate(' + d.x + ' ' + d.y + ')" role="button" aria-label="' + A.esc(d.id) + '">' +
           '<circle class="hit" r="44"/><circle class="dot" r="15"/><text class="lbl" y="-24" text-anchor="middle">' + A.esc(d.id) + '</text></g>';
       }).join('') + '</svg>';
+    }
+    if (v.type === 'water') {   // all big lakes and seas in blue; the asked one is circled (no names: they would be the answer)
+      var KM = window.QKZMAP, on = (KM.water || []).filter(function (w) { return w.id === v.mark; })[0];
+      return '<svg class="mk-map mk-water" viewBox="0 0 ' + KM.W + ' ' + KM.H + '" aria-hidden="true"><path class="land" d="' + KM.path + '"/>' +
+        (KM.water || []).map(function (w) { return '<path class="wt' + (w.id === v.mark ? ' on' : '') + '" d="' + w.path + '"/>'; }).join('') +
+        (on ? '<circle class="mk-ring" cx="' + on.c[0] + '" cy="' + on.c[1] + '" r="30"/>' : '') + '</svg>';
     }
     if (v.type === 'clock') {   // the short hand points between the hours at half past
       var ha = (v.h % 12 + v.m / 60) * 30, ma = v.m * 6, ticks = '';

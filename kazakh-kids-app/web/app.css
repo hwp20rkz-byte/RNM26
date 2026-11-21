@@ -1130,6 +1130,9 @@ svg.asyk { width: 1.05em !important; height: 1.05em !important; vertical-align: 
 /* 18.11: «Қазақстан картасы» */
 .mk-map { width: 100%; max-width: 380px; height: auto; display: block; margin: 0 auto; }
 .mk-map .land { fill: var(--ok-bg); stroke: var(--ink-800); stroke-width: 2; stroke-linejoin: round; }
+.mk-map .wt { fill: var(--sky-500); fill-opacity: .55; stroke: var(--u-blue); stroke-width: 1.5; }
+.mk-map .wt.on { fill-opacity: 1; }
+.mk-map .mk-ring { fill: none; stroke: var(--u-orange); stroke-width: 5; stroke-dasharray: 10 6; }
 .mk-dot { cursor: pointer; }
 .mk-dot .hit { fill: transparent; }
 .mk-dot .dot { fill: var(--u-blue, var(--sky-300)); stroke: var(--ink-800); stroke-width: 3; }

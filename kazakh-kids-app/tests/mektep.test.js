@@ -177,7 +177,7 @@ eq(mathD.weak.map((t) => t.id).join(), 'm1tens', 'below 6 is worth repeating');
 eq(dia.find((x) => x.id === 'geo').weak.length, 0, '6 / 10 is not weak');
 eq(dia.length, 7, 'seven subjects'); eq(M.diary({}).every((x) => x.done === 0 && x.stars === 0), true, 'an empty diary');
 const rep = M.reportText(best, 'Әнел', 'ru', '17.11.2026');
-assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 46') && rep.includes('🔢 Математика: 2 / 14 · ★ 4 / 42') && rep.includes('📜 Тарих — История (5 класс): 0 / 4') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
+assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 47') && rep.includes('🔢 Математика: 2 / 14 · ★ 4 / 42') && rep.includes('📜 Тарих — История (5 класс): 0 / 4') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
 assert.ok(M.reportText({ m1count: 10 }, '', 'en').includes('Nothing to repeat'), 'nothing to repeat'); n++;
 // the map: the cities sit where a child expects them (checked by hand against a school atlas)
 const xy = (c) => M.cityXY(c);
@@ -267,6 +267,40 @@ eq(M.dayDiff('2026-11-10', '2026-11-18'), 8, 'days between'); eq(M.reviewDays(10
   const hl = M.heroLines(); assert.ok(hl.length > 80 && hl.every((x) => x.who && x.kk && !/undefined/.test(x.kk)), 'hero lines: ' + hl.length); n++;
 }
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 14 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 8 && M.SUBJECTS[3].topics.length === 6 && M.SUBJECTS[4].topics.length === 5 && M.SUBJECTS[5].topics.length === 4 && M.SUBJECTS[6].topics.length === 4, 'all 7 subjects open: maths 14, logic 5, nature 8, geography 6, cities 5, history 4, reading 4'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 14 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 8 && M.SUBJECTS[3].topics.length === 7 && M.SUBJECTS[4].topics.length === 5 && M.SUBJECTS[5].topics.length === 4 && M.SUBJECTS[6].topics.length === 4, 'all 7 subjects open: maths 14, logic 5, nature 8, geography 7, cities 5, history 4, reading 4'); n++;
+
+// 21.11 — «Көлдер мен теңіздер» (4 кл.): Natural Earth water on the map; where-forms from the engine (reference by hand)
+eq(M.waterWhere('Каспий теңізі'), 'Каспий теңізі — Қазақстанның батысында.', 'the Caspian in the west');
+eq(M.waterWhere('Арал теңізі'), 'Арал теңізі — Қазақстанның оңтүстік-батысында.', 'the Aral in the south-west');
+eq(M.waterWhere('Балқаш көлі'), 'Балқаш көлі — Қазақстанның оңтүстік-шығысында.', 'Balkhash in the south-east');
+eq(M.waterWhere('Зайсан көлі'), 'Зайсан көлі — Қазақстанның шығысында.', 'Zaysan in the east');
+eq(M.waterWhere('Теңіз көлі'), 'Теңіз көлі — Қазақстанның орталығында.', 'Tengiz in the centre');
+{
+  const KZ = require('../web/kz-map.js'), W = Object.fromEntries(KZ.water.map((w) => [w.id, w]));
+  eq(Object.keys(W).sort().join(','), M.SEAS.map((w) => w.id).sort().join(','), 'every water body of the topic is on the map');
+  // the hand table agrees with the geometry: west < 180 < centre < 420 < east (the thresholds of cityWhere)
+  assert.ok(W['Каспий теңізі'].c[0] < 180 && W['Арал теңізі'].c[0] < 250 && W['Арал теңізі'].c[1] > 200, 'the Caspian and the Aral lie west'); n++;
+  assert.ok(['Балқаш көлі', 'Зайсан көлі', 'Алакөл'].every((x) => W[x].c[0] > 420), 'Balkhash, Zaysan, Alakol lie east'); n++;
+  assert.ok(W['Теңіз көлі'].c[0] > 180 && W['Теңіз көлі'].c[0] < 420, 'Tengiz in the middle'); n++;
+  const wt = M.topicById('g4water'); assert.ok(wt && wt.grade === 4 && M.SUBJECTS[3].topics.includes(wt), 'g4water is a grade-4 geography topic'); n++;
+  const both = new Set();
+  for (let k = 0; k < 80; k++) { const qs = M.round(wt, rnd); eq(qs.length, 10, 'water: a round of 10');
+    for (const q of qs) {
+      assert.ok(new Set(q.options).size === 3 && q.options.includes(q.answer), 'water: three different options'); n++;
+      if (q.visual.mark) { both.add('name'); eq(q.answer, q.visual.mark, 'the marked water is the answer'); eq(q.full, M.waterWhere(q.answer), 'the full answer says where'); }
+      else { both.add('where'); const w = M.SEAS.find((x) => q.kk.startsWith(x.id + ' ')); assert.ok(w, 'the question names a water body: ' + q.kk); n++;
+        eq(q.answer, M.waterWhere(w.id).split('Қазақстанның ')[1].replace('.', ''), 'the direction answer comes from the table');
+        assert.ok(q.options.every((o) => o === q.answer || M.waterWhere(w.id) !== w.id + ' — Қазақстанның ' + o + '.'), 'no second right direction'); n++; }
+    } }
+  eq([...both].sort().join(','), 'name,where', 'both kinds of questions appear');
+  assert.ok(M.TIPS.g4water && M.hostOf(wt).who === 'M1', 'Батыр-X has a rule for the water topic'); n++;
+  const vl = M.voiceLines(); assert.ok(M.SEAS.every((w) => vl.includes(w.id) && vl.includes(M.waterWhere(w.id))), 'water names and answers are voiced'); n++;
+}
+// the teacher code keeps a fixed topic order: 19.11 order, then appended topics; every topic has a place
+eq(M.CODE_ORDER.slice(0, 7).join(','), 'm1count,m1shapes,m1tens,m1add20,m1compare,m2add100,m2mul', 'code order is pinned');
+eq(M.CODE_ORDER.slice(40).join(','), 'm2clock,n2health,n2safety,c3region,h5ata,r3legend,g4water', 'new topics only appended to the code');
+eq([...M.CODE_ORDER].sort().join(','), M.SUBJECTS.flatMap((x) => x.topics.map((t) => t.id)).sort().join(','), 'every topic is in the code exactly once');
+{ const old = 'QVD1:Арман:1:3-A' ; const body = old; const code = body + ':' + (() => { let h = 0; for (const ch of body) h = (h * 31 + ch.charCodeAt(0)) % 36; return h.toString(36); })();
+  const r = M.decodeReports(code)[0]; assert.ok(r && r.best.m1count === 3 && r.best.m1tens === 10 && r.best.m1shapes == null, 'a short (older) code still reads'); n++; }
 module.exports = { checks: () => n };
 if (require.main === module) console.log('mektep numbers: ' + n + ' checks passed');

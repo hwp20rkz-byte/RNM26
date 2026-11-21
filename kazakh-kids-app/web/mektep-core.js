@@ -389,6 +389,26 @@
       answer: a, options: pick.slice().sort(), optType: 'map', say: a, full: cityWhere(a) };
   };
 
+  /* ---------- 21.11: «Көлдер мен теңіздер» — the big water bodies on the map (Natural Earth outlines in kz-map.js) ----------
+   * Sides of the country by hand (sources in methodology/plan-10-days.md); the forms come from the engine like cityWhere. */
+  var SEAS = [{ id: 'Каспий теңізі', side: 'батыс' }, { id: 'Арал теңізі', side: 'оңтүстік-батыс' }, { id: 'Балқаш көлі', side: 'оңтүстік-шығыс' },
+    { id: 'Зайсан көлі', side: 'шығыс' }, { id: 'Алакөл', side: 'оңтүстік-шығыс' }, { id: 'Теңіз көлі', side: 'орталық' }];
+  var SIDES = ['батыс', 'шығыс', 'орталық', 'оңтүстік-батыс', 'оңтүстік-шығыс', 'солтүстік'];
+  function sideForm(side) { return G.possessiveCase(side, 'ol', 'zhatys'); }
+  function waterWhere(id) { var w = SEAS.filter(function (x) { return x.id === id; })[0]; return id + ' — Қазақстанның ' + sideForm(w.side) + '.'; }
+  function waterWhereQ(id) { return id + ' Қазақстанның қай жағында?'; }
+  GEN.seas = function (r) {
+    var w = SEAS[rint(r, 0, SEAS.length - 1)];
+    if (r() < 0.5) {
+      var others = shuffle(SEAS.filter(function (x) { return x.id !== w.id; }), r).slice(0, 2).map(function (x) { return x.id; });
+      return { kk: 'Белгіленген су айдыны қалай аталады?', ru: 'Как называется отмеченный водоём?', en: 'What is the marked body of water called?',
+        visual: { type: 'water', mark: w.id }, answer: w.id, options: shuffle([w.id].concat(others), r), say: w.id, full: waterWhere(w.id) };
+    }
+    var wrong = shuffle(SIDES.filter(function (x) { return x !== w.side; }), r).slice(0, 2);
+    return { kk: waterWhereQ(w.id), ru: 'В какой части Казахстана?', en: 'In which part of Kazakhstan is it?', visual: { type: 'water', mark: null },
+      answer: sideForm(w.side), options: shuffle([w.side].concat(wrong), r).map(sideForm), say: sideForm(w.side), full: waterWhere(w.id) };
+  };
+
   /* ---------- day 7: cities and landmarks (reference tables by hand; sources in methodology/plan-10-days.md) ---------- */
   var LANDMARK = { 'Бәйтерек': 'Астана', 'Хан Шатыр': 'Астана', 'Ақорда': 'Астана', 'Медеу': 'Алматы', 'Көктөбе': 'Алматы', 'Шымбұлақ': 'Алматы',
     'Қожа Ахмет Ясауи кесенесі': 'Түркістан', 'Абай мұражайы': 'Семей' };
@@ -660,6 +680,7 @@
     g2dirs: 'Картада жоғары — солтүстік, төмен — оңтүстік, оң жақ — шығыс, сол жақ — батыс.', g3feature: 'Өзен ағады, көлдің суы бір жерде тұрады, тау биік болады.',
     g3repcity: 'Республикалық маңызы бар қалалар: Астана, Алматы, Шымкент.', g4center: 'Әр облыстың орталығы бар: Абай облысының орталығы — Семей.',
     g4map: 'Картада жоғары — солтүстік. Алматы мен Шымкент оңтүстікте.', g4neighbor: 'Қазақстанның көршілері: Ресей, Қытай, Қырғызстан, Өзбекстан, Түрікменстан.',
+    g4water: 'Каспий мен Арал — батыста, Балқаш пен Алакөл — оңтүстік-шығыста, Зайсан — шығыста.',
     c2landmark: 'Бәйтерек пен Ақорда — Астанада, Медеу мен Көктөбе — Алматыда.', c3river: 'Ертістің бойында — Семей, Павлодар, Өскемен. Жайықтың бойында — Орал мен Атырау.',
     c3guide: 'Қайда? — Алматыда. Қайда барады? — Алматыға. Қайдан? — Алматыдан.', c3region: 'Әр облыстың бір орталығы бар: Қарағанды облысының орталығы — Қарағанды.',
     c4tour: 'Қай қалаға? — деп сұрасақ: Астанаға, Алматыға, Түркістанға.',
@@ -726,7 +747,8 @@
       { id: 'g3repcity', grade: 3, gen: 'repcity', kk: 'Республикалық қалалар', ru: 'Города республиканского значения', en: 'Cities of national significance' },
       { id: 'g4center', grade: 4, gen: 'center', kk: 'Облыс орталықтары', ru: 'Центры областей', en: 'Regional centres' },
       { id: 'g4map', grade: 4, gen: 'map', kk: 'Қазақстан картасы', ru: 'Карта Казахстана', en: 'Map of Kazakhstan' },
-      { id: 'g4neighbor', grade: 4, gen: 'neighbor', kk: 'Көрші елдер', ru: 'Соседние страны', en: 'Neighbouring countries' }
+      { id: 'g4neighbor', grade: 4, gen: 'neighbor', kk: 'Көрші елдер', ru: 'Соседние страны', en: 'Neighbouring countries' },
+      { id: 'g4water', grade: 4, gen: 'seas', kk: 'Көлдер мен теңіздер', ru: 'Озёра и моря', en: 'Lakes and seas' }
     ] },
     { id: 'cities', icon: '🏙️', kk: 'Қалалар', ru: 'Города и достопримечательности', en: 'Cities', hue: 'orange', topics: [
       { id: 'c2landmark', grade: 2, gen: 'landmark', kk: 'Көрікті жерлер', ru: 'Достопримечательности', en: 'Landmarks' },
@@ -809,15 +831,22 @@
   // QVD1:<name>:<grade>:<one char per topic in SUBJECTS order: '-' not played, 0–9, 'A' = 10>:<checksum>
   // Topics are only ever appended to SUBJECTS, so old codes keep their meaning; a shorter code reads as «not played».
   function allTopics() { var a = []; SUBJECTS.forEach(function (s) { s.topics.forEach(function (t) { a.push(t); }); }); return a; }
+  // The code's own fixed order (the screen order of SUBJECTS may change): the 40 topics of 19.11, then appended ones only.
+  var CODE_ORDER = ['m1count', 'm1shapes', 'm1tens', 'm1add20', 'm1compare', 'm2add100', 'm2mul', 'm2money', 'm3mul69', 'm3div', 'm3frac', 'm4shop', 'm4place',
+    'l1pattern', 'l1odd', 'l2algo', 'l2yurt', 'l3sym', 'n1season', 'n1wild', 'n2home', 'n2water', 'n2senses', 'n3redbook',
+    'g2dirs', 'g3feature', 'g3repcity', 'g4center', 'g4map', 'g4neighbor', 'c2landmark', 'c3river', 'c4tour', 'c3guide',
+    'h5timeline', 'h5kz', 'h5world', 'r2genre', 'r3music', 'r4authors',
+    'm2clock', 'n2health', 'n2safety', 'c3region', 'h5ata', 'r3legend', 'g4water'];
+  function codeTopics() { return CODE_ORDER.map(function (id) { return { id: id }; }); }
   function check(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 36; return h.toString(36); }
   function encodeReport(best, name, grade) {
-    var digits = allTopics().map(function (t) { var b = best && best[t.id]; return b == null ? '-' : b >= 10 ? 'A' : String(Math.max(0, b)); }).join('');
+    var digits = codeTopics().map(function (t) { var b = best && best[t.id]; return b == null ? '-' : b >= 10 ? 'A' : String(Math.max(0, b)); }).join('');
     var body = 'QVD1:' + String(name || '').replace(/[:\s]+/g, '_').slice(0, 24) + ':' + (grade || '') + ':' + digits;
     return body + ':' + check(body);
   }
   /** Every valid code in a pasted text (messages, notes…); wrong or damaged codes are skipped. */
   function decodeReports(text) {
-    var out = [], re = /QVD1:([^:\s]*):(\d?):([0-9A\-]+):([0-9a-z])/g, m, topics = allTopics();
+    var out = [], re = /QVD1:([^:\s]*):(\d?):([0-9A\-]+):([0-9a-z])/g, m, topics = codeTopics();
     while ((m = re.exec(String(text || '')))) {
       var body = 'QVD1:' + m[1] + ':' + m[2] + ':' + m[3];
       if (check(body) !== m[4]) continue;
@@ -866,6 +895,9 @@
     HISTORY_KZ.concat(HISTORY_WORLD).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
     EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
     Object.keys(CITY_LL).forEach(function (c) { out.push(c + ' қай жерде?'); out.push(c); });
+    out.push('Белгіленген су айдыны қалай аталады?');
+    SEAS.forEach(function (w) { out.push(w.id); out.push(waterWhere(w.id)); out.push(waterWhereQ(w.id)); });
+    SIDES.forEach(function (x) { out.push(sideForm(x)); });
     for (var hh = 1; hh <= 12; hh++) { out.push(D.timeKk(hh, 0)); out.push(D.timeKk(hh, 30)); } out.push('Сағат неше?');
     HEALTH.concat(SAFETY).forEach(function (f) { out.push(f.kk); if (!f.noSay) out.push(f.a); });
     REGIONS.forEach(function (g) { out.push(regionQuestion(REGION_CENTER[g])); });
@@ -881,5 +913,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { SEAS: SEAS, waterWhere: waterWhere, CODE_ORDER: CODE_ORDER, HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });
