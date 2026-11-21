@@ -120,6 +120,42 @@
     if (opts.indexOf(ans) < 0) opts[0] = ans;
     return { kk: text, ru: 'Реши задачу', en: 'Solve the problem', visual: { type: 'good', e: g.e }, answer: String(ans), options: opts.map(String), say: N(ans) + ' теңге', full: cap(N(ans)) + ' теңге.' };
   };
+  /* ---------- 21.11: «Базарда: сұхбат» — a pupil and the seller talk; the problem uses only what was said ----------
+   * Game prices (not market facts), fixed so that every line can be voiced. Numbers in words and the cases — engine. */
+  var BAZAAR = [{ kk: 'алма', unit: 'келі', price: 500, e: '🍎' }, { kk: 'картоп', unit: 'келі', price: 200, e: '🥔' },
+    { kk: 'қызанақ', unit: 'келі', price: 600, e: '🍅' }, { kk: 'нан', unit: '', price: 150, e: '🍞' }, { kk: 'сүт', unit: 'литр', price: 400, e: '🥛' }];
+  var SELLER = { who: 'E1', name: 'Сатушы', e: '🧔' }, NOTES = [1000, 2000, 5000], BZ_KIDS = [{ who: 'ANEL', kk: 'Әнел', e: '👧' }, { who: 'ALIBEK', kk: 'Әлібек', e: '👦' }];
+  function bazaarAsk(good) { return 'Сәлеметсіз бе! ' + cap(G.caseForm(good, 'ilik')) + ' бағасы қанша?'; }
+  function bazaarPrice(g) { return cap('бір ' + (g.unit || g.kk)) + ' — ' + N(g.price) + ' теңге.'; }
+  function bazaarBuy(g, k) { return 'Маған ' + N(k) + ' ' + (g.unit ? g.unit + ' ' : '') + g.kk + ' беріңізші.'; }
+  function bazaarPay(note) { return 'Ағай, мінеки, ' + N(note) + ' теңге.'; }   // the address first: Әнел's voice drops a short first word, and it must never be the number
+  var BZ_THANKS = 'Рахмет! Қайтарымыңызды алыңыз.';
+  function bazaarTotalQ(name) { return name + ' барлығы неше теңге төлейді?'; }
+  function bazaarChangeQ(name) { return 'Сатушы ' + G.caseForm(name, 'barys') + ' неше теңге қайтарады?'; }
+  GEN.bazaar = function (r) {
+    var g = BAZAAR[rint(r, 0, BAZAAR.length - 1)], p = BZ_KIDS[rint(r, 0, 1)], k = rint(r, 2, 3), total = g.price * k;
+    var ln = function (who, x, text) { return { who: who.who, name: who.name || who.kk, e: who.e, text: text }; };
+    var scene = [ln(p, p, bazaarAsk(g.kk)), ln(SELLER, SELLER, bazaarPrice(g)), ln(p, p, bazaarBuy(g, k))];
+    var paid = 0, ans, kk, near;
+    if (r() < 0.5) { ans = total; kk = bazaarTotalQ(p.kk); near = [total + g.price, total - g.price, total + 100]; }
+    else {
+      var ok = NOTES.filter(function (x) { return x > total; }); paid = ok[rint(r, 0, ok.length - 1)];
+      scene.push(ln(p, p, bazaarPay(paid)), ln(SELLER, SELLER, BZ_THANKS));
+      ans = paid - total; kk = bazaarChangeQ(p.kk); near = [ans + g.price, ans - g.price, paid - g.price, ans + 100];
+    }
+    var opts = [ans].concat(shuffle(near.filter(function (x, i, a) { return x > 0 && x !== ans && a.indexOf(x) === i; }), r)).slice(0, 3);
+    return { kk: kk, ru: paid ? 'Сколько сдачи даст продавец?' : 'Сколько всего заплатит?', en: paid ? 'How much change?' : 'How much in all?',
+      scene: scene, visual: { type: 'scene', e: g.e, lines: scene }, data: { good: g.kk, k: k, paid: paid, pupil: p.who },
+      answer: String(ans), options: shuffle(opts, r).map(String), say: N(ans) + ' теңге', full: cap(N(ans)) + ' теңге.' };
+  };
+  function bazaarLines() {
+    var out = [];
+    BAZAAR.forEach(function (g) { out.push({ who: 'E1', kk: bazaarPrice(g) });
+      BZ_KIDS.forEach(function (p) { out.push({ who: p.who, kk: bazaarAsk(g.kk) }); [2, 3].forEach(function (k) { out.push({ who: p.who, kk: bazaarBuy(g, k) }); }); }); });
+    BZ_KIDS.forEach(function (p) { NOTES.forEach(function (x) { out.push({ who: p.who, kk: bazaarPay(x) }); }); });
+    out.push({ who: 'E1', kk: BZ_THANKS });
+    return out;
+  }
   GEN.place = function (r) {
     var h = rint(r, 1, 9), t = rint(r, 0, 9), u = rint(r, 0, 9), n = h * 100 + t * 10 + u;
     return { kk: h + ' жүздік, ' + t + ' ондық, ' + u + ' бірлік. Бұл қай сан?', ru: h + ' сотен, ' + t + ' десятков, ' + u + ' единиц — какое это число?', en: h + ' hundreds, ' + t + ' tens, ' + u + ' ones — which number?',
@@ -670,7 +706,8 @@
     m1compare: 'Үлкен сан артық, кіші сан кем, бірдей болса — тең.', m2add100: 'Ондықтарды ондықтарға, бірліктерді бірліктерге қосамыз.',
     m2mul: 'Көбейту — бірдей сандарды бірнеше рет қосу.', m2money: 'Тиындарды қосамыз, ең үлкенінен бастаймыз.', m2clock: 'Қысқа тіл сағатты, ұзын тіл минутты көрсетеді.',
     m3mul69: 'Көбейткіштердің орнын ауыстырсақ, көбейтінді өзгермейді.', m3div: 'Бөлу — көбейтуге кері амал.', m3frac: 'Бөлшектің асты — неше тең бөлік, үсті — нешеуі алынды.',
-    m4shop: 'Бағасын санына көбейтеміз, қалдықты табу үшін азайтамыз.', m4place: 'Үш таңбалы санда жүздіктер, ондықтар және бірліктер бар.',
+    m4shop: 'Бағасын санына көбейтеміз, қалдықты табу үшін азайтамыз.',
+    m4bazaar: 'Алдымен барлығы қанша тұратынын табамыз, сосын берген ақшадан азайтамыз.', m4place: 'Үш таңбалы санда жүздіктер, ондықтар және бірліктер бар.',
     l1pattern: 'Қайталанатын бөлікті тап та, ары қарай жалғастыр.', l1odd: 'Қайсысы басқа топқа жатады? Соны таңда.', l2algo: 'Нұсқарларды ретімен орында: әр қадам — бір шаршы.',
     l2yurt: 'Киіз үй ретімен тігіледі: алдымен кереге, соңында киіз.', l3sym: 'Айнадағыдай: сол жақ пен оң жақ бірдей болуы керек.',
     n1season: 'Желтоқсан, қаңтар, ақпан — қыс. Наурыз, сәуір, мамыр — көктем.', n1wild: 'Үй жануарлары адаммен бірге тұрады, жабайы аңдар табиғатта тұрады.',
@@ -702,6 +739,7 @@
     var out = [];
     SUBJECTS.forEach(function (s) { PUPILS.forEach(function (p) { if (!HOSTS[s.id].pupils || HOSTS[s.id].pupils.indexOf(p.who) >= 0) out.push({ who: p.who, kk: HOSTS[s.id].ask }); }); s.topics.forEach(function (t) { out.push({ who: HOSTS[s.id].who, kk: TIPS[t.id] }); }); });
     ATA_STORIES.forEach(function (st) { out.push({ who: 'ATA', kk: st.text }); st.qs.forEach(function (q) { PUPILS.forEach(function (p) { out.push({ who: p.who, kk: q.kk }); }); }); });
+    bazaarLines().forEach(function (x) { out.push(x); });
     LEGENDS.forEach(function (st) { out.push({ who: 'AZHE', kk: st.text }); st.qs.forEach(function (q) { PUPILS.forEach(function (p) { out.push({ who: p.who, kk: q.kk }); }); }); });
     return out;
   }
@@ -722,6 +760,7 @@
       { id: 'm3div', grade: 3, gen: 'div', kk: 'Бөлу', ru: 'Деление', en: 'Division' },
       { id: 'm3frac', grade: 3, gen: 'frac', kk: 'Бөлшектер', ru: 'Доли и дроби', en: 'Fractions' },
       { id: 'm4shop', grade: 4, gen: 'shop', kk: 'Базарда: есептер', ru: 'Задачи: покупки и сдача', en: 'Word problems: shopping' },
+      { id: 'm4bazaar', grade: 4, gen: 'bazaar', kk: 'Базарда: сұхбат', ru: 'На базаре: диалог', en: 'At the bazaar: a dialogue' },
       { id: 'm4place', grade: 4, gen: 'place', kk: 'Үш таңбалы сандар', ru: 'Трёхзначные числа', en: 'Three-digit numbers' }
     ] },
     { id: 'logic', icon: '🧩', kk: 'Логика', ru: 'Логика и алгоритмы', en: 'Logic', hue: 'purple', topics: [
@@ -836,7 +875,7 @@
     'l1pattern', 'l1odd', 'l2algo', 'l2yurt', 'l3sym', 'n1season', 'n1wild', 'n2home', 'n2water', 'n2senses', 'n3redbook',
     'g2dirs', 'g3feature', 'g3repcity', 'g4center', 'g4map', 'g4neighbor', 'c2landmark', 'c3river', 'c4tour', 'c3guide',
     'h5timeline', 'h5kz', 'h5world', 'r2genre', 'r3music', 'r4authors',
-    'm2clock', 'n2health', 'n2safety', 'c3region', 'h5ata', 'r3legend', 'g4water'];
+    'm2clock', 'n2health', 'n2safety', 'c3region', 'h5ata', 'r3legend', 'g4water', 'm4bazaar'];
   function codeTopics() { return CODE_ORDER.map(function (id) { return { id: id }; }); }
   function check(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 36; return h.toString(36); }
   function encodeReport(best, name, grade) {
@@ -896,6 +935,8 @@
     EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
     Object.keys(CITY_LL).forEach(function (c) { out.push(c + ' қай жерде?'); out.push(c); });
     out.push('Белгіленген су айдыны қалай аталады?');
+    BZ_KIDS.forEach(function (p) { out.push(bazaarTotalQ(p.kk)); out.push(bazaarChangeQ(p.kk)); });
+    BAZAAR.forEach(function (g) { [2, 3].forEach(function (k) { var t = g.price * k; out.push(N(t) + ' теңге'); NOTES.forEach(function (x) { if (x > t) out.push(N(x - t) + ' теңге'); }); }); });
     SEAS.forEach(function (w) { out.push(w.id); out.push(waterWhere(w.id)); out.push(waterWhereQ(w.id)); });
     SIDES.forEach(function (x) { out.push(sideForm(x)); });
     for (var hh = 1; hh <= 12; hh++) { out.push(D.timeKk(hh, 0)); out.push(D.timeKk(hh, 30)); } out.push('Сағат неше?');
@@ -913,5 +954,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { SEAS: SEAS, waterWhere: waterWhere, CODE_ORDER: CODE_ORDER, HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { N: N, BAZAAR: BAZAAR, bazaarAsk: bazaarAsk, bazaarPrice: bazaarPrice, bazaarBuy: bazaarBuy, bazaarTotalQ: bazaarTotalQ, bazaarChangeQ: bazaarChangeQ, SEAS: SEAS, waterWhere: waterWhere, CODE_ORDER: CODE_ORDER, HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

@@ -1167,6 +1167,12 @@ html.big-text { --fs-1: 17px; --fs-2: 20px; --fs-3: 24px; --fs-4: 32px; }
 .mk-clock text { font-size: 9px; font-weight: 900; text-anchor: middle; fill: var(--ink-800); }
 .mk-clock line { stroke: var(--ink-800); stroke-linecap: round; } .mk-clock line.h { stroke-width: 5; } .mk-clock line.mm { stroke-width: 3; stroke: var(--u-blue); }
 .mk-clock circle.c { fill: var(--ink-800); stroke: none; }
+.mk-scene { display: grid; gap: var(--s-1); text-align: left; }
+.mk-scene .mk-bub { max-width: 90%; grid-template-columns: 40px 1fr; }
+.mk-scene .mk-bub.me { justify-self: end; grid-template-columns: 1fr 40px; }
+.mk-scene .mk-bub.me .mk-face { order: 2; }
+.mk-scene .mk-face.e { font-size: var(--fs-4); }
+.mk-scene .mk-bub p { font-size: var(--fs-1); }
 .mk-story { display: grid; grid-template-columns: auto 1fr; gap: var(--s-2); align-items: start; text-align: left; }
 .mk-story .i { font-size: var(--fs-5); line-height: 1; }
 .mk-story p { margin: 0; font-weight: 700; font-size: var(--fs-2); color: var(--ink-800); line-height: 1.4; }

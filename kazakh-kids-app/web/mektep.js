@@ -74,6 +74,8 @@
         '<line class="h" x1="50" y1="50" x2="' + (50 + Math.sin(ha * Math.PI / 180) * 22).toFixed(1) + '" y2="' + (50 - Math.cos(ha * Math.PI / 180) * 22).toFixed(1) + '"/>' +
         '<line class="mm" x1="50" y1="50" x2="' + (50 + Math.sin(ma * Math.PI / 180) * 33).toFixed(1) + '" y2="' + (50 - Math.cos(ma * Math.PI / 180) * 33).toFixed(1) + '"/><circle class="c" cx="50" cy="50" r="3.5"/></svg>';
     }
+    if (v.type === 'scene') return '<div class="mk-scene">' + v.lines.map(function (l) {   // the bazaar talk: the pupil on the right, the seller on the left
+      return '<div class="mk-bub' + (l.who === 'E1' ? '' : ' me') + '"><span class="mk-face e">' + l.e + '</span><p><b>' + A.esc(l.name) + '</b>' + A.esc(l.text) + '</p></div>'; }).join('') + '</div>';
     if (v.type === 'story') return '<div class="mk-story"><span class="i">' + v.e + '</span><p>' + A.esc(v.text) + '</p></div>';
     if (v.type === 'sym') return ornament(v.left, null);
     if (v.type === 'coins') return '<div class="mk-coins">' + v.list.map(function (c) { return '<span class="c' + (c >= 100 ? ' big' : '') + '">' + c + '<small>₸</small></span>'; }).join('') + '</div>';
@@ -190,7 +192,8 @@
           return '<button class="mk-o' + (q.optType ? ' pic' : '') + '" data-o="' + A.esc(o) + '">' + face + (q.labels ? '<small>' + A.esc(q.labels[o]) + '</small>' : '') + '</button>';
         }).join('') + '</div>') + '<div class="mk-fb" id="mkfb"></div></div>';
       var sb = api.qs('.mk-say'); if (sb) sb.onclick = function () { api.TTS.speak(q.kk, true, q.who); };
-      if (q.story) { var mine = q; sayChain([{ text: q.story, who: q.storyWho }, { text: q.kk, who: q.who }], function () { return over || qs[i] !== mine; }); }   // Ата / Әже tells, a pupil asks
+      if (q.scene) { var mq = q; sayChain(q.scene.map(function (l) { return { text: l.text, who: l.who }; }).concat([{ text: q.kk, who: null }]), function () { return over || qs[i] !== mq; }); }   // the talk, then the narrator asks
+      else if (q.story) { var mine = q; sayChain([{ text: q.story, who: q.storyWho }, { text: q.kk, who: q.who }], function () { return over || qs[i] !== mine; }); }   // Ата / Әже tells, a pupil asks
       else if (q.who) setTimeout(function () { if (!over && qs[i] === q) api.TTS.speak(q.kk, true, q.who); }, 300);   // a character (the tourist) speaks first, in their own voice
       api.qsa('.mk-o').forEach(function (b) { b.onclick = function () { answer(b.getAttribute('data-o'), b); }; });
     }
