@@ -1,0 +1,21 @@
+// The teacher's fact sheet covers every fact table of «Мектеп», one row per claim (tools/make-factsheet.js).
+const assert = require('assert');
+const { build } = require('../tools/make-factsheet.js');
+const M = global.window.QMEKTEP || require('../web/mektep-core.js');
+let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; };
+const { md, total, sections } = build();
+const rows = md.split('\n').filter((l) => /^\| \d+ \|/.test(l));
+ok(rows.length === total, 'numbered rows = total');
+const lines = (title) => sections.find((s) => s[0] === title)[3].length;
+ok(lines('История Казахстана') === M.HISTORY_KZ.length && lines('История мира') === M.HISTORY_WORLD.length, 'every history question');
+ok(lines('Лента времени (годы событий)') === M.EVENTS.length, 'every timeline event');
+ok(lines('Области и их центры') === Object.keys(M.REGION_CENTER).length && Object.keys(M.REGION_CENTER).length === 17, '17 regions');
+ok(lines('Озёра и моря') === M.SEAS.length && lines('Где город на карте') === Object.keys(M.CITY_LL).length, 'map facts');
+ok(lines('Рассказы Аты (весь текст звучит голосом)') === M.ATA_STORIES.length && lines('Легенды (свой пересказ)') === M.LEGENDS.length, 'stories in full');
+const topics = M.SUBJECTS.flatMap((s) => s.topics);
+ok(lines('Правила, которые говорят герои') === topics.length && topics.every((t) => md.includes(M.TIPS[t.id].replace(/\|/g, '\\|'))), 'every hero rule');
+for (const q of M.HISTORY_KZ.concat(M.HISTORY_WORLD, M.LIT_AUTHORS, M.LIT_MUSIC, M.HEALTH, M.SAFETY)) ok(md.includes('**' + q.a + '**'), 'answer on the sheet: ' + q.a);
+for (const r of Object.keys(M.REGION_CENTER)) ok(md.includes(r + ' — **' + M.REGION_CENTER[r] + '**'), 'region pair: ' + r);
+ok(md.includes('2600 до н. э.'), 'BC years read for people');
+ok(!/undefined|NaN/.test(md), 'no holes');
+console.log('fact sheet: ' + n + ' checks passed (' + total + ' rows)');
