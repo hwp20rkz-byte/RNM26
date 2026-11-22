@@ -26,7 +26,8 @@ const PAGES: Record<GameId, ComponentType> = {
   kiiz: lazy(() => import('./games/kiiz/page')),
   lab: lazy(() => import('./games/lab/page')),
   river: lazy(() => import('./games/river/page')),
-  tower: lazy(() => import('./games/tower/page'))
+  tower: lazy(() => import('./games/tower/page')),
+  travel: lazy(() => import('./games/travel/page'))
 };
 const Hub = lazy(() => import('./page'));
 const Heroes = lazy(() => import('./heroes/page'));

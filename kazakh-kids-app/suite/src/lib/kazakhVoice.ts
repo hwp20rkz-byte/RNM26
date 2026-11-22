@@ -54,10 +54,11 @@ export function speechLevel(): number {
   const t = performance.now() / 1000;
   return 0.25 + 0.55 * Math.abs(Math.sin(t * 11)) * (0.6 + 0.4 * Math.sin(t * 3.1));
 }
-export function speakKazakh(text: string): void {
+/** `hero`: a character line (tools/make-audio-fs.mjs --heroes, in audio/) — its own voice first, the narrator as fallback. */
+export function speakKazakh(text: string, hero = false): void {
   try {
     if (current) current.pause();
-    const key = audioKey(text), dirs = bases();
+    const key = audioKey(text), dirs = hero ? [BASE, ...bases().filter((d) => d !== BASE)] : bases();
     const tryAt = (i: number) => {
       if (i >= dirs.length) return;                 // no recording for this phrase — stay silent
       const a = new Audio(dirs[i] + key + '.' + ((window as unknown as { QAUDIO_EXT?: string }).QAUDIO_EXT || 'mp3'));   // ogg in an OPUS=1 build

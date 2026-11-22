@@ -323,6 +323,12 @@ eq(M.bazaarChangeQ('Әлібек'), 'Сатушы Әлібекке неше те
   assert.ok(M.BAZAAR.every((g) => has('E1', M.bazaarPrice(g)) && has('ANEL', M.bazaarAsk(g.kk)) && has('ALIBEK', M.bazaarBuy(g, 3))), 'every bazaar line has a hero voice'); n++;
   const vl = M.voiceLines(); assert.ok(vl.includes(M.bazaarChangeQ('Әнел')) && vl.includes(M.bazaarTotalQ('Әлібек')), 'the narrator asks the questions'); n++;
 }
+
+// 22.11 — 3D «Қазақстан саяхаты»: the closing line says where the place is (reference by hand; forms from the engine)
+eq(M.travelPlace('Бәйтерек'), 'Бәйтерек — Астанада.', 'in the city');
+eq(M.travelPlace('Қожа Ахмет Ясауи кесенесі'), 'Қожа Ахмет Ясауи кесенесі — Түркістанда.', 'Turkistan');
+eq(M.travelPlace('Айша бибі кесенесі'), 'Айша бибі кесенесі — Тараздың маңында.', 'near Taraz');
+eq(M.travelPlace('Каспий теңізі'), 'Каспий теңізі — Ақтаудың маңында.', 'the sea is near Aktau, not in it');
 // the teacher code keeps a fixed topic order: 19.11 order, then appended topics; every topic has a place
 eq(M.CODE_ORDER.slice(0, 7).join(','), 'm1count,m1shapes,m1tens,m1add20,m1compare,m2add100,m2mul', 'code order is pinned');
 eq(M.CODE_ORDER.slice(40).join(','), 'm2clock,n2health,n2safety,c3region,h5ata,r3legend,g4water,m4bazaar', 'new topics only appended to the code');

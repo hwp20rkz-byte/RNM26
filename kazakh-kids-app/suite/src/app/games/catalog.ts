@@ -42,5 +42,8 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Расставь четыре события на камнях реки от «Ерте» к «Бүгін»', en: 'Put four events on the river stones from long ago to today' } },
   { id: 'tower', kk: 'Көбейту мұнарасы', ru: 'Башня умножения и фигуры', en: 'Multiplication Tower', icon: '🏗️', ready: true,
     pillar: { ru: 'Мектеп · математика 1–3: таблица умножения 2–9, объёмные фигуры', en: 'School · maths 1–3: times tables 2–9, 3D shapes' },
-    mechanic: { ru: 'Сосчитай башню из этажей и кубиков умножением; назови шар, куб, цилиндр, конус, пирамиду', en: 'Count a tower of floors and cubes by multiplying; name the 3D shapes' } }
+    mechanic: { ru: 'Сосчитай башню из этажей и кубиков умножением; назови шар, куб, цилиндр, конус, пирамиду', en: 'Count a tower of floors and cubes by multiplying; name the 3D shapes' } },
+  { id: 'travel', kk: 'Қазақстан саяхаты', ru: 'Путешествие по Казахстану', en: 'Travel Kazakhstan', icon: '✈️', ready: true,
+    pillar: { ru: 'Мектеп · география 3–4: города и достопримечательности на 3D-карте', en: 'School · geography 3–4: cities and landmarks on a 3D map' },
+    mechanic: { ru: 'Отправь самолётик в город, где стоит достопримечательность; найди город на карте', en: 'Fly the plane to the city of the landmark; find the city on the map' } }
 ];
