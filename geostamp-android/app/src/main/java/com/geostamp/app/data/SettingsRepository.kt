@@ -26,6 +26,7 @@ data class AppSettings(
     val showAltitude: Boolean = false,
     val showProject: Boolean = false,
     val showNote: Boolean = false,
+    val showWeather: Boolean = true,
     val coordFormat: CoordFormat = CoordFormat.DECIMAL,
     val project: String = "",
     val note: String = "",
@@ -55,7 +56,7 @@ data class AppSettings(
     val driveByProject: Boolean = true,
 ) {
     val stampOptions: StampOptions
-        get() = StampOptions(showAddress, showCoords, showAltitude, showProject, showNote, coordFormat)
+        get() = StampOptions(showAddress, showCoords, showAltitude, showProject, showNote, coordFormat, showWeather)
 }
 
 private val Context.store by preferencesDataStore(name = "settings")
@@ -69,6 +70,7 @@ class SettingsRepository(private val context: Context) {
         val showAltitude = booleanPreferencesKey("showAltitude")
         val showProject = booleanPreferencesKey("showProject")
         val showNote = booleanPreferencesKey("showNote")
+        val showWeather = booleanPreferencesKey("showWeather")
         val coordFormat = stringPreferencesKey("coordFormat")
         val project = stringPreferencesKey("project")
         val note = stringPreferencesKey("note")
@@ -109,6 +111,7 @@ class SettingsRepository(private val context: Context) {
             showAltitude = p[K.showAltitude] ?: d.showAltitude,
             showProject = p[K.showProject] ?: d.showProject,
             showNote = p[K.showNote] ?: d.showNote,
+            showWeather = p[K.showWeather] ?: d.showWeather,
             coordFormat = p.enum(K.coordFormat, d.coordFormat),
             project = p[K.project] ?: d.project,
             note = p[K.note] ?: d.note,
@@ -149,6 +152,7 @@ class SettingsRepository(private val context: Context) {
             p[K.showAltitude] = s.showAltitude
             p[K.showProject] = s.showProject
             p[K.showNote] = s.showNote
+            p[K.showWeather] = s.showWeather
             p[K.coordFormat] = s.coordFormat.name
             p[K.project] = s.project
             p[K.note] = s.note

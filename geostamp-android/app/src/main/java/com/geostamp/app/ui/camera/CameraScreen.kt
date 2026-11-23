@@ -195,6 +195,8 @@ fun CameraScreen(nav: NavController, startVideo: Boolean) {
             altitude = l?.takeIf { it.hasAltitude() }?.altitude, accuracy = l?.accuracy,
             address = fix.address?.full, locality = fix.address?.locality,
             project = s.project.takeIf { it.isNotBlank() }, note = s.note.takeIf { it.isNotBlank() },
+            weather = fix.weather?.text(),
+            mockLocation = fix.isMock,
         )
     }
 
@@ -312,9 +314,11 @@ fun CameraScreen(nav: NavController, startVideo: Boolean) {
                                 !fix.permission -> "Разрешить GPS"
                                 !fix.gpsEnabled -> "Включить GPS"
                                 fix.location == null -> "Поиск GPS…"
-                                else -> "±${Math.round(fix.location!!.accuracy)} м"
+                                fix.isMock -> "GPS подменён!"
+                                else -> "±${Math.round(fix.location!!.accuracy)} м" +
+                                    (fix.weather?.let { "  ·  " + it.text().substringBefore(",") } ?: "")
                             },
-                            color = Color.White, style = MaterialTheme.typography.labelSmall,
+                            color = if (fix.isMock) Tokens.Error else Color.White, style = MaterialTheme.typography.labelSmall,
                         )
                     }
 

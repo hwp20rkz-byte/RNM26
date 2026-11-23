@@ -40,6 +40,8 @@ data class MediaItem(
     val project: String?,
     val note: String?,
     val sha256: String,
+    val weather: String? = null,
+    val mockLocation: Boolean = false,
     val sync: SyncState = SyncState.NONE,
     val driveFileId: String? = null,
 ) {
@@ -49,6 +51,7 @@ data class MediaItem(
         altitude?.let { put("alt", it) }; accuracy?.let { put("acc", it.toDouble()) }
         address?.let { put("addr", it) }; project?.let { put("proj", it) }; note?.let { put("note", it) }
         put("sha", sha256); put("sync", sync.name); driveFileId?.let { put("drive", it) }
+        weather?.let { put("wx", it) }; if (mockLocation) put("mock", true)
     }
 
     companion object {
@@ -67,6 +70,8 @@ data class MediaItem(
             sha256 = o.optString("sha"),
             sync = runCatching { SyncState.valueOf(o.optString("sync")) }.getOrDefault(SyncState.NONE),
             driveFileId = o.optStringOrNull("drive"),
+            weather = o.optStringOrNull("wx"),
+            mockLocation = o.optBoolean("mock", false),
         )
 
         private fun JSONObject.optDoubleOrNull(k: String) = if (has(k) && !isNull(k)) optDouble(k) else null

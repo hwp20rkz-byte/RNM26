@@ -79,7 +79,8 @@ class CaptureProcessor(private val c: AppContainer) {
             exif.setLatLong(d.latitude, d.longitude)
             d.altitude?.let { exif.setAltitude(it) }
         }
-        val desc = listOfNotNull(d.project, d.address, d.note).joinToString(" | ")
+        val desc = listOfNotNull(d.project, d.address, d.weather, d.note,
+            if (d.mockLocation) "MOCK LOCATION" else null).joinToString(" | ")
         if (desc.isNotBlank()) exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, desc)
         exif.saveAttributes()
     }
@@ -122,6 +123,7 @@ class CaptureProcessor(private val c: AppContainer) {
             id = UUID.randomUUID().toString(), type = type, fileName = file.name, createdAt = d.timeMillis,
             latitude = d.latitude, longitude = d.longitude, altitude = d.altitude, accuracy = d.accuracy,
             address = d.address, project = d.project, note = d.note, sha256 = sha,
+            weather = d.weather, mockLocation = d.mockLocation,
             sync = if (s.autoUpload && s.driveConnected) SyncState.QUEUED else SyncState.NONE,
         )
         c.media.add(item)

@@ -68,7 +68,7 @@ class DriveUploadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
             val driveId = api.upload(
                 token, media.file(item), item.type.mime, folder,
                 description = StampFormat.caption(item.toStamp()),
-                appProps = mapOf("sha256" to item.sha256),
+                appProps = mapOf("sha256" to item.sha256, "mockLocation" to item.mockLocation.toString()),
             )
             media.update(id) { it.copy(sync = SyncState.DONE, driveFileId = driveId) }
             Result.success()
@@ -95,4 +95,5 @@ class DriveUploadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
 fun MediaItem.toStamp() = StampData(
     timeMillis = createdAt, latitude = latitude, longitude = longitude, altitude = altitude,
     accuracy = accuracy, address = address, project = project, note = note,
+    weather = weather, mockLocation = mockLocation,
 )

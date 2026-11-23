@@ -76,6 +76,7 @@ import com.geostamp.app.ui.theme.Space
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.DriveFolderUpload
 import com.geostamp.app.stamp.CoordFormat
 import com.geostamp.app.ui.components.SectionTitle
@@ -164,6 +165,8 @@ fun SettingsScreen(nav: NavController, activity: MainActivity) {
                 SwitchRow(Icons.Filled.MyLocation, "Координаты", checked = s.showCoords) { v -> set { it.copy(showCoords = v) } }
                 SwitchRow(Icons.Filled.Straighten, "Градусы-минуты-секунды", "Вместо десятичных градусов",
                     checked = s.coordFormat == CoordFormat.DMS) { v -> set { it.copy(coordFormat = if (v) CoordFormat.DMS else CoordFormat.DECIMAL) } }
+                SwitchRow(Icons.Filled.WbSunny, "Погода", "Температура, осадки, ветер (Open-Meteo, нужен интернет)",
+                    checked = s.showWeather) { v -> set { it.copy(showWeather = v) } }
                 SwitchRow(Icons.Filled.Height, "Высота и точность GPS", checked = s.showAltitude) { v -> set { it.copy(showAltitude = v) } }
                 SwitchRow(Icons.Filled.Work, "Объект / проект", s.project.ifBlank { "не задан" }, checked = s.showProject) { v -> set { it.copy(showProject = v) } }
                 SettingRow(Icons.Filled.Edit, "Изменить объект", onClick = { editField = "project" })

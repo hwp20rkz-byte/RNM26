@@ -20,6 +20,8 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.geostamp.app.stamp.StampFormat
+import com.geostamp.app.weather.Weather
+import com.geostamp.app.weather.WeatherProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,12 +44,19 @@ import kotlin.coroutines.resume
 
 data class GeoAddress(val full: String, val locality: String?)
 
+/** Координаты от приложения-подменщика: isMock (API 31+) или isFromMockProvider на старых версиях. */
+fun Location.isMockCompat(): Boolean =
+    if (Build.VERSION.SDK_INT >= 31) isMock else @Suppress("DEPRECATION") isFromMockProvider
+
 data class GeoFix(
     val location: Location? = null,
     val address: GeoAddress? = null,
+    val weather: Weather? = null,
     val gpsEnabled: Boolean = true,
     val permission: Boolean = false,
 ) {
+    val isMock: Boolean get() = location?.isMockCompat() == true
+
     /** Свежая точная позиция: моложе 2 минут и точнее 50 м. */
     val isGood: Boolean
         get() = location != null && location.accuracy <= 50f &&
@@ -58,7 +67,7 @@ data class GeoFix(
  * Один общий поток геопозиции на всё приложение: активен, пока есть подписчики (экран камеры/главный),
  * и выключается через 5 с после ухода — батарея не тратится в фоне.
  */
-class LocationProvider(private val context: Context, scope: CoroutineScope) {
+class LocationProvider(private val context: Context, scope: CoroutineScope, private val weather: WeatherProvider) {
 
     private val fused = LocationServices.getFusedLocationProviderClient(context)
     private val trigger = MutableStateFlow(0)
@@ -104,6 +113,7 @@ class LocationProvider(private val context: Context, scope: CoroutineScope) {
         var last = GeoFix(gpsEnabled = isGpsEnabled(), permission = true)
         send(last)
         var geocodedAt: Location? = null
+        var weatherLoading = false
         updates().collect { loc ->
             last = last.copy(location = loc, gpsEnabled = isGpsEnabled())
             send(last)
@@ -113,6 +123,18 @@ class LocationProvider(private val context: Context, scope: CoroutineScope) {
                 launch {
                     val a = geocode(loc.latitude, loc.longitude)
                     if (a != null) { last = last.copy(address = a); send(last) }
+                }
+            }
+            // Погода: из кеша мгновенно, по сети — не чаще раза в 20 мин / 3 км
+            val cached = weather.cachedFor(loc.latitude, loc.longitude)
+            if (cached != null) {
+                if (last.weather !== cached) { last = last.copy(weather = cached); send(last) }
+            } else if (!weatherLoading) {
+                weatherLoading = true
+                launch {
+                    val w = withContext(Dispatchers.IO) { weather.fetch(loc.latitude, loc.longitude) }
+                    weatherLoading = false
+                    if (w != null) { last = last.copy(weather = w); send(last) }
                 }
             }
         }

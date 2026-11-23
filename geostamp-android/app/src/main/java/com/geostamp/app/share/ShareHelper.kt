@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.core.content.FileProvider
 import com.geostamp.app.data.MediaItem
 import com.geostamp.app.data.MediaRepository
 import com.geostamp.app.data.MediaType
@@ -66,6 +67,19 @@ object ShareHelper {
         }
         if (driveAppInstalled(context)) context.startActivity(intent.setPackage(DRIVE_APP))
         else context.startActivity(Intent.createChooser(intent, "Сохранить на Диск").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** Готовый файл (PDF-отчёт) — в меню «Поделиться»: WhatsApp, почта, Диск и т.д. */
+    fun shareFile(context: Context, file: java.io.File, mime: String, subject: String) {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = mime
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            clipData = ClipData.newRawUri(null, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Отправить отчёт").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     fun openUrl(context: Context, url: String) {

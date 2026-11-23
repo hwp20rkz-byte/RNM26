@@ -27,6 +27,7 @@ object StampRenderer {
         val panel = ColorUtils.setAlphaComponent(ColorUtils.HSLToColor(floatArrayOf(222f, 0.25f, 0.06f)), 0x99)
         val panelSolid = ColorUtils.setAlphaComponent(ColorUtils.HSLToColor(floatArrayOf(222f, 0.18f, 0.09f)), 0xE6)
         val shadow = ColorUtils.setAlphaComponent(ink, 0xB0)
+        val danger = ColorUtils.HSLToColor(floatArrayOf(0f, 0.78f, 0.50f))
     }
 
     private val SANS: Typeface = Typeface.SANS_SERIF
@@ -47,6 +48,7 @@ object StampRenderer {
             StampTemplate.TECH -> tech(c, w, h, u, d, o)
             StampTemplate.TRAVEL -> travel(c, w, h, u, d, o)
         }
+        if (d.mockLocation) mockBadge(c, w, u)
     }
 
     // ---------- helpers ----------
@@ -96,6 +98,19 @@ object StampRenderer {
     private fun projectLine(d: StampData, o: StampOptions) =
         d.project?.takeIf { o.showProject && it.isNotBlank() }
 
+    private fun weatherLine(d: StampData, o: StampOptions) =
+        d.weather?.takeIf { o.showWeather && it.isNotBlank() }
+
+    /** Предупреждение о подмене GPS рисуется поверх любого шаблона и не отключается. */
+    private fun mockBadge(c: Canvas, w: Int, u: Float) {
+        val p = paint(11 * u, C.white, SANS_BOLD).apply { letterSpacing = 0.04f }
+        val text = "⚠ КООРДИНАТЫ ПОДМЕНЕНЫ"
+        val pad = 6 * u; val m = 10 * u
+        val tw = p.measureText(text); val th = lineHeight(p)
+        c.drawRoundRect(RectF(m, m, m + tw + 2 * pad, m + th + 2 * pad), 6 * u, 6 * u, fill(C.danger))
+        c.text(text, m + pad, m + pad, p)
+    }
+
     private fun noteLine(d: StampData, o: StampOptions) =
         d.note?.takeIf { o.showNote && it.isNotBlank() }
 
@@ -132,6 +147,7 @@ object StampRenderer {
         val stack = Stack(4 * u).apply {
             addressLine(d, o)?.let { add(layout(it, bodyP, innerW, 2)) }
             coordsLine(d, o)?.let { add(layout(it, monoP, innerW, 1)) }
+            weatherLine(d, o)?.let { add(layout(it, monoP, innerW, 1)) }
             noteLine(d, o)?.let { add(layout(it, noteP, innerW, 2)) }
         }
         val project = projectLine(d, o)?.let { layout(it.uppercase(StampFormat.RU), labelP, innerW, 1) }
@@ -182,6 +198,7 @@ object StampRenderer {
             val parts = listOfNotNull(d.altitude?.let { StampFormat.altitude(it) }, d.accuracy?.let { StampFormat.accuracy(it) })
             if (parts.isNotEmpty()) rows += "Высота/точн." to layout(parts.joinToString(" · "), monoP, valueW, 1)
         }
+        weatherLine(d, o)?.let { rows += "Погода" to layout(it, valueP, valueW, 1) }
         noteLine(d, o)?.let { rows += "Примечание" to layout(it, valueP, valueW, 3) }
 
         val headText = (projectLine(d, o) ?: "ФОТООТЧЁТ").uppercase(StampFormat.RU)
@@ -226,6 +243,7 @@ object StampRenderer {
             add(layout(place, placeP, rightW, 1))
             addressLine(d, o)?.let { add(layout(it, bodyP, rightW, 2)) }
             coordsLine(d, o)?.let { add(layout(it, monoP, rightW, 2)) }
+            weatherLine(d, o)?.let { add(layout(it, monoP, rightW, 1)) }
             noteLine(d, o)?.let { add(layout(it, bodyP, rightW, 1)) }
         }
         val leftH = lineHeight(timeP) + lineHeight(dateP) + 2 * pad
@@ -255,6 +273,7 @@ object StampRenderer {
             add(layout("${StampFormat.date(d.timeMillis)}  ${StampFormat.time(d.timeMillis)}", headP, width, 1, right))
             addressLine(d, o)?.let { add(layout(it, bodyP, width, 2, right)) }
             coordsLine(d, o)?.let { add(layout(it, bodyP, width, 1, right)) }
+            weatherLine(d, o)?.let { add(layout(it, bodyP, width, 1, right)) }
             noteLine(d, o)?.let { add(layout(it, bodyP, width, 2, right)) }
         }
         stack.draw(c, w - m - width, h - m - stack.height)
@@ -280,6 +299,7 @@ object StampRenderer {
         rows += "UTC" to layout("${StampFormat.iso(d.timeMillis)} ${StampFormat.timeSec(d.timeMillis)} ${StampFormat.utcOffset(d.timeMillis)}", valP, vW, 1)
         addressLine(d, o)?.let { rows += "ADR" to layout(it, valP, vW, 2) }
         projectLine(d, o)?.let { rows += "OBJ" to layout(it, valP, vW, 1) }
+        weatherLine(d, o)?.let { rows += "WX" to layout(it, valP, vW, 1) }
         noteLine(d, o)?.let { rows += "TXT" to layout(it, valP, vW, 2) }
 
         val gap = 3 * u
@@ -311,6 +331,7 @@ object StampRenderer {
         val meta = listOfNotNull(
             StampFormat.year(d.timeMillis), StampFormat.time(d.timeMillis),
             if (o.showCoords && d.hasFix) StampFormat.coords(d.latitude!!, d.longitude!!, CoordFormat.DECIMAL) else null,
+            weatherLine(d, o),
         ).joinToString("  ·  ")
         val small = layout(meta, smallP, width, 2, center)
         val note = noteLine(d, o)?.let { layout(it, smallP, width, 2, center) }

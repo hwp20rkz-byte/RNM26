@@ -16,6 +16,9 @@ data class StampData(
     val locality: String? = null,
     val project: String? = null,
     val note: String? = null,
+    val weather: String? = null,
+    /** Координаты пришли от приложения-подменщика (Android isMock). Не отключается пользователем. */
+    val mockLocation: Boolean = false,
 ) {
     val hasFix: Boolean get() = latitude != null && longitude != null
 
@@ -25,6 +28,7 @@ data class StampData(
             latitude = 43.238949, longitude = 76.889709, altitude = 812.0, accuracy = 4f,
             address = "проспект Абая, 44, Алматы", locality = "Алматы",
             project = "ЖК «Северный», корпус 2", note = "Монтаж окон, 3 этаж",
+            weather = "−3 °C, снег, ветер 4 м/с",
         )
     }
 }
@@ -38,6 +42,7 @@ data class StampOptions(
     val showProject: Boolean = false,
     val showNote: Boolean = false,
     val coordFormat: CoordFormat = CoordFormat.DECIMAL,
+    val showWeather: Boolean = true,
 )
 
 enum class StampTemplate(val title: String, val description: String) {
@@ -104,6 +109,8 @@ object StampFormat {
             append("\nhttps://maps.google.com/?q=")
                 .append(String.format(Locale.US, "%.6f,%.6f", d.latitude, d.longitude))
         }
+        if (!d.weather.isNullOrBlank()) append("\n🌤 ").append(d.weather)
         if (!d.note.isNullOrBlank()) append("\n📝 ").append(d.note)
+        if (d.mockLocation) append("\n⚠ Координаты подменены программой (mock location)")
     }
 }

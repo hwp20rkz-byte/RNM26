@@ -111,7 +111,7 @@ fun SwitchRow(icon: ImageVector, title: String, subtitle: String? = null, checke
 @Composable
 fun GpsDot(fix: GeoFix, modifier: Modifier = Modifier) {
     val color = when {
-        !fix.permission || !fix.gpsEnabled -> Tokens.Error
+        !fix.permission || !fix.gpsEnabled || fix.isMock -> Tokens.Error
         fix.isGood -> Tokens.Success
         else -> Tokens.Warning
     }

@@ -4,6 +4,7 @@ import com.geostamp.app.security.PinHasher
 import com.geostamp.app.stamp.CoordFormat
 import com.geostamp.app.stamp.StampData
 import com.geostamp.app.stamp.StampFormat
+import com.geostamp.app.weather.WeatherText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -51,5 +52,18 @@ class CoreLogicTest {
         val text = StampFormat.caption(StampData.SAMPLE)
         assertTrue(text.contains("https://maps.google.com/?q=43.238949,76.889709"))
         assertTrue(text.contains("проспект Абая"))
+    }
+
+    @Test fun weatherTextFormatting() {
+        assertEquals("−3 °C, снег, ветер 4 м/с", WeatherText.format(-3.2, 71, 4.4))
+        assertEquals("+18 °C, ясно, ветер 2 м/с", WeatherText.format(17.6, 0, 1.6))
+        assertEquals("0 °C, туман, ветер 0 м/с", WeatherText.format(-0.3, 45, 0.2))
+    }
+
+    @Test fun captionWarnsAboutMockLocation() {
+        val text = StampFormat.caption(StampData.SAMPLE.copy(mockLocation = true))
+        assertTrue(text.contains("подменены"))
+        assertTrue(text.contains("−3 °C"))
+        assertFalse(StampFormat.caption(StampData.SAMPLE).contains("подменены"))
     }
 }

@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
@@ -78,6 +79,7 @@ import com.geostamp.app.data.MediaItem
 import com.geostamp.app.data.MediaType
 import com.geostamp.app.data.SyncState
 import com.geostamp.app.drive.toStamp
+import com.geostamp.app.report.PdfReport
 import com.geostamp.app.share.ShareHelper
 import com.geostamp.app.stamp.CoordFormat
 import com.geostamp.app.stamp.StampFormat
@@ -99,6 +101,7 @@ fun GalleryScreen(nav: NavController) {
     var filter by remember { mutableStateOf(Filter.ALL) }
     var selected by remember { mutableStateOf(setOf<String>()) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var buildingPdf by remember { mutableStateOf(false) }
 
     val items = when (filter) {
         Filter.ALL -> all
@@ -113,6 +116,20 @@ fun GalleryScreen(nav: NavController) {
         val caption = if (selection.size == 1) StampFormat.caption(selection[0].toStamp(), settings?.coordFormat ?: CoordFormat.DECIMAL) else null
         c.lock.allowShortLeave()
         ShareHelper.share(ctx, c.media, selection, caption, whatsApp)
+    }
+
+    fun pdfReport() {
+        if (buildingPdf) return
+        buildingPdf = true
+        scope.launch {
+            val file = runCatching { PdfReport.build(ctx, c.media, selection) }.getOrNull()
+            buildingPdf = false
+            if (file != null) {
+                c.lock.allowShortLeave()
+                ShareHelper.shareFile(ctx, file, "application/pdf", file.nameWithoutExtension)
+                selected = emptySet()
+            }
+        }
     }
 
     fun upload() {
@@ -182,6 +199,7 @@ fun GalleryScreen(nav: NavController) {
                 ActionButton("WhatsApp", painter = R.drawable.ic_whatsapp, modifier = Modifier.weight(1f)) { share(true) }
                 ActionButton("Отправить", Icons.Filled.Share, modifier = Modifier.weight(1f)) { share(false) }
                 ActionButton("На Диск", Icons.Filled.CloudUpload, modifier = Modifier.weight(1f)) { upload() }
+                ActionButton("PDF", Icons.Filled.PictureAsPdf, modifier = Modifier.weight(1f)) { pdfReport() }
                 ActionButton("Удалить", Icons.Filled.Delete, modifier = Modifier.weight(1f)) { confirmDelete = true }
             }
         }
@@ -190,6 +208,12 @@ fun GalleryScreen(nav: NavController) {
     if (confirmDelete) ConfirmDelete(selected.size, onDismiss = { confirmDelete = false }) {
         scope.launch { c.media.delete(selected); selected = emptySet(); confirmDelete = false }
     }
+    if (buildingPdf) AlertDialog(
+        onDismissRequest = {},
+        confirmButton = {},
+        title = { Text("Формирую PDF-отчёт…") },
+        text = { androidx.compose.material3.LinearProgressIndicator(color = Tokens.Primary, modifier = Modifier.fillMaxWidth()) },
+    )
 }
 
 @Composable
@@ -318,6 +342,8 @@ private fun InfoBlock(item: MediaItem, verify: Boolean?) {
     }
     item.project?.let { Text("Объект: $it", style = muted, color = Tokens.TextMuted) }
     item.note?.let { Text("Примечание: $it", style = muted, color = Tokens.TextMuted) }
+    item.weather?.let { Text("Погода: $it", style = muted, color = Tokens.TextMuted) }
+    if (item.mockLocation) Text("⚠ Координаты подменены программой при съёмке", style = muted, color = Tokens.Error)
     Text(
         "Облако: " + when (item.sync) {
             SyncState.NONE -> "не загружено"; SyncState.QUEUED -> "в очереди"; SyncState.UPLOADING -> "загружается…"

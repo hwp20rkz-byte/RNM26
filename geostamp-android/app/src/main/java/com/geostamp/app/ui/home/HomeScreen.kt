@@ -151,6 +151,7 @@ private fun GpsCard(fix: GeoFix, onEnable: () -> Unit) {
                     when {
                         !fix.permission -> "Нет доступа к геолокации"
                         !fix.gpsEnabled -> "GPS выключен"
+                        fix.isMock -> "GPS подменён программой!"
                         fix.isGood -> "GPS: точная позиция"
                         fix.location != null -> "GPS: уточняем…"
                         else -> "GPS: поиск спутников…"
@@ -167,6 +168,11 @@ private fun GpsCard(fix: GeoFix, onEnable: () -> Unit) {
                 Text(
                     StampFormat.coords(loc.latitude, loc.longitude, com.geostamp.app.stamp.CoordFormat.DECIMAL),
                     style = MaterialTheme.typography.bodySmall, color = Tokens.TextMuted,
+                )
+                fix.weather?.let { Text("Погода: " + it.text(), style = MaterialTheme.typography.bodySmall, color = Tokens.TextMuted) }
+                if (fix.isMock) Text(
+                    "Включено приложение подмены геопозиции. На снимках появится красная пометка «Координаты подменены».",
+                    style = MaterialTheme.typography.bodySmall, color = Tokens.Error,
                 )
             }
             if (!fix.permission || !fix.gpsEnabled) {
