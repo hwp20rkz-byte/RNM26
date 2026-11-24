@@ -67,6 +67,14 @@
         (KM.water || []).map(function (w) { return '<path class="wt' + (w.id === v.mark ? ' on' : '') + '" d="' + w.path + '"/>'; }).join('') +
         (on ? '<circle class="mk-ring" cx="' + on.c[0] + '" cy="' + on.c[1] + '" r="30"/>' : '') + '</svg>';
     }
+    if (v.type === 'rect') {   // a × b cm drawn to scale; the area question shows the 1 cm squares to count
+      var u = Math.min(200 / v.a, 110 / v.b), w = v.a * u, h = v.b * u, x0 = (260 - w) / 2, y0 = 16, cells = '';
+      if (v.kind === 's') for (var i = 1; i < v.a; i++) cells += '<line x1="' + (x0 + i * u) + '" y1="' + y0 + '" x2="' + (x0 + i * u) + '" y2="' + (y0 + h) + '"/>';
+      if (v.kind === 's') for (var j = 1; j < v.b; j++) cells += '<line x1="' + x0 + '" y1="' + (y0 + j * u) + '" x2="' + (x0 + w) + '" y2="' + (y0 + j * u) + '"/>';
+      return '<svg class="mk-rect" viewBox="0 0 300 ' + (h + 52) + '" role="img" aria-label="' + v.a + ' см × ' + v.b + ' см"><rect x="' + x0 + '" y="' + y0 + '" width="' + w + '" height="' + h + '"/>' +
+        '<g class="cell">' + cells + '</g><text x="' + (x0 + w / 2) + '" y="' + (y0 + h + 26) + '" text-anchor="middle">' + v.a + ' см</text>' +
+        '<text x="' + (x0 + w + 8) + '" y="' + (y0 + h / 2 + 6) + '">' + v.b + ' см</text></svg>';
+    }
     if (v.type === 'clock') {   // the short hand points between the hours at half past
       var ha = (v.h % 12 + v.m / 60) * 30, ma = v.m * 6, ticks = '';
       for (var k = 0; k < 12; k++) { var a = k * Math.PI / 6; ticks += '<text x="' + (50 + Math.sin(a) * 37).toFixed(1) + '" y="' + (54 - Math.cos(a) * 37).toFixed(1) + '">' + (k || 12) + '</text>'; }

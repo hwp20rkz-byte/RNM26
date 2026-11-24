@@ -156,6 +156,17 @@
     out.push({ who: 'E1', kk: BZ_THANKS });
     return out;
   }
+  /* ---------- 24.11: «Периметр және аудан» (3 кл.) — a rectangle a × b cm; answers computed, no facts ---------- */
+  function perimQ(kind) { return kind === 'p' ? 'Тіктөртбұрыштың периметрі неше сантиметр?' : 'Тіктөртбұрыштың ауданы неше шаршы сантиметр?'; }
+  function perimSay(kind, n) { return N(n) + (kind === 'p' ? ' сантиметр' : ' шаршы сантиметр'); }
+  GEN.perim = function (r) {
+    var a = rint(r, 2, 9), b = rint(r, 2, 9); while (b === a) b = rint(r, 2, 9);
+    var kind = r() < 0.5 ? 'p' : 's', ans = kind === 'p' ? 2 * (a + b) : a * b;
+    var near = (kind === 'p' ? [a + b, a * b, ans + 2, ans - 2] : [2 * (a + b), a + b, ans + a, ans - b]).filter(function (x, i, l) { return x > 0 && x !== ans && l.indexOf(x) === i; });
+    return { kk: perimQ(kind), ru: kind === 'p' ? 'Чему равен периметр прямоугольника?' : 'Чему равна площадь прямоугольника?', en: kind === 'p' ? 'What is the perimeter?' : 'What is the area?',
+      visual: { type: 'rect', a: a, b: b, kind: kind }, answer: String(ans), options: shuffle([ans].concat(shuffle(near, r).slice(0, 2)), r).map(String),
+      say: perimSay(kind, ans), full: kind === 'p' ? '(' + a + ' + ' + b + ') × 2 = ' + ans + ' см' : a + ' × ' + b + ' = ' + ans + ' см²' };
+  };
   GEN.place = function (r) {
     var h = rint(r, 1, 9), t = rint(r, 0, 9), u = rint(r, 0, 9), n = h * 100 + t * 10 + u;
     return { kk: h + ' жүздік, ' + t + ' ондық, ' + u + ' бірлік. Бұл қай сан?', ru: h + ' сотен, ' + t + ' десятков, ' + u + ' единиц — какое это число?', en: h + ' hundreds, ' + t + ' tens, ' + u + ' ones — which number?',
@@ -708,6 +719,7 @@
     m1compare: 'Үлкен сан артық, кіші сан кем, бірдей болса — тең.', m2add100: 'Ондықтарды ондықтарға, бірліктерді бірліктерге қосамыз.',
     m2mul: 'Көбейту — бірдей сандарды бірнеше рет қосу.', m2money: 'Тиындарды қосамыз, ең үлкенінен бастаймыз.', m2clock: 'Қысқа тіл сағатты, ұзын тіл минутты көрсетеді.',
     m3mul69: 'Көбейткіштердің орнын ауыстырсақ, көбейтінді өзгермейді.', m3div: 'Бөлу — көбейтуге кері амал.', m3frac: 'Бөлшектің асты — неше тең бөлік, үсті — нешеуі алынды.',
+    m3perim: 'Периметр — барлық қабырғаның қосындысы. Аудан — ұзындығын еніне көбейтеміз.',
     m4shop: 'Бағасын санына көбейтеміз, қалдықты табу үшін азайтамыз.',
     m4bazaar: 'Алдымен барлығы қанша тұратынын табамыз, сосын берген ақшадан азайтамыз.', m4place: 'Үш таңбалы санда жүздіктер, ондықтар және бірліктер бар.',
     l1pattern: 'Қайталанатын бөлікті тап та, ары қарай жалғастыр.', l1odd: 'Қайсысы басқа топқа жатады? Соны таңда.', l2algo: 'Нұсқарларды ретімен орында: әр қадам — бір шаршы.',
@@ -760,6 +772,7 @@
       { id: 'm2money', grade: 2, gen: 'money', kk: 'Ақша: теңге', ru: 'Деньги: тенге', en: 'Money: tenge' },
       { id: 'm3mul69', grade: 3, gen: 'mul69', kk: 'Көбейту кестесі (6–9)', ru: 'Таблица умножения (6–9)', en: 'Times tables (6–9)' },
       { id: 'm3div', grade: 3, gen: 'div', kk: 'Бөлу', ru: 'Деление', en: 'Division' },
+      { id: 'm3perim', grade: 3, gen: 'perim', kk: 'Периметр және аудан', ru: 'Периметр и площадь', en: 'Perimeter and area' },
       { id: 'm3frac', grade: 3, gen: 'frac', kk: 'Бөлшектер', ru: 'Доли и дроби', en: 'Fractions' },
       { id: 'm4shop', grade: 4, gen: 'shop', kk: 'Базарда: есептер', ru: 'Задачи: покупки и сдача', en: 'Word problems: shopping' },
       { id: 'm4bazaar', grade: 4, gen: 'bazaar', kk: 'Базарда: сұхбат', ru: 'На базаре: диалог', en: 'At the bazaar: a dialogue' },
@@ -877,7 +890,7 @@
     'l1pattern', 'l1odd', 'l2algo', 'l2yurt', 'l3sym', 'n1season', 'n1wild', 'n2home', 'n2water', 'n2senses', 'n3redbook',
     'g2dirs', 'g3feature', 'g3repcity', 'g4center', 'g4map', 'g4neighbor', 'c2landmark', 'c3river', 'c4tour', 'c3guide',
     'h5timeline', 'h5kz', 'h5world', 'r2genre', 'r3music', 'r4authors',
-    'm2clock', 'n2health', 'n2safety', 'c3region', 'h5ata', 'r3legend', 'g4water', 'm4bazaar'];
+    'm2clock', 'n2health', 'n2safety', 'c3region', 'h5ata', 'r3legend', 'g4water', 'm4bazaar', 'm3perim'];
   function codeTopics() { return CODE_ORDER.map(function (id) { return { id: id }; }); }
   function check(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 36; return h.toString(36); }
   function encodeReport(best, name, grade) {
@@ -937,6 +950,7 @@
     EVENTS.forEach(function (e) { out.push(e.kk); }); out.push('Қайсысы бұрын болды?');
     Object.keys(CITY_LL).forEach(function (c) { out.push(c + ' қай жерде?'); out.push(c); });
     out.push('Белгіленген су айдыны қалай аталады?');
+    ['p', 's'].forEach(function (k) { out.push(perimQ(k)); for (var a = 2; a <= 9; a++) for (var b = 2; b <= 9; b++) if (a !== b) out.push(perimSay(k, k === 'p' ? 2 * (a + b) : a * b)); });
     Object.keys(TOUR).forEach(function (n) { out.push(travelPlace(n)); out.push(tourLine(n)); });
     Object.keys(CITY_LL).forEach(function (c) { out.push(cityWhere(c)); });
     BZ_KIDS.forEach(function (p) { out.push(bazaarTotalQ(p.kk)); out.push(bazaarChangeQ(p.kk)); });
@@ -958,5 +972,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { travelPlace: travelPlace, N: N, BAZAAR: BAZAAR, bazaarAsk: bazaarAsk, bazaarPrice: bazaarPrice, bazaarBuy: bazaarBuy, bazaarTotalQ: bazaarTotalQ, bazaarChangeQ: bazaarChangeQ, SEAS: SEAS, waterWhere: waterWhere, CODE_ORDER: CODE_ORDER, HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { perimQ: perimQ, perimSay: perimSay, travelPlace: travelPlace, N: N, BAZAAR: BAZAAR, bazaarAsk: bazaarAsk, bazaarPrice: bazaarPrice, bazaarBuy: bazaarBuy, bazaarTotalQ: bazaarTotalQ, bazaarChangeQ: bazaarChangeQ, SEAS: SEAS, waterWhere: waterWhere, CODE_ORDER: CODE_ORDER, HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });

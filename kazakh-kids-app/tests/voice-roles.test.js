@@ -46,13 +46,19 @@ assert.ok(counts.ANEL >= 15 && counts.APAI >= 30, 'both heroines speak: ' + JSON
 
 // audio (ISSAI retired 13.11.2026): a narrator line has an ISEKE file, a character line a Freedom Speech file in audio/
 const has = (dir, k) => fs.existsSync(path.join(ROOT, 'web', dir, k + '.mp3'));
-const missing = phrases.filter((p) => (p.voice === 'NARR' ? !ISEKE[p.key] || !has('audio-iseke', p.key) : !AUD[p.key] || !has('audio', p.key)));
+// A character line whose own take is not made yet (Freedom Speech down) may play in the narrator's voice for a while
+// (tools/make-audio.py --narrator adds it) — at most 5 such lines, always listed, so they cannot pile up unnoticed.
+const narrated = (p) => ISEKE[p.key] && has('audio-iseke', p.key);
+const missing = phrases.filter((p) => (p.voice === 'NARR' ? !narrated(p) : (!AUD[p.key] || !has('audio', p.key)) && !narrated(p)));
 assert.deepStrictEqual(missing.map((p) => p.voice + ': ' + p.text), [], 'every phrase has bundled audio'); n++;
+const stand = phrases.filter((p) => p.voice !== 'NARR' && (!AUD[p.key] || !has('audio', p.key)));
+assert.ok(stand.length <= 5, 'too many hero lines in the narrator voice: ' + stand.length); n++;
+if (stand.length) console.warn('voice roles: ' + stand.length + ' hero line(s) still in the narrator voice — rerun make-audio-fs.mjs --heroes: ' + stand.map((p) => p.voice + ' «' + p.text.slice(0, 40) + '»').join('; '));
 const heroLog = JSON.parse(fs.readFileSync(path.join(ROOT, 'web/audio/heroes-fs.json'), 'utf8'));
-const notFs = phrases.filter((p) => p.voice !== 'NARR' && !heroLog[p.key]);
+const notFs = phrases.filter((p) => p.voice !== 'NARR' && !heroLog[p.key] && !stand.includes(p));   // the listed stand-ins above are the only exception
 assert.deepStrictEqual(notFs.map((p) => p.voice + ': ' + p.text), [], 'every character line is a Freedom Speech take'); n++;
 const issai = Object.keys(AUD).filter((k) => !heroLog[k]);
 assert.deepStrictEqual(issai, [], 'audio/ holds no narrator (ISSAI) file'); n++;
-const leaked = phrases.filter((p) => p.voice !== 'NARR' && ISEKE[p.key]);
+const leaked = phrases.filter((p) => p.voice !== 'NARR' && ISEKE[p.key] && !stand.includes(p));   // a stand-in leaves ISEKE by itself once the hero take exists (make-audio.py prunes it)
 assert.deepStrictEqual(leaked.map((p) => p.voice + ': ' + p.text), [], 'ISEKE (narrator) pack holds no persona line'); n++;
 console.log('voice roles: ' + n + ' checks passed (ANEL ' + counts.ANEL + ' lines, APAI ' + counts.APAI + ' lines)');
