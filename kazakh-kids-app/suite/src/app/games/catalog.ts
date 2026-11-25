@@ -45,5 +45,11 @@ export const GAMES: GameCard[] = [
     mechanic: { ru: 'Сосчитай башню из этажей и кубиков умножением; назови шар, куб, цилиндр, конус, пирамиду', en: 'Count a tower of floors and cubes by multiplying; name the 3D shapes' } },
   { id: 'travel', kk: 'Қазақстан саяхаты', ru: 'Путешествие по Казахстану', en: 'Travel Kazakhstan', icon: '✈️', ready: true,
     pillar: { ru: 'Мектеп · география 3–4: города и достопримечательности на 3D-карте', en: 'School · geography 3–4: cities and landmarks on a 3D map' },
-    mechanic: { ru: 'Отправь самолётик в город, где стоит достопримечательность; найди город на карте', en: 'Fly the plane to the city of the landmark; find the city on the map' } }
+    mechanic: { ru: 'Отправь самолётик в город достопримечательности; найди город на карте; выбери сторону света для полёта', en: 'Fly to the city of the landmark; find the city on the map; choose the compass direction' } },
+  { id: 'scales', kk: 'Таразы', ru: 'Весы', en: 'Balance Scale', icon: '⚖️', ready: true,
+    pillar: { ru: 'Мектеп · математика 1–3: недостающее слагаемое и деление на весах', en: 'School · maths 1–3: the missing addend and division on a balance' },
+    mechanic: { ru: 'Положи нужную гирю или нужное число гирь — и весы выровняются', en: 'Add the right weight or the right number of weights to level the scale' } },
+  { id: 'water', kk: 'Су айналымы', ru: 'Круговорот воды', en: 'Water Cycle', icon: '💧', ready: true,
+    pillar: { ru: 'Мектеп · естествознание 2: испарение, облако, дождь, река', en: 'School · science 2: evaporation, cloud, rain, river' },
+    mechanic: { ru: 'Угадай, что будет дальше, — и капля пройдёт круг: море → облако → дождь → река', en: 'Say what comes next and a drop goes round: sea → cloud → rain → river' } }
 ];

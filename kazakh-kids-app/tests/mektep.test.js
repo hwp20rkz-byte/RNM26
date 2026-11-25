@@ -365,6 +365,24 @@ eq(M.travelPlace('Каспий теңізі'), 'Каспий теңізі — А
   eq([...dirs].sort().join(','), 'down,up', 'both directions');
   const vl = M.voiceLines(); assert.ok(vl.includes(M.lengthQ(9, 'дм', 'мм')) && vl.includes(M.lengthSay(900, 'мм')) && vl.includes(M.lengthQ(900, 'см', 'м')), 'questions and answers voiced'); n++;
 }
+
+// 25.11 — 3D hall sentences (reference by hand; forms and numbers from the engine)
+eq(M.scalesAdd(7, 5), 'Жеті қосу бес тең он екі.', 'scales: addition sentence');
+eq(M.scalesDiv(12, 3), 'Он екі бөлу үш тең төрт.', 'scales: division sentence');
+eq(M.scalesSay('add', 5), 'Бес килограмм!', 'scales: the answer is spoken short'); eq(M.scalesSay('div', 4), 'Төрт гір!', 'scales: how many weights');
+{
+  const P = M.compassPairs(), find = (a, b) => P.find((p) => p.from === a && p.to === b);
+  eq(find('Астана', 'Шымкент').ask, 'Астанадан Шымкентке қай жаққа ұшамыз?', 'compass question: ablative + dative');
+  eq(find('Астана', 'Шымкент').dir, 'оңтүстік', 'Шымкент is south of Астана');
+  eq(find('Астана', 'Семей').say, 'Шығысқа ұшамыз!', 'Семей is east of Астана');
+  eq(find('Орал', 'Өскемен').dir, 'шығыс', 'Орал → Өскемен: east');
+  assert.ok(!find('Астана', 'Алматы'), 'Алматы (SSE of Астана) lies between two sides — left out'); n++;
+  for (const p of P) { const q = find(p.to, p.from), opp = { 'шығыс': 'батыс', 'солтүстік': 'оңтүстік', 'солтүстік-шығыс': 'оңтүстік-батыс', 'солтүстік-батыс': 'оңтүстік-шығыс' };
+    const back = opp[p.dir] || Object.keys(opp).find((k) => opp[k] === p.dir); assert.ok(q && q.dir === back, 'the way back is the opposite side: ' + p.from + '→' + p.to); n++; }
+  assert.ok(M.COMPASS.every((c) => P.filter((p) => p.dir === c[0]).length >= 10), 'every side has at least 10 clear pairs'); n++;
+  const L = M.lines3d(), vl = M.voiceLines();
+  assert.ok(L.every((t) => vl.includes(t)) && L.includes('Төрт көбейту алты тең жиырма төрт.') && L.includes('цилиндр'), 'every 3D line is in the voice list'); n++;
+}
 // the teacher code keeps a fixed topic order: 19.11 order, then appended topics; every topic has a place
 eq(M.CODE_ORDER.slice(0, 7).join(','), 'm1count,m1shapes,m1tens,m1add20,m1compare,m2add100,m2mul', 'code order is pinned');
 eq(M.CODE_ORDER.slice(40).join(','), 'm2clock,n2health,n2safety,c3region,h5ata,r3legend,g4water,m4bazaar,m3perim,m3length', 'new topics only appended to the code');

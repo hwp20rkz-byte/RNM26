@@ -16,7 +16,11 @@ function build() {
     outline: rings(K.path),
     water: K.water.map((w) => ({ id: w.id, rings: rings(w.path), c: w.c })),
     cities: Object.keys(M.CITY_LL).map((c) => { const p = M.cityXY(c); return { name: c, x: r1(p[0]), y: r1(p[1]), ask: c + ' қай жерде?', where: M.cityWhere(c) }; }),
-    tour: Object.keys(M.TOUR).map((n) => ({ landmark: n, city: M.TOUR[n], line: M.tourLine(n), to: M.guideForms(M.TOUR[n])[1], place: M.travelPlace(n) }))
+    tour: Object.keys(M.TOUR).map((n) => ({ landmark: n, city: M.TOUR[n], line: M.tourLine(n), to: M.guideForms(M.TOUR[n])[1], place: M.travelPlace(n) })),
+    // compass (25.11): only clear pairs (within 15° of a side); the side words and their «…қа ұшамыз!» lines from the engine
+    compassQ: M.COMPASS_Q,
+    sides: M.COMPASS.map((c) => ({ dir: c[0], deg: c[1] })),
+    compass: M.compassPairs().map((p) => ({ from: p.from, to: p.to, dir: p.dir, ask: p.ask, say: p.say }))
   };
 }
 
@@ -29,7 +33,11 @@ function render(d) {
     'export const OUTLINE: number[][][] = ' + JSON.stringify(d.outline) + ';\n' +
     'export const WATER: TravelWater[] = ' + JSON.stringify(d.water) + ';\n' +
     'export const CITIES: TravelCity[] = ' + JSON.stringify(d.cities) + ';\n' +
-    'export const TOUR: TravelStop[] = ' + JSON.stringify(d.tour) + ';\n';
+    'export const TOUR: TravelStop[] = ' + JSON.stringify(d.tour) + ';\n' +
+    'export interface TravelLeg { from: string; to: string; dir: string; ask: string; say: string }\n' +
+    'export const COMPASS_Q = ' + JSON.stringify(d.compassQ) + ';\n' +
+    'export const SIDES: { dir: string; deg: number }[] = ' + JSON.stringify(d.sides) + ';\n' +
+    'export const LEGS: TravelLeg[] = ' + JSON.stringify(d.compass) + ';\n';
 }
 
 module.exports = { build, render };

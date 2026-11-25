@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, Html } from '@react-three/drei';
 import type { Lang, Vec3 } from '../../types/game.types';
-import { MAP_H, MAP_W, OUTLINE, WATER } from '../../data/travelData';
+import { MAP_H, MAP_W, OUTLINE, SIDES, WATER } from '../../data/travelData';
 import { V_LIVES, buildTravelRound, cityOf, initialTravel, travelAccuracy, travelReducer, type TravelMode, type VState } from '../../lib/travelLogic';
 import { StudioCanvas, useQuality } from '../3d/canvas/StudioCanvas';
 import { SkyDiorama } from '../3d/environment/SkyDiorama';
@@ -118,11 +118,12 @@ function Plane({ from, to, flying, t0 }: { from: string; to: string | null; flyi
 }
 
 function Scene({ state, layout, t0, onPin, showNames }: { state: VState; layout: Layout; t0: number; onPin(c: string): void; showNames: boolean }) {
+  const compass = state.round?.mode === 'compass';
   const quality = useQuality(), particles = useParticles();
   const st = state.round && state.i < state.round.stages.length ? state.round.stages[state.i] : null, hit = state.phase === 'hit';
   useEffect(() => {
     if (!hit || !st) return undefined;
-    const c = cityOf(st.answer), P = toWorld(c.x, c.y);
+    const c = cityOf(st.target), P = toWorld(c.x, c.y);
     const id = setTimeout(() => particles.burst({ at: [P[0], TOP + 0.6, P[2]], count: quality === 'low' ? 30 : 80, color: GOLD, speed: 2.2, gravity: 0.9, life: 1, size: 0.05 }), 1400);
     return () => clearTimeout(id);
   }, [state.phase, state.seq]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -132,22 +133,22 @@ function Scene({ state, layout, t0, onPin, showNames }: { state: VState; layout:
       <SkyDiorama quality={quality} />
       <mesh rotation-x={-Math.PI / 2} position-y={-0.01}><planeGeometry args={[40, 40]} /><meshStandardMaterial color="#1A2238" roughness={0.9} /></mesh>
       <MapSlab />
-      {st && st.options.map((name) => {
+      {st && (compass ? [st.start!, st.target] : st.options).map((name) => {
         const c = cityOf(name), [x, , z] = toWorld(c.x, c.y), right = hit && name === st.answer, wrong = state.tried.includes(name);
-        const col = right ? JADE : wrong ? CORAL : PIN;
+        const col = compass ? (name === st.target ? GOLD : PIN) : right ? JADE : wrong ? CORAL : PIN;
         return (
           <group key={state.i + ':' + name} position={[x, TOP, z]}>
             <mesh position-y={0.3}><cylinderGeometry args={[0.035, 0.035, 0.6, 8]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.4} /></mesh>
             <mesh position-y={0.66}><sphereGeometry args={[0.13, 16, 12]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.5} /></mesh>
-            <Html center position={[0, 0.5, 0]} zIndexRange={[20, 0]}>
+            {!compass && <Html center position={[0, 0.5, 0]} zIndexRange={[20, 0]}>
               <button data-pin={name} aria-label={name} disabled={wrong || hit} onClick={() => onPin(name)}
                 className="block h-12 w-12 rounded-full border-2 border-transparent hover:border-turq-300 focus-visible:border-gold" style={{ background: 'transparent' }} />
-            </Html>
-            {(showNames || right || wrong) && <Billboard position={[0, 1.05, 0]}><CanvasLabel text={name} height={tall ? 0.6 : 0.36} glow={col} /></Billboard>}
+            </Html>}
+            {(showNames || compass || right || wrong) && <Billboard position={[0, 1.05, 0]}><CanvasLabel text={name} height={tall ? 0.6 : 0.36} glow={col} /></Billboard>}
           </group>
         );
       })}
-      {st && <Plane from={state.from} to={st.answer} flying={hit} t0={t0} />}
+      {st && <Plane from={state.from} to={st.target} flying={hit} t0={t0} />}
       {st?.landmark && (
         <group position={tall ? [0, 0.6, -5.4] : [7.7, 0, -0.6]} scale={tall ? 1.5 : 1.0}>
           <mesh position-y={-0.08}><cylinderGeometry args={[1.1, 1.2, 0.16, 32]} /><meshStandardMaterial color="#E2E8F0" /></mesh>
@@ -166,13 +167,13 @@ export function Travel3D({ lang, onExit }: { lang: Lang; onExit(): void }) {
   const [t0, setT0] = useState(0);
   const finished = useRef(false), layout = useLayout(), clock = useRef(performance.now());
   const play = useAudioStore((s) => s.play), voice = useAudioStore((s) => s.voice), finishSession = useGameStore((s) => s.finishSession);
-  const round = state.round, en = lang === 'en', st = round && state.i < round.stages.length ? round.stages[state.i] : null, tour = round?.mode === 'tour';
+  const round = state.round, en = lang === 'en', st = round && state.i < round.stages.length ? round.stages[state.i] : null, tour = round?.mode === 'tour', compass = round?.mode === 'compass';
   const active = state.phase === 'aim' || state.phase === 'miss';
   const start = (m: TravelMode) => { finished.current = false; setLevelUp(false); dispatch({ type: 'start', round: buildTravelRound(m) }); play('whoosh'); };
   const choose = (o: string) => { if (!st || !active) return; play('tap'); dispatch({ type: 'pick', option: o }); };
   useEffect(() => {   // each task: the architect (tour) or the narrator (map) asks
     if (!st || state.phase !== 'aim' || state.tried.length || !voice) return undefined;
-    const id = setTimeout(() => speakKazakh(st.prompt, tour), 400);
+    const id = setTimeout(() => speakKazakh(st.speak, tour), 400);
     return () => clearTimeout(id);
   }, [state.i, round]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -209,11 +210,21 @@ export function Travel3D({ lang, onExit }: { lang: Lang; onExit(): void }) {
       {round && st && ['aim', 'hit', 'miss'].includes(state.phase) && (
         <section className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-[max(16px,env(safe-area-inset-bottom))]" aria-live="polite">
           <div className="holo pointer-events-auto mx-auto max-w-xl rounded-[var(--radius-card)] px-4 py-3 text-center">
-            <p className="text-sm text-mist-dim">{state.i + 1} / {round.stages.length} · {tour ? (en ? 'The architect wants to see a place' : 'Архитектор хочет увидеть место') : (en ? 'Tap the city on the map' : 'Нажми на город на карте')}</p>
+            <p className="text-sm text-mist-dim">{state.i + 1} / {round.stages.length} · {compass ? (en ? 'From the blue pin to the gold one' : 'От синего флажка к золотому') : tour ? (en ? 'The architect wants to see a place' : 'Архитектор хочет увидеть место') : (en ? 'Tap the city on the map' : 'Нажми на город на карте')}</p>
             <p className="mt-1 text-lg font-black">{st.prompt}</p>
             {state.phase === 'hit' && <p className="font-black text-jade">✨ {st.say}</p>}
-            {state.phase === 'miss' && <p className="font-black text-coral">{tour ? (en ? 'Not there. Look at the model again.' : 'Не туда. Посмотри на модель ещё раз.') : (en ? 'Not this one. Up is north, down is south, left is west.' : 'Не этот. Наверху — север, внизу — юг, слева — запад.')}</p>}
+            {state.phase === 'miss' && <p className="font-black text-coral">{compass ? (en ? 'Up is north, down is south, right is east, left is west.' : 'Наверху — север, внизу — юг, справа — восток, слева — запад.') : tour ? (en ? 'Not there. Look at the model again.' : 'Не туда. Посмотри на модель ещё раз.') : (en ? 'Not this one. Up is north, down is south, left is west.' : 'Не этот. Наверху — север, внизу — юг, слева — запад.')}</p>}
           </div>
+          {compass && (
+            <div className="pointer-events-auto mx-auto mt-2 grid max-w-xl grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={en ? 'Sides of the world' : 'Стороны света'}>
+              {st.options.map((o) => (
+                <button key={state.i + ':' + o} data-opt={o} disabled={state.tried.includes(o) || state.phase === 'hit'} onClick={() => choose(o)}
+                  className={'flex min-h-12 items-center justify-center gap-2 rounded-2xl px-2 text-base font-black ' + (state.phase === 'hit' && o === st.answer ? 'bg-jade text-obsidian' : state.tried.includes(o) ? 'bg-obsidian-800 text-mist-dim line-through opacity-60' : 'holo text-mist')}>
+                  <span aria-hidden="true" className="inline-block text-xl" style={{ transform: 'rotate(' + (90 - (SIDES.find((x) => x.dir === o)?.deg ?? 0)) + 'deg)' }}>⬆</span>{o}
+                </button>
+              ))}
+            </div>
+          )}
           {tour && (
             <div className="pointer-events-auto mx-auto mt-2 grid max-w-xl grid-cols-3 gap-2" role="group" aria-label={en ? 'Cities' : 'Города'}>
               {st.options.map((o) => (
@@ -235,6 +246,7 @@ export function Travel3D({ lang, onExit }: { lang: Lang; onExit(): void }) {
             <div className="mt-6 grid gap-2">
               <button className="btn-solar" data-mode="tour" onClick={() => start('tour')}>🏛️ {en ? 'Landmarks' : 'Көрікті жерлер — достопримечательности'}</button>
               <button className="btn-ghost holo !min-h-[52px] text-base" data-mode="map" onClick={() => start('map')}>📍 {en ? 'Cities on the map' : 'Қала қайда? — города на карте'}</button>
+              <button className="btn-ghost holo !min-h-[52px] text-base" data-mode="compass" onClick={() => start('compass')}>🧭 {en ? 'Compass: which way?' : 'Қай жаққа? — стороны света'}</button>
               <button className="btn-ghost !min-h-[44px] text-sm text-mist-dim" onClick={onExit}>← {en ? 'All games' : 'Все игры'}</button>
             </div>
           </div>
@@ -247,7 +259,7 @@ export function Travel3D({ lang, onExit }: { lang: Lang; onExit(): void }) {
             {levelUp && <p className="mt-1 font-black text-gold">⬆ {en ? 'Level up!' : 'Новый уровень!'}</p>}
             <p className="mt-2 text-lg">XP +{state.xp} · {en ? 'first try' : 'с первого раза'} {state.firstTry}/{round.stages.length}</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button className="btn-solar" onClick={() => start(round.mode === 'tour' ? 'map' : 'tour')}>{round.mode === 'tour' ? (en ? 'Cities on the map →' : 'Қала қайда? →') : (en ? 'Landmarks' : 'Көрікті жерлер')}</button>
+              <button className="btn-solar" onClick={() => start(round.mode === 'tour' ? 'map' : round.mode === 'map' ? 'compass' : 'tour')}>{round.mode === 'tour' ? (en ? 'Cities on the map →' : 'Қала қайда? →') : round.mode === 'map' ? (en ? 'Compass →' : 'Қай жаққа? →') : (en ? 'Landmarks' : 'Көрікті жерлер')}</button>
               <button className="btn-ghost holo !min-h-[48px]" onClick={onExit}>{en ? 'All games' : 'Все игры'}</button>
             </div>
           </div>

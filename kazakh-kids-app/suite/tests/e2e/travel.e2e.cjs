@@ -18,7 +18,7 @@ async function run(b, mode, vw, vh, test) {
   for (let i = 0; i < N; i++) {
     await p.waitForFunction((i) => window.__travel().phase === 'aim' && window.__travel().i === i, i, { timeout: 15000 });
     const s = await st(); answers.push(s.answer);
-    const sel = (o) => (mode === 'tour' ? `[data-opt="${o}"]` : `[data-pin="${o}"]`);
+    const sel = (o) => (mode === 'map' ? `[data-pin="${o}"]` : `[data-opt="${o}"]`);
     if (i === 0) {
       await p.click(sel(s.options.find((o) => o !== s.answer))); await p.waitForTimeout(300);
       const w = await st(); if (w.phase !== 'miss' || w.lives !== 2) throw new Error('a wrong pick must cost a life'); missed++;
@@ -30,7 +30,7 @@ async function run(b, mode, vw, vh, test) {
     }
     if (test) await p.click('[data-test-skip]'); else await p.click(sel(s.answer));
     if ([0, 7].includes(i)) { await p.waitForTimeout(1900); await p.screenshot({ path: `${OUT}/travel-${mode}-${i + 1}-${vw}.png` }); }
-    await p.waitForFunction((a) => window.__travel().from === a || ['victory', 'defeat'].includes(window.__travel().phase), s.answer, { timeout: 15000 });
+    await p.waitForFunction((i) => window.__travel().i !== i || ['victory', 'defeat'].includes(window.__travel().phase), s.i, { timeout: 15000 });
   }
   await p.waitForFunction(() => ['victory', 'defeat'].includes(window.__travel().phase), null, { timeout: 15000 });
   await p.waitForTimeout(1500); await p.screenshot({ path: `${OUT}/travel-${mode}-end-${vw}.png` });
@@ -44,6 +44,6 @@ async function run(b, mode, vw, vh, test) {
 
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  const r = [await run(b, 'tour', 400, 860, false), await run(b, 'map', 400, 860, false), await run(b, 'map', 1280, 720, false), await run(b, 'tour', 1280, 720, true)];
+  const r = [await run(b, 'tour', 400, 860, false), await run(b, 'map', 400, 860, false), await run(b, 'map', 1280, 720, false), await run(b, 'tour', 1280, 720, true), await run(b, 'compass', 400, 860, false), await run(b, 'compass', 1280, 720, false)];
   await b.close(); if (!r.every(Boolean)) process.exit(1);
 })();

@@ -17,5 +17,6 @@ ok(lines('Правила, которые говорят герои') === topics.
 for (const q of M.HISTORY_KZ.concat(M.HISTORY_WORLD, M.LIT_AUTHORS, M.LIT_MUSIC, M.HEALTH, M.SAFETY)) ok(md.includes('**' + q.a + '**'), 'answer on the sheet: ' + q.a);
 for (const r of Object.keys(M.REGION_CENTER)) ok(md.includes(r + ' — **' + M.REGION_CENTER[r] + '**'), 'region pair: ' + r);
 ok(md.includes('2600 до н. э.'), 'BC years read for people');
+ok(md.includes(M.WATER.map((w) => w.kk).join(' → ')), 'the water cycle order is on the sheet');
 ok(!/undefined|NaN/.test(md), 'no holes');
 console.log('fact sheet: ' + n + ' checks passed (' + total + ' rows)');

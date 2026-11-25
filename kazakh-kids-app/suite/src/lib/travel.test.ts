@@ -1,8 +1,8 @@
 // @ts-expect-error -- Node builtin; @types/node is not installed in the suite
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { CITIES, MAP_GAP, TOUR } from '../data/travelData';
-import { V_LIVES, V_TASKS, buildTravelRound, candidates, cityOf, initialTravel, travelReducer } from './travelLogic';
+import { CITIES, COMPASS_Q, LEGS, MAP_GAP, SIDES, TOUR } from '../data/travelData';
+import { V_LIVES, V_TASKS, buildTravelRound, candidates, cityOf, initialTravel, legChain, sideOptions, travelReducer } from './travelLogic';
 
 const require = createRequire(import.meta.url);
 const g = globalThis as unknown as { window: Record<string, unknown>; self: unknown };
@@ -60,5 +60,40 @@ describe('reducer', () => {
     s = travelReducer(s, { type: 'pick', option: 'Not a candidate' }); expect(s.lives).toBe(V_LIVES - 1);
     for (const st of r.stages) { s = travelReducer(s, { type: 'pick', option: st.answer }); expect(s.phase).toBe('hit'); s = travelReducer(s, { type: 'next' }); expect(s.from).toBe(st.answer); }
     expect(s.phase).toBe('victory'); expect(s.firstTry).toBe(V_TASKS - 1);
+  });
+});
+
+describe('compass', () => {
+  const M = require('../../../web/mektep-core.js') as { lines3d(): string[] };
+  it('reference (written by hand) and every spoken line is voiced', () => {
+    const l = LEGS.find((x) => x.from === 'Астана' && x.to === 'Шымкент')!;
+    expect([l.dir, l.ask, l.say]).toEqual(['оңтүстік', 'Астанадан Шымкентке қай жаққа ұшамыз?', 'Оңтүстікке ұшамыз!']);
+    const spoken = new Set(M.lines3d()); expect(spoken.has(COMPASS_Q)).toBe(true);
+    for (const x of LEGS) expect(spoken.has(x.say)).toBe(true);
+  });
+  it('the side agrees with the map: within 15° of its angle (x east, y south)', () => {
+    for (const x of LEGS) {
+      const A = cityOf(x.from), B = cityOf(x.to), ang = (Math.atan2(A.y - B.y, B.x - A.x) * 180) / Math.PI, d = SIDES.find((s) => s.dir === x.dir)!.deg;
+      expect(Math.abs((((ang - d + 540) % 360) - 180))).toBeLessThanOrEqual(15);
+    }
+  });
+  it('options: the side, its opposite and a side at 90° — never a neighbour', () => {
+    for (const s of SIDES) for (let k = 1; k < 20; k++) {
+      const o = sideOptions(s.dir, seeded(k)), deg = o.map((x) => SIDES.find((y) => y.dir === x)!.deg);
+      expect(o).toContain(s.dir); expect(new Set(o).size).toBe(3);
+      for (const g2 of deg) { const diff = Math.abs((((g2 - s.deg) % 360) + 540) % 360 - 180); expect([0, 90, 180]).toContain(diff); }
+    }
+  });
+  it('eight different legs, mostly chained; the plane starts at the first leg and flies on', () => {
+    let chained = 0, total = 0;
+    for (let k = 1; k < 60; k++) {
+      const legs = legChain(seeded(k)); expect(legs).toHaveLength(V_TASKS); expect(new Set(legs.map((l) => l.from + '>' + l.to)).size).toBe(V_TASKS);
+      legs.forEach((l, i) => { if (i) { total++; if (l.from === legs[i - 1].to) chained++; } });
+      const r = buildTravelRound('compass', seeded(k)); let s = travelReducer(initialTravel(), { type: 'start', round: r });
+      expect(s.from).toBe(r.stages[0].start);
+      for (const st of r.stages) { s = travelReducer(s, { type: 'pick', option: st.answer }); s = travelReducer(s, { type: 'next' }); if (s.phase !== 'victory') expect(s.from).toBe(r.stages[s.i].start); }
+      expect(s.phase).toBe('victory');
+    }
+    expect(chained / total).toBeGreaterThan(0.8);
   });
 });

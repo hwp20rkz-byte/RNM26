@@ -1,3 +1,5 @@
+// @ts-expect-error -- Node builtin; @types/node is not installed in the suite
+import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { SOLIDS, T_LIVES, T_TASKS, buildTowerRound, initialTower, mulSentence, towerReducer } from './towerLogic';
 
@@ -37,5 +39,16 @@ describe('reducer', () => {
     s = towerReducer(s, { type: 'pick', option: r.stages[0].options.find((o) => o !== r.stages[0].answer)! }); expect(s.lives).toBe(T_LIVES - 1);
     for (const st of r.stages) { s = towerReducer(s, { type: 'pick', option: st.answer }); s = towerReducer(s, { type: 'next' }); }
     expect(s.phase).toBe('victory'); expect(s.firstTry).toBe(T_TASKS - 1);
+  });
+});
+
+describe('voice: every sentence the tower says has a voice line (25.11: they were silent before)', () => {
+  it('a × b for 2–9 and the five solids are in lines3d()', () => {
+    const require = createRequire(import.meta.url), g = globalThis as unknown as { window: Record<string, unknown>; self: unknown };
+    g.window = g.window || {}; g.self = g.window; require('../../../web/data.js');
+    const spoken = new Set((require('../../../web/mektep-core.js') as { lines3d(): string[] }).lines3d());
+    for (let a = 2; a <= 9; a++) for (let b = 2; b <= 9; b++) expect(spoken.has(mulSentence(a, b))).toBe(true);
+    for (const s of SOLIDS) expect(spoken.has(s.kk)).toBe(true);
+    expect(spoken.has('Неше текше?') && spoken.has('Бұл қандай пішін?')).toBe(true);
   });
 });

@@ -535,6 +535,38 @@
   };
   /** 3D «Қазақстан саяхаты»: where the place is — «Бәйтерек — Астанада.»; near a city — «Айша бибі кесенесі — Тараздың маңында.» */
   function travelPlace(n) { var c = TOUR[n]; return n + ' — ' + (NEAR[n] || n === 'Каспий теңізі' ? G.caseForm(c, 'ilik') + ' маңында' : guideForms(c)[0]) + '.'; }
+  /* ---------- 25.11: 3D hall — every sentence the 3D games say, so all of them are voiced (tests check the files) ----------
+   * Compass: the side from city A to city B, from the map coordinates (x east, y south); only clear cases — within 15° of
+   * one of the 8 directions and at least 120 map units apart — so the answer never depends on rounding. */
+  var COMPASS = [['шығыс', 0], ['солтүстік-шығыс', 45], ['солтүстік', 90], ['солтүстік-батыс', 135], ['батыс', 180], ['оңтүстік-батыс', -135], ['оңтүстік', -90], ['оңтүстік-шығыс', -45]];
+  function compassPairs() {
+    var out = [], names = Object.keys(CITY_LL);
+    names.forEach(function (a) { names.forEach(function (b) {
+      if (a === b) return;
+      var A = cityXY(a), B = cityXY(b), dx = B[0] - A[0], dy = A[1] - B[1];
+      if (Math.hypot(dx, dy) < 120) return;
+      var ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      COMPASS.forEach(function (c) { var d = Math.abs(((ang - c[1] + 540) % 360) - 180); if (d <= 15) out.push({ from: a, to: b, dir: c[0],
+        ask: G.caseForm(a, 'shygys') + ' ' + G.caseForm(b, 'barys') + ' қай жаққа ұшамыз?', say: cap(G.caseForm(c[0], 'barys')) + ' ұшамыз!' }); });
+    }); });
+    return out;
+  }
+  var SOLIDS_KK = ['шар', 'куб', 'цилиндр', 'конус', 'пирамида'];
+  var SCALES_Q = { add: 'Таразы теңессін: қай гір керек?', div: 'Неше гір керек?' };
+  function scalesAdd(r0, x) { return exprSentence(r0, '+', x, r0 + x); }          // «Жеті қосу бес тең он екі.»
+  function scalesDiv(total, w) { return exprSentence(total, '÷', w, total / w); }  // «Он екі бөлу үш тең төрт.»
+  var WATER_Q = 'Судың айналымы: келесі кезең қандай?', COMPASS_Q = 'Қай жаққа ұшамыз?';
+  // Spoken short to save APK space (25.11, ~3.5 MB): the full equation and the two cities stay on screen.
+  function scalesSay(mode, n) { return cap(N(n)) + (mode === 'add' ? ' килограмм!' : ' гір!'); }
+  function lines3d() {
+    var out = ['Неше текше?', 'Бұл қандай пішін?', SCALES_Q.add, SCALES_Q.div, WATER_Q].concat(SOLIDS_KK, WATER.map(function (w) { return w.kk; }));
+    for (var a = 2; a <= 9; a++) for (var b = 2; b <= 9; b++) out.push(exprSentence(a, '×', b, a * b));
+    for (var x = 1; x <= 9; x++) out.push(scalesSay('add', x));
+    for (var k = 2; k <= 6; k++) out.push(scalesSay('div', k));
+    out.push(COMPASS_Q);
+    COMPASS.forEach(function (c) { out.push(cap(G.caseForm(c[0], 'barys')) + ' ұшамыз!'); });
+    return out.filter(function (t, i, l) { return l.indexOf(t) === i; });
+  }
   var GUIDE_Q = { zhatys: ['Турист қазір қайда?', 'Где сейчас турист?', 'Where is the tourist now?', '📍'], barys: ['Турист қайда барады?', 'Куда едет турист?', 'Where is the tourist going?', '✈️'],
     shygys: ['Турист қайдан келді?', 'Откуда приехал турист?', 'Where did the tourist come from?', '🚆'] };
   GEN.guide = function (r) {
@@ -969,6 +1001,7 @@
     ['p', 's'].forEach(function (k) { out.push(perimQ(k)); for (var a = 2; a <= 9; a++) for (var b = 2; b <= 9; b++) if (a !== b) out.push(perimSay(k, k === 'p' ? 2 * (a + b) : a * b)); });
     Object.keys(TOUR).forEach(function (n) { out.push(travelPlace(n)); out.push(tourLine(n)); });
     Object.keys(CITY_LL).forEach(function (c) { out.push(cityWhere(c)); });
+    lines3d().forEach(function (t) { out.push(t); });
     BZ_KIDS.forEach(function (p) { out.push(bazaarTotalQ(p.kk)); out.push(bazaarChangeQ(p.kk)); });
     BAZAAR.forEach(function (g) { [2, 3].forEach(function (k) { var t = g.price * k; out.push(N(t) + ' теңге'); NOTES.forEach(function (x) { if (x > t) out.push(N(x - t) + ' теңге'); }); }); });
     SEAS.forEach(function (w) { out.push(w.id); out.push(waterWhere(w.id)); out.push(waterWhereQ(w.id)); });
@@ -988,5 +1021,5 @@
     ['Келесісі қандай?', 'Қайсысы артық?', 'Әже-Bot батареяға қалай жетеді?', 'Ою-өрнекті симметриялы етіп аяқта.', 'Киіз үй тігу: келесі қадам қандай?'].forEach(function (x) { out.push(x); });
     return out;
   }
-  return { lengthQ: lengthQ, lengthSay: lengthSay, perimQ: perimQ, perimSay: perimSay, travelPlace: travelPlace, N: N, BAZAAR: BAZAAR, bazaarAsk: bazaarAsk, bazaarPrice: bazaarPrice, bazaarBuy: bazaarBuy, bazaarTotalQ: bazaarTotalQ, bazaarChangeQ: bazaarChangeQ, SEAS: SEAS, waterWhere: waterWhere, CODE_ORDER: CODE_ORDER, HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
+  return { scalesSay: scalesSay, COMPASS_Q: COMPASS_Q, lines3d: lines3d, compassPairs: compassPairs, COMPASS: COMPASS, SOLIDS_KK: SOLIDS_KK, SCALES_Q: SCALES_Q, scalesAdd: scalesAdd, scalesDiv: scalesDiv, WATER_Q: WATER_Q, lengthQ: lengthQ, lengthSay: lengthSay, perimQ: perimQ, perimSay: perimSay, travelPlace: travelPlace, N: N, BAZAAR: BAZAAR, bazaarAsk: bazaarAsk, bazaarPrice: bazaarPrice, bazaarBuy: bazaarBuy, bazaarTotalQ: bazaarTotalQ, bazaarChangeQ: bazaarChangeQ, SEAS: SEAS, waterWhere: waterWhere, CODE_ORDER: CODE_ORDER, HEALTH: HEALTH, SAFETY: SAFETY, ATA_STORIES: ATA_STORIES, LEGENDS: LEGENDS, HOSTS: HOSTS, TIPS: TIPS, intro: intro, hostOf: hostOf, heroLines: heroLines, regionQuestion: regionQuestion, encodeReport: encodeReport, decodeReports: decodeReports, classSummary: classSummary, dayDiff: dayDiff, reviewDays: reviewDays, dailyMix: dailyMix, TOUR: TOUR, accusative: accusative, tourLine: tourLine, tourLines: function () { return Object.keys(TOUR).map(tourLine); }, cityWhere: cityWhere, CITY_LL: CITY_LL, MAP_GAP: MAP_GAP, cityXY: cityXY, LAB_HOMES: LAB_HOMES, CHAINS: CHAINS, stars: stars, diary: diary, reportText: reportText, LIT_AUTHORS: LIT_AUTHORS, LIT_MUSIC: LIT_MUSIC, GENRES: GENRES, HISTORY_KZ: HISTORY_KZ, HISTORY_WORLD: HISTORY_WORLD, EVENTS: EVENTS, LANDMARK: LANDMARK, NEAR: NEAR, CITY_RIVER: CITY_RIVER, GUIDE_CITIES: GUIDE_CITIES, guideForms: guideForms, REGIONS: REGIONS, REGION_CENTER: REGION_CENTER, centerQuestion: centerQuestion, NEIGHBORS: NEIGHBORS, DIRS: DIRS, FEATURE: FEATURE, REP_CITIES: REP_CITIES, SEASON_OF: SEASON_OF, SENSES: SENSES, HOMES: HOMES, HOME_NOT: HOME_NOT, WATER: WATER, REDBOOK: REDBOOK, WILD: WILD, runProgram: runProgram, mirror: mirror, ARROW_KK: ARROW_KK, ODD_CAT: ODD_CAT, ODD_E: ODD_E, YURT: YURT, fractionKk: fractionKk, buyText: buyText, changeText: changeText, SUBJECTS: SUBJECTS, GEN: GEN, ROUND: ROUND, round: round, topicById: topicById, compareSentence: compareSentence, exprSentence: exprSentence, voiceLines: voiceLines, SHAPES: SHAPES };
 });
