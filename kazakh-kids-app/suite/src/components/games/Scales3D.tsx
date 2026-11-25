@@ -38,7 +38,6 @@ function Weight({ kg, position }: { kg: number; position: Vec3 }) {
     <group position={position}>
       <mesh position-y={s / 2}><cylinderGeometry args={[s * 0.9, s, s, 20]} /><meshStandardMaterial color={WEIGHT} metalness={0.6} roughness={0.35} /></mesh>
       <mesh position-y={s + 0.05}><torusGeometry args={[0.08, 0.025, 8, 16]} /><meshStandardMaterial color={WEIGHT} metalness={0.6} /></mesh>
-      <Billboard position={[0, s + 0.35, 0]}><CanvasLabel text={kg + ' кг'} height={0.26} glow="#94A3B8" /></Billboard>
     </group>
   );
 }
@@ -54,6 +53,8 @@ function Balance({ st, pick }: { st: SStage; pick: number | null }) {
     if (left.current) left.current.position.set(-ARM * Math.cos(a), H - ARM * Math.sin(a) - 1.1, 0);
     if (right.current) right.current.position.set(ARM * Math.cos(a), H + ARM * Math.sin(a) - 1.1, 0);
   });
+  // one caption per pan (25.11: a label on every weight ran together as «3 кг3 кг3 кг»)
+  const panLabel = st.mode === 'add' ? (pick ? st.right[0] + ' + ' + pick + ' кг' : st.right[0] + ' кг + ?') : (pick ? pick + ' × ' + st.w + ' кг' : '? × ' + st.w + ' кг');
   const rights = useMemo(() => (st.mode === 'add' ? [...st.right, ...(pick ? [pick] : [])] : Array.from({ length: pick ?? 0 }, () => st.w)), [st, pick]);
   const pan = (
     <>
@@ -77,6 +78,7 @@ function Balance({ st, pick }: { st: SStage; pick: number | null }) {
       <group ref={right}>
         {pan}
         {rights.map((kg, k) => <Weight key={k} kg={kg} position={[((k % 3) - (Math.min(rights.length, 3) - 1) / 2) * 0.55, 0.06 + Math.floor(k / 3) * 0.55, 0]} />)}
+        <Billboard position={[0, 1.6 + Math.max(0, Math.ceil(rights.length / 3) - 1) * 0.55, 0]}><CanvasLabel text={panLabel} height={0.34} glow="#94A3B8" /></Billboard>
       </group>
     </group>
   );
@@ -139,7 +141,7 @@ export function Scales3D({ lang, onExit }: { lang: Lang; onExit(): void }) {
 
   return (
     <div className="relative h-full w-full touch-none select-none overflow-hidden bg-obsidian">
-      <StudioCanvas key={layout} camera={CAMERA[layout]} designAspect={layout === 'wide' ? 1.5 : 0.62} uiShift={{ portrait: 0.14, landscape: 0.06 }}
+      <StudioCanvas key={layout} camera={CAMERA[layout]} designAspect={layout === 'wide' ? 1.5 : 0.95} uiShift={{ portrait: 0.14, landscape: 0.06 }}
         fallback={<div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,hsl(188_100%_55%/0.18),transparent_60%)]" />}>
         <ParticleEmitter capacity={300}><Scene state={state} layout={layout} /></ParticleEmitter>
       </StudioCanvas>
