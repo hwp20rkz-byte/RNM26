@@ -172,12 +172,12 @@ for (const t of lit.topics) for (let k = 0; k < 40; k++) for (const q of M.round
 eq([undefined, 0, 1, 5, 6, 8, 9, 10].map(M.stars).join(''), '00112233', 'stars for a best score');
 const best = { m1count: 9, m1tens: 4, l1pattern: 10, g2dirs: 6 };
 const dia = M.diary(best), mathD = dia.find((x) => x.id === 'math');
-eq(mathD.done, 2, 'maths: two topics played'); eq(mathD.stars, 4, 'maths: 3 + 1 stars'); eq(mathD.maxStars, 48, 'maths: 16 topics × 3');
+eq(mathD.done, 2, 'maths: two topics played'); eq(mathD.stars, 4, 'maths: 3 + 1 stars'); eq(mathD.maxStars, 51, 'maths: 17 topics × 3');
 eq(mathD.weak.map((t) => t.id).join(), 'm1tens', 'below 6 is worth repeating');
 eq(dia.find((x) => x.id === 'geo').weak.length, 0, '6 / 10 is not weak');
 eq(dia.length, 7, 'seven subjects'); eq(M.diary({}).every((x) => x.done === 0 && x.stars === 0), true, 'an empty diary');
 const rep = M.reportText(best, 'Әнел', 'ru', '17.11.2026');
-assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 49') && rep.includes('🔢 Математика: 2 / 16 · ★ 4 / 48') && rep.includes('📜 Тарих — История (5 класс): 0 / 4') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
+assert.ok(rep.startsWith('🏫 Мектеп күнделігі — Әнел · 17.11.2026') && rep.includes('Пройдено тем: 4 / 50') && rep.includes('🔢 Математика: 2 / 17 · ★ 4 / 51') && rep.includes('📜 Тарих — История (5 класс): 0 / 4') && rep.includes('Стоит повторить:') && rep.includes('(4 / 10)'), 'report text:\n' + rep); n++;
 assert.ok(M.reportText({ m1count: 10 }, '', 'en').includes('Nothing to repeat'), 'nothing to repeat'); n++;
 // the map: the cities sit where a child expects them (checked by hand against a school atlas)
 const xy = (c) => M.cityXY(c);
@@ -267,7 +267,7 @@ eq(M.dayDiff('2026-11-10', '2026-11-18'), 8, 'days between'); eq(M.reviewDays(10
   const hl = M.heroLines(); assert.ok(hl.length > 80 && hl.every((x) => x.who && x.kk && !/undefined/.test(x.kk)), 'hero lines: ' + hl.length); n++;
 }
 const lines = M.voiceLines(); assert.ok(lines.every((x) => x && !/undefined/.test(x)), 'voice lines'); n++;
-assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 16 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 8 && M.SUBJECTS[3].topics.length === 7 && M.SUBJECTS[4].topics.length === 5 && M.SUBJECTS[5].topics.length === 4 && M.SUBJECTS[6].topics.length === 4, 'all 7 subjects open: maths 16, logic 5, nature 8, geography 7, cities 5, history 4, reading 4'); n++;
+assert.ok(M.SUBJECTS.length === 7 && M.SUBJECTS[0].topics.length === 17 && M.SUBJECTS.every((s) => !s.day) && M.SUBJECTS[1].topics.length === 5 && M.SUBJECTS[2].topics.length === 8 && M.SUBJECTS[3].topics.length === 7 && M.SUBJECTS[4].topics.length === 5 && M.SUBJECTS[5].topics.length === 4 && M.SUBJECTS[6].topics.length === 4, 'all 7 subjects open: maths 17, logic 5, nature 8, geography 7, cities 5, history 4, reading 4'); n++;
 
 // 21.11 — «Көлдер мен теңіздер» (4 кл.): Natural Earth water on the map; where-forms from the engine (reference by hand)
 eq(M.waterWhere('Каспий теңізі'), 'Каспий теңізі — Қазақстанның батысында.', 'the Caspian in the west');
@@ -347,9 +347,27 @@ eq(M.travelPlace('Каспий теңізі'), 'Каспий теңізі — А
   eq([...kinds].sort().join(','), 'p,s', 'both perimeter and area');
   const vl = M.voiceLines(); assert.ok(vl.includes(M.perimQ('p')) && vl.includes(M.perimSay('p', 34)) && vl.includes(M.perimSay('s', 72)), 'questions and every answer are voiced'); n++;
 }
+
+// 25.11 — «Ұзындық бірліктері» (3 кл.): reference by hand; 1 м = 10 дм = 100 см, 1 дм = 10 см, 1 см = 10 мм
+{
+  const lt = M.topicById('m3length'); assert.ok(lt && lt.grade === 3 && M.SUBJECTS[0].topics.includes(lt), 'length units: a grade-3 maths topic'); n++;
+  eq(M.lengthQ(3, 'м', 'см'), 'Үш метр неше сантиметр болады?', 'the question in words');
+  eq(M.lengthQ(40, 'мм', 'см'), 'Қырық миллиметр неше сантиметр болады?', 'small to big');
+  eq(M.lengthSay(300, 'см'), 'үш жүз сантиметр', 'the answer in words');
+  const F = { 'м>дм': 10, 'м>см': 100, 'дм>см': 10, 'см>мм': 10, 'дм>мм': 100 }, dirs = new Set();
+  for (let k = 0; k < 120; k++) { const qs = M.round(lt, rnd); eq(qs.length, 10, 'length: a round of 10');
+    for (const q of qs) { const { n: x, from, to } = q.data, f = F[from + '>' + to] || 1 / F[to + '>' + from];
+      assert.ok(f, 'a known pair ' + from + '>' + to); n++; dirs.add(f > 1 ? 'down' : 'up');
+      eq(q.answer, String(x * f), x + ' ' + from + ' = ? ' + to);
+      assert.ok(Number.isInteger(x * f) && x * f > 0, 'whole answers only'); n++;
+      assert.ok(new Set(q.options).size === 3 && q.options.includes(q.answer), 'three different options'); n++;
+      eq(q.kk, M.lengthQ(x, from, to), 'the question'); eq(q.say, M.lengthSay(x * f, to), 'the spoken answer'); } }
+  eq([...dirs].sort().join(','), 'down,up', 'both directions');
+  const vl = M.voiceLines(); assert.ok(vl.includes(M.lengthQ(9, 'дм', 'мм')) && vl.includes(M.lengthSay(900, 'мм')) && vl.includes(M.lengthQ(900, 'см', 'м')), 'questions and answers voiced'); n++;
+}
 // the teacher code keeps a fixed topic order: 19.11 order, then appended topics; every topic has a place
 eq(M.CODE_ORDER.slice(0, 7).join(','), 'm1count,m1shapes,m1tens,m1add20,m1compare,m2add100,m2mul', 'code order is pinned');
-eq(M.CODE_ORDER.slice(40).join(','), 'm2clock,n2health,n2safety,c3region,h5ata,r3legend,g4water,m4bazaar,m3perim', 'new topics only appended to the code');
+eq(M.CODE_ORDER.slice(40).join(','), 'm2clock,n2health,n2safety,c3region,h5ata,r3legend,g4water,m4bazaar,m3perim,m3length', 'new topics only appended to the code');
 eq([...M.CODE_ORDER].sort().join(','), M.SUBJECTS.flatMap((x) => x.topics.map((t) => t.id)).sort().join(','), 'every topic is in the code exactly once');
 { const old = 'QVD1:Арман:1:3-A' ; const body = old; const code = body + ':' + (() => { let h = 0; for (const ch of body) h = (h * 31 + ch.charCodeAt(0)) % 36; return h.toString(36); })();
   const r = M.decodeReports(code)[0]; assert.ok(r && r.best.m1count === 3 && r.best.m1tens === 10 && r.best.m1shapes == null, 'a short (older) code still reads'); n++; }

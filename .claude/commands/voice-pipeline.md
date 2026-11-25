@@ -9,8 +9,11 @@ argument-hint: [iseke|tomiris|heroes|omnivoice|all]
 Если ключа нет — честно сообщить, какой слой не озвучен, и продолжить с остальными.
 
 1. `node tools/collect-phrases.js > <scratch>/phrases.json`; посчитай новые ключи относительно прошлого списка.
-2. **ISEKE (диктор, офлайн):** `python3 tools/make-audio.py <phrases> --narrator <kk_KZ-iseke-x_low.onnx> --out audio-iseke --var QAUDIO_ISEKE`.
-3. **Герои:** `node tools/make-audio-fs.mjs <phrases> --heroes tools/voice_studio/fs-cast.json --transport http --verify`.
+2. **Герои (сначала):** `node tools/make-audio-fs.mjs <phrases> --heroes tools/voice_studio/fs-cast.json --transport http --verify`.
+3. **ISEKE (диктор, офлайн, после героев):** `python3 tools/make-audio.py <phrases> --narrator <kk_KZ-iseke-x_low.onnx> --out audio-iseke --var QAUDIO_ISEKE`.
+   Реплика героя без своего дубля (Freedom Speech недоступен) получает временную замену голосом диктора; следующий
+   прогон ISEKE после озвучки героя удаляет её сам. Поэтому порядок: герои → ISEKE. Неполный список фраз
+   `make-audio.py` не даст стереть пакет (отказ при удалении > 10 % без `--force-prune`).
 4. **Томирис:** `node tools/make-audio-fs.mjs <phrases> --voice tomiris --transport http --verify` (долго — в фоне).
 5. **OmniVoice** (детские голоса, если HF доступен): `python3 tools/voice-studio.py ...` — сначала `probe`.
 6. **ASR-отбраковка.** Разбери `verify.csv`: похожесть < 0,80 → перепроверь распознаванием с паузами по краям

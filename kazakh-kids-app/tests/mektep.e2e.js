@@ -53,8 +53,8 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);
   await p.click('#mkdiary'); await p.waitForTimeout(200);
   const diary = await p.evaluate(() => ({ math: document.querySelector('.mk-row small').textContent, rep: document.querySelector('#mkrep').textContent, wide: document.documentElement.scrollWidth }));
-  assert(diary.math === '1 / 16 · ★ 3', 'diary: maths 1 / 16 topics, 3 stars: ' + diary.math);
-  assert(diary.rep.startsWith('🏫 Мектеп күнделігі — T') && diary.rep.includes('Пройдено тем: 1 / 49') && diary.rep.includes('Повторять нечего'), 'the report text for the teacher');
+  assert(diary.math === '1 / 17 · ★ 3', 'diary: maths 1 / 17 topics, 3 stars: ' + diary.math);
+  assert(diary.rep.startsWith('🏫 Мектеп күнделігі — T') && diary.rep.includes('Пройдено тем: 1 / 50') && diary.rep.includes('Повторять нечего'), 'the report text for the teacher');
   assert(diary.wide <= 400, 'the diary fits a phone (' + diary.wide + ' px)');
   await shot(p, 'mk-diary.png');
   await p.click('#mkcopy'); await p.waitForTimeout(300);
@@ -76,7 +76,7 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
   const st2 = await p.evaluate(() => window.qDebug.state());
   assert(mres.includes('10 / 10') && st2.mektep.m1count === 9 && Object.keys(st2.mkSeen || {}).length >= 4, 'the mix ends 10 / 10, keeps the bests, marks its topics as reviewed today: ' + mres);
   // open each other topic and screenshot its first task
-  for (const [g, t] of [[1, 'm1tens'], [1, 'm1shapes'], [1, 'm1add20'], [1, 'm1compare'], [2, 'm2add100'], [2, 'm2mul'], [2, 'm2money'], [3, 'm3mul69'], [3, 'm3div'], [3, 'm3frac'], [3, 'm3perim'], [2, 'm2clock'], [4, 'm4shop'], [4, 'm4place'], [4, 'm4bazaar']]) {
+  for (const [g, t] of [[1, 'm1tens'], [1, 'm1shapes'], [1, 'm1add20'], [1, 'm1compare'], [2, 'm2add100'], [2, 'm2mul'], [2, 'm2money'], [3, 'm3mul69'], [3, 'm3div'], [3, 'm3frac'], [3, 'm3perim'], [3, 'm3length'], [2, 'm2clock'], [4, 'm4shop'], [4, 'm4place'], [4, 'm4bazaar']]) {
     await p.evaluate(() => window.Q.api.startGame('mektep')); await p.waitForTimeout(200);
     await p.click('[data-subj=math]'); await p.waitForTimeout(100);
     await p.click(`.mk-g[data-grade="${g}"]`); await p.waitForTimeout(100);
