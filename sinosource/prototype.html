@@ -1,0 +1,558 @@
+<title>SinoSource OS · прототип</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap">
+<style>
+/* Layout: operator cockpit — header, request list, stage with process stepper, agent log; narration bar pinned below. */
+:root {
+  --bg: #EEF0EC;
+  --surface: #FAFBF8;
+  --surface-2: #E3E7E2;
+  --ink: #14202B;
+  --muted: #4E5964;
+  --line: #CBD1CC;
+  --seal: #B8371F;
+  --seal-soft: #F6DDD6;
+  --jade: #2B7764;
+  --jade-soft: #D5ECE5;
+  --amber: #8A6A12;
+  --amber-soft: #F2E7C6;
+  --bar: #14202B;
+  --bar-fg: #EEF0EC;
+  --bar-muted: #A9B5BE;
+  --f-display: 'Unbounded', Verdana, sans-serif;
+  --f-text: 'Manrope', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+  --f-zh: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1820; --surface: #16222D; --surface-2: #1E2D3A; --ink: #E8ECE8; --muted: #9EABB5; --line: #2C3D4C;
+    --seal: #E8664B; --seal-soft: #3A1F1A; --jade: #5DBFA6; --jade-soft: #15332C; --amber: #D9B44E; --amber-soft: #33290F;
+    --bar: #070D12; --bar-fg: #E8ECE8; --bar-muted: #8D9AA4; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1820; --surface: #16222D; --surface-2: #1E2D3A; --ink: #E8ECE8; --muted: #9EABB5; --line: #2C3D4C;
+  --seal: #E8664B; --seal-soft: #3A1F1A; --jade: #5DBFA6; --jade-soft: #15332C; --amber: #D9B44E; --amber-soft: #33290F;
+  --bar: #070D12; --bar-fg: #E8ECE8; --bar-muted: #8D9AA4; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-text); font-size: 15px; line-height: 1.45; }
+.zh { font-family: var(--f-zh); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
+
+.app { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+.top { display: flex; align-items: center; gap: 16px; padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); background: var(--surface); }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+.brand-seal { width: 30px; height: 30px; border-radius: 7px; background: var(--seal); color: #FBF6F4; display: grid; place-items: center; font-family: var(--f-zh); font-weight: 600; font-size: 17px; }
+.top-req { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; }
+.badge { font-family: var(--f-mono); font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink); white-space: nowrap; }
+
+.main { display: grid; grid-template-columns: 232px minmax(0, 1fr) 300px; min-height: 0; }
+.side { border-right: 1px solid var(--line); padding: 16px 12px; overflow: auto; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.side h2, .log h2 { font-family: var(--f-mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 4px 4px; }
+.req { padding: 10px 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 2px; border: 1px solid transparent; }
+.req.active { background: var(--seal-soft); border-color: var(--seal); }
+.req b { font-size: 13px; }
+.req span { font-size: 12px; color: var(--muted); }
+
+.stage-wrap { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.stepper { display: flex; gap: 4px; padding: 12px 16px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.st { flex: 1 0 auto; min-width: 76px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+.st i { display: block; height: 4px; border-radius: 2px; background: var(--surface-2); transition: background-color 300ms; }
+.st.done i { background: var(--jade); }
+.st.now i { background: var(--seal); }
+.st.now { color: var(--ink); font-weight: 700; }
+.stage { flex: 1; overflow: auto; padding: 24px; min-height: 0; }
+.scene-h { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.scene-h h1 { font-family: var(--f-display); font-size: 22px; font-weight: 500; letter-spacing: -0.5px; margin: 0; text-wrap: balance; }
+.agent-tag { font-family: var(--f-mono); font-size: 12px; color: var(--seal); font-weight: 600; }
+
+.log { border-left: 1px solid var(--line); padding: 16px 12px; overflow: auto; background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
+.ev { font-size: 12.5px; padding: 8px 10px; border-radius: 8px; background: var(--bg); border-left: 3px solid var(--line); animation: evIn 280ms ease-out both; }
+.ev b { font-family: var(--f-mono); font-size: 11px; display: block; color: var(--muted); font-weight: 600; }
+.ev.ai { border-left-color: var(--seal); }
+.ev.hu { border-left-color: var(--jade); }
+@keyframes evIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* reveal */
+.r { opacity: 0; transform: translateY(8px); transition: opacity 380ms ease-out, transform 380ms ease-out; }
+.r.on { opacity: 1; transform: none; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.lbl { font-family: var(--f-mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* chat */
+.chat { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.msg { max-width: 88%; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.msg.in { border-top-left-radius: 4px; }
+.msg.out { align-self: flex-end; background: var(--jade-soft); border-color: var(--jade); border-top-right-radius: 4px; }
+.msg .who { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+.msg .tr { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13.5px; color: var(--muted); }
+.photo { margin-top: 8px; width: 220px; max-width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; }
+.channel { font-family: var(--f-mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); }
+
+/* fields */
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.field { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.field .v { font-weight: 600; }
+.field.warn { background: var(--amber-soft); }
+.field.warn .lbl { color: var(--amber); }
+.qlist { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.qlist li { padding: 8px 12px; border-radius: 8px; background: var(--amber-soft); font-size: 14px; }
+
+/* pricing */
+.offer { display: flex; flex-direction: column; gap: 12px; }
+.price-big { font-family: var(--f-display); font-size: 40px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.cur { display: flex; gap: 6px; flex-wrap: wrap; }
+.cur button { min-width: 44px; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-family: var(--f-mono); font-weight: 600; }
+.cur button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.rows { display: flex; flex-direction: column; }
+.row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.row:last-child { border-bottom: 0; }
+.approve { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--seal); color: #FBF6F4; font-weight: 700; cursor: default; }
+.approve.ok { background: var(--jade); }
+.paid { display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--jade-soft); color: var(--jade); font-weight: 700; }
+
+/* search */
+.src { display: flex; flex-direction: column; gap: 10px; }
+.src-h { display: flex; justify-content: space-between; align-items: center; }
+.src-h b { font-size: 14px; }
+.hit { padding: 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.hit .t { font-size: 13.5px; font-weight: 600; }
+.hit .m { font-size: 12.5px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.score { display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 12px; }
+.score i { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; display: block; }
+.score i s { display: block; height: 100%; background: var(--jade); width: var(--w); transform-origin: left; transform: scaleX(0); transition: transform 700ms ease-out; }
+.r.on .score i s { transform: scaleX(1); }
+.hit.low .score i s { background: var(--amber); }
+.tag-f { color: var(--jade); font-weight: 700; }
+.tag-t { color: var(--amber); font-weight: 700; }
+
+/* rfq */
+.rfq { white-space: pre-wrap; font-size: 14.5px; line-height: 1.65; min-height: 220px; }
+.caret::after { content: "▍"; color: var(--seal); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.sendto { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* extraction */
+.ex { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ex span { font-family: var(--f-mono); font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--seal-soft); color: var(--seal); font-weight: 600; }
+
+/* table */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--f-mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td.n, th.n { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; font-family: var(--f-mono); }
+tr.best td { background: var(--jade-soft); }
+.pick { font-size: 12px; font-weight: 700; color: var(--jade); }
+
+/* kpi */
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.kpi { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); }
+.kpi .big { font-family: var(--f-display); font-size: 34px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.kpi .was { font-size: 13px; color: var(--muted); }
+
+/* narration bar */
+.bar { background: var(--bar); color: var(--bar-fg); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.ctrl { display: flex; gap: 6px; align-items: center; }
+.ctrl button { min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid #34475A; background: transparent; color: var(--bar-fg); cursor: pointer; display: grid; place-items: center; }
+.ctrl button.play { background: var(--seal); border-color: var(--seal); color: #FBF6F4; min-width: 120px; font-weight: 700; padding: 0 14px; }
+.ctrl svg { width: 18px; height: 18px; }
+.cap { min-width: 0; }
+.cap-t { font-size: 15px; line-height: 1.45; max-width: 90ch; }
+.cap-m { font-family: var(--f-mono); font-size: 11px; color: var(--bar-muted); margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+.dots { display: flex; gap: 6px; }
+.dots button { width: 12px; height: 12px; min-width: 0; min-height: 0; padding: 0; border-radius: 50%; border: 0; background: #34475A; cursor: pointer; }
+.dots button[aria-current="true"] { background: var(--seal); }
+.dots-hit { padding: 16px 0; }
+
+@media (max-width: 1100px) {
+  .main { grid-template-columns: minmax(0, 1fr) 260px; }
+  .side { display: none; }
+}
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  .app { height: auto; min-height: 100%; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .log { border-left: 0; border-top: 1px solid var(--line); max-height: 260px; }
+  .stage { padding: 16px; overflow: visible; }
+  .grid2, .grid3, .kpis, .fields { grid-template-columns: minmax(0, 1fr); }
+  .bar { grid-template-columns: minmax(0, 1fr); position: sticky; bottom: 0; }
+  .ctrl { justify-content: space-between; }
+  .top-req .badge:not(:first-child) { display: none; }
+  .price-big { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><span class="brand-seal" aria-hidden="true">源</span>SinoSource OS</div>
+    <div class="top-req">
+      <span class="badge">Заявка № 2611-047</span>
+      <span class="badge">Оператор: Лю Вэй</span>
+      <span class="badge">Демо-данные</span>
+    </div>
+  </header>
+
+  <div class="main">
+    <nav class="side" aria-label="Очередь заявок">
+      <h2>Очередь</h2>
+      <div class="req active"><b>Силиконовые формы, 5 000 шт</b><span>Kitchen Pro · Алматы · ₸</span></div>
+      <div class="req"><b>LED-панели 600×600</b><span>Стройсвет · Екатеринбург · ₽</span></div>
+      <div class="req"><b>Поддоны пластиковые</b><span>Логистик · Шымкент · ₸</span></div>
+      <div class="req"><b>Термокружки с логотипом</b><span>Event Lab · Москва · ₽</span></div>
+      <div class="req"><b>Фильтры для воды</b><span>АкваДом · Астана · ₸</span></div>
+    </nav>
+
+    <section class="stage-wrap" aria-live="polite">
+      <div class="stepper" id="stepper"></div>
+      <div class="stage" id="stage"></div>
+    </section>
+
+    <aside class="log" id="log" aria-label="Журнал агентов">
+      <h2>Журнал агентов</h2>
+    </aside>
+  </div>
+
+  <footer class="bar">
+    <div class="ctrl">
+      <button class="play" id="play" type="button" aria-label="Запустить демо">▶ Смотреть</button>
+      <button id="prev" type="button" aria-label="Предыдущая сцена"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button id="next" type="button" aria-label="Следующая сцена"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button id="mute" type="button" aria-label="Выключить звук" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H3v6h3l5 4V5z" fill="currentColor"/><path id="wave" d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button>
+    </div>
+    <div class="cap">
+      <div class="cap-m" id="capm">Сцена 1 из 8</div>
+      <div class="cap-t" id="capt"></div>
+    </div>
+    <div class="dots" id="dots" role="group" aria-label="Сцены"></div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const STAGES = ['Приём', 'ТЗ', 'Оферта', 'Поиск', 'RFQ', 'Переписка', 'Проверка', 'КП', 'Сделка'];
+  const FX = { USD: 1, RUB: 82, KZT: 520, CNY: 7.15 };
+  const SYM = { USD: '$', RUB: '₽', KZT: '₸', CNY: '¥' };
+  const fmt = (n) => Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
+
+  const rfqZh = '您好！我们是哈萨克斯坦的采购代理公司。\n现需采购：硅胶蛋糕模（12连），数量 5000 个，需压印客户 logo。\n请报价：\n1）含 logo 单价\n2）起订量\n3）打样费用和时间\n4）大货交期\n5）是否有 LFGB / FDA 食品级认证\n谢谢！';
+  const rfqEn = 'Hello! We are a sourcing agency from Kazakhstan.\nWe need: silicone muffin molds (12 cavities), 5,000 pcs, with embossed customer logo.\nPlease quote:\n1) unit price incl. logo\n2) MOQ\n3) sample cost and lead time\n4) mass production lead time\n5) LFGB / FDA food-grade certificates\nThank you!';
+
+  const moldSvg = '<svg viewBox="0 0 120 90" width="150" height="112" aria-label="Фото клиента: силиконовая форма на 12 ячеек"><rect x="8" y="14" width="104" height="62" rx="10" fill="var(--seal)" opacity="0.85"/>' +
+    Array.from({ length: 12 }, (_, i) => '<circle cx="' + (22 + (i % 4) * 25.3) + '" cy="' + (30 + Math.floor(i / 4) * 16) + '" r="7" fill="var(--seal-soft)"/>').join('') + '</svg>';
+
+  const scenes = [
+    {
+      stage: 0, title: 'Новая заявка в Telegram', agent: 'Канал · Telegram Bot API',
+      narr: 'Понедельник, девять четырнадцать. В Телеграм пишет новый клиент из Алматы: нужны силиконовые формы для выпечки, пять тысяч штук, с логотипом. Раньше менеджер тратил полчаса только на то, чтобы разобраться в такой заявке.',
+      log: [['ai', 'Telegram', 'Входящее сообщение, 1 фото'], ['ai', 'Intake', 'Создана заявка № 2611-047']],
+      html: () => `
+        <div class="chat">
+          <div class="msg in r" data-t="200"><div class="who"><b>Айгерим, Kitchen Pro</b><span class="channel">Telegram</span><span>09:14</span></div>
+            Здравствуйте! Нужны силиконовые формы для выпечки кексов, 5000 шт, с нашим логотипом. Фото прикладываю. Доставка в Алматы, до марта успеете?
+            <div class="photo">${moldSvg}</div></div>
+          <div class="msg out r" data-t="2600"><div class="who"><b>SinoSource</b><span class="channel">автоответ</span><span>09:14</span></div>
+            Заявку получили, номер 2611-047. В течение 30 минут пришлём уточнения и стоимость подбора.</div>
+        </div>`
+    },
+    {
+      stage: 1, title: 'Карточка заявки собрана автоматически', agent: 'Intake + Analyst',
+      narr: 'Intake-агент разбирает сообщение и фото в карточку заявки: товар, количество, брендинг, сроки и код ТН ВЭД. Чего не хватает, Analyst-агент спрашивает у клиента сам: размер ячейки, цвет и упаковку.',
+      log: [['ai', 'Intake', 'Извлечено 7 полей · 3,1 с'], ['ai', 'Analyst', 'Код ТН ВЭД 3924 10 000 0 · уверенность 0,86'], ['ai', 'Analyst', '3 вопроса клиенту отправлены']],
+      html: () => `
+        <div class="grid2">
+          <div class="card"><div class="lbl" style="margin-bottom:10px">Карточка</div>
+            <div class="fields">
+              <div class="field r" data-t="200"><span class="lbl">Товар</span><span class="v">Силиконовая форма для кексов, 12 ячеек</span></div>
+              <div class="field r" data-t="700"><span class="lbl">Количество</span><span class="v mono">5 000 шт</span></div>
+              <div class="field r" data-t="1200"><span class="lbl">Брендинг</span><span class="v">Логотип, тиснение</span></div>
+              <div class="field r" data-t="1700"><span class="lbl">Доставка</span><span class="v">Алматы, до 01.03.2027</span></div>
+              <div class="field r" data-t="2200"><span class="lbl">Код ТН ВЭД</span><span class="v mono">3924 10 000 0</span></div>
+              <div class="field warn r" data-t="2700"><span class="lbl">Требует проверки</span><span class="v">Пищевой силикон: LFGB или FDA</span></div>
+            </div>
+          </div>
+          <div class="card"><div class="lbl" style="margin-bottom:10px">Analyst спрашивает клиента</div>
+            <ul class="qlist">
+              <li class="r" data-t="3400">Какой диаметр ячейки: 5 или 7 см?</li>
+              <li class="r" data-t="3900">Цвет: один или ассорти?</li>
+              <li class="r" data-t="4400">Упаковка: индивидуальная коробка с логотипом?</li>
+            </ul>
+            <div class="msg in r" data-t="6400" style="margin-top:14px"><div class="who"><b>Айгерим</b><span>09:31</span></div>7 см, красный и серый, коробка не нужна.</div>
+          </div>
+        </div>`
+    },
+    {
+      stage: 2, title: 'Оферта клиенту в его валюте', agent: 'Pricing · менеджер утверждает',
+      narr: 'Pricing-агент предлагает тариф «Полный сорсинг» и пересчитывает цену по курсу Нацбанка: двести тридцать четыре тысячи тенге. Менеджер утверждает оферту одной кнопкой, клиент оплачивает, и только после этого запускается поиск.',
+      log: [['ai', 'Pricing', 'Тариф «Полный сорсинг» · 450 $'], ['ai', 'FX', 'Курс НБ РК зафиксирован на 3 дня'], ['hu', 'Менеджер', 'Оферта утверждена'], ['hu', 'Клиент', 'Оплата 234 000 ₸ получена']],
+      html: () => `
+        <div class="grid2">
+          <div class="card offer r" data-t="200">
+            <span class="lbl">Полный сорсинг</span>
+            <div class="price-big" id="price">234 000 ₸</div>
+            <div class="cur" role="group" aria-label="Валюта">
+              <button type="button" data-c="KZT" aria-pressed="true">₸</button><button type="button" data-c="RUB" aria-pressed="false">₽</button><button type="button" data-c="CNY" aria-pressed="false">¥</button><button type="button" data-c="USD" aria-pressed="false">$</button>
+            </div>
+            <div class="rows">
+              <div class="row"><span>5–10 заводов, RFQ на 中文 и EN</span><span>✓</span></div>
+              <div class="row"><span>Переговоры о цене и образцах</span><span>✓</span></div>
+              <div class="row"><span>Проверка: фабрика или посредник</span><span>✓</span></div>
+              <div class="row"><span>Сравнение и КП, срок</span><span class="mono">3 рабочих дня</span></div>
+            </div>
+          </div>
+          <div class="card" style="display:flex;flex-direction:column;gap:14px">
+            <span class="lbl">Решение человека</span>
+            <div class="r" data-t="5200"><button class="approve" type="button" id="appr">Утвердить и отправить оферту</button></div>
+            <div class="r" data-t="8200"><span class="paid">✓ Оплачено 234 000 ₸ · 09:52</span></div>
+            <p class="r" data-t="8800" style="margin:0;color:var(--muted);font-size:13.5px">Курс 1 $ = 520 ₸, плюс 2% на конвертацию, зафиксирован до 30.11. Поиск запустился автоматически после оплаты.</p>
+          </div>
+        </div>`,
+      run: (stage, at) => {
+        const order = ['KZT', 'RUB', 'CNY', 'USD', 'KZT'];
+        order.forEach((c, i) => at(1200 + i * 900, () => setCur(stage, c)));
+        at(6600, () => { const b = stage.querySelector('#appr'); if (b) { b.classList.add('ok'); b.textContent = '✓ Утвердила: Дана, менеджер'; } });
+      }
+    },
+    {
+      stage: 3, title: 'Поиск на трёх площадках параллельно', agent: 'Search',
+      narr: 'Search-агент ищет параллельно: на 1688 через официальный API и по фото, а по Alibaba и Made-in-China через данные по договору. Каждый кандидат получает оценку: фабрика или посредник, возраст компании, опыт экспорта, цена. Посредники уходят вниз списка.',
+      log: [['ai', 'Search', '1688 API: 214 товаров, поиск по фото: 38'], ['ai', 'Search', 'Alibaba / MIC: 61 поставщик'], ['ai', 'Search', 'Отобрано 10 кандидатов, 4 посредника понижены']],
+      html: () => {
+        const col = (name, cnt, hits, t0) => `<div class="src"><div class="src-h r" data-t="${t0}"><b>${name}</b><span class="badge">${cnt}</span></div>` +
+          hits.map((h, i) => `<div class="hit r ${h.low ? 'low' : ''}" data-t="${t0 + 600 + i * 700}"><div class="t ${h.zh ? 'zh' : ''}">${h.t}</div><div class="m"><span class="mono">${h.p}</span><span>${h.c}</span><span class="${h.low ? 'tag-t' : 'tag-f'}">${h.low ? 'Посредник' : 'Фабрика'}</span></div><div class="score"><i><s style="--w:${h.s}%"></s></i><span>${h.s}</span></div></div>`).join('') + '</div>';
+        return `<div class="grid3">
+          ${col('1688.com', 'API + фото', [{ t: '12连硅胶蛋糕模 食品级', p: '¥2,9–4,1', c: 'Дунгуань · 12 лет', s: 92, zh: 1 }, { t: '硅胶马芬模具 可定制logo', p: '¥3,4–3,9', c: 'Нинбо · 7 лет', s: 84, zh: 1 }, { t: '蛋糕模 批发', p: '¥2,6', c: 'Иу · 3 года', s: 58, zh: 1, low: 1 }], 200)}
+          ${col('Alibaba.com', 'данные', [{ t: 'Silicone Muffin Pan 12 Cups', p: '$0,52–0,78', c: 'Нинбо · экспорт 40%', s: 86 }, { t: 'Custom Logo Cake Mold', p: '$0,48', c: 'Шэньчжэнь · 2 года', s: 55, low: 1 }], 900)}
+          ${col('Made-in-China', 'данные + RFQ', [{ t: 'Food Grade Silicone Mold', p: '$0,60–0,95', c: 'Гуандун · аудит', s: 81 }, { t: 'Baking Mold 12 Cavity', p: '$0,70', c: 'Сямэнь · 9 лет', s: 77 }], 1600)}
+        </div>`;
+      }
+    },
+    {
+      stage: 4, title: 'Запрос котировки на китайском и английском', agent: 'Writer',
+      narr: 'Writer-агент составляет запрос котировки на китайском и английском, с конкретными вопросами: цена с логотипом, минимальная партия, образцы, сроки и сертификаты пищевого силикона. Запрос уходит шести заводам в Ви-Ком и четырём по почте.',
+      log: [['ai', 'Writer', 'RFQ: 中文 + English, глоссарий «силикон»'], ['hu', 'Оператор', 'Отправлено: WeCom × 6, почта × 4']],
+      html: () => `
+        <div class="grid2">
+          <div class="card"><div class="lbl" style="margin-bottom:8px">中文 · для 1688 и WeCom</div><div class="rfq zh" id="zh"></div></div>
+          <div class="card"><div class="lbl" style="margin-bottom:8px">English · для Alibaba и почты</div><div class="rfq" id="en"></div></div>
+        </div>
+        <div class="sendto r" data-t="9000"><span class="badge">WeCom · 6 заводов</span><span class="badge">Почта · 4 завода</span><span class="badge">MIC Sourcing Request</span></div>`,
+      run: (stage, at, instant) => {
+        typeInto(stage.querySelector('#zh'), rfqZh, 300, 5200, at, instant);
+        typeInto(stage.querySelector('#en'), rfqEn, 900, 7600, at, instant);
+      }
+    },
+    {
+      stage: 5, title: 'Ответ завода разобран в котировку', agent: 'Liaison · оператор отправляет',
+      narr: 'Через сорок минут отвечает менеджер завода из Дунгуаня. Liaison-агент переводит ответ и извлекает цифры в котировку, каждая со ссылкой на сообщение. Для торга он готовит черновик на китайском, а оператор отправляет его сам.',
+      log: [['ai', 'Liaison', 'Ответ: Поставщик A, WeCom'], ['ai', 'Liaison', 'Извлечено 5 полей, ссылка на сообщение'], ['hu', 'Оператор', 'Черновик торга одобрен'], ['ai', 'Liaison', 'Новая цена ¥3,30 подтверждена']],
+      html: () => `
+        <div class="chat" style="max-width:760px">
+          <div class="msg in r" data-t="200"><div class="who"><b>王经理 · Поставщик A, Дунгуань</b><span class="channel">WeCom</span><span>11:03</span></div>
+            <span class="zh">您好！12连硅胶蛋糕模，含logo单价 ¥3.60，起订量 1000 个。打样 ¥200，7 天。大货 20 天。有 LFGB 证书。</span>
+            <div class="tr">Перевод: цена с логотипом ¥3,60, минимум 1000 шт. Образец ¥200, 7 дней. Партия 20 дней. Сертификат LFGB есть.</div>
+            <div class="ex r" data-t="2400"><span>цена ¥3,60</span><span>MOQ 1 000</span><span>образец ¥200 / 7 дн.</span><span>срок 20 дн.</span><span>LFGB ✓</span></div>
+          </div>
+          <div class="msg out r" data-t="5200"><div class="who"><b>Черновик Liaison</b><span class="channel">ждёт оператора</span></div>
+            <span class="zh">感谢报价！数量 5000 个，单价能否做到 ¥3.30？如可以，我们本周安排打样。</span>
+            <div class="tr">Спасибо! При 5000 шт сможете дать ¥3,30? Если да, на этой неделе заказываем образец.</div></div>
+          <div class="msg in r" data-t="9000"><div class="who"><b>王经理</b><span class="channel">WeCom</span><span>11:26</span></div>
+            <span class="zh">可以，5000 个 ¥3.30。</span><div class="tr">Да, при 5000 шт ¥3,30.</div></div>
+        </div>`
+    },
+    {
+      stage: 7, title: 'Сравнение котировок и КП клиенту', agent: 'Verifier + Reporter · менеджер выбирает',
+      narr: 'Reporter-агент сводит котировки в таблицу и считает цену в тенге. Verifier отмечает, кто фабрика, а кто посредник. Менеджер выбирает поставщика, и коммерческое предложение уходит клиенту в Телеграм. Контакты завода откроются после оплаты следующего этапа.',
+      log: [['ai', 'Verifier', 'A, B — фабрики; C — торговая компания'], ['ai', 'Reporter', 'Сравнение 3 котировок, цена в ₸'], ['hu', 'Менеджер', 'Выбран поставщик A'], ['ai', 'Telegram', 'КП отправлено клиенту, PDF']],
+      html: () => {
+        const k = FX.KZT / FX.CNY;
+        const row = (cls, n, type, cny, moq, lt, cert, s, t) => `<tr class="r ${cls}" data-t="${t}"><td><b>${n}</b>${cls ? ' <span class="pick">рекомендовано</span>' : ''}</td><td>${type}</td><td class="n">¥${cny.toFixed(2).replace('.', ',')}</td><td class="n">${fmt(cny * k)} ₸</td><td class="n">${fmt(cny * k * 5000)} ₸</td><td class="n">${moq}</td><td class="n">${lt}</td><td>${cert}</td><td class="n">${s}</td></tr>`;
+        return `<div class="card tbl-wrap"><table>
+          <thead><tr><th>Поставщик</th><th>Тип</th><th class="n">Цена</th><th class="n">За шт</th><th class="n">5 000 шт</th><th class="n">MOQ</th><th class="n">Срок</th><th>Сертиф.</th><th class="n">Оценка</th></tr></thead>
+          <tbody>
+            ${row('best', 'A · Дунгуань', 'Фабрика', 3.30, '1 000', '20 дн.', 'LFGB', 92, 300)}
+            ${row('', 'B · Нинбо', 'Фабрика', 3.72, '3 000', '25 дн.', 'LFGB, FDA', 86, 900)}
+            ${row('', 'C · Иу', 'Посредник', 3.10, '500', '15 дн.', 'нет', 61, 1500)}
+          </tbody></table>
+          <p style="margin:10px 0 0;color:var(--muted);font-size:13px">Цена EXW, без логистики и растаможки. Курс 1 ¥ = ${(k).toFixed(1).replace('.', ',')} ₸.</p></div>
+        <div class="chat r" data-t="6800" style="margin-top:16px"><div class="msg out"><div class="who"><b>SinoSource → Айгерим</b><span class="channel">Telegram</span><span>14:40</span></div>
+          Коммерческое предложение по заявке 2611-047 готово: 3 проверенных завода, рекомендуем фабрику в Дунгуане, ${fmt(3.30 * k)} ₸ за шт с логотипом. PDF во вложении.</div></div>`;
+      }
+    },
+    {
+      stage: 8, title: 'Итог по заявке', agent: 'Журнал · себестоимость',
+      narr: 'Итог: два часа активной работы оператора вместо шести, себестоимость заявки около двадцати долларов. Каждое действие ИИ записано в журнал, и любую цифру можно проверить по источнику. Это демо-данные, на пилоте их заменят реальные замеры.',
+      log: [['ai', 'Учёт', 'ИИ: 3,90 $ · данные: 2,70 $'], ['ai', 'Учёт', 'Оператор: 92 мин'], ['hu', 'Менеджер', 'Заявка переведена в «Образцы»']],
+      html: () => `
+        <div class="kpis">
+          <div class="kpi r" data-t="200"><span class="lbl">Активная работа</span><span class="big">2 ч 10 мин</span><span class="was">было около 6 ч</span></div>
+          <div class="kpi r" data-t="900"><span class="lbl">Себестоимость</span><span class="big">19,4 $</span><span class="was">при цене услуги 450 $</span></div>
+          <div class="kpi r" data-t="1600"><span class="lbl">До первой подборки</span><span class="big">1 ч 48 мин</span><span class="was">с момента оплаты</span></div>
+        </div>
+        <div class="card r" data-t="2600" style="margin-top:16px"><div class="lbl" style="margin-bottom:8px">Откуда цифра «¥3,30»</div>
+          <div class="rows">
+            <div class="row"><span>Источник</span><span>WeCom, 王经理, 11:26, сообщение № 7</span></div>
+            <div class="row"><span>Извлёк</span><span>Liaison-агент, уверенность 0,97</span></div>
+            <div class="row"><span>Проверил</span><span>Лю Вэй, оператор, 11:28</span></div>
+          </div></div>`
+    }
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const stageEl = $('stage'), logEl = $('log'), stepper = $('stepper'), capt = $('capt'), capm = $('capm'), dots = $('dots');
+  const playBtn = $('play'), muteBtn = $('mute');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let idx = 0, playing = false, muted = false, timers = [], token = 0, ruVoice = null;
+  const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
+
+  function pickVoice() {
+    if (!synth) return;
+    const vs = synth.getVoices() || [];
+    ruVoice = vs.find(v => /^ru/i.test(v.lang) && /google|milena|yuri|irina|svetlana|dariya/i.test(v.name)) || vs.find(v => /^ru/i.test(v.lang)) || null;
+  }
+  if (synth) { pickVoice(); try { synth.addEventListener('voiceschanged', pickVoice); } catch (e) { synth.onvoiceschanged = pickVoice; } }
+
+  STAGES.forEach((s) => { const d = document.createElement('div'); d.className = 'st'; d.innerHTML = '<i></i><span>' + s + '</span>'; stepper.appendChild(d); });
+  scenes.forEach((s, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', 'Сцена ' + (i + 1) + ': ' + s.title);
+    b.addEventListener('click', () => { go(i, playing); }); dots.appendChild(b);
+  });
+
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  function at(ms, fn) { const t = token; timers.push(setTimeout(() => { if (t === token) fn(); }, ms)); }
+
+  function setCur(stage, c) {
+    const p = stage.querySelector('#price'); if (!p) return;
+    p.textContent = fmt(450 * FX[c]) + ' ' + SYM[c];
+    stage.querySelectorAll('.cur button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === c)));
+  }
+
+  function typeInto(el, text, start, dur, atFn, instant) {
+    if (!el) return;
+    if (instant) { el.textContent = text; return; }
+    el.textContent = ''; el.classList.add('caret');
+    const n = text.length, step = Math.max(12, dur / n);
+    let i = 0;
+    atFn(start, function tick() {
+      i = Math.min(n, i + 1 + Math.floor(Math.random() * 2));
+      el.textContent = text.slice(0, i);
+      if (i < n) atFn(step, tick); else el.classList.remove('caret');
+    });
+  }
+
+  function addLog(kind, who, text) {
+    const d = document.createElement('div'); d.className = 'ev ' + kind;
+    const now = new Date();
+    d.innerHTML = '<b>' + who + '</b>' + text;
+    logEl.insertBefore(d, logEl.children[1] || null);
+  }
+
+  function render(i, animate, withLog = true) {
+    clearTimers(); token++;
+    const s = scenes[i];
+    stageEl.innerHTML = '<div class="scene-h"><h1>' + s.title + '</h1><span class="agent-tag">' + s.agent + '</span></div>' + s.html();
+    stageEl.scrollTop = 0;
+    [...stepper.children].forEach((el, k) => { el.className = 'st' + (k < s.stage ? ' done' : k === s.stage ? ' now' : ''); });
+    [...dots.children].forEach((b, k) => b.setAttribute('aria-current', String(k === i)));
+    capm.textContent = 'Сцена ' + (i + 1) + ' из ' + scenes.length + ' · ' + STAGES[s.stage];
+    capt.textContent = s.narr;
+    stageEl.querySelectorAll('.cur button').forEach(b => b.addEventListener('click', () => setCur(stageEl, b.dataset.c)));
+
+    const reveals = [...stageEl.querySelectorAll('.r')];
+    const instant = !animate || reduce;
+    let last = 0;
+    if (instant) {
+      reveals.forEach(el => el.classList.add('on'));
+      if (s.run) s.run(stageEl, (ms, fn) => fn(), true);
+      if (s.stage === 2) { const b = stageEl.querySelector('#appr'); if (b) { b.classList.add('ok'); b.textContent = '✓ Утвердила: Дана, менеджер'; } }
+      if (withLog) s.log.forEach(l => addLog(l[0], l[1], l[2]));
+    } else {
+      reveals.forEach(el => { const t = +el.dataset.t || 0; last = Math.max(last, t); at(t, () => el.classList.add('on')); });
+      if (s.run) s.run(stageEl, at, false);
+      s.log.forEach((l, k) => at(600 + k * 1800, () => addLog(l[0], l[1], l[2])));
+    }
+    return Math.max(last + 1200, s.log.length * 1800 + 800);
+  }
+
+  function speak(text, onend) {
+    if (!synth || muted) { onend(false); return; }
+    try {
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ru-RU'; if (ruVoice) u.voice = ruVoice; u.rate = 1.02; u.pitch = 1;
+      let done = false; const fin = () => { if (!done) { done = true; onend(true); } };
+      u.onend = fin; u.onerror = () => { if (!done) { done = true; onend(false); } };
+      synth.speak(u);
+    } catch (e) { onend(false); }
+  }
+
+  function go(i, autoplay) {
+    idx = (i + scenes.length) % scenes.length;
+    if (synth) synth.cancel();
+    const visualMs = render(idx, autoplay);
+    if (!autoplay) return;
+    const myTok = token, started = Date.now();
+    let visualDone = false, speechDone = false;
+    const advance = () => {
+      if (myTok !== token || !playing) return;
+      if (!(visualDone && speechDone)) return;
+      if (idx === scenes.length - 1) { setPlaying(false); return; }
+      at(1400, () => go(idx + 1, true));
+    };
+    at(visualMs, () => { visualDone = true; advance(); });
+    const readMs = Math.max(6000, scenes[idx].narr.length * 62);
+    speak(scenes[idx].narr, (ok) => {
+      if (myTok !== token) return;
+      const wait = ok ? 0 : Math.max(0, readMs - (Date.now() - started));
+      setTimeout(() => { if (myTok === token) { speechDone = true; advance(); } }, wait);
+    });
+  }
+
+  function setPlaying(p) {
+    playing = p;
+    playBtn.textContent = p ? '❚❚ Пауза' : (idx === scenes.length - 1 ? '↻ Сначала' : '▶ Смотреть');
+    playBtn.setAttribute('aria-label', p ? 'Пауза' : 'Запустить демо');
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (playing) { setPlaying(false); clearTimers(); token++; if (synth) synth.cancel(); render(idx, false, false); return; }
+    const restart = !playBtn.dataset.started || playBtn.textContent.indexOf('Сначала') > -1;
+    if (restart) { idx = 0; [...logEl.querySelectorAll('.ev')].forEach(e => e.remove()); }
+    playBtn.dataset.started = '1';
+    setPlaying(true); go(idx, true);
+  });
+  $('next').addEventListener('click', () => go(idx + 1, playing));
+  $('prev').addEventListener('click', () => go(idx - 1, playing));
+  muteBtn.addEventListener('click', () => {
+    muted = !muted; muteBtn.setAttribute('aria-pressed', String(muted));
+    muteBtn.setAttribute('aria-label', muted ? 'Включить звук' : 'Выключить звук');
+    $('wave').style.opacity = muted ? '0.2' : '1';
+    if (muted && synth) synth.cancel();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest && e.target.closest('button') && (e.key === ' ' || e.key === 'Enter')) return;
+    if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
+    if (e.key === 'ArrowRight') go(idx + 1, playing);
+    if (e.key === 'ArrowLeft') go(idx - 1, playing);
+  });
+
+  if (!synth) { muteBtn.disabled = true; muteBtn.title = 'Браузер не поддерживает озвучку, показаны субтитры'; }
+
+  // At rest: show the intake card fully, with its log, so the first frame shows what the tool does.
+  idx = 1; render(1, false); setPlaying(false);
+})();
+</script>

@@ -1,0 +1,49 @@
+<section id="arch" class="s-light">
+<div class="head">
+<p class="eyebrow">Архитектура</p>
+<h2 class="title">Слои системы</h2>
+</div>
+<div class="arch">
+<div class="band band-top in" style="--i:0"><p class="lbl">КАБИНЕТ ОПЕРАТОРА · Next.js</p><p class="small">Очередь заявок · карточка · утверждение · инбокс · КП</p></div>
+<div class="lanes">
+<div class="lane in" style="--i:1">
+<p class="lane-t">Каналы</p>
+<p class="chip">Telegram Bot API</p>
+<p class="chip">WhatsApp Cloud API</p>
+<p class="chip">WeCom 企业微信</p>
+<p class="chip">Почта IMAP/SMTP</p>
+<p class="chip">Веб-форма и Excel</p>
+</div>
+<x-connector class="arrow" head="end"></x-connector>
+<div class="lane in" style="--i:2">
+<p class="lane-t">Ядро</p>
+<p class="chip chip-core">Единый инбокс</p>
+<p class="chip chip-core">Оркестратор заявок</p>
+<p class="chip chip-core">Очередь задач</p>
+<p class="chip chip-core">Правила и SLA</p>
+<p class="chip chip-core">Биллинг и курсы</p>
+</div>
+<x-connector class="arrow" head="end"></x-connector>
+<div class="lane in" style="--i:3">
+<p class="lane-t">Агенты</p>
+<p class="chip">Intake · Analyst</p>
+<p class="chip">Pricing · Search</p>
+<p class="chip">Writer · Liaison</p>
+<p class="chip">Verifier · Reporter</p>
+<p class="chip">Claude API, tool use</p>
+</div>
+<x-connector class="arrow" head="end"></x-connector>
+<div class="lane in" style="--i:4">
+<p class="lane-t">Источники</p>
+<p class="chip">1688 Open Platform</p>
+<p class="chip">Данные по договору</p>
+<p class="chip">Помощник в браузере</p>
+<p class="chip">RFQ на площадках</p>
+<p class="chip">Курсы ЦБ РФ, НБ РК</p>
+</div>
+</div>
+<div class="band band-bot in" style="--i:5"><p class="lbl">ДАННЫЕ</p><p class="small">Postgres + pgvector · файлы в S3 · журнал аудита каждого действия ИИ</p></div>
+</div>
+<div class="foot"><p class="foot-l">SinoSource OS · концепт v0.1</p><div class="pg"></div></div>
+<aside>Ключевая идея — журнал аудита. Каждое действие агента (запрос, ответ модели, вызов инструмента, итоговые цифры) пишется в журнал. Менеджер видит, откуда взялась каждая цена. Это же и обучающая выборка для улучшения промптов.</aside>
+</section>
