@@ -32,7 +32,7 @@ const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exitCode
     await p.waitForTimeout(80);
   }
   await p.waitForSelector('.result', { timeout: 8000 }).catch(() => null);
-  const zres = await p.$eval('.result', (e) => e.innerText.replace(/\s+/g, ' ').slice(0, 160)).catch(() => 'NO RESULT');
+  const zres = await p.$eval('.result', (e) => e.innerText.replace(/\s+/g, ' ').slice(0, 400)).catch(() => 'NO RESULT');
   assert(zres.includes('Жалқаубекті ұстадың') && zres.includes('10/12') && zres.includes('+15'), 'blitz: 10/12, caught, daily bonus: ' + zres);
   await p.click('#out'); await p.waitForTimeout(300); await games();
   assert(!!(await p.$('.zh-banner.done')), 'the banner shows the event is done today');

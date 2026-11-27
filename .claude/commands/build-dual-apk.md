@@ -6,8 +6,9 @@ argument-hint: [prod|test|both]
 
 1. **Секреты:** `tools/scan-secrets.sh --all` (gitleaks, если установлен, иначе встроенные шаблоны). Найден секрет — стоп.
 2. **Тесты:** `npm test`; `cd suite && npx vitest run && npm run build && npm run budget`; сквозные:
-   `node tests/phrasebook.e2e.js`, `node tests/voice-roles.e2e.js`, `node tests/voice-packs.e2e.mjs`,
-   `node tests/voice-lab.e2e.mjs`, `cd suite && npm run e2e`. Что-то красное — стоп и отчёт.
+   **все** наборы основной игры — `for t in tests/*.e2e.js tests/*.e2e.mjs; do node "$t" || echo "RED $t"; done`
+   (12 наборов; до 27.11 здесь был список из четырёх, и `sprint4` перед 3.10 не запускался), и `cd suite && npm run e2e`.
+   Что-то красное — стоп и отчёт.
 3. **Сборка:** prod — `./build.sh`; test — `TEST=1 ./build.sh`. Проверь в APK: нет `test-mode.js` в боевом, нет `voice-lab`
    ни в одном, нет `verify.csv` / `skip.json` / `heroes-fs.json`, ключ не встречается (`unzip -p … | grep`).
 4. **Отчёт:** версия, размер обоих APK (бюджет ≤ 75 МБ), отправь файлы владельцу, выведи чек-лист:
