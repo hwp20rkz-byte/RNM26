@@ -1,0 +1,9 @@
+# Версии проверены в smoke-тесте tests/test_graph.py (MOCK_LLM=1)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+langgraph>=1.0
+langgraph-checkpoint-postgres>=2.0   # PostgresSaver для чекпойнтов графа в продакшене
+anthropic>=2.14
+httpx>=0.27
+pydantic>=2.7
+pytest>=8

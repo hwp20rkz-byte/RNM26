@@ -17,6 +17,7 @@ const eslintConfig = defineConfig([
     "lstk-business-plan/**",
     "lstk-configurator/**",
     "screenprint/**",
+    "sinoflow/**",
   ]),
 ]);
 

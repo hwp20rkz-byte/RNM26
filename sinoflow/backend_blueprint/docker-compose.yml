@@ -1,0 +1,40 @@
+# SinoFlow backend: API + PostgreSQL + Valkey (совместимая с Redis, BSD-3) + Crawl4AI.
+# Chatwoot и Twenty CRM разворачиваются их официальными compose-файлами и подключаются вебхуками/API.
+services:
+  api:
+    build: .
+    env_file: .env
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      valkey: { condition: service_started }
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sinoflow
+      POSTGRES_PASSWORD: sinoflow   # заменить секретом в продакшене
+      POSTGRES_DB: sinoflow
+    volumes:
+      - pg:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sinoflow"]
+      interval: 5s
+      retries: 10
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes: [valkey:/data]
+
+  crawl4ai:
+    # Только для собственных сайтов заводов (robots.txt соблюдается). Тег закрепить перед продакшеном.
+    image: unclecode/crawl4ai:latest
+    shm_size: 1g
+    ports: ["11235:11235"]
+
+volumes:
+  pg: {}
+  valkey: {}

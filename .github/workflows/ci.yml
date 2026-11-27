@@ -102,3 +102,29 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  sinoflow:
+    name: SinoFlow AI (Next.js + backend blueprint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sinoflow/package-lock.json
+      - run: npm ci
+        working-directory: sinoflow
+      - run: npm run typecheck
+        working-directory: sinoflow
+      - run: npm test
+        working-directory: sinoflow
+      - run: npm run build
+        working-directory: sinoflow
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt && python -m pytest -q tests
+        working-directory: sinoflow/backend_blueprint
+        env:
+          MOCK_LLM: "1"

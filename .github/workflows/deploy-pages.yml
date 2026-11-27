@@ -108,6 +108,25 @@ jobs:
           mkdir -p out/screenprint
           cp -r screenprint/out/. out/screenprint/
 
+      # SinoFlow AI — Next.js static export (own package.json); GITHUB_ACTIONS makes
+      # next.config.ts set basePath /RNM26/sinoflow.
+      - name: Install SinoFlow dependencies
+        working-directory: sinoflow
+        run: npm ci
+
+      - name: Test SinoFlow currency engine and workflow
+        working-directory: sinoflow
+        run: npm test
+
+      - name: Build SinoFlow
+        working-directory: sinoflow
+        run: npm run build
+
+      - name: Merge SinoFlow build into Pages output
+        run: |
+          mkdir -p out/sinoflow
+          cp -r sinoflow/out/. out/sinoflow/
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true
