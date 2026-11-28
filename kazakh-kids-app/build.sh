@@ -93,7 +93,7 @@ fi
 
 # STAGE_ONLY=1 → stop here and print what the APK would carry (measures a build without making or signing an APK)
 if [ "${STAGE_ONLY:-0}" = 1 ]; then
-  echo "staged assets: $(du -sb "$BUILD/assets" | cut -f1) bytes"; du -sb "$BUILD"/assets/audio* "$BUILD/assets/suite" 2>/dev/null | sort -rn
+  echo "staged assets: $(du -sb "$BUILD/assets" | cut -f1) bytes (the APK adds ~2–3 MB of code and signature)"; du -sb "$BUILD"/assets/audio* "$BUILD/assets/suite" 2>/dev/null | sort -rn
   exit 0
 fi
 
@@ -123,3 +123,7 @@ apksigner sign --ks "$KEYSTORE" --ks-pass "pass:$KS_PASS" --ks-key-alias qazaqsh
   --min-sdk-version 21 --out "$OUT" "$BUILD/aligned.apk"
 apksigner verify --verbose "$OUT" | head -6
 ls -la "$OUT"
+# Size in the units the phone and Google Play show (decimal MB) and in MiB; the budget (owner's master plan: «strictly up to
+# 75 MB») is read in decimal MB since 28.11 — until then reports gave MiB, which hid that 3.10 was already 75.2 MB.
+BYTES=$(stat -c %s "$OUT"); APK_BUDGET_MB=${APK_BUDGET_MB:-75}
+awk -v b="$BYTES" -v lim="$APK_BUDGET_MB" 'BEGIN { printf "APK size: %.1f MB (decimal) = %.1f MiB; budget %s MB%s\n", b/1e6, b/1048576, lim, (b > lim*1e6 ? " — OVER BUDGET" : "") }'
